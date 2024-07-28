@@ -1,5 +1,11 @@
 ## 深度学习
 
+### NumCPP 依赖 boost
+```shell
+sudo apt update
+sudo apt install libboost-all-dev -y
+```
+
 ### NVIDIA 显卡驱动
 
 法一: 添加新 nvidia 官方驱动源
