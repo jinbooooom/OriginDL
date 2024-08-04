@@ -8,6 +8,7 @@ Variable Function::operator()(const Variable &input)
     auto x      = input.data;
     auto y      = this->Forward(x);
     auto output = Variable(y);
+	this->input = std::make_shared<Variable>(input);
     return output;
 }
 
@@ -16,9 +17,23 @@ NdArray Square::Forward(const NdArray &x)
     return nc::power(x, 2);
 }
 
+NdArray Square::Backward(const NdArray &gy)
+{
+    auto x  = this->input->data;
+    auto gx = 2.0 * x * gy;
+    return gx;
+}
+
 NdArray Exp::Forward(const NdArray &x)
 {
     return nc::exp(x);
+}
+
+NdArray Exp::Backward(const NdArray &gy)
+{
+    auto x  = this->input->data;
+    auto gx = nc::exp(x) * gy;
+    return gx;
 }
 
 // 数值微分，求函数 f 在 x 处的导数
