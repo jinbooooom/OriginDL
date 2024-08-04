@@ -2,11 +2,17 @@
 
 int main()
 {
-	dl::NdArray data = { 1.0 };
-	auto x = dl::Variable(data);
-	x.Print();
+    dl::NdArray datax = {1.0};
+    auto x            = dl::Variable(datax);
+    x.Print();
 
-	return 0;
+    dl::NdArray datay = {1.0, 2.0, 3.0};
+    auto y            = dl::Variable(datay);
+    y.Print();
+
+    dl::NdArray dataz = {{1.0, 2.0, 3.0}, {4., 5., 6.}};
+    auto z            = dl::Variable(dataz);
+    z.Print();
+
+    return 0;
 }
-
-
