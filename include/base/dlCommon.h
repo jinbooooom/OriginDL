@@ -1,5 +1,5 @@
-#ifndef __DLZERO_DEFINE_H__
-#define __DLZERO_DEFINE_H__
+#ifndef __DLZERO_COMMON_H__
+#define __DLZERO_COMMON_H__
 
 #include <cmath>
 #include <functional>
@@ -18,10 +18,7 @@ namespace dl
 using data_t  = double;
 using NdArray = nc::NdArray<data_t>;
 
-static void print(const NdArray &data)
-{
-    std::cout << data << std::endl;
-}
+extern void print(const NdArray &data);
 
 }  // namespace dl
 

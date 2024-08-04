@@ -28,6 +28,8 @@ class Exp : public Function
     NdArray Forward(const NdArray &x) override;
 };
 
+extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
+
 }  // namespace dl
 
 #endif

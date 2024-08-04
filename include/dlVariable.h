@@ -1,7 +1,7 @@
 #ifndef __DLZERO_VARIABLE_H__
 #define __DLZERO_VARIABLE_H__
 
-#include "base/dlDefine.h"
+#include "base/dlCommon.h"
 
 namespace dl
 {
