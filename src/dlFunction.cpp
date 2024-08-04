@@ -6,14 +6,19 @@ namespace dl
 Variable Function::operator()(const Variable &input)
 {
     auto x      = input.data;
-    auto y      = this->forward(x);
+    auto y      = this->Forward(x);
     auto output = Variable(y);
     return output;
 }
 
-NdArray Square::forward(const NdArray &x)
+NdArray Square::Forward(const NdArray &x)
 {
     return nc::power(x, 2);
+}
+
+NdArray Exp::Forward(const NdArray &x)
+{
+    return nc::exp(x);
 }
 
 }  // namespace dl
