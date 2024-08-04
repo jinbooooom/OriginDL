@@ -6,7 +6,7 @@ int main()
     auto x            = dl::Variable(datax);
     x.Print();
 
-    dl::NdArray datay = {1.0, 2.0, 3.0};
+    dl::NdArray datay = {1.01, 2.01, 3.01};
     auto y            = dl::Variable(datay);
     y.Print();
 
