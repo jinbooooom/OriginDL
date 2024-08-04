@@ -18,6 +18,11 @@ namespace dl
 using data_t  = double;
 using NdArray = nc::NdArray<data_t>;
 
+static void print(const NdArray &data)
+{
+    std::cout << data << std::endl;
+}
+
 }  // namespace dl
 
 #endif

@@ -13,13 +13,19 @@ class Function
 
     Variable operator()(const Variable &input);
 
-    virtual NdArray forward(const NdArray &x) = 0;
+    virtual NdArray Forward(const NdArray &x) = 0;
 };
 
 class Square : public Function
 {
   public:
-    NdArray forward(const NdArray &x) override;
+    NdArray Forward(const NdArray &x) override;
+};
+
+class Exp : public Function
+{
+  public:
+    NdArray Forward(const NdArray &x) override;
 };
 
 }  // namespace dl
