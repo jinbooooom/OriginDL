@@ -1,4 +1,4 @@
-#include "variable.h"
+#include "dlVariable.h"
 
 namespace dl
 {
