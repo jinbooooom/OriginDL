@@ -9,6 +9,7 @@ class Variable
 {
   public:
     NdArray data;
+    std::shared_ptr<NdArray> grad;
 
     Variable(const NdArray &data);
 

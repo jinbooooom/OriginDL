@@ -22,7 +22,7 @@ add_definitions(-DGIT_COMMIT_SHA1="${GIT_COMMIT}")
 include_directories(3rd/numCpp)
 include_directories(include)
 
-add_compile_options(-std=c++17 -O2 -Wall)
+add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
 # 禁止一些警告
 # add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-reorder -Wno-format) 
 
