@@ -1,15 +1,17 @@
-# AI & dlZero
-[![Stargazers repo roster for @jinbooooom/ai](https://reporoster.com/stars/jinbooooom/ai)](https://github.com/jinbooooom/ai/stargazers)
-[![Forkers repo roster for @jinbooooom/ai](https://reporoster.com/forks/jinbooooom/ai)](https://github.com/jinbooooom/ai/network/members)
+# OriginAI: 从零开始构建的分布式深度学习框架
 
-## 本仓库用于记录：
+## TODO
 
-- AI 领域的基础知识
-- 从零开始写一个简单的深度学习框架 dlZero
+- [ ] numCpp
+
+- [ ] 自动求导
+- [ ] 卷积
+- [ ] 支持 GPU
+- [ ] 分布式
 
 ## build
 ```shell
 . build.sh
-# 在 build/libs 下生成 libdlzero.so
+# 在 build/libs 下生成 liboriginai.so
 # 在 build/bin/ 下生成所有的测试程序
 ```
