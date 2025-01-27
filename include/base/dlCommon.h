@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "NumCpp.hpp"
+// #include "spdlog.h"
+#include "dlLog.h"
 
 namespace dl
 {

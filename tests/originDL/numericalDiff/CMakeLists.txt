@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 3.12)
 get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 project(${BIN_PREFIX}_${PROJECT_NAME})
 
-include_directories(${DLZERO_ROOT_DIR}/include)
+include_directories(${ORIGINDL_ROOT_DIR}/include)
 
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/ SRC)
 
