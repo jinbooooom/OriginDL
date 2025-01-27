@@ -1,6 +1,6 @@
 
 cmake_minimum_required (VERSION 3.12)
-project (dlzero_tests)
+project (originDL_tests)
 
 # 在当前 CMakeLists.txt 文件中使用 file 命令查找所有子目录
 file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)

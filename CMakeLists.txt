@@ -1,7 +1,7 @@
 #minimum version required
 cmake_minimum_required (VERSION 3.12)
 #project name
-set(MY_LIB_NAME dlzero)
+set(MY_LIB_NAME origindl)
 project (${MY_LIB_NAME})
 
 set(DLZERO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
