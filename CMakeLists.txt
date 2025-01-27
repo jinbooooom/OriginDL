@@ -20,6 +20,7 @@ execute_process(
 add_definitions(-DGIT_COMMIT_SHA1="${GIT_COMMIT}")
 
 include_directories(3rd/numCpp)
+include_directories(3rd/)
 include_directories(include)
 
 add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
