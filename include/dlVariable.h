@@ -2,6 +2,7 @@
 #define __DLZERO_VARIABLE_H__
 
 #include "base/dlCommon.h"
+#include "dlFunction.h"
 
 namespace dl
 {
@@ -9,15 +10,24 @@ class Variable
 {
   public:
     NdArray data;
-    std::shared_ptr<NdArray> grad;
+
+    NdArrayPtr grad;
+
+    FunctionPtr creator;
 
     Variable(const NdArray &data);
 
     virtual ~Variable();
 
+    void SetCreator(const FunctionPtr& func);
+
+	  void Backward();
+
     void Print();
 };
 
 }  // namespace dl
+
+
 
 #endif

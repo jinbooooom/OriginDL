@@ -21,6 +21,12 @@ namespace dl
 using data_t  = double;
 using NdArray = nc::NdArray<data_t>;
 
+class Variable;
+class Function;
+using NdArrayPtr = std::shared_ptr<NdArray>;
+using FunctionPtr = std::shared_ptr<Function>;
+using VariablePtr = std::shared_ptr<Variable>;
+
 extern void print(const NdArray &data);
 
 }  // namespace dl
