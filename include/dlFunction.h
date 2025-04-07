@@ -6,19 +6,21 @@
 namespace dl
 {
 
-class Function
+class Function: public std::enable_shared_from_this<Function>
 {
   public:
     virtual ~Function() {}
 
-    Variable operator()(const Variable &input);
+    VariablePtr operator()(const VariablePtr &input);
 
     virtual NdArray Forward(const NdArray &x) = 0;
 
-	virtual NdArray Backward(const NdArray& gy) = 0;
+	  virtual NdArray Backward(const NdArray& gy) = 0;
 
-	protected:
-		std::shared_ptr<Variable> input; // 前向传播的入参
+	public:
+		VariablePtr input; // 前向传播的入参
+
+    VariablePtr output; // 前向传播的输出
 
 };
 

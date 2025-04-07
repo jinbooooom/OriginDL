@@ -3,12 +3,14 @@
 namespace dl
 {
 
-Variable Function::operator()(const Variable &input)
+VariablePtr Function::operator()(const VariablePtr &input)
 {
-    auto x      = input.data;
-    auto y      = this->Forward(x);
-    auto output = Variable(y);
-	this->input = std::make_shared<Variable>(input);
+    auto x = input->data;
+    auto y = this->Forward(x);
+    auto output = std::make_shared<Variable>(y);
+    output->SetCreator(shared_from_this());
+    this->input = input;
+    this->output = output;
     return output;
 }
 
