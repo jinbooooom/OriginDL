@@ -15,6 +15,7 @@ tmp
 t.cpp
 build
 main
+**/bin/*
 
 **/.vscode/*
 **/.vscode
