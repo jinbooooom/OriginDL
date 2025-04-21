@@ -16,7 +16,7 @@ VariablePtr Function::operator()(const VariablePtr &input)
 
 NdArray Square::Forward(const NdArray &x)
 {
-    return nc::power(x, 2);
+    return af::pow(x, 2);
 }
 
 NdArray Square::Backward(const NdArray &gy)
@@ -28,13 +28,13 @@ NdArray Square::Backward(const NdArray &gy)
 
 NdArray Exp::Forward(const NdArray &x)
 {
-    return nc::exp(x);
+    return af::exp(x);
 }
 
 NdArray Exp::Backward(const NdArray &gy)
 {
     auto x  = this->input->data;
-    auto gx = nc::exp(x) * gy;
+    auto gx = af::exp(x) * gy;
     return gx;
 }
 

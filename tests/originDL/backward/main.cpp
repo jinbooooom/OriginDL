@@ -23,12 +23,14 @@ int main()
 	auto B = FunctionPtr(new Exp());
 	auto C = FunctionPtr(new Square());
 
-	auto x = std::make_shared<Variable>(NdArray({ 0.5 }));
+	double val = 0.5;
+	auto x = std::make_shared<Variable>(af::constant(val, 1));
 	auto a = (*A)(x);
 	auto b = (*B)(a);
 	auto y = (*C)(b);
 
-	y->grad = std::make_shared<NdArray>(NdArray({ 1.0 }));
+	double grad_val = 1.0;
+	y->grad = std::make_shared<NdArray>(af::constant(grad_val, 1));
 	y->Backward();
     print(*x->grad); 
 	// std::cout << NdArrayPrinter(x->grad) << std::endl;
