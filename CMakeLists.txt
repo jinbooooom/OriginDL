@@ -19,7 +19,16 @@ execute_process(
     )
 add_definitions(-DGIT_COMMIT_SHA1="${GIT_COMMIT}")
 
-include_directories(3rd/numCpp)
+# 检查环境变量ARRAYFIRE_PATH是否存在，如果存在则使用它，否则使用默认路径
+if(DEFINED ENV{ARRAYFIRE_PATH})
+    set(ARRAYFIRE_PATH $ENV{ARRAYFIRE_PATH})
+else()
+    set(ARRAYFIRE_PATH /opt/arrayfire)
+endif()
+
+message(STATUS "Using ArrayFire path: ${ARRAYFIRE_PATH}")
+
+include_directories(${ARRAYFIRE_PATH}/include)
 include_directories(3rd/)
 include_directories(include)
 
@@ -29,9 +38,10 @@ add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
 
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/libs/)
 link_directories(${PROJECT_SOURCE_DIR}/3rd/lib)
+link_directories(${ARRAYFIRE_PATH}/lib64)
 
 add_library(${PROJECT_NAME} SHARED ${MY_LIB_SRCS})
-target_link_libraries(${PROJECT_NAME} -lpthread)
+target_link_libraries(${PROJECT_NAME} -lpthread -laf)
 
 # 开始编译可执行程序
 # 设置输出目录为 build/bin

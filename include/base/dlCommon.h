@@ -11,7 +11,7 @@
 #include <variant>
 #include <vector>
 
-#include "NumCpp.hpp"
+#include <arrayfire.h>
 // #include "spdlog.h"
 #include "dlLog.h"
 
@@ -19,7 +19,7 @@ namespace dl
 {
 
 using data_t  = double;
-using NdArray = nc::NdArray<data_t>;
+using NdArray = af::array;
 
 class Variable;
 class Function;

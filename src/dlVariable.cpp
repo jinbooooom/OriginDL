@@ -30,6 +30,6 @@ void Variable::Backward()
 }
 
 void Variable::Print(){
-    std::cout << data << std::endl;
+    af::print("", data);
 };
 }  // namespace dl
