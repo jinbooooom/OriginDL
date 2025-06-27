@@ -8,6 +8,7 @@ data/*
 **/*.out
 *.h.gch
 .specstory/**
+compile_commands.json
 
 r
 s
