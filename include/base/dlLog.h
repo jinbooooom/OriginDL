@@ -11,12 +11,12 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 
-
 class DLLog final
 {
 
-protected:
-    DLLog() {
+  protected:
+    DLLog()
+    {
         static auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         console_sink->set_level(spdlog::level::trace);
         console_sink->set_pattern("%^%W %Y-%m-%d %H:%M:%S.%e %^%L %t %P [%s:%!:%#] %v%$");
@@ -29,14 +29,12 @@ protected:
         sLogger.set_level(spdlog::level::trace);
 
         mLogger = &sLogger;
-
-
     };
     DLLog(const DLLog &) = delete;
     DLLog &operator=(const DLLog &) = delete;
     virtual ~DLLog(){};
 
-public:
+  public:
     static DLLog *GetInstance()
     {
         static DLLog instance;
@@ -46,7 +44,6 @@ public:
     // std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> console_sink;
     // std::shared_ptr<spdlog::sinks::basic_file_sink_mt> file_sink;
     spdlog::logger *mLogger;
-    
 };
 
 #define logger (DLLog::GetInstance()->mLogger)

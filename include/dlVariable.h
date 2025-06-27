@@ -1,5 +1,5 @@
-#ifndef __DLZERO_VARIABLE_H__
-#define __DLZERO_VARIABLE_H__
+#ifndef __ORIGIN_DL_VARIABLE_H__
+#define __ORIGIN_DL_VARIABLE_H__
 
 #include "base/dlCommon.h"
 #include "dlFunction.h"
@@ -19,15 +19,13 @@ class Variable
 
     virtual ~Variable();
 
-    void SetCreator(const FunctionPtr& func);
+    void SetCreator(const FunctionPtr &func);
 
-	  void Backward();
+    void Backward();
 
     void Print();
 };
 
 }  // namespace dl
-
-
 
 #endif

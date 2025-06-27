@@ -1,5 +1,5 @@
-#ifndef __DLZERO_COMMON_H__
-#define __DLZERO_COMMON_H__
+#ifndef __ORIGIN_DL_COMMON_H__
+#define __ORIGIN_DL_COMMON_H__
 
 #include <cmath>
 #include <functional>
@@ -23,7 +23,7 @@ using NdArray = af::array;
 
 class Variable;
 class Function;
-using NdArrayPtr = std::shared_ptr<NdArray>;
+using NdArrayPtr  = std::shared_ptr<NdArray>;
 using FunctionPtr = std::shared_ptr<Function>;
 using VariablePtr = std::shared_ptr<Variable>;
 

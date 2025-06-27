@@ -41,6 +41,7 @@ def format_files(directory, clang_format_file, exclude_dirs):
             end_idx = min((i + 1) * batch_size, len(files_to_format))
             batch_files = files_to_format[start_idx:end_idx]
             formatted_files = " ".join(batch_files)
+            # 如果没有 clang-format，先用 sudo apt install clang-format 安装
             os.system(f"clang-format -i -style=file {formatted_files}")
 
             progress = ((i + 1) / num_batches) * 100
