@@ -23,17 +23,17 @@ int main()
     auto B = FunctionPtr(new Exp());
     auto C = FunctionPtr(new Square());
 
+    af::dim4 dim = {2,2};
     double val = 0.5;
-    auto x     = std::make_shared<Variable>(af::constant(val, 1));
+    auto x     = std::make_shared<Variable>(af::constant(val, dim));
     auto a     = (*A)(x);
     auto b     = (*B)(a);
     auto y     = (*C)(b);
 
-    double grad_val = 1.0;
-    y->grad         = std::make_shared<NdArray>(af::constant(grad_val, 1));
+    // double grad_val = 1.0;
+    // y->grad         = std::make_shared<NdArray>(af::constant(grad_val, dim));
     y->Backward();
     print(*x->grad);
-    // std::cout << NdArrayPrinter(x->grad) << std::endl;
 
     return 0;
 }
