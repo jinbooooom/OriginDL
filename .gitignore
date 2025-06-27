@@ -7,6 +7,7 @@ data/*
 **/*.o
 **/*.out
 *.h.gch
+.specstory/**
 
 r
 s

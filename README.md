@@ -12,7 +12,7 @@
 ## build
 ```shell
 source setEnv.sh  # 设置环境变量
-./build.sh
+bash ./build.sh
 # 在 build/libs 下生成 origindl.so
 # 在 build/bin/ 下生成所有的测试程序
 ```
@@ -20,6 +20,10 @@ source setEnv.sh  # 设置环境变量
 ## ArrayFire 配置说明
 
 本项目使用 ArrayFire 库进行张量操作。以下是配置和使用 ArrayFire 的说明。
+```shell
+wget https://arrayfire.s3.amazonaws.com/3.9.0/ArrayFire-v3.9.0_Linux_x86_64.sh  
+sudo sh ArrayFire-v3.9.0_Linux_x86_64.sh  --skip-license --prefix=/opt/arrayfire 
+```
 
 ### 环境变量设置
 
