@@ -4,7 +4,7 @@ using namespace dl;
 
 int main()
 {
-    int value  = 99;
+    int value   = 99;
     size_t size = 100;
     void *p     = &size;
 
