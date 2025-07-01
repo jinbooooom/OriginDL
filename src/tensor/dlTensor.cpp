@@ -1,4 +1,4 @@
-#include "dlVariable.h"
+#include "dlTensor.h"
 
 namespace dl
 {

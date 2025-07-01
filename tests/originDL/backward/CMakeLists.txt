@@ -13,5 +13,5 @@ include_directories(${ARRAYFIRE_PATH}/include)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/ SRC)
 
 add_executable(${PROJECT_NAME} ${SRC}) 
-add_dependencies(${PROJECT_NAME} ${MY_LIB_NAME})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${MY_LIB_NAME} -laf)
+add_dependencies(${PROJECT_NAME} ${MY_LIB_NAME} dllog)
+target_link_libraries(${PROJECT_NAME} PRIVATE dllog ${MY_LIB_NAME} -laf)
