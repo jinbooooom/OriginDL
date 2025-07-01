@@ -12,7 +12,6 @@
 #include <vector>
 
 #include <arrayfire.h>
-// #include "spdlog.h"
 #include "dlLog.h"
 
 namespace dl

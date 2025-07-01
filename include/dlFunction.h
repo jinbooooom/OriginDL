@@ -1,7 +1,7 @@
 #ifndef __ORIGIN_DL_FUNCTION_H__
 #define __ORIGIN_DL_FUNCTION_H__
 
-#include "dlVariable.h"
+#include "dlTensor.h"
 
 namespace dl
 {
