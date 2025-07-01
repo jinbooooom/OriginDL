@@ -5,8 +5,13 @@
     SPDLOG_LEVEL_TRACE  // 必须定义这个宏,才能输出文件名和行号，避免 spdlog 先定义该值，所以定义放在
                         // include spd
 
+#ifndef SPDLOG_COMPILED_LIB
+#    define SPDLOG_COMPILED_LIB  // 使用预编译库，避免重复编译模板
+#endif
+
 #include "spdlog/cfg/env.h"   // support for loading levels from the environment variable
 #include "spdlog/fmt/ostr.h"  // support for user defined types
+
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
@@ -21,7 +26,7 @@ class DLLog final
         console_sink->set_level(spdlog::level::trace);
         console_sink->set_pattern("%^%W %Y-%m-%d %H:%M:%S.%e %^%L %t %P [%s:%!:%#] %v%$");
 
-        static auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("mylogs/multisink.txt", true);
+        static auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("dllog/dl.txt", true);
         file_sink->set_level(spdlog::level::trace);
         file_sink->set_pattern("%^%W %Y-%m-%d %H:%M:%S.%e %^%L %t %P [%s:%!:%#] %v%$");
 

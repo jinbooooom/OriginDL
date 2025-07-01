@@ -1,0 +1,2 @@
+该目录下的文件完全来自于 https://github.com/gabime/spdlog/tree/v1.x/src，这样可以把 spdlog 编译成静态库。
+header-only 的方式会导致编译很慢
