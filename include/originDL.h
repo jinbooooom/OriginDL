@@ -2,6 +2,6 @@
 #define __ORIGIN_DL_H__
 
 #include "dlFunction.h"
-#include "dlVariable.h"
+#include "dlTensor.h"
 
 #endif

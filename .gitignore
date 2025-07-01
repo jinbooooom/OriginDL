@@ -9,6 +9,7 @@ data/*
 *.h.gch
 .specstory/**
 compile_commands.json
+dllog/*
 
 r
 s
