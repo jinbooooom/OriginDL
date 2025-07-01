@@ -43,10 +43,23 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/libs/)
 link_directories(${PROJECT_SOURCE_DIR}/3rd/lib)
 link_directories(${ARRAYFIRE_PATH}/lib64)
 
+# 创建spdlog静态库dllog
+file(
+    GLOB LOG_LIB_SRCS
+        ${PROJECT_SOURCE_DIR}/3rd/spdlog/src/*.cpp
+)
+add_library(dllog STATIC ${LOG_LIB_SRCS})
+target_include_directories(dllog PUBLIC 3rd/)
+target_compile_definitions(dllog PUBLIC SPDLOG_COMPILED_LIB)
+
 add_library(${PROJECT_NAME} SHARED ${MY_LIB_SRCS})
-target_link_libraries(${PROJECT_NAME} -lpthread -laf)
+target_link_libraries(${PROJECT_NAME} dllog -lpthread -laf)
 
 # 开始编译可执行程序
 # 设置输出目录为 build/bin
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
+
+# 设置传递给测试子目录的变量
+set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_subdirectory(${PROJECT_SOURCE_DIR}/tests)
