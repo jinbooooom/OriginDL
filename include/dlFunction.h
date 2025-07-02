@@ -11,7 +11,7 @@ class Function : public std::enable_shared_from_this<Function>
   public:
     virtual ~Function() {}
 
-    VariablePtr operator()(const VariablePtr &input);
+    VariablePtrList operator()(const VariablePtr &input);
 
     VariablePtrList operator()(const VariablePtrList &inputs);
 
@@ -23,6 +23,8 @@ class Function : public std::enable_shared_from_this<Function>
     VariablePtrList inputs;  // 前向传播的入参，考虑多输入
 
     VariablePtrList outputs;  // 前向传播的输出，考虑多输出
+
+    int generation;  // 对于复杂的计算图，用来区分哪个先计算
 };
 
 class Square : public Function

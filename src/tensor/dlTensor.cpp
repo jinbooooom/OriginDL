@@ -2,7 +2,7 @@
 
 namespace dl
 {
-Variable::Variable(const NdArray &data) : data(data)
+Variable::Variable(const NdArray &data) : data(data), generation(0)
 {
     // double grad_val = 1.0;
     // grad            = std::make_shared<NdArray>(af::constant(grad_val, {1}));
@@ -12,7 +12,8 @@ Variable::~Variable() {}
 
 void Variable::SetCreator(const FunctionPtr &func)
 {
-    creator = func;
+    creator    = func;
+    generation = creator->generation + 1;
 }
 
 void Variable::Backward()
@@ -24,7 +25,21 @@ void Variable::Backward()
         grad            = std::make_shared<NdArray>(af::constant(grad_val, dims));
     }
 
-    auto funcs = std::vector<FunctionPtr>({this->creator});
+    auto funcs   = std::list<FunctionPtr>();
+    auto funcSet = std::set<FunctionPtr>();  // 考虑到多输出的情况下
+
+    auto AddFunc = [&funcs, &funcSet](const FunctionPtr &f) {
+        if (funcSet.find(f) == funcSet.end())
+        {
+            funcs.push_back(f);
+            funcSet.insert(f);
+            funcs.sort(
+                [](const FunctionPtr &lhs, const FunctionPtr &rhs) { return lhs->generation < rhs->generation; });
+        }
+    };
+
+    AddFunc(this->creator);
+
     while (!funcs.empty())
     {
         auto f = funcs.back();
@@ -59,7 +74,7 @@ void Variable::Backward()
 
             if (x->creator)
             {
-                funcs.push_back(x->creator);
+                AddFunc(x->creator);
             }
         }
     }

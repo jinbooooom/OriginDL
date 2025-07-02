@@ -15,6 +15,8 @@ class Variable
 
     FunctionPtr creator;
 
+    int generation;
+
     Variable(const NdArray &data);
 
     virtual ~Variable();
