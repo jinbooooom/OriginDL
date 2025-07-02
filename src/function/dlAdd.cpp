@@ -9,18 +9,22 @@ NdArrayPtrList Add::Forward(const NdArrayPtrList &xs)
     auto outputs  = NdArrayPtrList();
     NdArrayPtr x1 = xs[0];
     NdArrayPtr x2 = xs[1];
-    auto y        = *x1 + *x2;
+    auto y        = (*x1) + (*x2);
     outputs.push_back(AsDLArrayPtr(y));
 
     return outputs;
 }
 
-NdArray Add::Backward(const NdArray &gy)
+NdArrayPtrList Add::Backward(const NdArrayPtrList &gys)
 {
-    // auto x  = this->input->data;
-    // auto gx = af::exp(x) * gy;
-    // return gx;
-    return gy;
+    if (1 != gys.size())
+    {
+        logw("invalid argument size, not equal to 1");
+    }
+
+    auto gxs = NdArrayPtrList{gys[0], gys[0]};
+
+    return gxs;
 }
 
 }  // namespace dl

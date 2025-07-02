@@ -23,12 +23,14 @@ class Variable
 
     void Backward();
 
+    void ClearGrad();
+
     void Print();
 };
 
 extern VariablePtrList AsVariablePtrList(VariablePtr data);
 
-// extern NdArrayPtrList AsNdArrayPtrList(VariablePtr data);
+extern NdArrayPtrList AsDLArrayPtrList(NdArray data);
 
 extern NdArrayPtr AsDLArrayPtr(NdArray data);
 
