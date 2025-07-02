@@ -19,4 +19,11 @@ NdArrayPtrList Square::Backward(const NdArrayPtrList &gys)
     return AsDLArrayPtrList(gx);
 }
 
+VariablePtr square(const VariablePtr &x)
+{
+    auto f = std::shared_ptr<Function>(new Square());
+    auto y = (*f)(x);
+    return y;
+}
+
 }  // namespace dl

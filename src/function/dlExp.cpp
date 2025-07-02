@@ -19,4 +19,11 @@ NdArrayPtrList Exp::Backward(const NdArrayPtrList &gys)
     return AsDLArrayPtrList(gx);
 }
 
+VariablePtr exp(const VariablePtr &x)
+{
+    auto f = std::shared_ptr<Function>(new Exp());
+    auto y = (*f)(x);
+    return y;
+}
+
 }  // namespace dl
