@@ -30,10 +30,24 @@ int main()
     auto yAdd    = (*add)({y0, y1});
     logi("z = x0^2 + x1^2");
     auto sum = yAdd[0];
-    print("z:", (sum)->data); // 13
+    print("z:", (sum)->data);  // 13
     sum->Backward();
-    print("gx0:", *(x0->grad)); // 4
-    print("gx1:", *(x1->grad)); // 6
+    print("gx0:", *(x0->grad));  // 4
+    print("gx1:", *(x1->grad));  // 6
+
+    logi("Test Add with repeated values: ");
+    for (auto y : yAdd)
+    {
+        y->ClearGrad();
+    }
+    add  = FunctionPtr(new Add());
+    x    = std::make_shared<Variable>(af::constant(2, dim));
+    yAdd = (*add)({x, x});
+    logi("y = x + x");
+    sum = yAdd[0];
+    print("y:", (sum)->data);  // 4
+    sum->Backward();
+    print("gx:", *(x->grad));  // 2
 
     return 0;
 }

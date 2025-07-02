@@ -48,7 +48,15 @@ void Variable::Backward()
             auto x  = f->inputs[i];
             auto gx = gxs[i];
 
-            x->grad = gx;
+            if (!x->grad)
+            {
+                x->grad = gx;
+            }
+            else
+            {
+                x->grad = AsDLArrayPtr(*(x->grad) + (*gx));
+            }
+
             if (x->creator)
             {
                 funcs.push_back(x->creator);
