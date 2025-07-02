@@ -88,34 +88,42 @@ int main(int argc, char **argv)
 
     af::dim4 dim = {2, 2};
     double val   = 0.5;
-    auto x       = std::make_shared<Variable>(af::constant(val, dim));
-    auto a       = (*A)(x);
-    auto b       = (*B)(a);
-    auto y       = (*C)(b);
+
+    logi("Test: y = (exp(x^2))^2");
+    auto x = std::make_shared<Variable>(af::constant(val, dim));
+    auto a = (*A)(x)[0];
+    auto b = (*B)(a)[0];
+    auto y = (*C)(b)[0];
 
     y->Backward();
-    logi("y = (exp(x^2))^2");
     print("gx: ", *x->grad);  // gx = 3.2974
 
-    logi("Test Add: ");
+    logi("Test Add: y = x0^2 + x1^2");
     auto x0 = std::make_shared<Variable>(af::constant(2, dim));
     auto x1 = std::make_shared<Variable>(af::constant(3, dim));
     y       = add({square(x0), square(x1)});
-    logi("y = x0^2 + x1^2");
     print("y:", y->data);  // 13
     y->Backward();
     print("gx0:", *(x0->grad));  // 4
     print("gx1:", *(x1->grad));  // 6
 
-    logi("Test Add with repeated values: ");
+    logi("Test Add with repeated values: y = x + x");
     y->ClearGrad();
     x = x0;
     x->ClearGrad();
     y = add({x, x});
-    logi("y = x + x");
     print("y:", y->data);  // 4
     y->Backward();
     print("gx:", *(x->grad));  // 2
+
+    logi("Test Complex computation graph: y = (x^2)^2 + (x^2)^2 = 2 * x^4");
+    y->ClearGrad();
+    x      = std::make_shared<Variable>(af::constant(2, dim));
+    auto s = square(x);
+    y      = add({square(s), square(s)});
+    print("y:", y->data);  // 32
+    y->Backward();
+    print("gx:", *(x->grad));  // 64
 
     return 0;
 }
