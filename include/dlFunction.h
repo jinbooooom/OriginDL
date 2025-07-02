@@ -13,20 +13,22 @@ class Function : public std::enable_shared_from_this<Function>
 
     VariablePtr operator()(const VariablePtr &input);
 
-    virtual NdArray Forward(const NdArray &x) = 0;
+    VariablePtrList operator()(const VariablePtrList &inputs);
+
+    virtual NdArrayPtrList Forward(const NdArrayPtrList &x) = 0;
 
     virtual NdArray Backward(const NdArray &gy) = 0;
 
   public:
-    VariablePtr input;  // 前向传播的入参
+    VariablePtrList inputs;  // 前向传播的入参，考虑多输入
 
-    VariablePtr output;  // 前向传播的输出
+    VariablePtrList outputs;  // 前向传播的输出，考虑多输出
 };
 
 class Square : public Function
 {
   public:
-    NdArray Forward(const NdArray &x) override;
+    NdArrayPtrList Forward(const NdArrayPtrList &x) override;
 
     NdArray Backward(const NdArray &gy) override;
 };
@@ -34,7 +36,15 @@ class Square : public Function
 class Exp : public Function
 {
   public:
-    NdArray Forward(const NdArray &x) override;
+    NdArrayPtrList Forward(const NdArrayPtrList &x) override;
+
+    NdArray Backward(const NdArray &gy) override;
+};
+
+class Add : public Function
+{
+  public:
+    NdArrayPtrList Forward(const NdArrayPtrList &x) override;
 
     NdArray Backward(const NdArray &gy) override;
 };

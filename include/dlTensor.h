@@ -26,6 +26,16 @@ class Variable
     void Print();
 };
 
+extern VariablePtrList AsVariablePtrList(VariablePtr data);
+
+// extern NdArrayPtrList AsNdArrayPtrList(VariablePtr data);
+
+extern NdArrayPtr AsDLArrayPtr(NdArray data);
+
+extern VariablePtr AsVariablePtr(NdArrayPtr data);
+
+extern VariablePtr AsVariablePtr(Variable &data);
+
 }  // namespace dl
 
 #endif
