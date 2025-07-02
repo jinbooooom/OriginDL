@@ -15,9 +15,9 @@ class Function : public std::enable_shared_from_this<Function>
 
     VariablePtrList operator()(const VariablePtrList &inputs);
 
-    virtual NdArrayPtrList Forward(const NdArrayPtrList &x) = 0;
+    virtual NdArrayPtrList Forward(const NdArrayPtrList &xs) = 0;
 
-    virtual NdArray Backward(const NdArray &gy) = 0;
+    virtual NdArrayPtrList Backward(const NdArrayPtrList &gys) = 0;
 
   public:
     VariablePtrList inputs;  // 前向传播的入参，考虑多输入
@@ -28,25 +28,25 @@ class Function : public std::enable_shared_from_this<Function>
 class Square : public Function
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &x) override;
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
-    NdArray Backward(const NdArray &gy) override;
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
 };
 
 class Exp : public Function
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &x) override;
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
-    NdArray Backward(const NdArray &gy) override;
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
 };
 
 class Add : public Function
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &x) override;
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
-    NdArray Backward(const NdArray &gy) override;
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
 };
 
 extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);

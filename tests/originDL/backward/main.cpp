@@ -15,17 +15,25 @@ int main()
     auto b       = (*B)(a);
     auto y       = (*C)(b);
 
-    // double grad_val = 1.0;
-    // y->grad         = std::make_shared<NdArray>(af::constant(grad_val, dim));
     y->Backward();
-    print(*x->grad);
+    logi("y = (exp(x^2))^2");
+    print("gx: ", *x->grad);  // gx = 3.2974
 
-    logi("Test Add");
-    auto add  = FunctionPtr(new Add());
-    auto x0   = std::make_shared<Variable>(af::constant(2, dim));
-    auto x1   = std::make_shared<Variable>(af::constant(3, dim));
-    auto yAdd = (*add)({x0, x1});
-    print((yAdd[0])->data);
+    logi("Test Add: ");
+    auto add     = FunctionPtr(new Add());
+    auto square0 = FunctionPtr(new Square());
+    auto square1 = FunctionPtr(new Square());
+    auto x0      = std::make_shared<Variable>(af::constant(2, dim));
+    auto x1      = std::make_shared<Variable>(af::constant(3, dim));
+    auto y0      = (*square0)(x0);
+    auto y1      = (*square1)(x1);
+    auto yAdd    = (*add)({y0, y1});
+    logi("z = x0^2 + x1^2");
+    auto sum = yAdd[0];
+    print("z:", (sum)->data); // 13
+    sum->Backward();
+    print("gx0:", *(x0->grad)); // 4
+    print("gx1:", *(x1->grad)); // 6
 
     return 0;
 }

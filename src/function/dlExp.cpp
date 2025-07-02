@@ -12,11 +12,11 @@ NdArrayPtrList Exp::Forward(const NdArrayPtrList &xs)
     return outputs;
 }
 
-NdArray Exp::Backward(const NdArray &gy)
+NdArrayPtrList Exp::Backward(const NdArrayPtrList &gys)
 {
-    // auto x  = this->input->data;
-    // auto gx = af::exp(x) * gy;
-    // return gx;
+    auto x  = this->inputs[0]->data;
+    auto gx = af::exp(x) * (*gys[0]);
+    return AsDLArrayPtrList(gx);
 }
 
 }  // namespace dl
