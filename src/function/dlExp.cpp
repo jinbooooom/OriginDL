@@ -23,7 +23,7 @@ VariablePtr exp(const VariablePtr &x)
 {
     auto f = std::shared_ptr<Function>(new Exp());
     auto y = (*f)(x);
-    return y;
+    return y[0];
 }
 
 }  // namespace dl

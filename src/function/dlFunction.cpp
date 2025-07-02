@@ -3,17 +3,10 @@
 namespace dl
 {
 
-VariablePtr Function::operator()(const VariablePtr &input)
+VariablePtrList Function::operator()(const VariablePtr &input)
 {
-    auto x  = input->data;
-    auto xs = NdArrayPtrList();
-    xs.push_back(AsDLArrayPtr(x));
-    auto y      = this->Forward(xs);
-    auto output = std::make_shared<Variable>(*y[0]);
-    output->SetCreator(shared_from_this());
-    this->inputs  = AsVariablePtrList(input);
-    this->outputs = AsVariablePtrList(output);
-    return output;
+    auto outputs = (*this)(VariablePtrList({input}));
+    return outputs;
 }
 
 VariablePtrList Function::operator()(const VariablePtrList &inputs)
@@ -32,6 +25,16 @@ VariablePtrList Function::operator()(const VariablePtrList &inputs)
         o->SetCreator(shared_from_this());
         outputs.push_back(o);
     }
+
+    int maxGen = 0;
+    for (auto &e : inputs)
+    {
+        if (e->generation > maxGen)
+        {
+            maxGen = e->generation;
+        }
+    }
+    this->generation = maxGen;
 
     this->inputs  = inputs;
     this->outputs = std::move(outputs);
