@@ -27,4 +27,9 @@ NdArrayPtrList Add::Backward(const NdArrayPtrList &gys)
     return gxs;
 }
 
+VariablePtr add(const VariablePtrList &xs)
+{
+    return (*std::shared_ptr<Function>(new Add()))(xs)[0];
+}
+
 }  // namespace dl

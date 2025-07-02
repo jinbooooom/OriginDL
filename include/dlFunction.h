@@ -33,6 +33,8 @@ class Square : public Function
     NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
 };
 
+extern VariablePtr square(const VariablePtr &x);
+
 class Exp : public Function
 {
   public:
@@ -41,6 +43,8 @@ class Exp : public Function
     NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
 };
 
+extern VariablePtr exp(const VariablePtr &x);
+
 class Add : public Function
 {
   public:
@@ -48,6 +52,8 @@ class Add : public Function
 
     NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
 };
+
+extern VariablePtr add(const VariablePtrList &xs);
 
 extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
 
