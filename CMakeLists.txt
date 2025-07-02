@@ -48,7 +48,7 @@ file(
     GLOB LOG_LIB_SRCS
         ${PROJECT_SOURCE_DIR}/3rd/spdlog/src/*.cpp
 )
-add_library(dllog STATIC ${LOG_LIB_SRCS})
+add_library(dllog SHARED ${LOG_LIB_SRCS})
 target_include_directories(dllog PUBLIC 3rd/)
 target_compile_definitions(dllog PUBLIC SPDLOG_COMPILED_LIB)
 
