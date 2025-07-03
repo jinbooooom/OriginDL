@@ -98,10 +98,13 @@ int main(int argc, char **argv)
     y->Backward();
     print("gx: ", *x->grad);  // gx = 3.2974
 
-    logi("Test Add: y = x0^2 + x1^2");
+    logi("Test Add: y = (x0^2) + (x1^2)");
     auto x0 = std::make_shared<Variable>(af::constant(2, dim));
     auto x1 = std::make_shared<Variable>(af::constant(3, dim));
-    y       = add({square(x0), square(x1)});
+    // y       = add({square(x0), square(x1)});
+    // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
+    // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
+    y = ((x0) ^ 2) + ((x1) ^ 2);
     print("y:", y->data);  // 13
     y->Backward();
     print("gx0:", *(x0->grad));  // 4
@@ -111,16 +114,17 @@ int main(int argc, char **argv)
     y->ClearGrad();
     x = x0;
     x->ClearGrad();
-    y = add({x, x});
+    y = x + x;
     print("y:", y->data);  // 4
     y->Backward();
     print("gx:", *(x->grad));  // 2
 
-    logi("Test Complex computation graph: y = (x^2)^2 + (x^2)^2 = 2 * x^4");
+    logi("Test Complex computation graph: y = ((x^2)^2) + ((x^2)^2) = 2 * (x^4)");
     y->ClearGrad();
-    x      = std::make_shared<Variable>(af::constant(2, dim));
-    auto s = square(x);
-    y      = add({square(s), square(s)});
+    x = std::make_shared<Variable>(af::constant(2, dim));
+    // auto s = square(x);
+    // y      = add({square(s), square(s)});
+    y = ((x ^ 2) ^ 2) + ((x ^ 2) ^ 2);
     print("y:", y->data);  // 32
     y->Backward();
     print("gx:", *(x->grad));  // 64
