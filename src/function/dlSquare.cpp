@@ -26,4 +26,27 @@ VariablePtr square(const VariablePtr &x)
     return y[0];
 }
 
+VariablePtr operator^(const VariablePtr &lhs, int n)
+{
+    if (n < 0)
+    {
+        loge("Exponent n{} must be non-negative", n);
+    }
+
+    // 要考虑 0 的 0次方在数学上无定义的情况
+    // if (lhs.data == 0 && n == 0) {
+    //     throw std::domain_error("0^0 is undefined");
+    // }
+
+    if (2 == n)
+    {
+        return square(lhs);
+    }
+    else
+    {
+        loge("OriginDL not support n != 2");
+        exit(0);
+    }
+}
+
 }  // namespace dl
