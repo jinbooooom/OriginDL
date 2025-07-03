@@ -22,7 +22,9 @@ class Function : public std::enable_shared_from_this<Function>
   public:
     VariablePtrList inputs;  // 前向传播的入参，考虑多输入
 
-    VariablePtrList outputs;  // 前向传播的输出，考虑多输出
+    // 算子拥有 inputs，但是不拥有 outputs，outputs 是下一个计算节点的输入，被下一个计算节点所拥有，
+    // 因此 output 为 weak 指针，表示当前算子仅仅是使用 output，不拥有所有权。
+    VariableWPtrList outputs;  // 前向传播的输出，考虑多输出
 
     int generation;  // 对于复杂的计算图，用来区分哪个先计算
 };

@@ -48,7 +48,16 @@ void Variable::Backward()
         auto gys = NdArrayPtrList();
         for (const auto &o : f->outputs)
         {
-            gys.emplace_back(o->grad);
+            // 通过 lock() 升级为 shared_ptr 并检查有效性
+            if (auto oPtr = o.lock())
+            {
+                gys.emplace_back(oPtr->grad);
+            }
+            else
+            {
+                loge("backward error!, output is nullptr");
+                exit(0);
+            }
         }
         auto gxs = f->Backward(gys);
 

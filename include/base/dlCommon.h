@@ -22,11 +22,13 @@ using NdArray = af::array;
 
 class Variable;
 class Function;
-using NdArrayPtr      = std::shared_ptr<NdArray>;
-using NdArrayPtrList  = std::vector<NdArrayPtr>;
-using FunctionPtr     = std::shared_ptr<Function>;
-using VariablePtr     = std::shared_ptr<Variable>;
-using VariablePtrList = std::vector<VariablePtr>;
+using NdArrayPtr       = std::shared_ptr<NdArray>;
+using NdArrayPtrList   = std::vector<NdArrayPtr>;
+using FunctionPtr      = std::shared_ptr<Function>;
+using VariablePtr      = std::shared_ptr<Variable>;
+using VariablePtrList  = std::vector<VariablePtr>;
+using VariableWPtr     = std::weak_ptr<Variable>;
+using VariableWPtrList = std::vector<VariableWPtr>;
 
 extern void print(const NdArray &data);
 
