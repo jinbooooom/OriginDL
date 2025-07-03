@@ -36,9 +36,16 @@ VariablePtrList Function::operator()(const VariablePtrList &inputs)
     }
     this->generation = maxGen;
 
-    this->inputs  = inputs;
-    this->outputs = std::move(outputs);
-    return this->outputs;
+    this->inputs = inputs;
+    // this->outputs = std::move(outputs);
+    this->outputs.clear();
+    for (const auto &o : outputs)
+    {
+        VariableWPtr w = o;
+        this->outputs.push_back(w);
+    }
+
+    return outputs;
 }
 
 }  // namespace dl
