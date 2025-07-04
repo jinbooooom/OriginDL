@@ -35,7 +35,7 @@ class DLLog final
 
         mLogger = &sLogger;
     };
-    DLLog(const DLLog &) = delete;
+    DLLog(const DLLog &)            = delete;
     DLLog &operator=(const DLLog &) = delete;
     virtual ~DLLog(){};
 
