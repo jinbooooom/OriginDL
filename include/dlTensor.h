@@ -2,7 +2,6 @@
 #define __ORIGIN_DL_VARIABLE_H__
 
 #include "base/dlCommon.h"
-#include "dlFunction.h"
 
 namespace dl
 {
