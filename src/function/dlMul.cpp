@@ -31,14 +31,6 @@ NdArrayPtrList Mul::Backward(const NdArrayPtrList &gys)
     return gxs;
 }
 
-// NdArrayPtrList backward(const NdArrayPtrList& gys) override
-// {
-// 	auto x0 = this->inputs[0]->data;
-// 	auto x1 = this->inputs[1]->data;
-
-// 	return { as_array((*gys[0]) * (*x1)), as_array((*gys[0]) * (*x0)) };
-// }
-
 VariablePtr mul(const VariablePtrList &xs)
 {
     return (*std::shared_ptr<Function>(new Mul()))(xs)[0];

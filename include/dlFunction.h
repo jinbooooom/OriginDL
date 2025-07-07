@@ -29,6 +29,18 @@ class Function : public std::enable_shared_from_this<Function>
     int generation;  // 对于复杂的计算图，用来区分哪个先计算
 };
 
+class Neg : public Function
+{
+  public:
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+
+VariablePtr neg(const VariablePtrList &xs);
+VariablePtr neg(const VariablePtr &x);
+VariablePtr operator-(const VariablePtr &x);
+
 class Square : public Function
 {
   public:
@@ -63,6 +75,20 @@ extern VariablePtr add(const VariablePtr &lhs, const VariablePtr &rhs);
 VariablePtr operator+(const VariablePtr &lhs, const VariablePtr &rhs);
 VariablePtr operator+(const VariablePtr &lhs, data_t rhs);
 VariablePtr operator+(data_t lhs, const VariablePtr &rhs);
+
+class Sub : public Function
+{
+  public:
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+
+extern VariablePtr sub(const VariablePtrList &xs);
+extern VariablePtr sub(const VariablePtr &lhs, const VariablePtr &rhs);
+VariablePtr operator-(const VariablePtr &lhs, const VariablePtr &rhs);
+VariablePtr operator-(const VariablePtr &lhs, data_t rhs);
+VariablePtr operator-(data_t lhs, const VariablePtr &rhs);
 
 class Mul : public Function
 {
