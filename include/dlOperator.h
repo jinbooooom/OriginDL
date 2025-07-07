@@ -41,27 +41,6 @@ VariablePtr neg(const VariablePtrList &xs);
 VariablePtr neg(const VariablePtr &x);
 VariablePtr operator-(const VariablePtr &x);
 
-class Square : public Operator
-{
-  public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
-
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
-};
-
-extern VariablePtr square(const VariablePtr &x);
-VariablePtr operator^(const VariablePtr &lhs, int n);
-
-class Exp : public Operator
-{
-  public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
-
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
-};
-
-extern VariablePtr exp(const VariablePtr &x);
-
 class Add : public Operator
 {
   public:
@@ -117,6 +96,40 @@ extern VariablePtr div(const VariablePtr &lhs, const VariablePtr &rhs);
 VariablePtr operator/(const VariablePtr &lhs, const VariablePtr &rhs);
 VariablePtr operator/(const VariablePtr &lhs, data_t rhs);
 VariablePtr operator/(data_t lhs, const VariablePtr &rhs);
+
+class Square : public Operator
+{
+  public:
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+
+extern VariablePtr square(const VariablePtr &x);
+
+class Pow : public Operator
+{
+  public:
+    Pow(int n) : mExponent(n) {};
+
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+
+    int mExponent;  // 幂函数的指数
+};
+VariablePtr pow(const VariablePtr &base, int exponent);
+VariablePtr operator^(const VariablePtr &base, int exponent);
+
+class Exp : public Operator
+{
+  public:
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+
+extern VariablePtr exp(const VariablePtr &x);
 
 extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
 
