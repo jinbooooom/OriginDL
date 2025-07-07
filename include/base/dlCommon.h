@@ -21,10 +21,10 @@ using data_t  = double;
 using NdArray = af::array;
 
 class Variable;
-class Function;
+class Operator;
 using NdArrayPtr       = std::shared_ptr<NdArray>;
 using NdArrayPtrList   = std::vector<NdArrayPtr>;
-using FunctionPtr      = std::shared_ptr<Function>;
+using FunctionPtr      = std::shared_ptr<Operator>;
 using VariablePtr      = std::shared_ptr<Variable>;
 using VariablePtrList  = std::vector<VariablePtr>;
 using VariableWPtr     = std::weak_ptr<Variable>;

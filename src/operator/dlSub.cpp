@@ -1,4 +1,4 @@
-#include "dlFunction.h"
+#include "dlOperator.h"
 
 namespace dl
 {
@@ -31,7 +31,7 @@ NdArrayPtrList Sub::Backward(const NdArrayPtrList &gys)
 
 VariablePtr sub(const VariablePtrList &xs)
 {
-    return (*std::shared_ptr<Function>(new Sub()))(xs)[0];
+    return (*std::shared_ptr<Operator>(new Sub()))(xs)[0];
 }
 
 VariablePtr sub(const VariablePtr &lhs, const VariablePtr &rhs)

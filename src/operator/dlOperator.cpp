@@ -1,15 +1,15 @@
-#include "dlFunction.h"
+#include "dlOperator.h"
 
 namespace dl
 {
 
-VariablePtrList Function::operator()(const VariablePtr &input)
+VariablePtrList Operator::operator()(const VariablePtr &input)
 {
     auto outputs = (*this)(VariablePtrList({input}));
     return outputs;
 }
 
-VariablePtrList Function::operator()(const VariablePtrList &inputs)
+VariablePtrList Operator::operator()(const VariablePtrList &inputs)
 {
     auto xs = NdArrayPtrList();
     for (const auto &i : inputs)

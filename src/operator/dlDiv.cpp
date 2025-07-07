@@ -1,4 +1,4 @@
-#include "dlFunction.h"
+#include "dlOperator.h"
 
 namespace dl
 {
@@ -39,7 +39,7 @@ NdArrayPtrList Div::Backward(const NdArrayPtrList &gys)
 
 VariablePtr div(const VariablePtrList &xs)
 {
-    return (*std::shared_ptr<Function>(new Div()))(xs)[0];
+    return (*std::shared_ptr<Operator>(new Div()))(xs)[0];
 }
 
 VariablePtr div(const VariablePtr &lhs, const VariablePtr &rhs)

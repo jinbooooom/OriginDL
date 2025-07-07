@@ -1,4 +1,4 @@
-#include "dlFunction.h"
+#include "dlOperator.h"
 
 namespace dl
 {
@@ -21,7 +21,7 @@ NdArrayPtrList Square::Backward(const NdArrayPtrList &gys)
 
 VariablePtr square(const VariablePtr &x)
 {
-    auto f = std::shared_ptr<Function>(new Square());
+    auto f = std::shared_ptr<Operator>(new Square());
     auto y = (*f)(x);
     return y[0];
 }

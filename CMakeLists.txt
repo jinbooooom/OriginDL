@@ -9,7 +9,7 @@ set(DLZERO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 file(
     GLOB MY_LIB_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp 
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/function/*.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/operator/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/tensor/*.cpp 
 )
