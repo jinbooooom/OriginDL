@@ -104,6 +104,20 @@ VariablePtr operator*(const VariablePtr &lhs, const VariablePtr &rhs);
 VariablePtr operator*(const VariablePtr &lhs, data_t rhs);
 VariablePtr operator*(data_t lhs, const VariablePtr &rhs);
 
+class Div : public Function
+{
+  public:
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+
+extern VariablePtr div(const VariablePtrList &xs);
+extern VariablePtr div(const VariablePtr &lhs, const VariablePtr &rhs);
+VariablePtr operator/(const VariablePtr &lhs, const VariablePtr &rhs);
+VariablePtr operator/(const VariablePtr &lhs, data_t rhs);
+VariablePtr operator/(data_t lhs, const VariablePtr &rhs);
+
 extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
 
 }  // namespace dl
