@@ -55,5 +55,26 @@ int main()
     print("dx0", *x0->grad);  // 1 / x1
     print("dx1", *x1->grad);  // -x0 / x1^2
 
+    logi("Square: y = x0^2");
+    ClearGrad();
+    y = square(x0);
+    y->Backward();
+    print("y", y->data);
+    print("dx0", *x0->grad);
+
+    logi("Pow: y = x0^3");
+    ClearGrad();
+    y = x0 ^ 3;
+    y->Backward();
+    print("y", y->data);
+    print("dx0", *x0->grad);
+
+    logi("Exp: y = exp(x0)");
+    ClearGrad();
+    y = exp(x0);
+    y->Backward();
+    print("y", y->data);
+    print("dx0", *x0->grad);
+
     return 0;
 }
