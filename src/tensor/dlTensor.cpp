@@ -1,5 +1,4 @@
-#include "dlTensor.h"
-#include "dlFunction.h"
+#include "originDL.h"
 
 namespace dl
 {

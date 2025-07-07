@@ -1,4 +1,4 @@
-#include "dlFunction.h"
+#include "dlOperator.h"
 
 namespace dl
 {
@@ -33,7 +33,7 @@ NdArrayPtrList Mul::Backward(const NdArrayPtrList &gys)
 
 VariablePtr mul(const VariablePtrList &xs)
 {
-    return (*std::shared_ptr<Function>(new Mul()))(xs)[0];
+    return (*std::shared_ptr<Operator>(new Mul()))(xs)[0];
 }
 
 VariablePtr mul(const VariablePtr &lhs, const VariablePtr &rhs)

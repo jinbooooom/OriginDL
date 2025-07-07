@@ -1,4 +1,4 @@
-#include "dlFunction.h"
+#include "dlOperator.h"
 
 namespace dl
 {
@@ -21,7 +21,7 @@ NdArrayPtrList Exp::Backward(const NdArrayPtrList &gys)
 
 VariablePtr exp(const VariablePtr &x)
 {
-    auto f = std::shared_ptr<Function>(new Exp());
+    auto f = std::shared_ptr<Operator>(new Exp());
     auto y = (*f)(x);
     return y[0];
 }

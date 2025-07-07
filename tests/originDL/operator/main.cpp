@@ -4,10 +4,6 @@ using namespace dl;
 
 int main()
 {
-    auto A = std::make_shared<Square>();
-    auto B = std::make_shared<Exp>();
-    auto C = std::make_shared<Square>();
-
     double val0    = 2;
     double val1    = 4;
     af::dim4 dim   = {2, 2};

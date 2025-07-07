@@ -1,15 +1,15 @@
-#ifndef __ORIGIN_DL_FUNCTION_H__
-#define __ORIGIN_DL_FUNCTION_H__
+#ifndef __ORIGIN_DL_OPERATOR_H__
+#define __ORIGIN_DL_OPERATOR_H__
 
 #include "dlTensor.h"
 
 namespace dl
 {
 
-class Function : public std::enable_shared_from_this<Function>
+class Operator : public std::enable_shared_from_this<Operator>
 {
   public:
-    virtual ~Function() {}
+    virtual ~Operator() {}
 
     VariablePtrList operator()(const VariablePtr &input);
 
@@ -29,7 +29,7 @@ class Function : public std::enable_shared_from_this<Function>
     int generation;  // 对于复杂的计算图，用来区分哪个先计算
 };
 
-class Neg : public Function
+class Neg : public Operator
 {
   public:
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
@@ -41,7 +41,7 @@ VariablePtr neg(const VariablePtrList &xs);
 VariablePtr neg(const VariablePtr &x);
 VariablePtr operator-(const VariablePtr &x);
 
-class Square : public Function
+class Square : public Operator
 {
   public:
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
@@ -52,7 +52,7 @@ class Square : public Function
 extern VariablePtr square(const VariablePtr &x);
 VariablePtr operator^(const VariablePtr &lhs, int n);
 
-class Exp : public Function
+class Exp : public Operator
 {
   public:
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
@@ -62,7 +62,7 @@ class Exp : public Function
 
 extern VariablePtr exp(const VariablePtr &x);
 
-class Add : public Function
+class Add : public Operator
 {
   public:
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
@@ -76,7 +76,7 @@ VariablePtr operator+(const VariablePtr &lhs, const VariablePtr &rhs);
 VariablePtr operator+(const VariablePtr &lhs, data_t rhs);
 VariablePtr operator+(data_t lhs, const VariablePtr &rhs);
 
-class Sub : public Function
+class Sub : public Operator
 {
   public:
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
@@ -90,7 +90,7 @@ VariablePtr operator-(const VariablePtr &lhs, const VariablePtr &rhs);
 VariablePtr operator-(const VariablePtr &lhs, data_t rhs);
 VariablePtr operator-(data_t lhs, const VariablePtr &rhs);
 
-class Mul : public Function
+class Mul : public Operator
 {
   public:
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
@@ -104,7 +104,7 @@ VariablePtr operator*(const VariablePtr &lhs, const VariablePtr &rhs);
 VariablePtr operator*(const VariablePtr &lhs, data_t rhs);
 VariablePtr operator*(data_t lhs, const VariablePtr &rhs);
 
-class Div : public Function
+class Div : public Operator
 {
   public:
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
