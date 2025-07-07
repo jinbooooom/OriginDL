@@ -9,6 +9,8 @@ namespace dl
 // 均方误差
 VariablePtr MeanSquaredError(const VariablePtr &x0, const VariablePtr &x1);
 
+float MeanSquaredError(const DLMat &pred, const DLMat &real);
+
 }  // namespace dl
 
 #endif
