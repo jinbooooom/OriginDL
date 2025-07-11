@@ -1,7 +1,7 @@
 # OriginDL: 从零开始构建的分布式深度学习框架
 
 ## TODO
- 
+   
 - [x] ~~numCpp~~ ArrayFire
 
 - [x] 自动求导
