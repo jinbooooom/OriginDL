@@ -141,5 +141,17 @@ int main(int argc, char **argv)
     print("after reshape, y:", y->data);
     print("gx:", *(x3_4->grad));
 
+    // transpose
+    logi("Test Transpose:");
+    y->ClearGrad();
+    x3_4->ClearGrad();
+    tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
+    x3_4      = std::make_shared<Variable>(tensor3_4);
+    print("before reshape, x:", x3_4->data);
+    y = transpose(x3_4);
+    y->Backward();
+    print("after transpose, y:", y->data);
+    print("gx:", *(x3_4->grad));
+
     return 0;
 }

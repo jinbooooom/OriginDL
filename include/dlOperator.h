@@ -146,6 +146,15 @@ class Reshape : public Operator
 };
 extern VariablePtr reshape(const VariablePtr &x, const af::dim4 shape);
 
+class Transpose : public Operator
+{
+  public:
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+extern VariablePtr transpose(const VariablePtr &x);
+
 extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
 
 }  // namespace dl
