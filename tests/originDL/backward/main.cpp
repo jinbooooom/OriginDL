@@ -129,5 +129,17 @@ int main(int argc, char **argv)
     y->Backward();
     print("gx:", *(x->grad));  // 64
 
+    // reshape
+    logi("Test Reshape:");
+    y->ClearGrad();
+    af::array tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
+    auto x3_4           = std::make_shared<Variable>(tensor3_4);
+    print("before reshape, x:", x3_4->data);
+    const af::dim4 dim4_3{4, 3};
+    y = reshape(x3_4, dim4_3);
+    y->Backward();
+    print("after reshape, y:", y->data);
+    print("gx:", *(x3_4->grad));
+
     return 0;
 }

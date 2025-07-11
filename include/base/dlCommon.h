@@ -19,7 +19,7 @@ namespace dl
 
 using data_t  = double;
 using NdArray = af::array;
-using DLMat = af::array;
+using DLMat   = af::array;
 
 class Variable;
 class Operator;
