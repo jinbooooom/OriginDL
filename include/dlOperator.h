@@ -110,7 +110,7 @@ extern VariablePtr square(const VariablePtr &x);
 class Pow : public Operator
 {
   public:
-    Pow(int n) : mExponent(n) {};
+    Pow(int n) : mExponent(n){};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -130,6 +130,21 @@ class Exp : public Operator
 };
 
 extern VariablePtr exp(const VariablePtr &x);
+
+class Reshape : public Operator
+{
+  public:
+    af::dim4 shape;  // 输出的形状
+
+    af::dim4 xShape;  // 输入的形状
+
+    Reshape(const af::dim4 &shape) : shape(shape) {}
+
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+extern VariablePtr reshape(const VariablePtr &x, const af::dim4 shape);
 
 extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
 
