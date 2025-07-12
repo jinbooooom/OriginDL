@@ -2,11 +2,7 @@
 
 namespace dl
 {
-Variable::Variable(const NdArray &data) : data(data), generation(0)
-{
-    // double grad_val = 1.0;
-    // grad            = std::make_shared<NdArray>(af::constant(grad_val, {1}));
-}
+Variable::Variable(const NdArray &data) : data(data), generation(0) {}
 
 Variable::~Variable() {}
 
