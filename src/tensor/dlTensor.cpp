@@ -92,6 +92,18 @@ void Variable::ClearGrad()
     grad = nullptr;
 }
 
+VariablePtr Variable::Reshape(const af::dim4 shape)
+{
+    auto p = AsVariablePtr(*this);
+    return reshape(p, shape);
+}
+
+VariablePtr Variable::Transpose()
+{
+    auto p = AsVariablePtr(*this);
+    return transpose(p);
+};
+
 void Variable::Print()
 {
     af::print("", data);
