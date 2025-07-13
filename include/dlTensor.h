@@ -26,6 +26,12 @@ class Variable
 
     void ClearGrad();
 
+    // 矩阵方法
+    VariablePtr Reshape(const af::dim4 shape);
+
+    VariablePtr Transpose();
+
+    // 调试
     void Print();
 };
 
