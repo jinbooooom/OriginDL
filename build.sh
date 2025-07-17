@@ -14,5 +14,6 @@ if [ ! -e compile_commands.json ]; then
     ln -s build/compile_commands.json .
     echo "Symbolic link created successfully."
 else
-    echo "compile_commands.json already exists, skipping symbolic link creation."
+    #echo "compile_commands.json already exists, skipping symbolic link creation."
+    :
 fi

@@ -155,6 +155,51 @@ class Transpose : public Operator
 };
 extern VariablePtr transpose(const VariablePtr &x);
 
+class Sum : public Operator
+{
+  public:
+    int axis;  // 对那个轴求和
+
+    af::dim4 xShape;  // 输入的形状
+    Sum() : axis(-1){};
+    Sum(const int axis) : axis(axis){};
+
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+extern VariablePtr sum(const VariablePtr &x, int axis = -1);  // -1 意味着所有元素相加
+
+class BroadcastTo : public Operator
+{
+  public:
+    af::dim4 shape;  // 输出的形状
+
+    af::dim4 xShape;  // 输入的形状
+
+    BroadcastTo(const af::dim4 &shape) : shape(shape){};
+
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+extern VariablePtr broadcastTo(const VariablePtr &x, const af::dim4 &shape);
+
+class SumTo : public Operator
+{
+  public:
+    af::dim4 shape;  // 输出的形状
+
+    af::dim4 xShape;  // 输入的形状
+
+    SumTo(const af::dim4 &shape) : shape(shape){};
+
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+extern VariablePtr sumTo(const VariablePtr &x, const af::dim4 &shape);
+
 extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
 
 }  // namespace dl
