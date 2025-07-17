@@ -1,0 +1,17 @@
+{
+    "recommendations": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        "twxs.cmake",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cpptools-themes",
+        "vadimcn.vscode-lldb",
+        "formulahendry.code-runner",
+        "jeff-hykin.better-cpp-syntax",
+        "ms-vscode.hexeditor"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.vscode-json"
+    ]
+}
