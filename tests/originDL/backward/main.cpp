@@ -153,5 +153,38 @@ int main(int argc, char **argv)
     print("after transpose, y:", y->data);
     print("gx:", *(x3_4->grad));
 
+    // sum
+    logi("Test Sum:");
+    y->ClearGrad();
+    af::array tensor2_4 = af::iota(af::dim4(2, 4));
+    auto x2_4           = std::make_shared<Variable>(tensor2_4);
+    print("before sum, x:", x2_4->data);
+    y = sum(x2_4);
+    y->Backward();
+    print("after sum, y:", y->data);
+    print("gx:", *(x2_4->grad));
+
+    // sumTo
+    logi("Test SumTo:");
+    y->ClearGrad();
+    x2_4->ClearGrad();
+    print("before sumTo, x:", x2_4->data);
+    y = sumTo(x2_4, af::dim4(1, 4));
+    y->Backward();
+    print("after sumTo, y:", y->data);
+    print("gx:", *(x2_4->grad));
+
+    // broadcastTo
+    logi("Test BroadcastTo:");
+    y->ClearGrad();
+    af::array tensor1_4 = af::iota(af::dim4(1, 4));
+    auto x1_4           = std::make_shared<Variable>(tensor1_4);
+    x1_4->ClearGrad();
+    print("before broadcastTo, x:", x1_4->data);
+    y = broadcastTo(x1_4, af::dim4(2, 4));
+    y->Backward();
+    print("after broadcastTo, y:", y->data);
+    print("gx:", *(x1_4->grad));
+
     return 0;
 }
