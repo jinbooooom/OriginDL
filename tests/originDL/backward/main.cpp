@@ -186,5 +186,21 @@ int main(int argc, char **argv)
     print("after broadcastTo, y:", y->data);
     print("gx:", *(x1_4->grad));
 
+    // matMul
+    logi("Test matMul:");
+    {
+        af::array tensorX = af::iota(af::dim4(2, 4));
+        auto x            = std::make_shared<Variable>(tensorX);
+        af::array tensorW = af::iota(af::dim4(4, 2));
+        auto w            = std::make_shared<Variable>(tensorW);
+        print("before matMul, X:", x->data);
+        print("before matMul, W:", w->data);
+        auto y = matMul(x, w);
+        y->Backward();
+        print("after matMul, y:", y->data);
+        print("gx:", *(x->grad));
+        print("gw:", *(w->grad));
+    }
+
     return 0;
 }
