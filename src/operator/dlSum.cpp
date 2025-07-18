@@ -14,7 +14,7 @@ NdArrayPtrList Sum::Forward(const NdArrayPtrList &xs)
     if (-1 == axis)
     {
         auto n = x.numdims();
-        logd("numdims of matrix x:", n);
+        // logd("numdims of matrix x: {}", n);
         y = x;
         for (unsigned i = 0; i < n; ++i)
         {

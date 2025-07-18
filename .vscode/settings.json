@@ -9,7 +9,13 @@
         "future": "cpp",
         "iosfwd": "cpp",
         "type_traits": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp",
+        "valarray": "cpp"
     },
     "files.encoding": "utf8",
     "editor.tabSize": 4,
