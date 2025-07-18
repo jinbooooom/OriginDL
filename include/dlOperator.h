@@ -200,6 +200,15 @@ class SumTo : public Operator
 };
 extern VariablePtr sumTo(const VariablePtr &x, const af::dim4 &shape);
 
+class MatMul : public Operator
+{
+  public:
+    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+
+    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+};
+extern VariablePtr matMul(const VariablePtr &x, const VariablePtr &w);
+
 extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
 
 }  // namespace dl
