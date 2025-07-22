@@ -98,19 +98,50 @@ int main(int argc, char **argv)
     af::setSeed(0);
 
     // 生成随机数据
-    af::array xData = af::randu(100, 1);
-    af::print("xData", xData);
-    af::array yData = 2.0 * xData;
+    int inputSize = 1;
+    // af::array xData = af::randu(inputSize, 1);
+
+    // float data1[] = {0, 1};
+    // af::array xData(2, 1, data1);
+
+    std::vector<af::array> xDatas;
+    std::vector<af::array> yDatas;
+    std::vector<VariablePtr> xs;
+    std::vector<VariablePtr> ys;
+    for (int i = 0; i < 100; i++)
+    {
+        // x 不是在 [0~1] 之间，很容易出现 nan
+        af::array xData = af::randu(1, 1);
+        ;  // af::constant((i+1) / 100.0, 1, 1, f32);
+        xDatas.push_back(xData);
+        af::array yData = 2.0 * xData + 5.0;
+        yDatas.push_back(yData);
+
+        auto x = AsVariablePtr(AsDLArrayPtr(xData));
+        auto y = AsVariablePtr(AsDLArrayPtr(yData));
+        xs.push_back(x);
+        ys.push_back(y);
+    }
+
+    // af::array xData = af::constant(1, 1, 1, f32);
+    // af::print("xData", xData);
+    // af::array xData2 = af::constant(2, 1, 1, f32);
+    // af::print("xData2", xData2);
+    // af::array yData = 2.0 * xData;
+
     // af::array yData = 2.0 * xData + 5.0;
-    af::print("yData", yData);
+    // af::array yData2 = 2.0 * xData2 + 5.0;
+    // af::print("yData", yData);
 
     // 转换为变量
-    auto x = AsVariablePtr(AsDLArrayPtr(xData));
-    auto y = AsVariablePtr(AsDLArrayPtr(yData));
+    // auto x = AsVariablePtr(AsDLArrayPtr(xData));
+    // auto y = AsVariablePtr(AsDLArrayPtr(yData));
+    // auto x2 = AsVariablePtr(AsDLArrayPtr(xData2));
+    // auto y2 = AsVariablePtr(AsDLArrayPtr(yData2));
 
     // 初始化权重和偏置
-    auto w = AsVariablePtr(AsDLArrayPtr(af::constant(100.0, 1, 1, f32)));
-    auto b = AsVariablePtr(AsDLArrayPtr(af::constant(100.0, 1, 1, f32)));
+    auto w = AsVariablePtr(AsDLArrayPtr(af::constant(0, 1, 1, f32)));
+    auto b = AsVariablePtr(AsDLArrayPtr(af::constant(0, inputSize, 1, f32)));
 
     // 设置学习率和迭代次数
     double lr = 0.1;
@@ -119,8 +150,11 @@ int main(int argc, char **argv)
     // 训练
     for (int i = 0; i < iters; i++)
     {
-        auto yPred = matMul(x, w);  // Predict(x, w, b);
-        auto loss   = MSE(y, yPred);
+        // auto yPred = matMul(x, w);
+        auto x     = xs[i];
+        auto y     = ys[i];
+        auto yPred = Predict(x, w, b);
+        auto loss  = MSE(y, yPred);
 
         w->ClearGrad();
         b->ClearGrad();
@@ -130,7 +164,7 @@ int main(int argc, char **argv)
 
         // 更新参数
         w->data = w->data - lr * (*w->grad);
-        // b->data = b->data - lr * (*b->grad);
+        b->data = b->data - lr * (*b->grad);
 
         // 打印结果
         float loss_val = loss->data.scalar<float>();

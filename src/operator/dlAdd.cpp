@@ -7,9 +7,11 @@ NdArrayPtrList Add::Forward(const NdArrayPtrList &xs)
 {
     // logd("do add");
     auto outputs  = NdArrayPtrList();
-    NdArrayPtr x1 = xs[0];
-    NdArrayPtr x2 = xs[1];
-    auto y        = (*x1) + (*x2);
+    NdArrayPtr x0 = xs[0];
+    NdArrayPtr x1 = xs[1];
+    shape0        = x0->dims();
+    shape1        = x1->dims();
+    auto y        = (*x0) + (*x1);
     outputs.push_back(AsDLArrayPtr(y));
 
     return outputs;
@@ -22,7 +24,14 @@ NdArrayPtrList Add::Backward(const NdArrayPtrList &gys)
         logw("invalid argument size, not equal to 1");
     }
 
-    auto gxs = NdArrayPtrList{gys[0], gys[0]};
+    auto gx0 = AsVariablePtr(gys[0]);
+    auto gx1 = gx0;
+    if (shape0 != shape1)
+    {
+        gx0 = sumTo(gx0, shape0);
+        gx1 = sumTo(gx1, shape1);
+    }
+    auto gxs = NdArrayPtrList{AsDLArrayPtr(gx0->data), AsDLArrayPtr(gx1->data)};
 
     return gxs;
 }
