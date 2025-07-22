@@ -32,7 +32,7 @@ class Variable
     VariablePtr Transpose();
 
     // 调试
-    void Print();
+    void Print(std::string desc = "");
 };
 
 extern VariablePtrList AsVariablePtrList(VariablePtr data);

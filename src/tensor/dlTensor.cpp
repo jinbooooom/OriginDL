@@ -104,9 +104,9 @@ VariablePtr Variable::Transpose()
     return transpose(p);
 };
 
-void Variable::Print()
+void Variable::Print(std::string desc)
 {
-    af::print("", data);
+    af::print(desc.c_str(), data);
 };
 
 // 变量转换，未来考虑去掉
