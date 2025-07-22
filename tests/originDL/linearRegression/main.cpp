@@ -87,8 +87,9 @@ VariablePtr Predict(const VariablePtr &x, const VariablePtr &w, const VariablePt
 // mean_squared_error
 VariablePtr MSE(const VariablePtr &x0, const VariablePtr &x1)
 {
-    auto diff = x0 - x1;
-    return sum(pow(diff, 2)) / diff->data.elements();
+    auto diff   = x0 - x1;
+    auto result = sum(pow(diff, 2)) / diff->data.elements();
+    return result;
 }
 int main(int argc, char **argv)
 {
@@ -98,61 +99,30 @@ int main(int argc, char **argv)
     af::setSeed(0);
 
     // 生成随机数据
-    int inputSize = 1;
-    // af::array xData = af::randu(inputSize, 1);
-
-    // float data1[] = {0, 1};
-    // af::array xData(2, 1, data1);
-
-    std::vector<af::array> xDatas;
-    std::vector<af::array> yDatas;
-    std::vector<VariablePtr> xs;
-    std::vector<VariablePtr> ys;
-    for (int i = 0; i < 100; i++)
-    {
-        // x 不是在 [0~1] 之间，很容易出现 nan
-        af::array xData = af::randu(1, 1);
-        ;  // af::constant((i+1) / 100.0, 1, 1, f32);
-        xDatas.push_back(xData);
-        af::array yData = 2.0 * xData + 5.0;
-        yDatas.push_back(yData);
-
-        auto x = AsVariablePtr(AsDLArrayPtr(xData));
-        auto y = AsVariablePtr(AsDLArrayPtr(yData));
-        xs.push_back(x);
-        ys.push_back(y);
-    }
-
-    // af::array xData = af::constant(1, 1, 1, f32);
-    // af::print("xData", xData);
-    // af::array xData2 = af::constant(2, 1, 1, f32);
-    // af::print("xData2", xData2);
-    // af::array yData = 2.0 * xData;
-
-    // af::array yData = 2.0 * xData + 5.0;
-    // af::array yData2 = 2.0 * xData2 + 5.0;
-    // af::print("yData", yData);
+    int inputSize   = 100;
+    af::array xData = af::randu(inputSize, 1);
+    af::print("xData", xData);
+    // 设置一个噪声，使真实值在预测结果附近
+    af::array noise = af::randu(inputSize, 1) * 0.1;
+    // af::print("noise", noise);
+    af::array yData = 2.0 * xData + 5.0 + noise;
+    af::print("yData", yData);
 
     // 转换为变量
-    // auto x = AsVariablePtr(AsDLArrayPtr(xData));
-    // auto y = AsVariablePtr(AsDLArrayPtr(yData));
-    // auto x2 = AsVariablePtr(AsDLArrayPtr(xData2));
-    // auto y2 = AsVariablePtr(AsDLArrayPtr(yData2));
+    auto x = AsVariablePtr(AsDLArrayPtr(xData));
+    auto y = AsVariablePtr(AsDLArrayPtr(yData));
 
     // 初始化权重和偏置
     auto w = AsVariablePtr(AsDLArrayPtr(af::constant(0, 1, 1, f32)));
-    auto b = AsVariablePtr(AsDLArrayPtr(af::constant(0, inputSize, 1, f32)));
+    auto b = AsVariablePtr(AsDLArrayPtr(af::constant(0, 1, 1, f32)));
 
     // 设置学习率和迭代次数
     double lr = 0.1;
-    int iters = 100;
+    int iters = 200;
 
     // 训练
     for (int i = 0; i < iters; i++)
     {
-        // auto yPred = matMul(x, w);
-        auto x     = xs[i];
-        auto y     = ys[i];
         auto yPred = Predict(x, w, b);
         auto loss  = MSE(y, yPred);
 
