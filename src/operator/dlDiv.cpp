@@ -6,9 +6,11 @@ namespace dl
 NdArrayPtrList Div::Forward(const NdArrayPtrList &xs)
 {
     auto outputs  = NdArrayPtrList();
-    NdArrayPtr x1 = xs[0];
-    NdArrayPtr x2 = xs[1];
-    auto y        = (*x1) / (*x2);  // 逐元素除
+    NdArrayPtr x0 = xs[0];
+    NdArrayPtr x1 = xs[1];
+    shape0        = x0->dims();
+    shape1        = x1->dims();
+    auto y        = (*x0) / (*x1);  // 逐元素除
     outputs.push_back(AsDLArrayPtr(y));
 
     return outputs;
@@ -32,7 +34,16 @@ NdArrayPtrList Div::Backward(const NdArrayPtrList &gys)
     auto gy  = *gys[0];
     auto dx0 = gy / x1;
     auto dx1 = gy * (-x0) / x1 / x1;
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(dx0), AsDLArrayPtr(dx1)};
+
+    VariablePtr dx0_ = AsVariablePtr(AsDLArrayPtr(dx0));
+    VariablePtr dx1_ = AsVariablePtr(AsDLArrayPtr(dx1));
+    if (shape0 != shape1)
+    {
+        dx0_ = sumTo(AsVariablePtr(AsDLArrayPtr(dx0)), shape0);
+        dx1_ = sumTo(AsVariablePtr(AsDLArrayPtr(dx1)), shape1);
+    }
+
+    auto gxs = NdArrayPtrList{AsDLArrayPtr(dx0_->data), AsDLArrayPtr(dx1_->data)};
 
     return gxs;
 }

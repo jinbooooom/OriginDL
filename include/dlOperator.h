@@ -44,6 +44,9 @@ VariablePtr operator-(const VariablePtr &x);
 class Add : public Operator
 {
   public:
+    af::dim4 shape0;
+    af::dim4 shape1;
+
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
     NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
@@ -58,6 +61,9 @@ VariablePtr operator+(data_t lhs, const VariablePtr &rhs);
 class Sub : public Operator
 {
   public:
+    af::dim4 shape0;
+    af::dim4 shape1;
+
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
     NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
@@ -72,6 +78,9 @@ VariablePtr operator-(data_t lhs, const VariablePtr &rhs);
 class Mul : public Operator
 {
   public:
+    af::dim4 shape0;
+    af::dim4 shape1;
+
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
     NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
@@ -86,6 +95,9 @@ VariablePtr operator*(data_t lhs, const VariablePtr &rhs);
 class Div : public Operator
 {
   public:
+    af::dim4 shape0;
+    af::dim4 shape1;
+
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
     NdArrayPtrList Backward(const NdArrayPtrList &gys) override;

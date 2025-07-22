@@ -7,9 +7,11 @@ NdArrayPtrList Mul::Forward(const NdArrayPtrList &xs)
 {
     // logd("do Mul");
     auto outputs  = NdArrayPtrList();
-    NdArrayPtr x1 = xs[0];
-    NdArrayPtr x2 = xs[1];
-    auto y        = (*x1) * (*x2);  // 逐元素乘
+    NdArrayPtr x0 = xs[0];
+    NdArrayPtr x1 = xs[1];
+    shape0        = x0->dims();
+    shape1        = x1->dims();
+    auto y        = (*x0) * (*x1);  // 逐元素乘
     outputs.push_back(AsDLArrayPtr(y));
 
     return outputs;
@@ -26,7 +28,15 @@ NdArrayPtrList Mul::Backward(const NdArrayPtrList &gys)
     auto x1  = this->inputs[1]->data;
     auto dx0 = AsDLArrayPtr((*gys[0]) * (x1));
     auto dx1 = AsDLArrayPtr((*gys[0]) * (x0));
-    auto gxs = NdArrayPtrList{dx0, dx1};
+
+    VariablePtr dx0_ = AsVariablePtr(dx0);
+    VariablePtr dx1_ = AsVariablePtr(dx1);
+    if (shape0 != shape1)
+    {
+        dx0_ = sumTo(AsVariablePtr(dx0), shape0);
+        dx1_ = sumTo(AsVariablePtr(dx1), shape1);
+    }
+    auto gxs = NdArrayPtrList{AsDLArrayPtr(dx0_->data), AsDLArrayPtr(dx1_->data)};
 
     return gxs;
 }
