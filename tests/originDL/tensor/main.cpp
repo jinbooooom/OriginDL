@@ -1,7 +1,20 @@
+#include <iostream>
 #include "originDL.h"
 
 int main()
 {
+    // 初始化ArrayFire后端
+    try
+    {
+        af::setBackend(AF_BACKEND_CPU);  // 使用CPU后端
+        af::info();                      // 输出设备信息并初始化ArrayFire
+    }
+    catch (const af::exception &e)
+    {
+        std::cerr << "Failed to initialize ArrayFire: " << e.what() << std::endl;
+        return 1;
+    }
+
     // 创建标量
     double scalar_val = 1.0;
     dl::NdArray datax = af::constant(scalar_val, 1);
