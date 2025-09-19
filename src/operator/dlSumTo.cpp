@@ -1,5 +1,6 @@
 #include "base/dlUtils.h"
 #include "dlOperator.h"
+#include "base/dlException.h"
 
 namespace dl
 {
@@ -18,7 +19,7 @@ NdArrayPtrList SumTo::Backward(const NdArrayPtrList &gys)
 {
     if (1 != gys.size())
     {
-        logw("invalid argument size, not equal to 1");
+        DL_WARN_THROW("invalid argument size, not equal to 1");
     }
 
     auto gy  = *(gys[0]);
