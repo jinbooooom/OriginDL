@@ -1,5 +1,5 @@
-#include "originDL.h"
 #include "base/dlException.h"
+#include "originDL.h"
 
 namespace dl
 {
@@ -59,8 +59,8 @@ void Variable::Backward()
 
         if (gxs.size() != f->inputs.size())
         {
-            DL_ERROR_THROW("backward error!, gxs size " + std::to_string(gxs.size()) + 
-                          ", inputs size " + std::to_string(f->inputs.size()));
+            DL_ERROR_THROW("backward error!, gxs size " + std::to_string(gxs.size()) + ", inputs size " +
+                           std::to_string(f->inputs.size()));
         }
 
         for (size_t i = 0; i < gxs.size(); i++)

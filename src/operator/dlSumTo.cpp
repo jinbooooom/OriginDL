@@ -1,6 +1,6 @@
+#include "base/dlException.h"
 #include "base/dlUtils.h"
 #include "dlOperator.h"
-#include "base/dlException.h"
 
 namespace dl
 {
