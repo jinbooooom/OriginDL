@@ -8,13 +8,13 @@ namespace dl
 class Variable
 {
   public:
-    NdArray data;
+    NdArray mData;
 
-    NdArrayPtr grad;
+    NdArrayPtr mGrad;
 
-    FunctionPtr creator;
+    FunctionPtr mCreator;
 
-    int generation;
+    int mGeneration;
 
     Variable(const NdArray &data);
 

@@ -37,7 +37,7 @@ NdArrayPtrList Sub::Backward(const NdArrayPtrList &gys)
         gx0 = sumTo(gx0, shape0);
         gx1 = sumTo(gx1, shape1);
     }
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(gx0->data), AsDLArrayPtr(gx1->data)};
+    auto gxs = NdArrayPtrList{AsDLArrayPtr(gx0->mData), AsDLArrayPtr(gx1->mData)};
 
     return gxs;
 }
@@ -60,13 +60,13 @@ VariablePtr operator-(const VariablePtr &lhs, const VariablePtr &rhs)
 
 VariablePtr operator-(const VariablePtr &lhs, data_t rhs)
 {
-    auto dims = lhs->data.dims();
+    auto dims = lhs->mData.dims();
     auto x    = std::make_shared<Variable>(af::constant(rhs, dims));
     return sub(lhs, x);
 }
 VariablePtr operator-(data_t lhs, const VariablePtr &rhs)
 {
-    auto dims = rhs->data.dims();
+    auto dims = rhs->mData.dims();
     auto x    = std::make_shared<Variable>(af::constant(lhs, dims));
     return sub(x, rhs);
 }

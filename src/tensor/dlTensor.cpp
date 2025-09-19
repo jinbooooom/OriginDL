@@ -2,23 +2,23 @@
 
 namespace dl
 {
-Variable::Variable(const NdArray &data) : data(data), generation(0) {}
+Variable::Variable(const NdArray &data) : mData(data), mGeneration(0) {}
 
 Variable::~Variable() {}
 
 void Variable::SetCreator(const FunctionPtr &func)
 {
-    creator    = func;
-    generation = creator->generation + 1;
+    mCreator    = func;
+    mGeneration = mCreator->mGeneration + 1;
 }
 
 void Variable::Backward()
 {
-    if (!this->grad)
+    if (!this->mGrad)
     {
         double grad_val = 1.0;
-        auto dims       = this->data.dims();
-        grad            = std::make_shared<NdArray>(af::constant(grad_val, dims));
+        auto dims       = this->mData.dims();
+        mGrad           = std::make_shared<NdArray>(af::constant(grad_val, dims));
     }
 
     auto funcs   = std::list<FunctionPtr>();
@@ -30,11 +30,11 @@ void Variable::Backward()
             funcs.push_back(f);
             funcSet.insert(f);
             funcs.sort(
-                [](const FunctionPtr &lhs, const FunctionPtr &rhs) { return lhs->generation < rhs->generation; });
+                [](const FunctionPtr &lhs, const FunctionPtr &rhs) { return lhs->mGeneration < rhs->mGeneration; });
         }
     };
 
-    AddFunc(this->creator);
+    AddFunc(this->mCreator);
 
     while (!funcs.empty())
     {
@@ -47,7 +47,7 @@ void Variable::Backward()
             // 通过 lock() 升级为 shared_ptr 并检查有效性
             if (auto oPtr = o.lock())
             {
-                gys.emplace_back(oPtr->grad);
+                gys.emplace_back(oPtr->mGrad);
             }
             else
             {
@@ -68,18 +68,18 @@ void Variable::Backward()
             auto x  = f->inputs[i];
             auto gx = gxs[i];
 
-            if (!x->grad)
+            if (!x->mGrad)
             {
-                x->grad = gx;
+                x->mGrad = gx;
             }
             else
             {
-                x->grad = AsDLArrayPtr(*(x->grad) + (*gx));
+                x->mGrad = AsDLArrayPtr(*(x->mGrad) + (*gx));
             }
 
-            if (x->creator)
+            if (x->mCreator)
             {
-                AddFunc(x->creator);
+                AddFunc(x->mCreator);
             }
         }
     }
@@ -89,7 +89,7 @@ void Variable::Backward()
 
 void Variable::ClearGrad()
 {
-    grad = nullptr;
+    mGrad = nullptr;
 }
 
 VariablePtr Variable::Reshape(const af::dim4 shape)
@@ -106,7 +106,7 @@ VariablePtr Variable::Transpose()
 
 void Variable::Print(std::string desc)
 {
-    af::print(desc.c_str(), data);
+    af::print(desc.c_str(), mData);
 };
 
 // 变量转换，未来考虑去掉

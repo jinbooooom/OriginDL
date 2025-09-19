@@ -87,11 +87,26 @@ private:
 }
 ```
 
-一般来说, 函数名的每个单词首字母大写, 没有下划线. 对于首字母缩写的单词（如简写RPC）, 更倾向于将它们视作一个单词进行首字母大写 (例如, 写作 `StartRpc()` 而非 `StartRPC()`).
+一般来说, 函数名的每个单词首字母大写, 没有下划线. 对于首字母缩写的单词（如简写RPC）, 更倾向于将它们视作一个单词进行首字母大写 (例如, 写作 `StartRpc()` 而非 `StartRPC()`)。
 
-#### 命名空间命名
+本仓库里的某些函数具有特殊性，如 add 操作是数学运算的通用名称，符合数学符号的惯例，使用小写。类似的数学运算函数均采用小写风格。
+```cpp
+VariablePtr add(const VariablePtrList &xs)
+{
+    return (*std::shared_ptr<Operator>(new Add()))(xs)[0];
+}
 
-命名空间以小写字母命，不使用缩写作为名称。
+VariablePtr add(const VariablePtr &lhs, const VariablePtr &rhs)
+{
+    VariablePtrList xs = {lhs, rhs};
+    return add(xs);
+}
+
+VariablePtr operator+(const VariablePtr &lhs, const VariablePtr &rhs)
+{
+    return add(lhs, rhs);
+}
+```
 
 #### 枚举与宏
 
@@ -107,6 +122,9 @@ enum AlternateUrlTableErrors {
 #define ROUND(x) ...
 #define PI_ROUNDED (3.0)
 ```
+
+### 采用异常而非错误码
+pytorch，内部使用异常，它的python接口基于pybind11，pybind11会负责将 cpp 异常转换为 python 异常。本仓库将采用类似的方式。
 
 ### 参考
 

@@ -19,8 +19,8 @@ NdArrayPtrList MatMul::Backward(const NdArrayPtrList &gys)
     auto x  = this->inputs[0];
     auto W  = this->inputs[1];
     auto gy = gys[0];
-    auto wt = af::transpose(W->data);
-    auto xt = af::transpose(x->data);
+    auto wt = af::transpose(W->mData);
+    auto xt = af::transpose(x->mData);
     auto gx = af::matmul(*gy, wt);
     auto gw = af::matmul(xt, *gy);
 

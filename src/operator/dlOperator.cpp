@@ -14,7 +14,7 @@ VariablePtrList Operator::operator()(const VariablePtrList &inputs)
     auto xs = NdArrayPtrList();
     for (const auto &i : inputs)
     {
-        xs.push_back(AsDLArrayPtr(i->data));
+        xs.push_back(AsDLArrayPtr(i->mData));
     }
 
     auto ys      = this->Forward(xs);
@@ -29,12 +29,12 @@ VariablePtrList Operator::operator()(const VariablePtrList &inputs)
     int maxGen = 0;
     for (auto &e : inputs)
     {
-        if (e->generation > maxGen)
+        if (e->mGeneration > maxGen)
         {
-            maxGen = e->generation;
+            maxGen = e->mGeneration;
         }
     }
-    this->generation = maxGen;
+    this->mGeneration = maxGen;
 
     this->inputs = inputs;
     // this->outputs = std::move(outputs);
