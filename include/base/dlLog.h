@@ -37,7 +37,7 @@ class DLLog final
     };
     DLLog(const DLLog &)            = delete;
     DLLog &operator=(const DLLog &) = delete;
-    virtual ~DLLog(){};
+    virtual ~DLLog() {};
 
   public:
     static DLLog *GetInstance()

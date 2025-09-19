@@ -122,7 +122,7 @@ extern VariablePtr square(const VariablePtr &x);
 class Pow : public Operator
 {
   public:
-    Pow(int n) : mExponent(n){};
+    Pow(int n) : mExponent(n) {};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -173,8 +173,8 @@ class Sum : public Operator
     int axis;  // 对那个轴求和
 
     af::dim4 xShape;  // 输入的形状
-    Sum() : axis(-1){};
-    Sum(const int axis) : axis(axis){};
+    Sum() : axis(-1) {};
+    Sum(const int axis) : axis(axis) {};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -189,7 +189,7 @@ class BroadcastTo : public Operator
 
     af::dim4 xShape;  // 输入的形状
 
-    BroadcastTo(const af::dim4 &shape) : shape(shape){};
+    BroadcastTo(const af::dim4 &shape) : shape(shape) {};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -204,7 +204,7 @@ class SumTo : public Operator
 
     af::dim4 xShape;  // 输入的形状
 
-    SumTo(const af::dim4 &shape) : shape(shape){};
+    SumTo(const af::dim4 &shape) : shape(shape) {};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 

@@ -1,59 +1,59 @@
-# Defines the ANGLE style for automatic reformatting.
-# https://code.google.com/p/angleproject/wiki/CodingStandard
-# See Clang docs: http://clang.llvm.org/docs/ClangFormatStyleOptions.html
-BasedOnStyle: Chromium
 
-# Allow double brackets such as std::vector<std::vector<int>>.
-Standard: Cpp11
+# 参考: https://code.google.com/p/angleproject/wiki/CodingStandard
+# Clang 文档: http://clang.llvm.org/docs/ClangFormatStyleOptions.html
+BasedOnStyle: Chromium  # 基于 Chromium 代码风格
 
-# Indent 4 spaces at a time.
-IndentWidth: 4
+# 允许双尖括号，如 std::vector<std::vector<int>>
+Standard: Cpp11  # 使用 C++11 标准
 
-# Keep lines under 100 columns long.
-ColumnLimit: 120
+# 每次缩进使用 4 个空格
+IndentWidth: 4  # 缩进宽度
 
-# Always break before braces
-BreakBeforeBraces: Custom
-BraceWrapping:
-  AfterCaseLabel: true
-  AfterClass: true
-  AfterControlStatement: true
-  AfterEnum: true
-  AfterFunction: true
-  AfterNamespace: true
-  AfterStruct: true
-  AfterUnion: true
-  BeforeCatch: true
-  BeforeElse: true
-  IndentBraces: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
+# 保持行长度在 120 列以内
+ColumnLimit: 120  # 列限制
 
-  # Keeps extern "C" blocks unindented.
+# 总是在大括号前换行
+BreakBeforeBraces: Custom  # 自定义大括号换行规则
+BraceWrapping:  # 大括号换行配置
+  AfterCaseLabel: true      # case 标签后换行
+  AfterClass: true          # 类定义后换行
+  AfterControlStatement: true  # 控制语句后换行
+  AfterEnum: true           # 枚举定义后换行
+  AfterFunction: true       # 函数定义后换行
+  AfterNamespace: true      # 命名空间后换行
+  AfterStruct: true         # 结构体定义后换行
+  AfterUnion: true          # 联合体定义后换行
+  BeforeCatch: true         # catch 前换行
+  BeforeElse: true          # else 前换行
+  IndentBraces: false       # 不缩进大括号
+  SplitEmptyFunction: false  # 不分割空函数
+  SplitEmptyRecord: false   # 不分割空记录
+  SplitEmptyNamespace: false # 不分割空命名空间
+
+  # 保持 extern "C" 块不缩进
   AfterExternBlock: false
 
-# Indent case labels.
-IndentCaseLabels: true
+# 缩进 case 标签
+IndentCaseLabels: true  # 缩进 case 标签
 
-# Right-align pointers and references
-PointerAlignment: Right
+# 右对齐指针和引用
+PointerAlignment: Right  # 指针对齐方式
 
-# ANGLE likes to align things as much as possible.
-AlignOperands: true
-AlignConsecutiveAssignments: true
+# ANGLE 喜欢尽可能对齐内容
+AlignOperands: true              # 对齐操作数
+AlignConsecutiveAssignments: true # 对齐连续赋值
 
-# Use 2 space negative offset for access modifiers
-AccessModifierOffset: -2
+# 访问修饰符使用 2 个空格负偏移
+AccessModifierOffset: -2  # 访问修饰符偏移
 
-# TODO(jmadill): Decide if we want this on. Doesn't have an "all or none" mode.
-AllowShortCaseLabelsOnASingleLine: false
+# TODO(jmadill): 决定是否启用此选项。没有"全部或全无"模式
+AllowShortCaseLabelsOnASingleLine: false  # 不允许短 case 标签在同一行
 
-# Useful for spacing out functions in classes
-KeepEmptyLinesAtTheStartOfBlocks: true
+# 对类中函数间距很有用
+KeepEmptyLinesAtTheStartOfBlocks: true  # 在块开始处保持空行
 
-# Indent nested PP directives.
-IndentPPDirectives: AfterHash
+# 缩进嵌套的预处理器指令
+IndentPPDirectives: AfterHash  # 在 # 后缩进预处理器指令
 
-# Include blocks style
-IncludeBlocks: Preserve
+# 包含块风格
+IncludeBlocks: Preserve  # 保持包含块风格

@@ -4,6 +4,14 @@
 
 ## 本仓库遵循的代码风格
 
+### 代码格式化
+
+使用 clang-format 进行代码格式化，配置文件为 `.clang-format`
+python 命令：
+```shell
+python3 format.py
+```
+
 ### 文件命名
 
 ```shell
