@@ -1,4 +1,5 @@
 #include "originDL.h"
+#include "base/dlException.h"
 
 namespace dl
 {
@@ -51,16 +52,15 @@ void Variable::Backward()
             }
             else
             {
-                loge("backward error!, output is nullptr");
-                exit(0);
+                DL_CRITICAL_THROW("backward error!, output is nullptr");
             }
         }
         auto gxs = f->Backward(gys);
 
         if (gxs.size() != f->inputs.size())
         {
-            loge("backward error!, gxs size {}, inputs size {}", gxs.size(), f->inputs.size());
-            exit(1);
+            DL_ERROR_THROW("backward error!, gxs size " + std::to_string(gxs.size()) + 
+                          ", inputs size " + std::to_string(f->inputs.size()));
         }
 
         for (size_t i = 0; i < gxs.size(); i++)
