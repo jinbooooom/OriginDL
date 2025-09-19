@@ -4,7 +4,7 @@
 # type(scope): subject
 # 即：commit类型(影响范围): 具体描述
 
-# 举例：
+# 建议使用英文 commit，举例：
 # fix(log): fix the format error of log when printing
 # doc: increase the readme of each folder in this repo
 

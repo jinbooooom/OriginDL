@@ -96,7 +96,7 @@ int main(int argc, char **argv)
     auto y = (*C)(b)[0];
 
     y->Backward();
-    print("gx: ", *x->grad);  // gx = 3.2974
+    print("gx: ", *x->mGrad);  // gx = 3.2974
 
     logi("Test Add: y = (x0^2) + (x1^2)");
     auto x0 = std::make_shared<Variable>(af::constant(2, dim));
@@ -105,19 +105,19 @@ int main(int argc, char **argv)
     // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
     // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
     y = ((x0) ^ 2) + ((x1) ^ 2);
-    print("y:", y->data);  // 13
+    print("y:", y->mData);  // 13
     y->Backward();
-    print("gx0:", *(x0->grad));  // 4
-    print("gx1:", *(x1->grad));  // 6
+    print("gx0:", *(x0->mGrad));  // 4
+    print("gx1:", *(x1->mGrad));  // 6
 
     logi("Test Add with repeated values: y = x + x");
     y->ClearGrad();
     x = x0;
     x->ClearGrad();
     y = x + x;
-    print("y:", y->data);  // 4
+    print("y:", y->mData);  // 4
     y->Backward();
-    print("gx:", *(x->grad));  // 2
+    print("gx:", *(x->mGrad));  // 2
 
     logi("Test Complex computation graph: y = ((x^2)^2) + ((x^2)^2) = 2 * (x^4)");
     y->ClearGrad();
@@ -125,21 +125,21 @@ int main(int argc, char **argv)
     // auto s = square(x);
     // y      = add({square(s), square(s)});
     y = ((x ^ 2) ^ 2) + ((x ^ 2) ^ 2);
-    print("y:", y->data);  // 32
+    print("y:", y->mData);  // 32
     y->Backward();
-    print("gx:", *(x->grad));  // 64
+    print("gx:", *(x->mGrad));  // 64
 
     // reshape
     logi("Test Reshape:");
     y->ClearGrad();
     af::array tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
     auto x3_4           = std::make_shared<Variable>(tensor3_4);
-    print("before reshape, x:", x3_4->data);
+    print("before reshape, x:", x3_4->mData);
     const af::dim4 dim4_3{4, 3};
     y = reshape(x3_4, dim4_3);
     y->Backward();
-    print("after reshape, y:", y->data);
-    print("gx:", *(x3_4->grad));
+    print("after reshape, y:", y->mData);
+    print("gx:", *(x3_4->mGrad));
 
     // transpose
     logi("Test Transpose:");
@@ -147,32 +147,32 @@ int main(int argc, char **argv)
     x3_4->ClearGrad();
     tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
     x3_4      = std::make_shared<Variable>(tensor3_4);
-    print("before reshape, x:", x3_4->data);
+    print("before reshape, x:", x3_4->mData);
     y = transpose(x3_4);
     y->Backward();
-    print("after transpose, y:", y->data);
-    print("gx:", *(x3_4->grad));
+    print("after transpose, y:", y->mData);
+    print("gx:", *(x3_4->mGrad));
 
     // sum
     logi("Test Sum:");
     y->ClearGrad();
     af::array tensor2_4 = af::iota(af::dim4(2, 4));
     auto x2_4           = std::make_shared<Variable>(tensor2_4);
-    print("before sum, x:", x2_4->data);
+    print("before sum, x:", x2_4->mData);
     y = sum(x2_4);
     y->Backward();
-    print("after sum, y:", y->data);
-    print("gx:", *(x2_4->grad));
+    print("after sum, y:", y->mData);
+    print("gx:", *(x2_4->mGrad));
 
     // sumTo
     logi("Test SumTo:");
     y->ClearGrad();
     x2_4->ClearGrad();
-    print("before sumTo, x:", x2_4->data);
+    print("before sumTo, x:", x2_4->mData);
     y = sumTo(x2_4, af::dim4(1, 4));
     y->Backward();
-    print("after sumTo, y:", y->data);
-    print("gx:", *(x2_4->grad));
+    print("after sumTo, y:", y->mData);
+    print("gx:", *(x2_4->mGrad));
 
     // broadcastTo
     logi("Test BroadcastTo:");
@@ -180,11 +180,11 @@ int main(int argc, char **argv)
     af::array tensor1_4 = af::iota(af::dim4(1, 4));
     auto x1_4           = std::make_shared<Variable>(tensor1_4);
     x1_4->ClearGrad();
-    print("before broadcastTo, x:", x1_4->data);
+    print("before broadcastTo, x:", x1_4->mData);
     y = broadcastTo(x1_4, af::dim4(2, 4));
     y->Backward();
-    print("after broadcastTo, y:", y->data);
-    print("gx:", *(x1_4->grad));
+    print("after broadcastTo, y:", y->mData);
+    print("gx:", *(x1_4->mGrad));
 
     // matMul
     logi("Test matMul:");
@@ -193,13 +193,13 @@ int main(int argc, char **argv)
         auto x            = std::make_shared<Variable>(tensorX);
         af::array tensorW = af::iota(af::dim4(4, 2));
         auto w            = std::make_shared<Variable>(tensorW);
-        print("before matMul, X:", x->data);
-        print("before matMul, W:", w->data);
+        print("before matMul, X:", x->mData);
+        print("before matMul, W:", w->mData);
         auto y = matMul(x, w);
         y->Backward();
-        print("after matMul, y:", y->data);
-        print("gx:", *(x->grad));
-        print("gw:", *(w->grad));
+        print("after matMul, y:", y->mData);
+        print("gx:", *(x->mGrad));
+        print("gw:", *(w->mGrad));
     }
 
     return 0;

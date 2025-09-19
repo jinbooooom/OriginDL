@@ -38,7 +38,7 @@ NdArrayPtrList Pow::Forward(const NdArrayPtrList &xs)
 
 NdArrayPtrList Pow::Backward(const NdArrayPtrList &gys)
 {
-    auto x = this->inputs[0]->data;
+    auto x = this->inputs[0]->mData;
     // TODO：考虑 mExponent 为负的情况，暂时没有这个场景
     auto gx = mExponent * af::pow(x, mExponent - 1) * (*gys[0]);
     return AsDLArrayPtrList(gx);

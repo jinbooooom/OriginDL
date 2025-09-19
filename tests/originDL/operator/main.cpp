@@ -20,61 +20,61 @@ int main()
     ClearGrad();
     y = -x0;
     y->Backward();
-    print("y", y->data);
-    print("dx0", *x0->grad);
+    print("y", y->mData);
+    print("dx0", *x0->mGrad);
 
     logi("Add: y = x0 + x1");
     ClearGrad();
     y = x0 + x1;
     y->Backward();
-    print("y", y->data);
-    print("dx0", *x0->grad);
-    print("dx1", *x1->grad);
+    print("y", y->mData);
+    print("dx0", *x0->mGrad);
+    print("dx1", *x1->mGrad);
 
     logi("Sub: y = x0 - x1");
     ClearGrad();
     y = x0 - x1;
     y->Backward();
-    print("y", y->data);
-    print("dx0", *x0->grad);
-    print("dx1", *x1->grad);
+    print("y", y->mData);
+    print("dx0", *x0->mGrad);
+    print("dx1", *x1->mGrad);
 
     logi("Mul: y = x0 * x1");
     ClearGrad();
     y = x0 * x1;
     y->Backward();
-    print("y", y->data);
-    print("dx0", *x0->grad);
-    print("dx1", *x1->grad);
+    print("y", y->mData);
+    print("dx0", *x0->mGrad);
+    print("dx1", *x1->mGrad);
 
     logi("Div: y = x0 / x1");
     ClearGrad();
     y = x0 / x1;
     y->Backward();
-    print("y", y->data);
-    print("dx0", *x0->grad);  // 1 / x1
-    print("dx1", *x1->grad);  // -x0 / x1^2
+    print("y", y->mData);
+    print("dx0", *x0->mGrad);  // 1 / x1
+    print("dx1", *x1->mGrad);  // -x0 / x1^2
 
     logi("Square: y = x0^2");
     ClearGrad();
     y = square(x0);
     y->Backward();
-    print("y", y->data);
-    print("dx0", *x0->grad);
+    print("y", y->mData);
+    print("dx0", *x0->mGrad);
 
     logi("Pow: y = x0^3");
     ClearGrad();
     y = x0 ^ 3;
     y->Backward();
-    print("y", y->data);
-    print("dx0", *x0->grad);
+    print("y", y->mData);
+    print("dx0", *x0->mGrad);
 
     logi("Exp: y = exp(x0)");
     ClearGrad();
     y = exp(x0);
     y->Backward();
-    print("y", y->data);
-    print("dx0", *x0->grad);
+    print("y", y->mData);
+    print("dx0", *x0->mGrad);
 
     return 0;
 }

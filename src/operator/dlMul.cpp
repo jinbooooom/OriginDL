@@ -24,8 +24,8 @@ NdArrayPtrList Mul::Backward(const NdArrayPtrList &gys)
         logw("invalid argument size, not equal to 1");
     }
 
-    auto x0  = this->inputs[0]->data;
-    auto x1  = this->inputs[1]->data;
+    auto x0  = this->inputs[0]->mData;
+    auto x1  = this->inputs[1]->mData;
     auto dx0 = AsDLArrayPtr((*gys[0]) * (x1));
     auto dx1 = AsDLArrayPtr((*gys[0]) * (x0));
 
@@ -36,7 +36,7 @@ NdArrayPtrList Mul::Backward(const NdArrayPtrList &gys)
         dx0_ = sumTo(AsVariablePtr(dx0), shape0);
         dx1_ = sumTo(AsVariablePtr(dx1), shape1);
     }
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(dx0_->data), AsDLArrayPtr(dx1_->data)};
+    auto gxs = NdArrayPtrList{AsDLArrayPtr(dx0_->mData), AsDLArrayPtr(dx1_->mData)};
 
     return gxs;
 }
@@ -59,13 +59,13 @@ VariablePtr operator*(const VariablePtr &lhs, const VariablePtr &rhs)
 
 VariablePtr operator*(const VariablePtr &lhs, data_t rhs)
 {
-    auto dims = lhs->data.dims();
+    auto dims = lhs->mData.dims();
     auto x    = std::make_shared<Variable>(af::constant(rhs, dims));
     return mul(lhs, x);
 }
 VariablePtr operator*(data_t lhs, const VariablePtr &rhs)
 {
-    auto dims = rhs->data.dims();
+    auto dims = rhs->mData.dims();
     auto x    = std::make_shared<Variable>(af::constant(lhs, dims));
     return mul(x, rhs);
 }
