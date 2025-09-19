@@ -1,5 +1,5 @@
-#include "dlOperator.h"
 #include "base/dlException.h"
+#include "dlOperator.h"
 
 namespace dl
 {
