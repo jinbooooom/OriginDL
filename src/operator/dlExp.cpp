@@ -3,20 +3,20 @@
 namespace dl
 {
 
-NdArrayPtrList Exp::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Exp::forward(const NdArrayPtrList &xs)
 {
     auto outputs = NdArrayPtrList();
     NdArrayPtr x = xs[0];
     auto o       = af::exp(*x);
-    outputs.push_back(AsDLArrayPtr(o));
+    outputs.push_back(as_dl_array_ptr(o));
     return outputs;
 }
 
-NdArrayPtrList Exp::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Exp::backward(const NdArrayPtrList &gys)
 {
     auto x  = this->inputs_[0]->data_;
     auto gx = af::exp(x) * (*gys[0]);
-    return AsDLArrayPtrList(gx);
+    return as_dl_array_ptr_list(gx);
 }
 
 VariablePtr exp(const VariablePtr &x)

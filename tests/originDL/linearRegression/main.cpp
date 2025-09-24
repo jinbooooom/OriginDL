@@ -80,7 +80,7 @@ int SetBackend(int argc, char **argv)
 
 VariablePtr Predict(const VariablePtr &x, const VariablePtr &w, const VariablePtr &b)
 {
-    auto y = matMul(x, w) + b;
+    auto y = mat_mul(x, w) + b;
     return y;
 }
 
@@ -99,22 +99,22 @@ int main(int argc, char **argv)
     af::setSeed(0);
 
     // 生成随机数据
-    int inputSize   = 100;
-    af::array xData = af::randu(inputSize, 1);
-    af::print("xData", xData);
+    int input_size   = 100;
+    af::array x_data = af::randu(input_size, 1);
+    af::print("xData", x_data);
     // 设置一个噪声，使真实值在预测结果附近
-    af::array noise = af::randu(inputSize, 1) * 0.1;
+    af::array noise = af::randu(input_size, 1) * 0.1;
     // af::print("noise", noise);
-    af::array yData = 2.0 * xData + 5.0 + noise;
-    af::print("yData", yData);
+    af::array y_data = 2.0 * x_data + 5.0 + noise;
+    af::print("yData", y_data);
 
     // 转换为变量
-    auto x = AsVariablePtr(AsDLArrayPtr(xData));
-    auto y = AsVariablePtr(AsDLArrayPtr(yData));
+    auto x = as_variable_ptr(as_dl_array_ptr(x_data));
+    auto y = as_variable_ptr(as_dl_array_ptr(y_data));
 
     // 初始化权重和偏置
-    auto w = AsVariablePtr(AsDLArrayPtr(af::constant(0, 1, 1, f32)));
-    auto b = AsVariablePtr(AsDLArrayPtr(af::constant(0, 1, 1, f32)));
+    auto w = as_variable_ptr(as_dl_array_ptr(af::constant(0, 1, 1, f32)));
+    auto b = as_variable_ptr(as_dl_array_ptr(af::constant(0, 1, 1, f32)));
 
     // 设置学习率和迭代次数
     double lr = 0.1;
@@ -123,14 +123,14 @@ int main(int argc, char **argv)
     // 训练
     for (int i = 0; i < iters; i++)
     {
-        auto yPred = Predict(x, w, b);
-        auto loss  = MSE(y, yPred);
+        auto y_pred = Predict(x, w, b);
+        auto loss   = MSE(y, y_pred);
 
-        w->ClearGrad();
-        b->ClearGrad();
+        w->clear_grad();
+        b->clear_grad();
 
         // 反向传播
-        loss->Backward();
+        loss->backward();
 
         // 更新参数
         w->data_ = w->data_ - lr * (*w->grad_);

@@ -4,7 +4,7 @@
 namespace dl
 {
 
-NdArrayPtrList Sub::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Sub::forward(const NdArrayPtrList &xs)
 {
     // logd("do sub");
     auto outputs  = NdArrayPtrList();
@@ -13,12 +13,12 @@ NdArrayPtrList Sub::Forward(const NdArrayPtrList &xs)
     shape0_       = x0->dims();
     shape1_       = x1->dims();
     auto y        = (*x0) - (*x1);
-    outputs.push_back(AsDLArrayPtr(y));
+    outputs.push_back(as_dl_array_ptr(y));
 
     return outputs;
 }
 
-NdArrayPtrList Sub::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Sub::backward(const NdArrayPtrList &gys)
 {
     if (1 != gys.size())
     {
@@ -31,16 +31,16 @@ NdArrayPtrList Sub::Backward(const NdArrayPtrList &gys)
 
     // return gxs;
 
-    auto gx0 = AsVariablePtr(gys[0]);
+    auto gx0 = as_variable_ptr(gys[0]);
     auto gx1 = -gx0;
     if (shape0_ != shape1_)
     {
-        gx0 = sumTo(gx0, shape0_);
-        gx1 = sumTo(gx1, shape1_);
+        gx0 = sum_to(gx0, shape0_);
+        gx1 = sum_to(gx1, shape1_);
     }
     auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(gx0->data_));
-    gxs.push_back(AsDLArrayPtr(gx1->data_));
+    gxs.push_back(as_dl_array_ptr(gx0->data_));
+    gxs.push_back(as_dl_array_ptr(gx1->data_));
     return gxs;
 }
 

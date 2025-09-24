@@ -3,7 +3,7 @@
 namespace dl
 {
 
-NdArrayPtrList Pow::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Pow::forward(const NdArrayPtrList &xs)
 {
     auto outputs = NdArrayPtrList();
     NdArrayPtr x = xs[0];
@@ -19,7 +19,7 @@ NdArrayPtrList Pow::Forward(const NdArrayPtrList &xs)
         // 若 base 中某元素为 0，则掩码对应位置为 true；否则为 false
         // 通过掩码筛选 result 数组中值为 0 的位置，设置为 Nan
         result(base == 0) = af::NaN;
-        outputs.push_back(AsDLArrayPtr(result));
+        outputs.push_back(as_dl_array_ptr(result));
     }
     else if (exponent_ > 0)
     {
@@ -32,16 +32,16 @@ NdArrayPtrList Pow::Forward(const NdArrayPtrList &xs)
     }
     // 如果考虑性能，当 exponent_ 为浮点数时，另外讨论情况
 
-    outputs.push_back(AsDLArrayPtr(result));
+    outputs.push_back(as_dl_array_ptr(result));
     return outputs;
 }
 
-NdArrayPtrList Pow::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Pow::backward(const NdArrayPtrList &gys)
 {
     auto x = this->inputs_[0]->data_;
     // TODO：考虑 exponent_ 为负的情况，暂时没有这个场景
     auto gx = exponent_ * af::pow(x, exponent_ - 1) * (*gys[0]);
-    return AsDLArrayPtrList(gx);
+    return as_dl_array_ptr_list(gx);
 }
 
 VariablePtr pow(const VariablePtr &base, int exponent)
