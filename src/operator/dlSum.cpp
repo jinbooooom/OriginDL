@@ -4,46 +4,39 @@
 namespace dl
 {
 
-NdArrayPtrList Sum::forward(const NdArrayPtrList &xs)
+std::vector<Tensor> Sum::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs   = NdArrayPtrList();
-    auto x         = *(xs[0]);
-    this->x_shape_ = x.dims();
-
-    NdArray y;
-    if (-1 == axis_)
-    {
-        auto n = x.numdims();
-        // logd("numdims of matrix x: {}", n);
-        y = x;
-        for (unsigned i = 0; i < n; ++i)
-        {
-            y = af::sum(y);
-        }
-        // y 的维度 [1, 1, 1, 1]
+    if (xs.size() != 1) {
+        throw std::runtime_error("Sum requires exactly 1 input");
     }
-    else
-    {
-        y = af::sum(x, axis_);
-    }
-    outputs.push_back(as_dl_array_ptr(y));
-    return outputs;
+    auto x = xs[0].data();
+    auto y = Tensor(af::sum(x, this->axis_));
+    return std::vector<Tensor>{y};
 }
 
-NdArrayPtrList Sum::backward(const NdArrayPtrList &gys)
+std::vector<Tensor> Sum::backward(const std::vector<Tensor> &gys)
 {
-    auto gy  = *(gys[0]);
-    auto gx  = utils::BroadcastTo(gy, x_shape_);
-    auto gxs = NdArrayPtrList();
-    gxs.push_back(as_dl_array_ptr(gx));
-    return gxs;
+    if (gys.size() != 1) {
+        throw std::runtime_error("Sum backward requires exactly 1 gradient");
+    }
+    auto gy = gys[0].data();
+    auto x = this->inputs_[0].data();
+    auto gx = Tensor(utils::BroadcastTo(gy, x.dims()));
+    return std::vector<Tensor>{gx};
 }
 
-VariablePtr sum(const VariablePtr &x, int axis_)  // -1 意味着所有元素相加
+Tensor sum(const std::vector<Tensor> &xs)
 {
-    auto f  = std::make_shared<Sum>();
-    auto ys = (*f)(x);
-    return ys[0];
+    auto op = std::make_shared<Sum>(-1);  // -1 意味着所有元素相加
+    return (*op)(xs)[0];
+}
+
+Tensor sum(const Tensor &x, int axis)
+{
+    auto op = std::make_shared<Sum>(axis);
+    std::vector<Tensor> inputs = {x};
+    std::vector<Tensor> result = (*op)(inputs);
+    return result[0];
 }
 
 }  // namespace dl

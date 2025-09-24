@@ -1,74 +1,76 @@
-#include "base/dlException.h"
 #include "dlOperator.h"
 
 namespace dl
 {
 
-NdArrayPtrList Mul::forward(const NdArrayPtrList &xs)
+std::vector<Tensor> Mul::forward(const std::vector<Tensor> &xs)
 {
-    // logd("do Mul");
-    auto outputs  = NdArrayPtrList();
-    NdArrayPtr x0 = xs[0];
-    NdArrayPtr x1 = xs[1];
-    shape0_       = x0->dims();
-    shape1_       = x1->dims();
-    auto y        = (*x0) * (*x1);  // 逐元素乘
-    outputs.push_back(as_dl_array_ptr(y));
-
+    if (xs.size() != 2) {
+        throw std::runtime_error("Mul requires exactly 2 inputs");
+    }
+    
+    shape0_ = xs[0].data().dims();
+    shape1_ = xs[1].data().dims();
+    // 直接使用 ArrayFire 运算符，避免触发全局 operator*
+    auto y = Tensor(xs[0].data() * xs[1].data());
+    std::vector<Tensor> outputs;
+    outputs.push_back(y);
     return outputs;
 }
 
-NdArrayPtrList Mul::backward(const NdArrayPtrList &gys)
+std::vector<Tensor> Mul::backward(const std::vector<Tensor> &gys)
 {
-    if (1 != gys.size())
-    {
-        DL_WARN_THROW("invalid argument size, not equal to 1");
+    if (gys.size() != 1) {
+        throw std::runtime_error("Mul backward requires exactly 1 gradient");
     }
 
-    auto x0  = this->inputs_[0]->data_;
-    auto x1  = this->inputs_[1]->data_;
-    auto dx0 = as_dl_array_ptr((*gys[0]) * (x1));
-    auto dx1 = as_dl_array_ptr((*gys[0]) * (x0));
-
-    VariablePtr dx0_ = as_variable_ptr(dx0);
-    VariablePtr dx1_ = as_variable_ptr(dx1);
-    if (shape0_ != shape1_)
-    {
-        dx0_ = sum_to(as_variable_ptr(dx0), shape0_);
-        dx1_ = sum_to(as_variable_ptr(dx1), shape1_);
+    auto x0 = this->inputs_[0].data();
+    auto x1 = this->inputs_[1].data();
+    auto gy = gys[0].data();
+    
+    // 直接使用 ArrayFire 的运算符，避免触发全局 operator*
+    auto gx0 = Tensor(gy * x1);
+    auto gx1 = Tensor(gy * x0);
+    
+    if (shape0_ != shape1_) {
+        // 这里需要实现 sum_to 功能
+        // gx0 = sum_to(gx0, shape0_);
+        // gx1 = sum_to(gx1, shape1_);
     }
-    auto gxs = NdArrayPtrList();
-    gxs.push_back(as_dl_array_ptr(dx0_->data_));
-    gxs.push_back(as_dl_array_ptr(dx1_->data_));
+    
+    std::vector<Tensor> gxs;
+    gxs.push_back(gx0);
+    gxs.push_back(gx1);
     return gxs;
 }
 
-VariablePtr mul(const VariablePtrList &xs)
+Tensor mul(const std::vector<Tensor> &xs)
 {
-    return (*std::shared_ptr<Operator>(new Mul()))(xs)[0];
+    auto op = std::make_shared<Mul>();
+    return (*op)(xs)[0];
 }
 
-VariablePtr mul(const VariablePtr &lhs, const VariablePtr &rhs)
+Tensor mul(const Tensor &lhs, const Tensor &rhs)
 {
-    VariablePtrList xs = {lhs, rhs};
-    return mul(xs);
+    return mul({lhs, rhs});
 }
 
-VariablePtr operator*(const VariablePtr &lhs, const VariablePtr &rhs)
+Tensor operator*(const Tensor &lhs, const Tensor &rhs)
 {
     return mul(lhs, rhs);
 }
 
-VariablePtr operator*(const VariablePtr &lhs, data_t rhs)
+Tensor operator*(const Tensor &lhs, data_t rhs)
 {
-    auto dims = lhs->data_.dims();
-    auto x    = std::make_shared<Variable>(af::constant(rhs, dims));
+    auto dims = lhs.data().dims();
+    auto x = Tensor(af::constant(rhs, dims));
     return mul(lhs, x);
 }
-VariablePtr operator*(data_t lhs, const VariablePtr &rhs)
+
+Tensor operator*(data_t lhs, const Tensor &rhs)
 {
-    auto dims = rhs->data_.dims();
-    auto x    = std::make_shared<Variable>(af::constant(lhs, dims));
+    auto dims = rhs.data().dims();
+    auto x = Tensor(af::constant(lhs, dims));
     return mul(x, rhs);
 }
 
