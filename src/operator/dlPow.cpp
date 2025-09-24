@@ -10,7 +10,7 @@ NdArrayPtrList Pow::Forward(const NdArrayPtrList &xs)
     auto &base   = *x;
 
     DLMat result;
-    if (0 == mExponent)
+    if (0 == exponent_)
     {
         // 创建全1数组（排除底数为0的元素）
         result = af::constant(1, base.dims(), base.type());
@@ -21,16 +21,16 @@ NdArrayPtrList Pow::Forward(const NdArrayPtrList &xs)
         result(base == 0) = af::NaN;
         outputs.push_back(AsDLArrayPtr(result));
     }
-    else if (mExponent > 0)
+    else if (exponent_ > 0)
     {
-        result = af::pow(base, mExponent);  // 正整指数
+        result = af::pow(base, exponent_);  // 正整指数
     }
     else
     {
         // 负整指数：先计算正幂再取倒数
-        result = 1 / af::pow(base, -mExponent);
+        result = 1 / af::pow(base, -exponent_);
     }
-    // 如果考虑性能，当 mExponent 为浮点数时，另外讨论情况
+    // 如果考虑性能，当 exponent_ 为浮点数时，另外讨论情况
 
     outputs.push_back(AsDLArrayPtr(result));
     return outputs;
@@ -38,9 +38,9 @@ NdArrayPtrList Pow::Forward(const NdArrayPtrList &xs)
 
 NdArrayPtrList Pow::Backward(const NdArrayPtrList &gys)
 {
-    auto x = this->inputs[0]->mData;
-    // TODO：考虑 mExponent 为负的情况，暂时没有这个场景
-    auto gx = mExponent * af::pow(x, mExponent - 1) * (*gys[0]);
+    auto x = this->inputs_[0]->data_;
+    // TODO：考虑 exponent_ 为负的情况，暂时没有这个场景
+    auto gx = exponent_ * af::pow(x, exponent_ - 1) * (*gys[0]);
     return AsDLArrayPtrList(gx);
 }
 

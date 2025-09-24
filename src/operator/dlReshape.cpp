@@ -5,10 +5,10 @@ namespace dl
 
 NdArrayPtrList Reshape::Forward(const NdArrayPtrList &xs)
 {
-    auto outputs = NdArrayPtrList();
-    auto x       = *(xs[0]);
-    this->xShape = x.dims();
-    auto y       = af::moddims(x, this->shape);
+    auto outputs   = NdArrayPtrList();
+    auto x         = *(xs[0]);
+    this->x_shape_ = x.dims();
+    auto y         = af::moddims(x, this->shape_);
     outputs.push_back(AsDLArrayPtr(y));
     return outputs;
 }
@@ -21,8 +21,9 @@ NdArrayPtrList Reshape::Backward(const NdArrayPtrList &gys)
     }
 
     auto gy  = *(gys[0]);
-    auto gx  = af::moddims(gy, this->xShape);
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(gx)};
+    auto gx  = af::moddims(gy, this->x_shape_);
+    auto gxs = NdArrayPtrList();
+    gxs.push_back(AsDLArrayPtr(gx));
     return gxs;
 }
 

@@ -4,4 +4,4 @@
 #include "dlOperator.h"
 #include "dlTensor.h"
 
-#endif
+#endif  // __ORIGIN_DL_H__

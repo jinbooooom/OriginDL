@@ -6,12 +6,12 @@ namespace dl
 
 NdArrayPtrList Sum::Forward(const NdArrayPtrList &xs)
 {
-    auto outputs = NdArrayPtrList();
-    auto x       = *(xs[0]);
-    this->xShape = x.dims();
+    auto outputs   = NdArrayPtrList();
+    auto x         = *(xs[0]);
+    this->x_shape_ = x.dims();
 
     NdArray y;
-    if (-1 == axis)
+    if (-1 == axis_)
     {
         auto n = x.numdims();
         // logd("numdims of matrix x: {}", n);
@@ -24,7 +24,7 @@ NdArrayPtrList Sum::Forward(const NdArrayPtrList &xs)
     }
     else
     {
-        y = af::sum(x, axis);
+        y = af::sum(x, axis_);
     }
     outputs.push_back(AsDLArrayPtr(y));
     return outputs;
@@ -33,12 +33,13 @@ NdArrayPtrList Sum::Forward(const NdArrayPtrList &xs)
 NdArrayPtrList Sum::Backward(const NdArrayPtrList &gys)
 {
     auto gy  = *(gys[0]);
-    auto gx  = utils::BroadcastTo(gy, xShape);
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(gx)};
+    auto gx  = utils::BroadcastTo(gy, x_shape_);
+    auto gxs = NdArrayPtrList();
+    gxs.push_back(AsDLArrayPtr(gx));
     return gxs;
 }
 
-VariablePtr sum(const VariablePtr &x, int axis)  // -1 意味着所有元素相加
+VariablePtr sum(const VariablePtr &x, int axis_)  // -1 意味着所有元素相加
 {
     auto f  = std::make_shared<Sum>();
     auto ys = (*f)(x);

@@ -20,13 +20,13 @@ class Operator : public std::enable_shared_from_this<Operator>
     virtual NdArrayPtrList Backward(const NdArrayPtrList &gys) = 0;
 
   public:
-    VariablePtrList inputs;  // 前向传播的入参，考虑多输入
+    VariablePtrList inputs_;  // 前向传播的入参，考虑多输入
 
     // 算子拥有 inputs，但是不拥有 outputs，outputs 是下一个计算节点的输入，被下一个计算节点所拥有，
     // 因此 output 为 weak 指针，表示当前算子仅仅是使用 output，不拥有所有权。
-    VariableWPtrList outputs;  // 前向传播的输出，考虑多输出
+    VariableWPtrList outputs_;  // 前向传播的输出，考虑多输出
 
-    int mGeneration;  // 对于复杂的计算图，用来区分哪个先计算
+    int generation_;  // 对于复杂的计算图，用来区分哪个先计算
 };
 
 class Neg : public Operator
@@ -44,8 +44,8 @@ VariablePtr operator-(const VariablePtr &x);
 class Add : public Operator
 {
   public:
-    af::dim4 shape0;
-    af::dim4 shape1;
+    af::dim4 shape0_;
+    af::dim4 shape1_;
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -61,8 +61,8 @@ VariablePtr operator+(data_t lhs, const VariablePtr &rhs);
 class Sub : public Operator
 {
   public:
-    af::dim4 shape0;
-    af::dim4 shape1;
+    af::dim4 shape0_;
+    af::dim4 shape1_;
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -78,8 +78,8 @@ VariablePtr operator-(data_t lhs, const VariablePtr &rhs);
 class Mul : public Operator
 {
   public:
-    af::dim4 shape0;
-    af::dim4 shape1;
+    af::dim4 shape0_;
+    af::dim4 shape1_;
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -95,8 +95,8 @@ VariablePtr operator*(data_t lhs, const VariablePtr &rhs);
 class Div : public Operator
 {
   public:
-    af::dim4 shape0;
-    af::dim4 shape1;
+    af::dim4 shape0_;
+    af::dim4 shape1_;
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -122,13 +122,13 @@ extern VariablePtr square(const VariablePtr &x);
 class Pow : public Operator
 {
   public:
-    Pow(int n) : mExponent(n) {};
+    Pow(int n) : exponent_(n) {};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
     NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
 
-    int mExponent;  // 幂函数的指数
+    int exponent_;  // 幂函数的指数
 };
 VariablePtr pow(const VariablePtr &base, int exponent);
 VariablePtr operator^(const VariablePtr &base, int exponent);
@@ -146,11 +146,11 @@ extern VariablePtr exp(const VariablePtr &x);
 class Reshape : public Operator
 {
   public:
-    af::dim4 shape;  // 输出的形状
+    af::dim4 shape_;  // 输出的形状
 
-    af::dim4 xShape;  // 输入的形状
+    af::dim4 x_shape_;  // 输入的形状
 
-    Reshape(const af::dim4 &shape) : shape(shape) {}
+    Reshape(const af::dim4 &shape) : shape_(shape) {}
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -170,11 +170,11 @@ extern VariablePtr transpose(const VariablePtr &x);
 class Sum : public Operator
 {
   public:
-    int axis;  // 对那个轴求和
+    int axis_;  // 对那个轴求和
 
-    af::dim4 xShape;  // 输入的形状
-    Sum() : axis(-1) {};
-    Sum(const int axis) : axis(axis) {};
+    af::dim4 x_shape_;  // 输入的形状
+    Sum() : axis_(-1) {};
+    Sum(const int axis) : axis_(axis) {};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -185,11 +185,11 @@ extern VariablePtr sum(const VariablePtr &x, int axis = -1);  // -1 意味着所
 class BroadcastTo : public Operator
 {
   public:
-    af::dim4 shape;  // 输出的形状
+    af::dim4 shape_;  // 输出的形状
 
-    af::dim4 xShape;  // 输入的形状
+    af::dim4 x_shape_;  // 输入的形状
 
-    BroadcastTo(const af::dim4 &shape) : shape(shape) {};
+    BroadcastTo(const af::dim4 &shape) : shape_(shape) {};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 
@@ -200,11 +200,11 @@ extern VariablePtr broadcastTo(const VariablePtr &x, const af::dim4 &shape);
 class SumTo : public Operator
 {
   public:
-    af::dim4 shape;  // 输出的形状
+    af::dim4 shape_;  // 输出的形状
 
-    af::dim4 xShape;  // 输入的形状
+    af::dim4 x_shape_;  // 输入的形状
 
-    SumTo(const af::dim4 &shape) : shape(shape) {};
+    SumTo(const af::dim4 &shape) : shape_(shape) {};
 
     NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
 

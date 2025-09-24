@@ -16,15 +16,17 @@ NdArrayPtrList MatMul::Forward(const NdArrayPtrList &xs)
 
 NdArrayPtrList MatMul::Backward(const NdArrayPtrList &gys)
 {
-    auto x  = this->inputs[0];
-    auto W  = this->inputs[1];
+    auto x  = this->inputs_[0];
+    auto W  = this->inputs_[1];
     auto gy = gys[0];
-    auto wt = af::transpose(W->mData);
-    auto xt = af::transpose(x->mData);
+    auto wt = af::transpose(W->data_);
+    auto xt = af::transpose(x->data_);
     auto gx = af::matmul(*gy, wt);
     auto gw = af::matmul(xt, *gy);
 
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(gx), AsDLArrayPtr(gw)};
+    auto gxs = NdArrayPtrList();
+    gxs.push_back(AsDLArrayPtr(gx));
+    gxs.push_back(AsDLArrayPtr(gw));
     return gxs;
 }
 

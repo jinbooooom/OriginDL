@@ -19,7 +19,7 @@ NdArrayPtrList Neg::Backward(const NdArrayPtrList &gys)
     }
 
     auto gy  = -(*gys[0]);
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(gy)};
+    auto gxs = NdArrayPtrList();
 
     return gxs;
 }

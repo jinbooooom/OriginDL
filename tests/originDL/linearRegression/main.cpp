@@ -88,7 +88,7 @@ VariablePtr Predict(const VariablePtr &x, const VariablePtr &w, const VariablePt
 VariablePtr MSE(const VariablePtr &x0, const VariablePtr &x1)
 {
     auto diff   = x0 - x1;
-    auto result = sum(pow(diff, 2)) / diff->mData.elements();
+    auto result = sum(pow(diff, 2)) / diff->data_.elements();
     return result;
 }
 int main(int argc, char **argv)
@@ -133,13 +133,13 @@ int main(int argc, char **argv)
         loss->Backward();
 
         // 更新参数
-        w->mData = w->mData - lr * (*w->mGrad);
-        b->mData = b->mData - lr * (*b->mGrad);
+        w->data_ = w->data_ - lr * (*w->grad_);
+        b->data_ = b->data_ - lr * (*b->grad_);
 
         // 打印结果
-        float loss_val = loss->mData.scalar<float>();
-        float w_val    = w->mData.scalar<float>();
-        float b_val    = b->mData.scalar<float>();
+        float loss_val = loss->data_.scalar<float>();
+        float w_val    = w->data_.scalar<float>();
+        float b_val    = b->data_.scalar<float>();
 
         logi("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
     }
