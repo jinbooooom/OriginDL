@@ -2,13 +2,13 @@
 
 using namespace dl;
 
-VariablePtr f(const VariablePtr &x)
+Tensor f(const Tensor &x)
 {
     // auto A = std::make_shared<Square>();
     // auto B = std::make_shared<Exp>();
     // auto C = std::make_shared<Square>();
     // return (*C)((*B)((*A)(x)));
-    return VariablePtr();
+    return Tensor(af::constant(0.0, 1));
 }
 
 int main()

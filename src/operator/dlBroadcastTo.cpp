@@ -4,35 +4,31 @@
 namespace dl
 {
 
-NdArrayPtrList BroadcastTo::forward(const NdArrayPtrList &xs)
+std::vector<Tensor> BroadcastTo::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs   = NdArrayPtrList();
-    auto x         = *(xs[0]);
-    this->x_shape_ = x.dims();
-    auto y         = utils::BroadcastTo(x, this->shape_);
-    outputs.push_back(as_dl_array_ptr(y));
-    return outputs;
-}
-
-NdArrayPtrList BroadcastTo::backward(const NdArrayPtrList &gys)
-{
-    if (1 != gys.size())
-    {
-        logw("invalid argument size, not equal to 1");
+    if (xs.size() != 1) {
+        throw std::runtime_error("BroadcastTo requires exactly 1 input");
     }
-
-    auto gy  = *(gys[0]);
-    auto gx  = utils::SumTo(gy, this->x_shape_);
-    auto gxs = NdArrayPtrList();
-    gxs.push_back(as_dl_array_ptr(gx));
-    return gxs;
+    this->x_shape_ = xs[0].data().dims();
+    auto y = Tensor(utils::BroadcastTo(xs[0].data(), this->shape_));
+    return std::vector<Tensor>{y};
 }
 
-VariablePtr broadcast_to(const VariablePtr &x, const af::dim4 &shape)
+std::vector<Tensor> BroadcastTo::backward(const std::vector<Tensor> &gys)
 {
-    auto f  = std::make_shared<BroadcastTo>(shape);
-    auto ys = (*f)(x);
-    return ys[0];
+    if (gys.size() != 1) {
+        throw std::runtime_error("BroadcastTo backward requires exactly 1 gradient");
+    }
+    auto gx = Tensor(utils::SumTo(gys[0].data(), this->x_shape_));
+    return std::vector<Tensor>{gx};
+}
+
+Tensor broadcast_to(const Tensor &x, const af::dim4 &shape)
+{
+    auto op = std::make_shared<BroadcastTo>(shape);
+    std::vector<Tensor> inputs = {x};
+    std::vector<Tensor> result = (*op)(inputs);
+    return result[0];
 }
 
 }  // namespace dl

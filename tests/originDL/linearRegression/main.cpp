@@ -78,17 +78,18 @@ int SetBackend(int argc, char **argv)
     return 0;
 }
 
-VariablePtr Predict(const VariablePtr &x, const VariablePtr &w, const VariablePtr &b)
+Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
 {
-    auto y = mat_mul(x, w) + b;
+    auto y = dl::mat_mul(x, w) + b;
     return y;
 }
 
 // mean_squared_error
-VariablePtr MSE(const VariablePtr &x0, const VariablePtr &x1)
+Tensor MSE(const Tensor &x0, const Tensor &x1)
 {
     auto diff   = x0 - x1;
-    auto result = sum(pow(diff, 2)) / diff->data_.elements();
+    auto sum_result = dl::sum(dl::pow(diff, 2));
+    auto result = Tensor(sum_result.data() / diff.data().elements());
     return result;
 }
 int main(int argc, char **argv)
@@ -109,12 +110,12 @@ int main(int argc, char **argv)
     af::print("yData", y_data);
 
     // 转换为变量
-    auto x = as_variable_ptr(as_dl_array_ptr(x_data));
-    auto y = as_variable_ptr(as_dl_array_ptr(y_data));
+    auto x = Tensor(x_data);
+    auto y = Tensor(y_data);
 
     // 初始化权重和偏置
-    auto w = as_variable_ptr(as_dl_array_ptr(af::constant(0, 1, 1, f32)));
-    auto b = as_variable_ptr(as_dl_array_ptr(af::constant(0, 1, 1, f32)));
+    auto w = Tensor(af::constant(0, 1, 1, f32));
+    auto b = Tensor(af::constant(0, 1, 1, f32));
 
     // 设置学习率和迭代次数
     double lr = 0.1;
@@ -126,20 +127,20 @@ int main(int argc, char **argv)
         auto y_pred = Predict(x, w, b);
         auto loss   = MSE(y, y_pred);
 
-        w->clear_grad();
-        b->clear_grad();
+        w.clear_grad();
+        b.clear_grad();
 
         // 反向传播
-        loss->backward();
+        loss.backward();
 
         // 更新参数
-        w->data_ = w->data_ - lr * (*w->grad_);
-        b->data_ = b->data_ - lr * (*b->grad_);
+        w.data() = w.data() - lr * w.grad();
+        b.data() = b.data() - lr * b.grad();
 
         // 打印结果
-        float loss_val = loss->data_.scalar<float>();
-        float w_val    = w->data_.scalar<float>();
-        float b_val    = b->data_.scalar<float>();
+        float loss_val = loss.data().scalar<float>();
+        float w_val    = w.data().scalar<float>();
+        float b_val    = b.data().scalar<float>();
 
         logi("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
     }

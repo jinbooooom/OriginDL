@@ -3,55 +3,41 @@
 namespace dl
 {
 
-NdArrayPtrList Pow::forward(const NdArrayPtrList &xs)
+std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs = NdArrayPtrList();
-    NdArrayPtr x = xs[0];
-    auto &base   = *x;
-
-    DLMat result;
-    if (0 == exponent_)
-    {
-        // 创建全1数组（排除底数为0的元素）
-        result = af::constant(1, base.dims(), base.type());
-        // 0^0 未定义
-        // 生成一个与 base 数组同尺寸的 布尔掩码数组。
-        // 若 base 中某元素为 0，则掩码对应位置为 true；否则为 false
-        // 通过掩码筛选 result 数组中值为 0 的位置，设置为 Nan
-        result(base == 0) = af::NaN;
-        outputs.push_back(as_dl_array_ptr(result));
+    if (xs.size() != 1) {
+        throw std::runtime_error("Pow requires exactly 1 input");
     }
-    else if (exponent_ > 0)
-    {
-        result = af::pow(base, exponent_);  // 正整指数
-    }
-    else
-    {
-        // 负整指数：先计算正幂再取倒数
-        result = 1 / af::pow(base, -exponent_);
-    }
-    // 如果考虑性能，当 exponent_ 为浮点数时，另外讨论情况
-
-    outputs.push_back(as_dl_array_ptr(result));
-    return outputs;
+    auto x = xs[0].data();
+    auto result = af::pow(x, exponent_);
+    return std::vector<Tensor>{Tensor(result)};
 }
 
-NdArrayPtrList Pow::backward(const NdArrayPtrList &gys)
+std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
 {
-    auto x = this->inputs_[0]->data_;
-    // TODO：考虑 exponent_ 为负的情况，暂时没有这个场景
-    auto gx = exponent_ * af::pow(x, exponent_ - 1) * (*gys[0]);
-    return as_dl_array_ptr_list(gx);
+    if (gys.size() != 1) {
+        throw std::runtime_error("Pow backward requires exactly 1 gradient");
+    }
+    auto x = this->inputs_[0].data();
+    auto gy = gys[0].data();
+    auto gx = Tensor(exponent_ * af::pow(x, exponent_ - 1) * gy);
+    return std::vector<Tensor>{gx};
 }
 
-VariablePtr pow(const VariablePtr &base, int exponent)
+Tensor pow(const std::vector<Tensor> &xs, int exponent)
 {
-    auto f = std::shared_ptr<Operator>(new Pow(exponent));
-    auto y = (*f)(base);
-    return y[0];
+    auto op = std::make_shared<Pow>(exponent);
+    return (*op)(xs)[0];
 }
 
-VariablePtr operator^(const VariablePtr &base, int exponent)
+Tensor pow(const Tensor &base, int exponent)
+{
+    auto xs = std::vector<Tensor>();
+    xs.emplace_back(base);
+    return pow(xs, exponent);
+}
+
+Tensor operator^(const Tensor &base, int exponent)
 {
     return pow(base, exponent);
 }

@@ -3,7 +3,7 @@
 namespace dl
 {
 
-VariablePtr MeanSquaredError(const VariablePtr &x0, const VariablePtr &x1)
+Tensor MeanSquaredError(const Tensor &x0, const Tensor &x1)
 {
     // auto diff = x0 - x1;
     // return F::sum(diff ^ 2) / diff->size();

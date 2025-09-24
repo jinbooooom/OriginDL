@@ -3,37 +3,31 @@
 namespace dl
 {
 
-NdArrayPtrList Reshape::forward(const NdArrayPtrList &xs)
+std::vector<Tensor> Reshape::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs   = NdArrayPtrList();
-    auto x         = *(xs[0]);
-    this->x_shape_ = x.dims();
-    auto y         = af::moddims(x, this->shape_);
-    outputs.push_back(as_dl_array_ptr(y));
-    return outputs;
-}
-
-NdArrayPtrList Reshape::backward(const NdArrayPtrList &gys)
-{
-    if (1 != gys.size())
-    {
-        logw("invalid argument size, not equal to 1");
+    if (xs.size() != 1) {
+        throw std::runtime_error("Reshape requires exactly 1 input");
     }
-
-    auto gy  = *(gys[0]);
-    auto gx  = af::moddims(gy, this->x_shape_);
-    auto gxs = NdArrayPtrList();
-    gxs.push_back(as_dl_array_ptr(gx));
-    return gxs;
+    auto y = xs[0].reshape(this->shape_);
+    return std::vector<Tensor>{y};
 }
 
-VariablePtr reshape(const VariablePtr &x, const af::dim4 shape)
+std::vector<Tensor> Reshape::backward(const std::vector<Tensor> &gys)
 {
-    // TODO：如果 shape 相同就什么都不做
+    if (gys.size() != 1) {
+        throw std::runtime_error("Reshape backward requires exactly 1 gradient");
+    }
+    auto x = this->inputs_[0].data();
+    auto gx = Tensor(af::moddims(gys[0].data(), x.dims()));
+    return std::vector<Tensor>{gx};
+}
 
-    auto f  = std::make_shared<Reshape>(shape);
-    auto ys = (*f)(x);
-    return ys[0];
+Tensor reshape(const Tensor &x, const af::dim4 shape)
+{
+    auto op = std::make_shared<Reshape>(shape);
+    std::vector<Tensor> inputs = {x};
+    std::vector<Tensor> result = (*op)(inputs);
+    return result[0];
 }
 
 }  // namespace dl
