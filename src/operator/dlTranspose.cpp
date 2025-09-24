@@ -16,7 +16,7 @@ NdArrayPtrList Transpose::Backward(const NdArrayPtrList &gys)
 {
     auto gy  = *(gys[0]);
     auto gx  = transpose(gy);
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(gx)};
+    auto gxs = NdArrayPtrList();
     return gxs;
 }
 

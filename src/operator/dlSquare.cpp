@@ -14,7 +14,7 @@ NdArrayPtrList Square::Forward(const NdArrayPtrList &xs)
 
 NdArrayPtrList Square::Backward(const NdArrayPtrList &gys)
 {
-    auto x  = this->inputs[0]->mData;
+    auto x  = this->inputs_[0]->data_;
     auto gx = 2.0 * x * (*gys[0]);
     return AsDLArrayPtrList(gx);
 }

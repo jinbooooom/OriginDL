@@ -7,10 +7,10 @@ namespace dl
 
 NdArrayPtrList SumTo::Forward(const NdArrayPtrList &xs)
 {
-    auto outputs = NdArrayPtrList();
-    auto x       = *(xs[0]);
-    this->xShape = x.dims();
-    auto y       = utils::SumTo(x, this->shape);
+    auto outputs   = NdArrayPtrList();
+    auto x         = *(xs[0]);
+    this->x_shape_ = x.dims();
+    auto y         = utils::SumTo(x, this->shape_);
     outputs.push_back(AsDLArrayPtr(y));
     return outputs;
 }
@@ -23,8 +23,9 @@ NdArrayPtrList SumTo::Backward(const NdArrayPtrList &gys)
     }
 
     auto gy  = *(gys[0]);
-    auto gx  = utils::BroadcastTo(gy, this->xShape);
-    auto gxs = NdArrayPtrList{AsDLArrayPtr(gx)};
+    auto gx  = utils::BroadcastTo(gy, this->x_shape_);
+    auto gxs = NdArrayPtrList();
+    gxs.push_back(AsDLArrayPtr(gx));
     return gxs;
 }
 

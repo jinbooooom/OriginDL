@@ -14,7 +14,7 @@ NdArrayPtrList Exp::Forward(const NdArrayPtrList &xs)
 
 NdArrayPtrList Exp::Backward(const NdArrayPtrList &gys)
 {
-    auto x  = this->inputs[0]->mData;
+    auto x  = this->inputs_[0]->data_;
     auto gx = af::exp(x) * (*gys[0]);
     return AsDLArrayPtrList(gx);
 }

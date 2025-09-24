@@ -3,23 +3,23 @@
 
 namespace dl
 {
-Variable::Variable(const NdArray &data) : mData(data), mGeneration(0) {}
+Variable::Variable(const NdArray &data) : data_(data), generation_(0) {}
 
 Variable::~Variable() {}
 
 void Variable::SetCreator(const FunctionPtr &func)
 {
-    mCreator    = func;
-    mGeneration = mCreator->mGeneration + 1;
+    creator_    = func;
+    generation_ = creator_->generation_ + 1;
 }
 
 void Variable::Backward()
 {
-    if (!this->mGrad)
+    if (!this->grad_)
     {
         double grad_val = 1.0;
-        auto dims       = this->mData.dims();
-        mGrad           = std::make_shared<NdArray>(af::constant(grad_val, dims));
+        auto dims       = this->data_.dims();
+        grad_           = std::make_shared<NdArray>(af::constant(grad_val, dims));
     }
 
     auto funcs   = std::list<FunctionPtr>();
@@ -31,11 +31,11 @@ void Variable::Backward()
             funcs.push_back(f);
             funcSet.insert(f);
             funcs.sort(
-                [](const FunctionPtr &lhs, const FunctionPtr &rhs) { return lhs->mGeneration < rhs->mGeneration; });
+                [](const FunctionPtr &lhs, const FunctionPtr &rhs) { return lhs->generation_ < rhs->generation_; });
         }
     };
 
-    AddFunc(this->mCreator);
+    AddFunc(this->creator_);
 
     while (!funcs.empty())
     {
@@ -43,12 +43,12 @@ void Variable::Backward()
         funcs.pop_back();
 
         auto gys = NdArrayPtrList();
-        for (const auto &o : f->outputs)
+        for (const auto &o : f->outputs_)
         {
             // 通过 lock() 升级为 shared_ptr 并检查有效性
             if (auto oPtr = o.lock())
             {
-                gys.emplace_back(oPtr->mGrad);
+                gys.emplace_back(oPtr->grad_);
             }
             else
             {
@@ -57,29 +57,29 @@ void Variable::Backward()
         }
         auto gxs = f->Backward(gys);
 
-        if (gxs.size() != f->inputs.size())
+        if (gxs.size() != f->inputs_.size())
         {
             DL_ERROR_THROW("backward error!, gxs size " + std::to_string(gxs.size()) + ", inputs size " +
-                           std::to_string(f->inputs.size()));
+                           std::to_string(f->inputs_.size()));
         }
 
         for (size_t i = 0; i < gxs.size(); i++)
         {
-            auto x  = f->inputs[i];
+            auto x  = f->inputs_[i];
             auto gx = gxs[i];
 
-            if (!x->mGrad)
+            if (!x->grad_)
             {
-                x->mGrad = gx;
+                x->grad_ = gx;
             }
             else
             {
-                x->mGrad = AsDLArrayPtr(*(x->mGrad) + (*gx));
+                x->grad_ = AsDLArrayPtr(*(x->grad_) + (*gx));
             }
 
-            if (x->mCreator)
+            if (x->creator_)
             {
-                AddFunc(x->mCreator);
+                AddFunc(x->creator_);
             }
         }
     }
@@ -89,7 +89,7 @@ void Variable::Backward()
 
 void Variable::ClearGrad()
 {
-    mGrad = nullptr;
+    grad_ = nullptr;
 }
 
 VariablePtr Variable::Reshape(const af::dim4 shape)
@@ -106,7 +106,7 @@ VariablePtr Variable::Transpose()
 
 void Variable::Print(std::string desc)
 {
-    af::print(desc.c_str(), mData);
+    af::print(desc.c_str(), data_);
 };
 
 // 变量转换，未来考虑去掉
