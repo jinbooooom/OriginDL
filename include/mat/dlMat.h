@@ -57,11 +57,18 @@ public:
     virtual std::unique_ptr<Mat> operator-(const Mat &other) const = 0;
 
     /**
-     * @brief 矩阵乘法
+     * @brief 元素级乘法
      * @param other 另一个矩阵
      * @return 乘法结果
      */
     virtual std::unique_ptr<Mat> operator*(const Mat &other) const = 0;
+
+    /**
+     * @brief 矩阵乘法（真正的矩阵乘法）
+     * @param other 另一个矩阵
+     * @return 矩阵乘法结果
+     */
+    virtual std::unique_ptr<Mat> matmul(const Mat &other) const = 0;
 
     /**
      * @brief 矩阵除法

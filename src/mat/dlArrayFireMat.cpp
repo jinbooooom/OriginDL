@@ -58,6 +58,12 @@ std::unique_ptr<Mat> ArrayFireMat::operator*(const Mat &other) const
     return std::make_unique<ArrayFireMat>(data_ * other_af.data_);
 }
 
+std::unique_ptr<Mat> ArrayFireMat::matmul(const Mat &other) const
+{
+    const ArrayFireMat &other_af = dynamic_cast<const ArrayFireMat &>(other);
+    return std::make_unique<ArrayFireMat>(af::matmul(data_, other_af.data_));
+}
+
 std::unique_ptr<Mat> ArrayFireMat::operator/(const Mat &other) const
 {
     const ArrayFireMat &other_af = dynamic_cast<const ArrayFireMat &>(other);

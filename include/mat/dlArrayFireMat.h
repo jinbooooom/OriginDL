@@ -69,6 +69,7 @@ public:
     std::unique_ptr<Mat> operator+(const Mat &other) const override;
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
+    std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
     std::unique_ptr<Mat> add_scalar(double scalar) const override;
     std::unique_ptr<Mat> mul_scalar(double scalar) const override;
