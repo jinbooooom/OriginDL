@@ -4,7 +4,7 @@
 namespace dl
 {
 
-NdArrayPtrList Sum::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Sum::forward(const NdArrayPtrList &xs)
 {
     auto outputs   = NdArrayPtrList();
     auto x         = *(xs[0]);
@@ -26,16 +26,16 @@ NdArrayPtrList Sum::Forward(const NdArrayPtrList &xs)
     {
         y = af::sum(x, axis_);
     }
-    outputs.push_back(AsDLArrayPtr(y));
+    outputs.push_back(as_dl_array_ptr(y));
     return outputs;
 }
 
-NdArrayPtrList Sum::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Sum::backward(const NdArrayPtrList &gys)
 {
     auto gy  = *(gys[0]);
     auto gx  = utils::BroadcastTo(gy, x_shape_);
     auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(gx));
+    gxs.push_back(as_dl_array_ptr(gx));
     return gxs;
 }
 

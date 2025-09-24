@@ -4,7 +4,7 @@
 namespace dl
 {
 
-NdArrayPtrList Div::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Div::forward(const NdArrayPtrList &xs)
 {
     auto outputs  = NdArrayPtrList();
     NdArrayPtr x0 = xs[0];
@@ -12,12 +12,12 @@ NdArrayPtrList Div::Forward(const NdArrayPtrList &xs)
     shape0_       = x0->dims();
     shape1_       = x1->dims();
     auto y        = (*x0) / (*x1);  // 逐元素除
-    outputs.push_back(AsDLArrayPtr(y));
+    outputs.push_back(as_dl_array_ptr(y));
 
     return outputs;
 }
 
-NdArrayPtrList Div::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Div::backward(const NdArrayPtrList &gys)
 {
     if (1 != gys.size())
     {
@@ -36,17 +36,17 @@ NdArrayPtrList Div::Backward(const NdArrayPtrList &gys)
     auto dx0 = gy / x1;
     auto dx1 = gy * (-x0) / x1 / x1;
 
-    VariablePtr dx0_ = AsVariablePtr(AsDLArrayPtr(dx0));
-    VariablePtr dx1_ = AsVariablePtr(AsDLArrayPtr(dx1));
+    VariablePtr dx0_ = as_variable_ptr(as_dl_array_ptr(dx0));
+    VariablePtr dx1_ = as_variable_ptr(as_dl_array_ptr(dx1));
     if (shape0_ != shape1_)
     {
-        dx0_ = sumTo(AsVariablePtr(AsDLArrayPtr(dx0)), shape0_);
-        dx1_ = sumTo(AsVariablePtr(AsDLArrayPtr(dx1)), shape1_);
+        dx0_ = sum_to(as_variable_ptr(as_dl_array_ptr(dx0)), shape0_);
+        dx1_ = sum_to(as_variable_ptr(as_dl_array_ptr(dx1)), shape1_);
     }
 
     auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(dx0_->data_));
-    gxs.push_back(AsDLArrayPtr(dx1_->data_));
+    gxs.push_back(as_dl_array_ptr(dx0_->data_));
+    gxs.push_back(as_dl_array_ptr(dx1_->data_));
     return gxs;
 }
 

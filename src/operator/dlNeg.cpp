@@ -3,15 +3,15 @@
 namespace dl
 {
 
-NdArrayPtrList Neg::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Neg::forward(const NdArrayPtrList &xs)
 {
     auto outputs = NdArrayPtrList();
     NdArray x0   = -(*xs[0]);
-    outputs.push_back(AsDLArrayPtr(x0));
+    outputs.push_back(as_dl_array_ptr(x0));
     return outputs;
 }
 
-NdArrayPtrList Neg::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Neg::backward(const NdArrayPtrList &gys)
 {
     if (1 != gys.size())
     {
@@ -20,6 +20,7 @@ NdArrayPtrList Neg::Backward(const NdArrayPtrList &gys)
 
     auto gy  = -(*gys[0]);
     auto gxs = NdArrayPtrList();
+    gxs.push_back(as_dl_array_ptr(gy));
 
     return gxs;
 }

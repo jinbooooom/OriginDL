@@ -3,18 +3,18 @@
 namespace dl
 {
 
-NdArrayPtrList MatMul::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList MatMul::forward(const NdArrayPtrList &xs)
 {
     auto outputs = NdArrayPtrList();
     NdArrayPtr x = xs[0];
     NdArrayPtr w = xs[1];
     auto y       = af::matmul(*x, *w);
-    outputs.push_back(AsDLArrayPtr(y));
+    outputs.push_back(as_dl_array_ptr(y));
 
     return outputs;
 }
 
-NdArrayPtrList MatMul::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList MatMul::backward(const NdArrayPtrList &gys)
 {
     auto x  = this->inputs_[0];
     auto W  = this->inputs_[1];
@@ -25,15 +25,15 @@ NdArrayPtrList MatMul::Backward(const NdArrayPtrList &gys)
     auto gw = af::matmul(xt, *gy);
 
     auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(gx));
-    gxs.push_back(AsDLArrayPtr(gw));
+    gxs.push_back(as_dl_array_ptr(gx));
+    gxs.push_back(as_dl_array_ptr(gw));
     return gxs;
 }
 
-VariablePtr matMul(const VariablePtr &x, const VariablePtr &W)
+VariablePtr mat_mul(const VariablePtr &x, const VariablePtr &w)
 {
     auto f               = std::make_shared<MatMul>();
-    VariablePtrList args = {x, W};
+    VariablePtrList args = {x, w};
     auto ys              = (*f)(args);
     return ys[0];
 }

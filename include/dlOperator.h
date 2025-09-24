@@ -15,9 +15,9 @@ class Operator : public std::enable_shared_from_this<Operator>
 
     VariablePtrList operator()(const VariablePtrList &inputs);
 
-    virtual NdArrayPtrList Forward(const NdArrayPtrList &xs) = 0;
+    virtual NdArrayPtrList forward(const NdArrayPtrList &xs) = 0;
 
-    virtual NdArrayPtrList Backward(const NdArrayPtrList &gys) = 0;
+    virtual NdArrayPtrList backward(const NdArrayPtrList &gys) = 0;
 
   public:
     VariablePtrList inputs_;  // 前向传播的入参，考虑多输入
@@ -32,9 +32,9 @@ class Operator : public std::enable_shared_from_this<Operator>
 class Neg : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 
 VariablePtr neg(const VariablePtrList &xs);
@@ -47,9 +47,9 @@ class Add : public Operator
     af::dim4 shape0_;
     af::dim4 shape1_;
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 
 extern VariablePtr add(const VariablePtrList &xs);
@@ -64,9 +64,9 @@ class Sub : public Operator
     af::dim4 shape0_;
     af::dim4 shape1_;
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 
 extern VariablePtr sub(const VariablePtrList &xs);
@@ -81,9 +81,9 @@ class Mul : public Operator
     af::dim4 shape0_;
     af::dim4 shape1_;
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 
 extern VariablePtr mul(const VariablePtrList &xs);
@@ -98,9 +98,9 @@ class Div : public Operator
     af::dim4 shape0_;
     af::dim4 shape1_;
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 
 extern VariablePtr div(const VariablePtrList &xs);
@@ -112,9 +112,9 @@ VariablePtr operator/(data_t lhs, const VariablePtr &rhs);
 class Square : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 
 extern VariablePtr square(const VariablePtr &x);
@@ -122,11 +122,11 @@ extern VariablePtr square(const VariablePtr &x);
 class Pow : public Operator
 {
   public:
-    Pow(int n) : exponent_(n) {};
+    Pow(int n) : exponent_(n){};
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 
     int exponent_;  // 幂函数的指数
 };
@@ -136,9 +136,9 @@ VariablePtr operator^(const VariablePtr &base, int exponent);
 class Exp : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 
 extern VariablePtr exp(const VariablePtr &x);
@@ -152,18 +152,18 @@ class Reshape : public Operator
 
     Reshape(const af::dim4 &shape) : shape_(shape) {}
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 extern VariablePtr reshape(const VariablePtr &x, const af::dim4 shape);
 
 class Transpose : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 extern VariablePtr transpose(const VariablePtr &x);
 
@@ -173,12 +173,12 @@ class Sum : public Operator
     int axis_;  // 对那个轴求和
 
     af::dim4 x_shape_;  // 输入的形状
-    Sum() : axis_(-1) {};
-    Sum(const int axis) : axis_(axis) {};
+    Sum() : axis_(-1){};
+    Sum(const int axis) : axis_(axis){};
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
 extern VariablePtr sum(const VariablePtr &x, int axis = -1);  // -1 意味着所有元素相加
 
@@ -189,13 +189,13 @@ class BroadcastTo : public Operator
 
     af::dim4 x_shape_;  // 输入的形状
 
-    BroadcastTo(const af::dim4 &shape) : shape_(shape) {};
+    BroadcastTo(const af::dim4 &shape) : shape_(shape){};
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
-extern VariablePtr broadcastTo(const VariablePtr &x, const af::dim4 &shape);
+extern VariablePtr broadcast_to(const VariablePtr &x, const af::dim4 &shape);
 
 class SumTo : public Operator
 {
@@ -204,24 +204,24 @@ class SumTo : public Operator
 
     af::dim4 x_shape_;  // 输入的形状
 
-    SumTo(const af::dim4 &shape) : shape_(shape) {};
+    SumTo(const af::dim4 &shape) : shape_(shape){};
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
-extern VariablePtr sumTo(const VariablePtr &x, const af::dim4 &shape);
+extern VariablePtr sum_to(const VariablePtr &x, const af::dim4 &shape);
 
 class MatMul : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    NdArrayPtrList forward(const NdArrayPtrList &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    NdArrayPtrList backward(const NdArrayPtrList &gys) override;
 };
-extern VariablePtr matMul(const VariablePtr &x, const VariablePtr &w);
+extern VariablePtr mat_mul(const VariablePtr &x, const VariablePtr &w);
 
-extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
+extern NdArray numerical_diff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
 
 }  // namespace dl
 

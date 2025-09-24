@@ -5,17 +5,17 @@
 namespace dl
 {
 
-NdArrayPtrList SumTo::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList SumTo::forward(const NdArrayPtrList &xs)
 {
     auto outputs   = NdArrayPtrList();
     auto x         = *(xs[0]);
     this->x_shape_ = x.dims();
     auto y         = utils::SumTo(x, this->shape_);
-    outputs.push_back(AsDLArrayPtr(y));
+    outputs.push_back(as_dl_array_ptr(y));
     return outputs;
 }
 
-NdArrayPtrList SumTo::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList SumTo::backward(const NdArrayPtrList &gys)
 {
     if (1 != gys.size())
     {
@@ -25,11 +25,11 @@ NdArrayPtrList SumTo::Backward(const NdArrayPtrList &gys)
     auto gy  = *(gys[0]);
     auto gx  = utils::BroadcastTo(gy, this->x_shape_);
     auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(gx));
+    gxs.push_back(as_dl_array_ptr(gx));
     return gxs;
 }
 
-VariablePtr sumTo(const VariablePtr &x, const af::dim4 &shape)
+VariablePtr sum_to(const VariablePtr &x, const af::dim4 &shape)
 {
     auto f  = std::make_shared<SumTo>(shape);
     auto ys = (*f)(x);

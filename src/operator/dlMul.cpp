@@ -4,7 +4,7 @@
 namespace dl
 {
 
-NdArrayPtrList Mul::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Mul::forward(const NdArrayPtrList &xs)
 {
     // logd("do Mul");
     auto outputs  = NdArrayPtrList();
@@ -13,12 +13,12 @@ NdArrayPtrList Mul::Forward(const NdArrayPtrList &xs)
     shape0_       = x0->dims();
     shape1_       = x1->dims();
     auto y        = (*x0) * (*x1);  // 逐元素乘
-    outputs.push_back(AsDLArrayPtr(y));
+    outputs.push_back(as_dl_array_ptr(y));
 
     return outputs;
 }
 
-NdArrayPtrList Mul::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Mul::backward(const NdArrayPtrList &gys)
 {
     if (1 != gys.size())
     {
@@ -27,19 +27,19 @@ NdArrayPtrList Mul::Backward(const NdArrayPtrList &gys)
 
     auto x0  = this->inputs_[0]->data_;
     auto x1  = this->inputs_[1]->data_;
-    auto dx0 = AsDLArrayPtr((*gys[0]) * (x1));
-    auto dx1 = AsDLArrayPtr((*gys[0]) * (x0));
+    auto dx0 = as_dl_array_ptr((*gys[0]) * (x1));
+    auto dx1 = as_dl_array_ptr((*gys[0]) * (x0));
 
-    VariablePtr dx0_ = AsVariablePtr(dx0);
-    VariablePtr dx1_ = AsVariablePtr(dx1);
+    VariablePtr dx0_ = as_variable_ptr(dx0);
+    VariablePtr dx1_ = as_variable_ptr(dx1);
     if (shape0_ != shape1_)
     {
-        dx0_ = sumTo(AsVariablePtr(dx0), shape0_);
-        dx1_ = sumTo(AsVariablePtr(dx1), shape1_);
+        dx0_ = sum_to(as_variable_ptr(dx0), shape0_);
+        dx1_ = sum_to(as_variable_ptr(dx1), shape1_);
     }
     auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(dx0_->data_));
-    gxs.push_back(AsDLArrayPtr(dx1_->data_));
+    gxs.push_back(as_dl_array_ptr(dx0_->data_));
+    gxs.push_back(as_dl_array_ptr(dx1_->data_));
     return gxs;
 }
 

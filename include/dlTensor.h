@@ -20,30 +20,30 @@ class Variable
 
     virtual ~Variable();
 
-    void SetCreator(const FunctionPtr &func);
+    void set_creator(const FunctionPtr &func);
 
-    void Backward();
+    void backward();
 
-    void ClearGrad();
+    void clear_grad();
 
     // 矩阵方法
-    VariablePtr Reshape(const af::dim4 shape);
+    VariablePtr reshape(const af::dim4 shape);
 
-    VariablePtr Transpose();
+    VariablePtr transpose();
 
     // 调试
-    void Print(std::string desc = "");
+    void print(std::string desc = "");
 };
 
-extern VariablePtrList AsVariablePtrList(VariablePtr data);
+extern VariablePtrList as_variable_ptr_list(VariablePtr data);
 
-extern NdArrayPtrList AsDLArrayPtrList(NdArray data);
+extern NdArrayPtrList as_dl_array_ptr_list(NdArray data);
 
-extern NdArrayPtr AsDLArrayPtr(NdArray data);
+extern NdArrayPtr as_dl_array_ptr(NdArray data);
 
-extern VariablePtr AsVariablePtr(NdArrayPtr data);
+extern VariablePtr as_variable_ptr(NdArrayPtr data);
 
-extern VariablePtr AsVariablePtr(Variable &data);
+extern VariablePtr as_variable_ptr(Variable &data);
 
 }  // namespace dl
 

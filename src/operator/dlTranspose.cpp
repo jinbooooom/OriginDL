@@ -3,20 +3,21 @@
 namespace dl
 {
 
-NdArrayPtrList Transpose::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Transpose::forward(const NdArrayPtrList &xs)
 {
     auto outputs = NdArrayPtrList();
     auto x       = *(xs[0]);
     af::array y  = af::transpose(x);
-    outputs.push_back(AsDLArrayPtr(y));
+    outputs.push_back(as_dl_array_ptr(y));
     return outputs;
 }
 
-NdArrayPtrList Transpose::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Transpose::backward(const NdArrayPtrList &gys)
 {
     auto gy  = *(gys[0]);
-    auto gx  = transpose(gy);
+    auto gx  = af::transpose(gy);
     auto gxs = NdArrayPtrList();
+    gxs.push_back(as_dl_array_ptr(gx));
     return gxs;
 }
 

@@ -7,13 +7,13 @@ Variable::Variable(const NdArray &data) : data_(data), generation_(0) {}
 
 Variable::~Variable() {}
 
-void Variable::SetCreator(const FunctionPtr &func)
+void Variable::set_creator(const FunctionPtr &func)
 {
     creator_    = func;
     generation_ = creator_->generation_ + 1;
 }
 
-void Variable::Backward()
+void Variable::backward()
 {
     if (!this->grad_)
     {
@@ -22,20 +22,20 @@ void Variable::Backward()
         grad_           = std::make_shared<NdArray>(af::constant(grad_val, dims));
     }
 
-    auto funcs   = std::list<FunctionPtr>();
-    auto funcSet = std::set<FunctionPtr>();  // 考虑到多输出的情况下
+    auto funcs    = std::list<FunctionPtr>();
+    auto func_set = std::set<FunctionPtr>();  // 考虑到多输出的情况下
 
-    auto AddFunc = [&funcs, &funcSet](const FunctionPtr &f) {
-        if (funcSet.find(f) == funcSet.end())
+    auto add_func = [&funcs, &func_set](const FunctionPtr &f) {
+        if (func_set.find(f) == func_set.end())
         {
             funcs.push_back(f);
-            funcSet.insert(f);
+            func_set.insert(f);
             funcs.sort(
                 [](const FunctionPtr &lhs, const FunctionPtr &rhs) { return lhs->generation_ < rhs->generation_; });
         }
     };
 
-    AddFunc(this->creator_);
+    add_func(this->creator_);
 
     while (!funcs.empty())
     {
@@ -46,16 +46,16 @@ void Variable::Backward()
         for (const auto &o : f->outputs_)
         {
             // 通过 lock() 升级为 shared_ptr 并检查有效性
-            if (auto oPtr = o.lock())
+            if (auto o_ptr = o.lock())
             {
-                gys.emplace_back(oPtr->grad_);
+                gys.emplace_back(o_ptr->grad_);
             }
             else
             {
                 DL_CRITICAL_THROW("backward error!, output is nullptr");
             }
         }
-        auto gxs = f->Backward(gys);
+        auto gxs = f->backward(gys);
 
         if (gxs.size() != f->inputs_.size())
         {
@@ -74,12 +74,12 @@ void Variable::Backward()
             }
             else
             {
-                x->grad_ = AsDLArrayPtr(*(x->grad_) + (*gx));
+                x->grad_ = as_dl_array_ptr(*(x->grad_) + (*gx));
             }
 
             if (x->creator_)
             {
-                AddFunc(x->creator_);
+                add_func(x->creator_);
             }
         }
     }
@@ -87,54 +87,54 @@ void Variable::Backward()
     return;
 }
 
-void Variable::ClearGrad()
+void Variable::clear_grad()
 {
     grad_ = nullptr;
 }
 
-VariablePtr Variable::Reshape(const af::dim4 shape)
+VariablePtr Variable::reshape(const af::dim4 shape)
 {
-    auto p = AsVariablePtr(*this);
-    return reshape(p, shape);
+    auto p = as_variable_ptr(*this);
+    return ::dl::reshape(p, shape);
 }
 
-VariablePtr Variable::Transpose()
+VariablePtr Variable::transpose()
 {
-    auto p = AsVariablePtr(*this);
-    return transpose(p);
+    auto p = as_variable_ptr(*this);
+    return ::dl::transpose(p);
 };
 
-void Variable::Print(std::string desc)
+void Variable::print(std::string desc)
 {
     af::print(desc.c_str(), data_);
 };
 
 // 变量转换，未来考虑去掉
-VariablePtrList AsVariablePtrList(VariablePtr data)
+VariablePtrList as_variable_ptr_list(VariablePtr data)
 {
     VariablePtrList l;
     l.push_back(data);
     return l;
 }
 
-NdArrayPtrList AsDLArrayPtrList(NdArray data)
+NdArrayPtrList as_dl_array_ptr_list(NdArray data)
 {
     NdArrayPtrList l;
-    l.push_back(AsDLArrayPtr(data));
+    l.push_back(as_dl_array_ptr(data));
     return l;
 }
 
-NdArrayPtr AsDLArrayPtr(NdArray data)
+NdArrayPtr as_dl_array_ptr(NdArray data)
 {
     return std::make_shared<NdArray>(data);
 }
 
-VariablePtr AsVariablePtr(NdArrayPtr data)
+VariablePtr as_variable_ptr(NdArrayPtr data)
 {
     return std::make_shared<Variable>(*data);
 }
 
-VariablePtr AsVariablePtr(Variable &data)
+VariablePtr as_variable_ptr(Variable &data)
 {
     return std::make_shared<Variable>(data);
 }

@@ -3,17 +3,17 @@
 namespace dl
 {
 
-NdArrayPtrList Reshape::Forward(const NdArrayPtrList &xs)
+NdArrayPtrList Reshape::forward(const NdArrayPtrList &xs)
 {
     auto outputs   = NdArrayPtrList();
     auto x         = *(xs[0]);
     this->x_shape_ = x.dims();
     auto y         = af::moddims(x, this->shape_);
-    outputs.push_back(AsDLArrayPtr(y));
+    outputs.push_back(as_dl_array_ptr(y));
     return outputs;
 }
 
-NdArrayPtrList Reshape::Backward(const NdArrayPtrList &gys)
+NdArrayPtrList Reshape::backward(const NdArrayPtrList &gys)
 {
     if (1 != gys.size())
     {
@@ -23,7 +23,7 @@ NdArrayPtrList Reshape::Backward(const NdArrayPtrList &gys)
     auto gy  = *(gys[0]);
     auto gx  = af::moddims(gy, this->x_shape_);
     auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(gx));
+    gxs.push_back(as_dl_array_ptr(gx));
     return gxs;
 }
 

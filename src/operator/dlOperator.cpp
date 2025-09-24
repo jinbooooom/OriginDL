@@ -14,27 +14,27 @@ VariablePtrList Operator::operator()(const VariablePtrList &inputs)
     auto xs = NdArrayPtrList();
     for (const auto &i : inputs)
     {
-        xs.push_back(AsDLArrayPtr(i->data_));
+        xs.push_back(as_dl_array_ptr(i->data_));
     }
 
-    auto ys      = this->Forward(xs);
+    auto ys      = this->forward(xs);
     auto outputs = VariablePtrList();
     for (const auto &y : ys)
     {
-        auto o = AsVariablePtr(y);
-        o->SetCreator(shared_from_this());
+        auto o = as_variable_ptr(y);
+        o->set_creator(shared_from_this());
         outputs.push_back(o);
     }
 
-    int maxGen = 0;
+    int max_gen = 0;
     for (auto &e : inputs)
     {
-        if (e->generation_ > maxGen)
+        if (e->generation_ > max_gen)
         {
-            maxGen = e->generation_;
+            max_gen = e->generation_;
         }
     }
-    this->generation_ = maxGen;
+    this->generation_ = max_gen;
 
     this->inputs_ = inputs;
     // this->outputs_ = std::move(outputs);
