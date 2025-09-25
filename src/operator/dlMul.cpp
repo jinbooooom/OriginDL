@@ -33,9 +33,13 @@ std::vector<Tensor> Mul::backward(const std::vector<Tensor> &gys)
     auto gx1 = Tensor(gy * x0);
     
     if (shape0_ != shape1_) {
-        // 这里需要实现 sum_to 功能
-        // gx0 = sum_to(gx0, shape0_);
-        // gx1 = sum_to(gx1, shape1_);
+        // 实现 sum_to 功能：将梯度广播回原始形状
+        if (gx0.data().dims() != shape0_) {
+            gx0 = sum_to(gx0, shape0_);
+        }
+        if (gx1.data().dims() != shape1_) {
+            gx1 = sum_to(gx1, shape1_);
+        }
     }
     
     std::vector<Tensor> gxs;
