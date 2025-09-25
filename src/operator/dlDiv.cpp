@@ -40,6 +40,16 @@ std::vector<Tensor> Div::backward(const std::vector<Tensor> &gys)
     // ∂y/∂x1 = gy * (-x0/x1²) = -gy * x0 / x1²  
     auto gx1 = Tensor(-gy * x0 / (x1 * x1));
     
+    if (shape0_ != shape1_) {
+        // 实现 sum_to 功能：将梯度广播回原始形状
+        if (gx0.data().dims() != shape0_) {
+            gx0 = sum_to(gx0, shape0_);
+        }
+        if (gx1.data().dims() != shape1_) {
+            gx1 = sum_to(gx1, shape1_);
+        }
+    }
+    
     std::vector<Tensor> gxs;
     gxs.push_back(gx0);
     gxs.push_back(gx1);
