@@ -3,39 +3,48 @@
 namespace dl
 {
 
-NdArrayPtrList MatMul::Forward(const NdArrayPtrList &xs)
+std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs = NdArrayPtrList();
-    NdArrayPtr x = xs[0];
-    NdArrayPtr w = xs[1];
-    auto y       = af::matmul(*x, *w);
-    outputs.push_back(AsDLArrayPtr(y));
-
-    return outputs;
+    if (xs.size() != 2) {
+        throw std::runtime_error("MatMul requires exactly 2 inputs");
+    }
+    
+    auto x = xs[0].data();
+    auto w = xs[1].data();
+    auto y = af::matmul(x, w);
+    return std::vector<Tensor>{Tensor(y)};
 }
 
-NdArrayPtrList MatMul::Backward(const NdArrayPtrList &gys)
+std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
 {
-    auto x  = this->inputs_[0];
-    auto W  = this->inputs_[1];
-    auto gy = gys[0];
-    auto wt = af::transpose(W->data_);
-    auto xt = af::transpose(x->data_);
-    auto gx = af::matmul(*gy, wt);
-    auto gw = af::matmul(xt, *gy);
+    if (gys.size() != 1) {
+        throw std::runtime_error("MatMul backward requires exactly 1 gradient");
+    }
 
-    auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(gx));
-    gxs.push_back(AsDLArrayPtr(gw));
-    return gxs;
+    auto x = this->inputs_[0].data();
+    auto w = this->inputs_[1].data();
+    auto gy = gys[0].data();
+    
+    auto gx = Tensor(af::matmul(gy, w.T()));
+    auto gw = Tensor(af::matmul(x.T(), gy));
+    
+    return std::vector<Tensor>{gx, gw};
 }
 
-VariablePtr matMul(const VariablePtr &x, const VariablePtr &W)
+Tensor matmul(const std::vector<Tensor> &xs)
 {
-    auto f               = std::make_shared<MatMul>();
-    VariablePtrList args = {x, W};
-    auto ys              = (*f)(args);
-    return ys[0];
+    auto op = std::make_shared<MatMul>();
+    return (*op)(xs)[0];
+}
+
+Tensor matmul(const Tensor &lhs, const Tensor &rhs)
+{
+    return matmul({lhs, rhs});
+}
+
+Tensor mat_mul(const Tensor &lhs, const Tensor &rhs)
+{
+    return matmul(lhs, rhs);
 }
 
 }  // namespace dl

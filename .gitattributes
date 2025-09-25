@@ -18,3 +18,15 @@ Makefile text eol=lf
 *.xml text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+
+# 图片文件应该作为二进制文件处理，不进行行尾符转换
+*.PNG binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.tiff binary
+*.ico binary
+*.webp binary
+*.svg binary

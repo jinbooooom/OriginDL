@@ -3,40 +3,43 @@
 namespace dl
 {
 
-NdArrayPtrList Neg::Forward(const NdArrayPtrList &xs)
+std::vector<Tensor> Neg::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs = NdArrayPtrList();
-    NdArray x0   = -(*xs[0]);
-    outputs.push_back(AsDLArrayPtr(x0));
+    // 直接使用 ArrayFire 运算符，避免递归调用
+    auto y = Tensor(-xs[0].data());
+    std::vector<Tensor> outputs;
+    outputs.push_back(y);
     return outputs;
 }
 
-NdArrayPtrList Neg::Backward(const NdArrayPtrList &gys)
+std::vector<Tensor> Neg::backward(const std::vector<Tensor> &gys)
 {
     if (1 != gys.size())
     {
         logw("invalid argument size, not equal to 1");
     }
 
-    auto gy  = -(*gys[0]);
-    auto gxs = NdArrayPtrList();
+    // 直接使用 ArrayFire 运算符，避免递归调用
+    auto gx = Tensor(-gys[0].data());
+    std::vector<Tensor> gxs;
+    gxs.push_back(gx);
 
     return gxs;
 }
 
-VariablePtr neg(const VariablePtrList &xs)
+Tensor neg(const std::vector<Tensor> &xs)
 {
     return (*std::shared_ptr<Operator>(new Neg()))(xs)[0];
 }
 
-VariablePtr neg(const VariablePtr &x)
+Tensor neg(const Tensor &x)
 {
-    auto xs = VariablePtrList();
+    auto xs = std::vector<Tensor>();
     xs.emplace_back(x);
     return neg(xs);
 }
 
-VariablePtr operator-(const VariablePtr &x)
+Tensor operator-(const Tensor &x)
 {
     return neg(x);
 }
