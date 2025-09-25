@@ -78,18 +78,31 @@ int SetBackend(int argc, char **argv)
     return 0;
 }
 
+#define USE_BIAS (1)
+
+#if USE_BIAS
 Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
 {
     auto y = dl::mat_mul(x, w) + b;
     return y;
 }
+#else
+Tensor Predict(const Tensor &x, const Tensor &w)
+{
+    auto y = dl::mat_mul(x, w);
+    return y;
+}
+#endif
+
 
 // mean_squared_error
 Tensor MSE(const Tensor &x0, const Tensor &x1)
 {
     auto diff   = x0 - x1;
     auto sum_result = dl::sum(dl::pow(diff, 2));
-    auto result = Tensor(sum_result.data() / diff.data().elements());
+    // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
+    auto elements = Tensor(af::constant(diff.data().elements(), sum_result.data().dims()));
+    auto result = sum_result / elements;
     return result;
 }
 int main(int argc, char **argv)
@@ -102,12 +115,16 @@ int main(int argc, char **argv)
     // 生成随机数据
     int input_size   = 100;
     af::array x_data = af::randu(input_size, 1);
-    af::print("xData", x_data);
+    // af::print("xData", x_data);
     // 设置一个噪声，使真实值在预测结果附近
     af::array noise = af::randu(input_size, 1) * 0.1;
     // af::print("noise", noise);
+#if USE_BIAS
     af::array y_data = 2.0 * x_data + 5.0 + noise;
-    af::print("yData", y_data);
+#else
+    af::array y_data = 2.0 * x_data + noise;
+#endif
+    // af::print("yData", y_data);
 
     // 转换为变量
     auto x = Tensor(x_data);
@@ -115,7 +132,9 @@ int main(int argc, char **argv)
 
     // 初始化权重和偏置
     auto w = Tensor(af::constant(0, 1, 1, f32));
+#if USE_BIAS
     auto b = Tensor(af::constant(0, 1, 1, f32));
+#endif
 
     // 设置学习率和迭代次数
     double lr = 0.1;
@@ -124,25 +143,45 @@ int main(int argc, char **argv)
     // 训练
     for (int i = 0; i < iters; i++)
     {
+#if USE_BIAS
         auto y_pred = Predict(x, w, b);
         auto loss   = MSE(y, y_pred);
+#else
+        auto y_pred = Predict(x, w);
+        auto loss   = MSE(y, y_pred);
+#endif
 
         w.clear_grad();
+#if USE_BIAS
         b.clear_grad();
+#endif
 
         // 反向传播
         loss.backward();
 
-        // 更新参数
-        w.data() = w.data() - lr * w.grad();
-        b.data() = b.data() - lr * b.grad();
+
+        // 更新参数 - 使用算子而不是直接修改data()
+        auto w_update = w - lr * w.grad();
+        auto w_new = Tensor(w_update.data());  // 创建新的Tensor，不破坏计算图
+        w = w_new;
+#if USE_BIAS
+        auto b_update = b - lr * b.grad();
+        auto b_new = Tensor(b_update.data());  // 创建新的Tensor，不破坏计算图
+        b = b_new;
+#endif
 
         // 打印结果
         float loss_val = loss.data().scalar<float>();
         float w_val    = w.data().scalar<float>();
+#if USE_BIAS
         float b_val    = b.data().scalar<float>();
+#endif
 
+#if USE_BIAS
         logi("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
+#else
+        logi("iter{}: loss = {}, w = {}", i, loss_val, w_val);
+#endif
     }
 
     return 0;
