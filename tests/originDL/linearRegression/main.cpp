@@ -78,17 +78,18 @@ int SetBackend(int argc, char **argv)
     return 0;
 }
 
-VariablePtr Predict(const VariablePtr &x, const VariablePtr &w, const VariablePtr &b)
+Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
 {
-    auto y = matMul(x, w) + b;
+    auto y = dl::mat_mul(x, w) + b;
     return y;
 }
 
 // mean_squared_error
-VariablePtr MSE(const VariablePtr &x0, const VariablePtr &x1)
+Tensor MSE(const Tensor &x0, const Tensor &x1)
 {
     auto diff   = x0 - x1;
-    auto result = sum(pow(diff, 2)) / diff->data_.elements();
+    auto sum_result = dl::sum(dl::pow(diff, 2));
+    auto result = Tensor(sum_result.data() / diff.data().elements());
     return result;
 }
 int main(int argc, char **argv)
@@ -99,22 +100,22 @@ int main(int argc, char **argv)
     af::setSeed(0);
 
     // 生成随机数据
-    int inputSize   = 100;
-    af::array xData = af::randu(inputSize, 1);
-    af::print("xData", xData);
+    int input_size   = 100;
+    af::array x_data = af::randu(input_size, 1);
+    af::print("xData", x_data);
     // 设置一个噪声，使真实值在预测结果附近
-    af::array noise = af::randu(inputSize, 1) * 0.1;
+    af::array noise = af::randu(input_size, 1) * 0.1;
     // af::print("noise", noise);
-    af::array yData = 2.0 * xData + 5.0 + noise;
-    af::print("yData", yData);
+    af::array y_data = 2.0 * x_data + 5.0 + noise;
+    af::print("yData", y_data);
 
     // 转换为变量
-    auto x = AsVariablePtr(AsDLArrayPtr(xData));
-    auto y = AsVariablePtr(AsDLArrayPtr(yData));
+    auto x = Tensor(x_data);
+    auto y = Tensor(y_data);
 
     // 初始化权重和偏置
-    auto w = AsVariablePtr(AsDLArrayPtr(af::constant(0, 1, 1, f32)));
-    auto b = AsVariablePtr(AsDLArrayPtr(af::constant(0, 1, 1, f32)));
+    auto w = Tensor(af::constant(0, 1, 1, f32));
+    auto b = Tensor(af::constant(0, 1, 1, f32));
 
     // 设置学习率和迭代次数
     double lr = 0.1;
@@ -123,23 +124,23 @@ int main(int argc, char **argv)
     // 训练
     for (int i = 0; i < iters; i++)
     {
-        auto yPred = Predict(x, w, b);
-        auto loss  = MSE(y, yPred);
+        auto y_pred = Predict(x, w, b);
+        auto loss   = MSE(y, y_pred);
 
-        w->ClearGrad();
-        b->ClearGrad();
+        w.clear_grad();
+        b.clear_grad();
 
         // 反向传播
-        loss->Backward();
+        loss.backward();
 
         // 更新参数
-        w->data_ = w->data_ - lr * (*w->grad_);
-        b->data_ = b->data_ - lr * (*b->grad_);
+        w.data() = w.data() - lr * w.grad();
+        b.data() = b.data() - lr * b.grad();
 
         // 打印结果
-        float loss_val = loss->data_.scalar<float>();
-        float w_val    = w->data_.scalar<float>();
-        float b_val    = b->data_.scalar<float>();
+        float loss_val = loss.data().scalar<float>();
+        float w_val    = w.data().scalar<float>();
+        float b_val    = b.data().scalar<float>();
 
         logi("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
     }

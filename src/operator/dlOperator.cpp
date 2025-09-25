@@ -3,49 +3,40 @@
 namespace dl
 {
 
-VariablePtrList Operator::operator()(const VariablePtr &input)
-{
-    auto outputs = (*this)(VariablePtrList({input}));
-    return outputs;
-}
-
-VariablePtrList Operator::operator()(const VariablePtrList &inputs)
-{
-    auto xs = NdArrayPtrList();
-    for (const auto &i : inputs)
-    {
-        xs.push_back(AsDLArrayPtr(i->data_));
-    }
-
-    auto ys      = this->Forward(xs);
-    auto outputs = VariablePtrList();
-    for (const auto &y : ys)
-    {
-        auto o = AsVariablePtr(y);
-        o->SetCreator(shared_from_this());
-        outputs.push_back(o);
-    }
-
-    int maxGen = 0;
-    for (auto &e : inputs)
-    {
-        if (e->generation_ > maxGen)
-        {
-            maxGen = e->generation_;
+void Operator::setup_computation_graph(const std::vector<Tensor> &inputs, 
+                                      const std::vector<Tensor> &outputs) {
+    int max_gen = 0;
+    for (const auto &input : inputs) {
+        if (input.get_impl()->generation_ > max_gen) {
+            max_gen = input.get_impl()->generation_;
         }
     }
-    this->generation_ = maxGen;
+    this->generation_ = max_gen;
 
     this->inputs_ = inputs;
-    // this->outputs_ = std::move(outputs);
     this->outputs_.clear();
-    for (const auto &o : outputs)
-    {
-        VariableWPtr w = o;
-        this->outputs_.push_back(w);
+    for (const auto &output : outputs) {
+        // 关键问题：值语义 Tensor 的生命周期管理
+        // 
+        // 原始设计（使用 weak_ptr）的问题：
+        // 1. 用户代码：Tensor y = x0 + x1;  // y 是值对象
+        // 2. 算子存储：weak_ptr<Tensor> 指向 y
+        // 3. 问题：当 y 超出作用域时，weak_ptr 失效
+        // 4. 反向传播：TensorImpl::backward() 无法访问失效的输出
+        //
+        // 当前解决方案（使用 shared_ptr）：
+        // 1. 创建新的 shared_ptr<Tensor> 副本
+        // 2. 延长输出张量的生命周期
+        // 3. 确保反向传播时输出仍然有效
+        // 4. 代价：违背了原始的所有权模型
+        //
+        // 未来改进方向：
+        // - 重新设计 Tensor 的生命周期管理
+        // - 或者让用户代码使用 TensorPtr 而不是 Tensor
+        // - 或者实现更智能的弱引用管理
+        auto tensor_ptr = std::make_shared<Tensor>(output);
+        this->outputs_.push_back(tensor_ptr);
     }
-
-    return outputs;
 }
 
 }  // namespace dl

@@ -7,7 +7,7 @@ namespace dl
 {
 
 // 均方误差
-VariablePtr MeanSquaredError(const VariablePtr &x0, const VariablePtr &x1);
+Tensor MeanSquaredError(const Tensor &x0, const Tensor &x1);
 
 float MeanSquaredError(const DLMat &pred, const DLMat &real);
 

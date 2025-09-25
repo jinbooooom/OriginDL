@@ -3,27 +3,38 @@
 namespace dl
 {
 
-NdArrayPtrList Exp::Forward(const NdArrayPtrList &xs)
+std::vector<Tensor> Exp::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs = NdArrayPtrList();
-    NdArrayPtr x = xs[0];
-    auto o       = af::exp(*x);
-    outputs.push_back(AsDLArrayPtr(o));
-    return outputs;
+    if (xs.size() != 1) {
+        throw std::runtime_error("Exp requires exactly 1 input");
+    }
+    auto x = xs[0].data();
+    auto y = Tensor(af::exp(x));
+    return std::vector<Tensor>{y};
 }
 
-NdArrayPtrList Exp::Backward(const NdArrayPtrList &gys)
+std::vector<Tensor> Exp::backward(const std::vector<Tensor> &gys)
 {
-    auto x  = this->inputs_[0]->data_;
-    auto gx = af::exp(x) * (*gys[0]);
-    return AsDLArrayPtrList(gx);
+    if (gys.size() != 1) {
+        throw std::runtime_error("Exp backward requires exactly 1 gradient");
+    }
+    auto x = this->inputs_[0].data();
+    auto gy = gys[0].data();
+    auto gx = Tensor(af::exp(x) * gy);
+    return std::vector<Tensor>{gx};
 }
 
-VariablePtr exp(const VariablePtr &x)
+Tensor exp(const std::vector<Tensor> &xs)
 {
-    auto f = std::shared_ptr<Operator>(new Exp());
-    auto y = (*f)(x);
-    return y[0];
+    auto op = std::make_shared<Exp>();
+    return (*op)(xs)[0];
+}
+
+Tensor exp(const Tensor &x)
+{
+    auto xs = std::vector<Tensor>();
+    xs.emplace_back(x);
+    return exp(xs);
 }
 
 }  // namespace dl

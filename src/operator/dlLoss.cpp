@@ -3,7 +3,7 @@
 namespace dl
 {
 
-VariablePtr MeanSquaredError(const VariablePtr &x0, const VariablePtr &x1)
+Tensor MeanSquaredError(const Tensor &x0, const Tensor &x1)
 {
     // auto diff = x0 - x1;
     // return F::sum(diff ^ 2) / diff->size();
@@ -19,11 +19,11 @@ float MeanSquaredError(const DLMat &pred, const DLMat &real)
     }
 
     // 计算元素差的平方
-    af::array diff        = pred - real;
-    af::array squaredDiff = diff * diff;  // 或 pow(diff, 2)
+    af::array diff         = pred - real;
+    af::array squared_diff = diff * diff;  // 或 pow(diff, 2)
 
     // 计算所有元素的均值
-    float mse = af::mean<float>(squaredDiff);
+    float mse = af::mean<float>(squared_diff);
     return mse;
 }
 

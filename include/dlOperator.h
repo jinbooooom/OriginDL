@@ -11,35 +11,62 @@ class Operator : public std::enable_shared_from_this<Operator>
   public:
     virtual ~Operator() {}
 
-    VariablePtrList operator()(const VariablePtr &input);
-
-    VariablePtrList operator()(const VariablePtrList &inputs);
-
-    virtual NdArrayPtrList Forward(const NdArrayPtrList &xs) = 0;
-
-    virtual NdArrayPtrList Backward(const NdArrayPtrList &gys) = 0;
+    // 单输入版本 - 返回 Tensor
+    Tensor operator()(const Tensor &input) {
+        return (*this)(std::vector<Tensor>{input})[0];
+    }
+    
+    // 多输入版本 - 返回 Tensor 向量
+    std::vector<Tensor> operator()(const std::vector<Tensor> &inputs) {
+        // 直接调用 forward
+        auto outputs = this->forward(inputs);
+        
+        // 设置 creator
+        for (auto &output : outputs) {
+            output.set_creator(shared_from_this());
+        }
+        
+        // 设置计算图信息
+        this->setup_computation_graph(inputs, outputs);
+        
+        return outputs;
+    }
+    
+    // 纯虚函数 - 使用 Tensor
+    virtual std::vector<Tensor> forward(const std::vector<Tensor> &inputs) = 0;
+    virtual std::vector<Tensor> backward(const std::vector<Tensor> &grad_outputs) = 0;
 
   public:
-    VariablePtrList inputs_;  // 前向传播的入参，考虑多输入
+    std::vector<Tensor> inputs_;  // 前向传播的入参，考虑多输入
 
-    // 算子拥有 inputs，但是不拥有 outputs，outputs 是下一个计算节点的输入，被下一个计算节点所拥有，
-    // 因此 output 为 weak 指针，表示当前算子仅仅是使用 output，不拥有所有权。
-    VariableWPtrList outputs_;  // 前向传播的输出，考虑多输出
+    // 使用 shared_ptr 而不是 weak_ptr 的原因：
+    // 1. 原始设计理念：算子不拥有输出张量，只观察它们（使用 weak_ptr 避免循环引用）
+    // 2. 实际问题：当前使用值语义的 Tensor 对象，用户代码中 Tensor 的生命周期与算子存储的引用不一致
+    // 3. 生命周期问题：当用户代码中的 Tensor 对象超出作用域时，weak_ptr 会失效
+    // 4. 反向传播失败：TensorImpl::backward() 无法访问已失效的输出张量
+    // 5. 解决方案：使用 shared_ptr 确保输出张量在反向传播期间仍然有效
+    // 6. 权衡：虽然违背了原始的所有权模型，但确保了实际运行时的正确性
+    // 7. 未来改进：理想情况下应该重新设计 Tensor 的生命周期管理，恢复 weak_ptr 的使用
+    std::vector<std::shared_ptr<Tensor>> outputs_;  // 前向传播的输出，考虑多输出
 
     int generation_;  // 对于复杂的计算图，用来区分哪个先计算
+    
+private:
+    void setup_computation_graph(const std::vector<Tensor> &inputs, 
+                                const std::vector<Tensor> &outputs);
 };
 
 class Neg : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
-VariablePtr neg(const VariablePtrList &xs);
-VariablePtr neg(const VariablePtr &x);
-VariablePtr operator-(const VariablePtr &x);
+Tensor neg(const std::vector<Tensor> &xs);
+Tensor neg(const Tensor &x);
+Tensor operator-(const Tensor &x);
 
 class Add : public Operator
 {
@@ -47,16 +74,16 @@ class Add : public Operator
     af::dim4 shape0_;
     af::dim4 shape1_;
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
-extern VariablePtr add(const VariablePtrList &xs);
-extern VariablePtr add(const VariablePtr &lhs, const VariablePtr &rhs);
-VariablePtr operator+(const VariablePtr &lhs, const VariablePtr &rhs);
-VariablePtr operator+(const VariablePtr &lhs, data_t rhs);
-VariablePtr operator+(data_t lhs, const VariablePtr &rhs);
+extern Tensor add(const std::vector<Tensor> &xs);
+extern Tensor add(const Tensor &lhs, const Tensor &rhs);
+Tensor operator+(const Tensor &lhs, const Tensor &rhs);
+Tensor operator+(const Tensor &lhs, data_t rhs);
+Tensor operator+(data_t lhs, const Tensor &rhs);
 
 class Sub : public Operator
 {
@@ -64,16 +91,16 @@ class Sub : public Operator
     af::dim4 shape0_;
     af::dim4 shape1_;
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
-extern VariablePtr sub(const VariablePtrList &xs);
-extern VariablePtr sub(const VariablePtr &lhs, const VariablePtr &rhs);
-VariablePtr operator-(const VariablePtr &lhs, const VariablePtr &rhs);
-VariablePtr operator-(const VariablePtr &lhs, data_t rhs);
-VariablePtr operator-(data_t lhs, const VariablePtr &rhs);
+extern Tensor sub(const std::vector<Tensor> &xs);
+extern Tensor sub(const Tensor &lhs, const Tensor &rhs);
+Tensor operator-(const Tensor &lhs, const Tensor &rhs);
+Tensor operator-(const Tensor &lhs, data_t rhs);
+Tensor operator-(data_t lhs, const Tensor &rhs);
 
 class Mul : public Operator
 {
@@ -81,16 +108,16 @@ class Mul : public Operator
     af::dim4 shape0_;
     af::dim4 shape1_;
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
-extern VariablePtr mul(const VariablePtrList &xs);
-extern VariablePtr mul(const VariablePtr &lhs, const VariablePtr &rhs);
-VariablePtr operator*(const VariablePtr &lhs, const VariablePtr &rhs);
-VariablePtr operator*(const VariablePtr &lhs, data_t rhs);
-VariablePtr operator*(data_t lhs, const VariablePtr &rhs);
+extern Tensor mul(const std::vector<Tensor> &xs);
+extern Tensor mul(const Tensor &lhs, const Tensor &rhs);
+Tensor operator*(const Tensor &lhs, const Tensor &rhs);
+Tensor operator*(const Tensor &lhs, data_t rhs);
+Tensor operator*(data_t lhs, const Tensor &rhs);
 
 class Div : public Operator
 {
@@ -98,50 +125,50 @@ class Div : public Operator
     af::dim4 shape0_;
     af::dim4 shape1_;
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
-extern VariablePtr div(const VariablePtrList &xs);
-extern VariablePtr div(const VariablePtr &lhs, const VariablePtr &rhs);
-VariablePtr operator/(const VariablePtr &lhs, const VariablePtr &rhs);
-VariablePtr operator/(const VariablePtr &lhs, data_t rhs);
-VariablePtr operator/(data_t lhs, const VariablePtr &rhs);
+extern Tensor div(const std::vector<Tensor> &xs);
+extern Tensor div(const Tensor &lhs, const Tensor &rhs);
+Tensor operator/(const Tensor &lhs, const Tensor &rhs);
+Tensor operator/(const Tensor &lhs, data_t rhs);
+Tensor operator/(data_t lhs, const Tensor &rhs);
 
 class Square : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
-extern VariablePtr square(const VariablePtr &x);
+extern Tensor square(const Tensor &x);
 
 class Pow : public Operator
 {
   public:
-    Pow(int n) : exponent_(n) {};
+    Pow(int n) : exponent_(n){};
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 
     int exponent_;  // 幂函数的指数
 };
-VariablePtr pow(const VariablePtr &base, int exponent);
-VariablePtr operator^(const VariablePtr &base, int exponent);
+Tensor pow(const Tensor &base, int exponent);
+Tensor operator^(const Tensor &base, int exponent);
 
 class Exp : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
-extern VariablePtr exp(const VariablePtr &x);
+extern Tensor exp(const Tensor &x);
 
 class Reshape : public Operator
 {
@@ -152,20 +179,20 @@ class Reshape : public Operator
 
     Reshape(const af::dim4 &shape) : shape_(shape) {}
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
-extern VariablePtr reshape(const VariablePtr &x, const af::dim4 shape);
+extern Tensor reshape(const Tensor &x, const af::dim4 shape);
 
 class Transpose : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
-extern VariablePtr transpose(const VariablePtr &x);
+extern Tensor transpose(const Tensor &x);
 
 class Sum : public Operator
 {
@@ -173,14 +200,14 @@ class Sum : public Operator
     int axis_;  // 对那个轴求和
 
     af::dim4 x_shape_;  // 输入的形状
-    Sum() : axis_(-1) {};
-    Sum(const int axis) : axis_(axis) {};
+    Sum() : axis_(-1){};
+    Sum(const int axis) : axis_(axis){};
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
-extern VariablePtr sum(const VariablePtr &x, int axis = -1);  // -1 意味着所有元素相加
+extern Tensor sum(const Tensor &x, int axis = -1);  // -1 意味着所有元素相加
 
 class BroadcastTo : public Operator
 {
@@ -189,13 +216,13 @@ class BroadcastTo : public Operator
 
     af::dim4 x_shape_;  // 输入的形状
 
-    BroadcastTo(const af::dim4 &shape) : shape_(shape) {};
+    BroadcastTo(const af::dim4 &shape) : shape_(shape){};
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
-extern VariablePtr broadcastTo(const VariablePtr &x, const af::dim4 &shape);
+extern Tensor broadcast_to(const Tensor &x, const af::dim4 &shape);
 
 class SumTo : public Operator
 {
@@ -204,24 +231,24 @@ class SumTo : public Operator
 
     af::dim4 x_shape_;  // 输入的形状
 
-    SumTo(const af::dim4 &shape) : shape_(shape) {};
+    SumTo(const af::dim4 &shape) : shape_(shape){};
 
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
-extern VariablePtr sumTo(const VariablePtr &x, const af::dim4 &shape);
+extern Tensor sum_to(const Tensor &x, const af::dim4 &shape);
 
 class MatMul : public Operator
 {
   public:
-    NdArrayPtrList Forward(const NdArrayPtrList &xs) override;
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
-    NdArrayPtrList Backward(const NdArrayPtrList &gys) override;
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
-extern VariablePtr matMul(const VariablePtr &x, const VariablePtr &w);
+extern Tensor mat_mul(const Tensor &x, const Tensor &w);
 
-extern NdArray NumericalDiff(std::function<Variable(Variable)> f, const Variable &x, data_t eps = 1e-4);
+extern NdArray numerical_diff(std::function<Tensor(Tensor)> f, const Tensor &x, data_t eps = 1e-4);
 
 }  // namespace dl
 

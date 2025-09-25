@@ -1,39 +1,40 @@
-#include "base/dlException.h"
 #include "base/dlUtils.h"
 #include "dlOperator.h"
 
 namespace dl
 {
 
-NdArrayPtrList SumTo::Forward(const NdArrayPtrList &xs)
+std::vector<Tensor> SumTo::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs   = NdArrayPtrList();
-    auto x         = *(xs[0]);
-    this->x_shape_ = x.dims();
-    auto y         = utils::SumTo(x, this->shape_);
-    outputs.push_back(AsDLArrayPtr(y));
-    return outputs;
-}
-
-NdArrayPtrList SumTo::Backward(const NdArrayPtrList &gys)
-{
-    if (1 != gys.size())
-    {
-        DL_WARN_THROW("invalid argument size, not equal to 1");
+    if (xs.size() != 1) {
+        throw std::runtime_error("SumTo requires exactly 1 input");
     }
-
-    auto gy  = *(gys[0]);
-    auto gx  = utils::BroadcastTo(gy, this->x_shape_);
-    auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(gx));
-    return gxs;
+    auto x = xs[0].data();
+    auto y = Tensor(utils::SumTo(x, this->shape_));
+    return std::vector<Tensor>{y};
 }
 
-VariablePtr sumTo(const VariablePtr &x, const af::dim4 &shape)
+std::vector<Tensor> SumTo::backward(const std::vector<Tensor> &gys)
 {
-    auto f  = std::make_shared<SumTo>(shape);
-    auto ys = (*f)(x);
-    return ys[0];
+    if (gys.size() != 1) {
+        throw std::runtime_error("SumTo backward requires exactly 1 gradient");
+    }
+    auto gy = gys[0].data();
+    auto x = this->inputs_[0].data();
+    auto gx = Tensor(utils::BroadcastTo(gy, x.dims()));
+    return std::vector<Tensor>{gx};
+}
+
+Tensor sum_to(const std::vector<Tensor> &xs, const af::dim4 &shape)
+{
+    auto op = std::make_shared<SumTo>(shape);
+    return (*op)(xs)[0];
+}
+
+Tensor sum_to(const Tensor &x, const af::dim4 &shape)
+{
+    std::vector<Tensor> inputs = {x};
+    return sum_to(inputs, shape);
 }
 
 }  // namespace dl

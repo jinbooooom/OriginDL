@@ -4,78 +4,74 @@
 namespace dl
 {
 
-NdArrayPtrList Div::Forward(const NdArrayPtrList &xs)
+std::vector<Tensor> Div::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs  = NdArrayPtrList();
-    NdArrayPtr x0 = xs[0];
-    NdArrayPtr x1 = xs[1];
-    shape0_       = x0->dims();
-    shape1_       = x1->dims();
-    auto y        = (*x0) / (*x1);  // 逐元素除
-    outputs.push_back(AsDLArrayPtr(y));
-
+    if (xs.size() != 2) {
+        throw std::runtime_error("Div requires exactly 2 inputs");
+    }
+    
+    shape0_ = xs[0].data().dims();
+    shape1_ = xs[1].data().dims();
+    // 直接使用 ArrayFire 运算符，避免触发全局 operator/
+    auto y = Tensor(xs[0].data() / xs[1].data());
+    std::vector<Tensor> outputs;
+    outputs.push_back(y);
     return outputs;
 }
 
-NdArrayPtrList Div::Backward(const NdArrayPtrList &gys)
+std::vector<Tensor> Div::backward(const std::vector<Tensor> &gys)
 {
     if (1 != gys.size())
     {
         DL_WARN_THROW("invalid argument size, not equal to 1");
     }
 
-    auto x0 = this->inputs_[0]->data_;
-    auto x1 = this->inputs_[1]->data_;  // TODO: 要判断 x1 是否为 0
-
-    /*
-        y = x0 / x1;
-        dy/dx0 = 1 / x1
-        dy/dx1 = -x0 / x1^2
-    */
-    auto gy  = *gys[0];
-    auto dx0 = gy / x1;
-    auto dx1 = gy * (-x0) / x1 / x1;
-
-    VariablePtr dx0_ = AsVariablePtr(AsDLArrayPtr(dx0));
-    VariablePtr dx1_ = AsVariablePtr(AsDLArrayPtr(dx1));
-    if (shape0_ != shape1_)
-    {
-        dx0_ = sumTo(AsVariablePtr(AsDLArrayPtr(dx0)), shape0_);
-        dx1_ = sumTo(AsVariablePtr(AsDLArrayPtr(dx1)), shape1_);
-    }
-
-    auto gxs = NdArrayPtrList();
-    gxs.push_back(AsDLArrayPtr(dx0_->data_));
-    gxs.push_back(AsDLArrayPtr(dx1_->data_));
+    // 正确的除法导数计算：
+    // 对于 y = x0 / x1：
+    // ∂y/∂x0 = 1/x1
+    // ∂y/∂x1 = -x0/x1²
+    auto x0 = this->inputs_[0].data();
+    auto x1 = this->inputs_[1].data();
+    auto gy = gys[0].data();
+    
+    // ∂y/∂x0 = gy * (1/x1) = gy / x1
+    auto gx0 = Tensor(gy / x1);
+    
+    // ∂y/∂x1 = gy * (-x0/x1²) = -gy * x0 / x1²  
+    auto gx1 = Tensor(-gy * x0 / (x1 * x1));
+    
+    std::vector<Tensor> gxs;
+    gxs.push_back(gx0);
+    gxs.push_back(gx1);
     return gxs;
 }
 
-VariablePtr div(const VariablePtrList &xs)
+Tensor div(const std::vector<Tensor> &xs)
 {
     return (*std::shared_ptr<Operator>(new Div()))(xs)[0];
 }
 
-VariablePtr div(const VariablePtr &lhs, const VariablePtr &rhs)
+Tensor div(const Tensor &lhs, const Tensor &rhs)
 {
-    VariablePtrList xs = {lhs, rhs};
-    return div(xs);
+    return div({lhs, rhs});
 }
 
-VariablePtr operator/(const VariablePtr &lhs, const VariablePtr &rhs)
+Tensor operator/(const Tensor &lhs, const Tensor &rhs)
 {
     return div(lhs, rhs);
 }
 
-VariablePtr operator/(const VariablePtr &lhs, data_t rhs)
+Tensor operator/(const Tensor &lhs, data_t rhs)
 {
-    auto dims = lhs->data_.dims();
-    auto x    = std::make_shared<Variable>(af::constant(rhs, dims));
+    auto dims = lhs.data().dims();
+    auto x = Tensor(af::constant(rhs, dims));
     return div(lhs, x);
 }
-VariablePtr operator/(data_t lhs, const VariablePtr &rhs)
+
+Tensor operator/(data_t lhs, const Tensor &rhs)
 {
-    auto dims = rhs->data_.dims();
-    auto x    = std::make_shared<Variable>(af::constant(lhs, dims));
+    auto dims = rhs.data().dims();
+    auto x = Tensor(af::constant(lhs, dims));
     return div(x, rhs);
 }
 

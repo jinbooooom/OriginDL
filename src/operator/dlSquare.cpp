@@ -3,27 +3,39 @@
 namespace dl
 {
 
-NdArrayPtrList Square::Forward(const NdArrayPtrList &xs)
+std::vector<Tensor> Square::forward(const std::vector<Tensor> &xs)
 {
-    auto outputs = NdArrayPtrList();
-    NdArrayPtr x = xs[0];
-    auto o       = af::pow(*x, 2);
-    outputs.push_back(AsDLArrayPtr(o));
-    return outputs;
+    if (xs.size() != 1) {
+        throw std::runtime_error("Square requires exactly 1 input");
+    }
+    auto x = xs[0].data();
+    // 直接使用 ArrayFire 的运算符，避免触发全局 operator^
+    auto y = Tensor(x * x);
+    return std::vector<Tensor>{y};
 }
 
-NdArrayPtrList Square::Backward(const NdArrayPtrList &gys)
+std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
 {
-    auto x  = this->inputs_[0]->data_;
-    auto gx = 2.0 * x * (*gys[0]);
-    return AsDLArrayPtrList(gx);
+    if (gys.size() != 1) {
+        throw std::runtime_error("Square backward requires exactly 1 gradient");
+    }
+    auto x = this->inputs_[0].data();
+    auto gy = gys[0].data();
+    auto gx = Tensor(2.0 * x * gy);
+    return std::vector<Tensor>{gx};
 }
 
-VariablePtr square(const VariablePtr &x)
+Tensor square(const std::vector<Tensor> &xs)
 {
-    auto f = std::shared_ptr<Operator>(new Square());
-    auto y = (*f)(x);
-    return y[0];
+    auto op = std::make_shared<Square>();
+    return (*op)(xs)[0];
+}
+
+Tensor square(const Tensor &x)
+{
+    auto xs = std::vector<Tensor>();
+    xs.emplace_back(x);
+    return square(xs);
 }
 
 }  // namespace dl

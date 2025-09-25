@@ -1,4 +1,7 @@
 .idea/*
+.cache/*
+.vscode/*
+.clangd
 data/*
 **/exec
 **/.vs/*

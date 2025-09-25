@@ -90,116 +90,116 @@ int main(int argc, char **argv)
     double val   = 0.5;
 
     logi("Test: y = (exp(x^2))^2");
-    auto x = std::make_shared<Variable>(af::constant(val, dim));
-    auto a = (*A)(x)[0];
-    auto b = (*B)(a)[0];
-    auto y = (*C)(b)[0];
+    auto x = Tensor(af::constant(val, dim));
+    auto a = (*A)(x);
+    auto b = (*B)(a);
+    auto y = (*C)(b);
 
-    y->Backward();
-    print("gx: ", *x->grad_);  // gx = 3.2974
+    y.backward();
+    print("gx: ", x.grad());  // gx = 3.2974
 
     logi("Test Add: y = (x0^2) + (x1^2)");
-    auto x0 = std::make_shared<Variable>(af::constant(2, dim));
-    auto x1 = std::make_shared<Variable>(af::constant(3, dim));
+    auto x0 = Tensor(af::constant(2, dim));
+    auto x1 = Tensor(af::constant(3, dim));
     // y       = add({square(x0), square(x1)});
     // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
     // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
     y = ((x0) ^ 2) + ((x1) ^ 2);
-    print("y:", y->data_);  // 13
-    y->Backward();
-    print("gx0:", *(x0->grad_));  // 4
-    print("gx1:", *(x1->grad_));  // 6
+    print("y:", y.data());  // 13
+    y.backward();
+    print("gx0:", x0.grad());  // 4
+    print("gx1:", x1.grad());  // 6
 
     logi("Test Add with repeated values: y = x + x");
-    y->ClearGrad();
+    y.clear_grad();
     x = x0;
-    x->ClearGrad();
+    x.clear_grad();
     y = x + x;
-    print("y:", y->data_);  // 4
-    y->Backward();
-    print("gx:", *(x->grad_));  // 2
+    print("y:", y.data());  // 4
+    y.backward();
+    print("gx:", x.grad());  // 2
 
     logi("Test Complex computation graph: y = ((x^2)^2) + ((x^2)^2) = 2 * (x^4)");
-    y->ClearGrad();
-    x = std::make_shared<Variable>(af::constant(2, dim));
+    y.clear_grad();
+    x = Tensor(af::constant(2, dim));
     // auto s = square(x);
     // y      = add({square(s), square(s)});
     y = ((x ^ 2) ^ 2) + ((x ^ 2) ^ 2);
-    print("y:", y->data_);  // 32
-    y->Backward();
-    print("gx:", *(x->grad_));  // 64
+    print("y:", y.data());  // 32
+    y.backward();
+    print("gx:", x.grad());  // 64
 
     // reshape
     logi("Test Reshape:");
-    y->ClearGrad();
+    y.clear_grad();
     af::array tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
-    auto x3_4           = std::make_shared<Variable>(tensor3_4);
-    print("before reshape, x:", x3_4->data_);
+    auto x3_4           = Tensor(tensor3_4);
+    print("before reshape, x:", x3_4.data());
     const af::dim4 dim4_3{4, 3};
-    y = reshape(x3_4, dim4_3);
-    y->Backward();
-    print("after reshape, y:", y->data_);
-    print("gx:", *(x3_4->grad_));
+    y = dl::reshape(x3_4, dim4_3);
+    y.backward();
+    print("after reshape, y:", y.data());
+    print("gx:", x3_4.grad());
 
     // transpose
     logi("Test Transpose:");
-    y->ClearGrad();
-    x3_4->ClearGrad();
+    y.clear_grad();
+    x3_4.clear_grad();
     tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
-    x3_4      = std::make_shared<Variable>(tensor3_4);
-    print("before reshape, x:", x3_4->data_);
-    y = transpose(x3_4);
-    y->Backward();
-    print("after transpose, y:", y->data_);
-    print("gx:", *(x3_4->grad_));
+    x3_4      = Tensor(tensor3_4);
+    print("before reshape, x:", x3_4.data());
+    y = dl::transpose(x3_4);
+    y.backward();
+    print("after transpose, y:", y.data());
+    print("gx:", x3_4.grad());
 
     // sum
     logi("Test Sum:");
-    y->ClearGrad();
+    y.clear_grad();
     af::array tensor2_4 = af::iota(af::dim4(2, 4));
-    auto x2_4           = std::make_shared<Variable>(tensor2_4);
-    print("before sum, x:", x2_4->data_);
-    y = sum(x2_4);
-    y->Backward();
-    print("after sum, y:", y->data_);
-    print("gx:", *(x2_4->grad_));
+    auto x2_4           = Tensor(tensor2_4);
+    print("before sum, x:", x2_4.data());
+    y = dl::sum(x2_4);
+    y.backward();
+    print("after sum, y:", y.data());
+    print("gx:", x2_4.grad());
 
     // sumTo
     logi("Test SumTo:");
-    y->ClearGrad();
-    x2_4->ClearGrad();
-    print("before sumTo, x:", x2_4->data_);
-    y = sumTo(x2_4, af::dim4(1, 4));
-    y->Backward();
-    print("after sumTo, y:", y->data_);
-    print("gx:", *(x2_4->grad_));
+    y.clear_grad();
+    x2_4.clear_grad();
+    print("before sumTo, x:", x2_4.data());
+    y = dl::sum_to(x2_4, af::dim4(1, 4));
+    y.backward();
+    print("after sumTo, y:", y.data());
+    print("gx:", x2_4.grad());
 
     // broadcastTo
     logi("Test BroadcastTo:");
-    y->ClearGrad();
+    y.clear_grad();
     af::array tensor1_4 = af::iota(af::dim4(1, 4));
-    auto x1_4           = std::make_shared<Variable>(tensor1_4);
-    x1_4->ClearGrad();
-    print("before broadcastTo, x:", x1_4->data_);
-    y = broadcastTo(x1_4, af::dim4(2, 4));
-    y->Backward();
-    print("after broadcastTo, y:", y->data_);
-    print("gx:", *(x1_4->grad_));
+    auto x1_4           = Tensor(tensor1_4);
+    x1_4.clear_grad();
+    print("before broadcastTo, x:", x1_4.data());
+    y = dl::broadcast_to(x1_4, af::dim4(2, 4));
+    y.backward();
+    print("after broadcastTo, y:", y.data());
+    print("gx:", x1_4.grad());
 
     // matMul
     logi("Test matMul:");
     {
-        af::array tensorX = af::iota(af::dim4(2, 4));
-        auto x            = std::make_shared<Variable>(tensorX);
-        af::array tensorW = af::iota(af::dim4(4, 2));
-        auto w            = std::make_shared<Variable>(tensorW);
-        print("before matMul, X:", x->data_);
-        print("before matMul, W:", w->data_);
-        auto y = matMul(x, w);
-        y->Backward();
-        print("after matMul, y:", y->data_);
-        print("gx:", *(x->grad_));
-        print("gw:", *(w->grad_));
+        af::array tensor_x = af::iota(af::dim4(2, 4));
+        auto x             = Tensor(tensor_x);
+        af::array tensor_w = af::iota(af::dim4(4, 2));
+        auto w             = Tensor(tensor_w);
+        print("before matMul, X:", x.data());
+        print("before matMul, W:", w.data());
+        auto y = dl::mat_mul(x, w);
+        y.backward();
+        print("after matMul, y:", y.data());
+        print("gx:", x.grad());
+        print("gw:", w.grad());
     }
 
     return 0;
