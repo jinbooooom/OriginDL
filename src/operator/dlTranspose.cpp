@@ -5,7 +5,8 @@ namespace dl
 
 std::vector<Tensor> Transpose::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1) {
+    if (xs.size() != 1)
+    {
         throw std::runtime_error("Transpose requires exactly 1 input");
     }
     auto y = xs[0].transpose();
@@ -14,7 +15,8 @@ std::vector<Tensor> Transpose::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Transpose::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1) {
+    if (gys.size() != 1)
+    {
         throw std::runtime_error("Transpose backward requires exactly 1 gradient");
     }
     auto gx = gys[0].transpose();

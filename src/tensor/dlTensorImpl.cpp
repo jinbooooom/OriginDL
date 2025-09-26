@@ -1,47 +1,60 @@
-#include "base/dlException.h"
-#include "dlTensorImpl.h"
-#include "dlOperator.h"
+#include "../include/dlTensorImpl.h"
+#include <list>
+#include <set>
+#include <stdexcept>
+#include "../include/base/dlException.h"
+#include "../include/dlOperator.h"
+#include "../include/dlTensor.h"
+#include "../include/mat/dlArrayFireMat.h"
 
 namespace dl
 {
 
-TensorImpl& TensorImpl::operator=(const TensorImpl &other) {
-    if (this != &other) {
-        data_ = other.data_;
-        grad_ = other.grad_;
+// 赋值运算符实现
+TensorImpl &TensorImpl::operator=(const TensorImpl &other)
+{
+    if (this != &other)
+    {
+        data_    = other.data_ ? std::unique_ptr<Mat_t>(static_cast<Mat_t *>(other.data_->clone().release())) : nullptr;
+        grad_    = other.grad_ ? std::unique_ptr<Mat_t>(static_cast<Mat_t *>(other.grad_->clone().release())) : nullptr;
         creator_ = other.creator_;
         generation_ = other.generation_;
     }
     return *this;
 }
 
-TensorImpl& TensorImpl::operator=(TensorImpl &&other) noexcept {
-    if (this != &other) {
-        data_ = std::move(other.data_);
-        grad_ = std::move(other.grad_);
-        creator_ = std::move(other.creator_);
+TensorImpl &TensorImpl::operator=(TensorImpl &&other) noexcept
+{
+    if (this != &other)
+    {
+        data_       = std::move(other.data_);
+        grad_       = std::move(other.grad_);
+        creator_    = std::move(other.creator_);
         generation_ = other.generation_;
     }
     return *this;
 }
 
-void TensorImpl::set_creator(const FunctionPtr &func) {
-    creator_ = func;
+void TensorImpl::set_creator(const FunctionPtr &func)
+{
+    creator_    = func;
     generation_ = creator_->generation_ + 1;
 }
 
-void TensorImpl::backward() {
-    if (grad_.elements() == 0) {
-        double grad_val = 1.0;
-        auto dims = this->data_.dims();
-        grad_ = af::constant(grad_val, dims);
+void TensorImpl::backward()
+{
+    // 如果梯度为空，初始化为全1（输出张量的梯度）
+    if (!grad_)
+    {
+        grad_ = std::make_unique<Mat_t>(1.0, data_->shape());
     }
 
-    auto funcs = std::list<FunctionPtr>();
+    auto funcs    = std::list<FunctionPtr>();
     auto func_set = std::set<FunctionPtr>();
 
     auto add_func = [&funcs, &func_set](const FunctionPtr &f) {
-        if (func_set.find(f) == func_set.end()) {
+        if (f && func_set.find(f) == func_set.end())
+        {
             funcs.push_back(f);
             func_set.insert(f);
             funcs.sort(
@@ -51,91 +64,124 @@ void TensorImpl::backward() {
 
     add_func(this->creator_);
 
-    while (!funcs.empty()) {
+    while (!funcs.empty())
+    {
         auto f = funcs.back();
         funcs.pop_back();
 
         auto gys = std::vector<Tensor>();
         // 检查 outputs_ 是否为空
-        if (f->outputs_.empty()) {
+        if (f->outputs_.empty())
+        {
             DL_ERROR_THROW("outputs_ is empty");
         }
-        for (const auto &o : f->outputs_) {
+        for (const auto &o : f->outputs_)
+        {
             // 检查 shared_ptr 是否为空
-            if (!o) {
+            if (!o)
+            {
                 DL_ERROR_THROW("outputs_ contains null shared_ptr");
             }
-            // 关键修复：传递的应该是输出张量的梯度，而不是数据值
-            // 创建一个包含梯度数据的 Tensor 对象
+            // 获取输出张量的梯度
             gys.push_back(Tensor(o->grad()));
         }
         auto gxs = f->backward(gys);
 
-        if (gxs.size() != f->inputs_.size()) {
+        if (gxs.size() != f->inputs_.size())
+        {
             DL_ERROR_THROW("backward error!, gxs size " + std::to_string(gxs.size()) + ", inputs size " +
                            std::to_string(f->inputs_.size()));
         }
 
-        for (size_t i = 0; i < gxs.size(); i++) {
-            auto x = f->inputs_[i];
+        for (size_t i = 0; i < gxs.size(); i++)
+        {
+            auto x  = f->inputs_[i];
             auto gx = gxs[i];
 
             // 梯度累积逻辑：如果梯度为空，直接赋值；否则累加
-            // 注意：这里需要检查梯度是否真正为空
-            if (x.grad().elements() == 0) {
-                x.grad() = gx.data();
-            } else {
-                x.grad() = x.grad() + gx.data();
+            if (!x.impl()->grad_)
+            {
+                // 梯度为空，直接赋值
+                x.impl()->grad_ = std::unique_ptr<Mat_t>(static_cast<Mat_t *>(gx.mat().clone().release()));
+            }
+            else
+            {
+                // 梯度不为空，累加
+                auto current_grad = x.impl()->grad_->clone();
+                auto new_grad     = *current_grad + gx.mat();
+                x.impl()->grad_   = std::unique_ptr<Mat_t>(static_cast<Mat_t *>(new_grad.release()));
             }
 
-            if (x.get_impl()->creator_) {
-                add_func(x.get_impl()->creator_);
+            if (x.impl()->creator_)
+            {
+                add_func(x.impl()->creator_);
             }
         }
     }
 }
 
-void TensorImpl::clear_grad() {
-    // 将梯度设置为与数据相同形状的零数组
-    grad_ = af::constant(0.0, data_.dims(), data_.type());
+void TensorImpl::clear_grad()
+{
+    grad_ = nullptr;
 }
 
-TensorImpl TensorImpl::reshape(const af::dim4 &shape) const {
-    auto result = TensorImpl(af::moddims(data_, shape));
-    return result;
+// 张量操作实现
+TensorImpl TensorImpl::reshape(const Shape &shape) const
+{
+    auto new_mat = data_->reshape(shape);
+    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(new_mat.release())));
 }
 
-TensorImpl TensorImpl::transpose() const {
-    auto result = TensorImpl(af::transpose(data_));
-    return result;
+TensorImpl TensorImpl::transpose() const
+{
+    auto new_mat = data_->transpose();
+    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(new_mat.release())));
 }
 
-TensorImpl TensorImpl::operator+(const TensorImpl &other) const {
-    return TensorImpl(data_ + other.data_);
+// 运算符重载实现
+TensorImpl TensorImpl::operator+(const TensorImpl &other) const
+{
+    auto result = *data_ + *other.data_;
+    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
 }
 
-TensorImpl TensorImpl::operator+(data_t scalar) const {
-    return TensorImpl(data_ + scalar);
+TensorImpl TensorImpl::operator+(data_t scalar) const
+{
+    auto result = *data_ + scalar;
+    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
 }
 
-TensorImpl TensorImpl::operator-(const TensorImpl &other) const {
-    return TensorImpl(data_ - other.data_);
+TensorImpl TensorImpl::operator-(const TensorImpl &other) const
+{
+    auto result = *data_ - *other.data_;
+    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
 }
 
-TensorImpl TensorImpl::operator*(const TensorImpl &other) const {
-    return TensorImpl(data_ * other.data_);
+TensorImpl TensorImpl::operator*(const TensorImpl &other) const
+{
+    auto result = *data_ * *other.data_;
+    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
 }
 
-TensorImpl TensorImpl::operator/(const TensorImpl &other) const {
-    return TensorImpl(data_ / other.data_);
+TensorImpl TensorImpl::operator/(const TensorImpl &other) const
+{
+    auto result = *data_ / *other.data_;
+    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
 }
 
-TensorImpl TensorImpl::operator-() const {
-    return TensorImpl(-data_);
+TensorImpl TensorImpl::operator-() const
+{
+    auto result = -*data_;
+    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
 }
 
-void TensorImpl::print(const std::string &desc) const {
-    af::print(desc.c_str(), data_);
+// 调试方法实现
+void TensorImpl::print(const std::string &desc) const
+{
+    if (data_)
+    {
+        data_->print(desc);
+    }
 }
 
 }  // namespace dl

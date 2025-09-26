@@ -94,15 +94,14 @@ Tensor Predict(const Tensor &x, const Tensor &w)
 }
 #endif
 
-
 // mean_squared_error
 Tensor MSE(const Tensor &x0, const Tensor &x1)
 {
-    auto diff   = x0 - x1;
+    auto diff       = x0 - x1;
     auto sum_result = dl::sum(dl::pow(diff, 2));
     // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-    auto elements = Tensor(af::constant(diff.data().elements(), sum_result.data().dims()));
-    auto result = sum_result / elements;
+    auto elements = Tensor::constant(diff.data().elements(), sum_result.shape());
+    auto result   = sum_result / elements;
     return result;
 }
 int main(int argc, char **argv)
@@ -127,13 +126,13 @@ int main(int argc, char **argv)
     // af::print("yData", y_data);
 
     // 转换为变量
-    auto x = Tensor(x_data);
-    auto y = Tensor(y_data);
+    auto x = Tensor(std::make_unique<Mat_t>(x_data));
+    auto y = Tensor(std::make_unique<Mat_t>(y_data));
 
     // 初始化权重和偏置
-    auto w = Tensor(af::constant(0, 1, 1, f32));
+    auto w = Tensor::constant(0, Shape{1, 1});
 #if USE_BIAS
-    auto b = Tensor(af::constant(0, 1, 1, f32));
+    auto b = Tensor::constant(0, Shape{1, 1});
 #endif
 
     // 设置学习率和迭代次数
@@ -159,22 +158,21 @@ int main(int argc, char **argv)
         // 反向传播
         loss.backward();
 
-
         // 更新参数 - 使用算子而不是直接修改data()
         auto w_update = w - lr * w.grad();
-        auto w_new = Tensor(w_update.data());  // 创建新的Tensor，不破坏计算图
-        w = w_new;
+        auto w_new    = Tensor(w_update.data().clone());  // 创建新的Tensor，不破坏计算图
+        w             = w_new;
 #if USE_BIAS
         auto b_update = b - lr * b.grad();
-        auto b_new = Tensor(b_update.data());  // 创建新的Tensor，不破坏计算图
-        b = b_new;
+        auto b_new    = Tensor(b_update.data().clone());  // 创建新的Tensor，不破坏计算图
+        b             = b_new;
 #endif
 
         // 打印结果
-        float loss_val = loss.data().scalar<float>();
-        float w_val    = w.data().scalar<float>();
+        float loss_val = static_cast<Mat_t &>(loss.data()).scalar<float>();
+        float w_val    = static_cast<Mat_t &>(w.data()).scalar<float>();
 #if USE_BIAS
-        float b_val    = b.data().scalar<float>();
+        float b_val = static_cast<Mat_t &>(b.data()).scalar<float>();
 #endif
 
 #if USE_BIAS

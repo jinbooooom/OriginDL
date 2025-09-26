@@ -5,8 +5,9 @@ namespace dl
 
 std::vector<Tensor> Neg::forward(const std::vector<Tensor> &xs)
 {
-    // 直接使用 ArrayFire 运算符，避免递归调用
-    auto y = Tensor(-xs[0].data());
+    // 使用抽象层进行负号运算
+    auto result = -xs[0].mat();
+    auto y      = Tensor(std::move(result));
     std::vector<Tensor> outputs;
     outputs.push_back(y);
     return outputs;
@@ -19,8 +20,9 @@ std::vector<Tensor> Neg::backward(const std::vector<Tensor> &gys)
         logw("invalid argument size, not equal to 1");
     }
 
-    // 直接使用 ArrayFire 运算符，避免递归调用
-    auto gx = Tensor(-gys[0].data());
+    // 使用抽象层进行梯度计算
+    auto result = -gys[0].mat();
+    auto gx     = Tensor(std::move(result));
     std::vector<Tensor> gxs;
     gxs.push_back(gx);
 

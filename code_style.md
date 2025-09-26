@@ -17,16 +17,16 @@ python3 format.py
 
 通常应尽量让文件名更加明确. `http_server_logs.h` 就比 `logs.h` 要好. 定义类时文件名一般成对出现, 如 `foo_bar.h` 和 `foo_bar.cpp`, 对应于类 `FooBar`。
 
-对于本仓库，习惯上让类 `Model` 对应的头文件名是 `dlModel.h`，实现文件对应的文件名是 `dlModel.cpp`。
+对于本仓库，习惯上让类 `Tensor` 对应的头文件名是 `dlTensor.h`，实现文件对应的文件名是 `dlTensor.cpp`。
 
 ### 重复include保护
 
-使用 #define 宏 进行 .h 重复include保护，不使用 \#pragma once
+使用 #define 宏进行 .h 重复include保护，不使用 \#pragma once。
 
 ```c++
-#ifndef __THIS_IS_A_HEADER_H__
-#define __THIS_IS_A_HEADER_H__ 
-#endif // __THIS_IS_A_HEADER_H__ 
+#ifndef __ORIGIN_DL_TENSOR_H__
+#define __ORIGIN_DL_TENSOR_H__
+#endif // __ORIGIN_DL_TENSOR_H__ 
 ```
 
 ### 命名规则
