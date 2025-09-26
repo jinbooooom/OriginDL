@@ -4,6 +4,7 @@
 .clangd
 .specstory/*
 .cursor/*
+.cursorindexingignore
 data/*
 **/exec
 **/.vs/*
