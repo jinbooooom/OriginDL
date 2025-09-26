@@ -1,4 +1,5 @@
 #include "../../include/mat/dlArrayFireMat.h"
+#include "../../include/base/dlUtils.h"
 #include <arrayfire.h>
 #include <stdexcept>
 
@@ -101,22 +102,16 @@ std::unique_ptr<Mat> ArrayFireMat::operator-() const
 std::unique_ptr<Mat> ArrayFireMat::broadcast_to(const Shape &shape) const
 {
     af::dim4 target_dims = convert_shape_to_af_dim4(shape);
-    return std::make_unique<ArrayFireMat>(af::tile(data_, target_dims));
+    // 使用已有的工具函数，逻辑更完善，性能更优
+    auto result = utils::BroadcastTo(data_, target_dims);
+    return std::make_unique<ArrayFireMat>(result);
 }
 
 std::unique_ptr<Mat> ArrayFireMat::sum_to(const Shape &shape) const
 {
-    af::dim4 target_dims  = convert_shape_to_af_dim4(shape);
-    af::dim4 current_dims = data_.dims();
-
-    af::array result = data_;
-    for (int i = 0; i < 4; ++i)
-    {
-        if (current_dims[i] > target_dims[i])
-        {
-            result = af::sum(result, i);
-        }
-    }
+    af::dim4 target_dims = convert_shape_to_af_dim4(shape);
+    // 使用已有的工具函数，逻辑更完善，性能更优
+    auto result = utils::SumTo(data_, target_dims);
     return std::make_unique<ArrayFireMat>(result);
 }
 
@@ -124,7 +119,11 @@ std::unique_ptr<Mat> ArrayFireMat::sum(int axis) const
 {
     if (axis == -1)
     {
-        return std::make_unique<ArrayFireMat>(af::sum(data_));
+        // 使用af::sum确保返回标量，性能最优
+        // 先flatten再sum，确保返回标量
+        auto flattened = af::flat(data_);
+        auto result = af::sum(flattened);
+        return std::make_unique<ArrayFireMat>(result);
     }
     else
     {
