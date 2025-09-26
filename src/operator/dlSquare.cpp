@@ -5,24 +5,36 @@ namespace dl
 
 std::vector<Tensor> Square::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1) {
+    if (xs.size() != 1)
+    {
         throw std::runtime_error("Square requires exactly 1 input");
     }
-    auto x = xs[0].data();
-    // 直接使用 ArrayFire 的运算符，避免触发全局 operator^
-    auto y = Tensor(x * x);
-    return std::vector<Tensor>{y};
+    // 使用抽象层进行平方运算
+    auto result = xs[0].mat() * xs[0].mat();
+    auto y      = Tensor(std::move(result));
+
+    std::vector<Tensor> outputs;
+    outputs.push_back(y);
+    return outputs;
 }
 
 std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1) {
+    if (gys.size() != 1)
+    {
         throw std::runtime_error("Square backward requires exactly 1 gradient");
     }
-    auto x = this->inputs_[0].data();
-    auto gy = gys[0].data();
-    auto gx = Tensor(2.0 * x * gy);
-    return std::vector<Tensor>{gx};
+    auto x  = &this->inputs_[0].mat();
+    auto gy = &gys[0].mat();
+
+    // 使用抽象层进行梯度计算
+    auto temp_mult = *x * *gy;
+    auto gx_result = *temp_mult * 2.0;
+    auto gx        = Tensor(std::move(gx_result));
+
+    std::vector<Tensor> outputs;
+    outputs.push_back(gx);
+    return outputs;
 }
 
 Tensor square(const std::vector<Tensor> &xs)

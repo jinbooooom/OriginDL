@@ -12,6 +12,7 @@ file(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operator/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/tensor/*.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp 
 )
 
 # message(WARNING ${MY_LIB_SRCS})

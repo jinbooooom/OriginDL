@@ -43,8 +43,8 @@ PointerAlignment: Right  # 指针对齐方式
 AlignOperands: true              # 对齐操作数
 AlignConsecutiveAssignments: true # 对齐连续赋值
 
-# 访问修饰符使用 2 个空格负偏移
-AccessModifierOffset: -2  # 访问修饰符偏移
+# 访问修饰符在最左侧（无缩进）
+AccessModifierOffset: -4  # 访问修饰符偏移
 
 # TODO(jmadill): 决定是否启用此选项。没有"全部或全无"模式
 AllowShortCaseLabelsOnASingleLine: false  # 不允许短 case 标签在同一行
