@@ -3,21 +3,24 @@
 namespace dl
 {
 
-void Operator::setup_computation_graph(const std::vector<Tensor> &inputs, 
-                                      const std::vector<Tensor> &outputs) {
+void Operator::setup_computation_graph(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs)
+{
     int max_gen = 0;
-    for (const auto &input : inputs) {
-        if (input.get_impl()->generation_ > max_gen) {
-            max_gen = input.get_impl()->generation_;
+    for (const auto &input : inputs)
+    {
+        if (input.impl()->generation_ > max_gen)
+        {
+            max_gen = input.impl()->generation_;
         }
     }
     this->generation_ = max_gen;
 
     this->inputs_ = inputs;
     this->outputs_.clear();
-    for (const auto &output : outputs) {
+    for (const auto &output : outputs)
+    {
         // 关键问题：值语义 Tensor 的生命周期管理
-        // 
+        //
         // 原始设计（使用 weak_ptr）的问题：
         // 1. 用户代码：Tensor y = x0 + x1;  // y 是值对象
         // 2. 算子存储：weak_ptr<Tensor> 指向 y

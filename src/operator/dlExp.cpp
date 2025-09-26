@@ -5,23 +5,35 @@ namespace dl
 
 std::vector<Tensor> Exp::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1) {
+    if (xs.size() != 1)
+    {
         throw std::runtime_error("Exp requires exactly 1 input");
     }
-    auto x = xs[0].data();
-    auto y = Tensor(af::exp(x));
-    return std::vector<Tensor>{y};
+
+    // 使用抽象层进行指数运算
+    auto result = xs[0].mat().exp();
+    auto y      = Tensor(std::move(result));
+    std::vector<Tensor> outputs;
+    outputs.push_back(y);
+    return outputs;
 }
 
 std::vector<Tensor> Exp::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1) {
+    if (gys.size() != 1)
+    {
         throw std::runtime_error("Exp backward requires exactly 1 gradient");
     }
-    auto x = this->inputs_[0].data();
-    auto gy = gys[0].data();
-    auto gx = Tensor(af::exp(x) * gy);
-    return std::vector<Tensor>{gx};
+
+    // 使用抽象层进行梯度计算
+    auto x         = &this->inputs_[0].mat();
+    auto gy        = &gys[0].mat();
+    auto exp_x     = x->exp();
+    auto gx_result = *exp_x * *gy;
+    auto gx        = Tensor(std::move(gx_result));
+    std::vector<Tensor> outputs;
+    outputs.push_back(gx);
+    return outputs;
 }
 
 Tensor exp(const std::vector<Tensor> &xs)
