@@ -8,7 +8,7 @@ Tensor f(const Tensor &x)
     // auto B = std::make_shared<Exp>();
     // auto C = std::make_shared<Square>();
     // return (*C)((*B)((*A)(x)));
-    return Tensor(af::constant(0.0, 1));
+    return Tensor::constant(0.0, Shape{1});
 }
 
 int main()

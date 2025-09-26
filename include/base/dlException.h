@@ -11,7 +11,7 @@ namespace dl
 // 基础异常类
 class DLException : public std::runtime_error
 {
-  public:
+public:
     DLException(const std::string &message, const char *file, int line, const char *function)
         : std::runtime_error(message), mFile(file), mLine(line), mFunction(function)
     {}
@@ -20,7 +20,7 @@ class DLException : public std::runtime_error
     int line() const { return mLine; }
     const char *function() const { return mFunction; }
 
-  private:
+private:
     const char *mFile;
     int mLine;
     const char *mFunction;
@@ -29,7 +29,7 @@ class DLException : public std::runtime_error
 // 警告级别异常（非致命）
 class DLWarningException : public DLException
 {
-  public:
+public:
     DLWarningException(const std::string &message, const char *file, int line, const char *function)
         : DLException(message, file, line, function)
     {}
@@ -38,7 +38,7 @@ class DLWarningException : public DLException
 // 错误级别异常（致命）
 class DLErrorException : public DLException
 {
-  public:
+public:
     DLErrorException(const std::string &message, const char *file, int line, const char *function)
         : DLException(message, file, line, function)
     {}
@@ -47,7 +47,7 @@ class DLErrorException : public DLException
 // 严重错误异常（系统级）
 class DLCriticalException : public DLException
 {
-  public:
+public:
     DLCriticalException(const std::string &message, const char *file, int line, const char *function)
         : DLException(message, file, line, function)
     {}

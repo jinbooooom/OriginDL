@@ -2,6 +2,8 @@
 .cache/*
 .vscode/*
 .clangd
+.specstory/*
+.cursor/*
 data/*
 **/exec
 **/.vs/*
@@ -10,7 +12,6 @@ data/*
 **/*.o
 **/*.out
 *.h.gch
-.specstory/**
 compile_commands.json
 dllog/*
 

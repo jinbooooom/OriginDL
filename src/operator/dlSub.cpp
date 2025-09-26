@@ -5,14 +5,16 @@ namespace dl
 
 std::vector<Tensor> Sub::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 2) {
+    if (xs.size() != 2)
+    {
         throw std::runtime_error("Sub requires exactly 2 inputs");
     }
-    
-    shape0_ = xs[0].data().dims();
-    shape1_ = xs[1].data().dims();
-    // 直接使用 ArrayFire 运算符，避免触发全局 operator-
-    auto y = Tensor(xs[0].data() - xs[1].data());
+
+    shape0_ = xs[0].shape();
+    shape1_ = xs[1].shape();
+    // 使用抽象层进行减法运算
+    auto result = xs[0].mat() - xs[1].mat();
+    auto y      = Tensor(std::move(result));
     std::vector<Tensor> outputs;
     outputs.push_back(y);
     return outputs;
@@ -20,24 +22,29 @@ std::vector<Tensor> Sub::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Sub::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1) {
+    if (gys.size() != 1)
+    {
         throw std::runtime_error("Sub backward requires exactly 1 gradient");
     }
 
     auto gx0 = gys[0];
     // 直接使用 ArrayFire 运算符，避免触发全局 operator-
-    auto gx1 = Tensor(-gys[0].data());
-    
-    if (shape0_ != shape1_) {
+    auto gx1_result = -gys[0].mat();
+    auto gx1        = Tensor(std::move(gx1_result));
+
+    if (shape0_ != shape1_)
+    {
         // 实现 sum_to 功能：将梯度广播回原始形状
-        if (gx0.data().dims() != shape0_) {
+        if (gx0.shape() != shape0_)
+        {
             gx0 = sum_to(gx0, shape0_);
         }
-        if (gx1.data().dims() != shape1_) {
+        if (gx1.shape() != shape1_)
+        {
             gx1 = sum_to(gx1, shape1_);
         }
     }
-    
+
     std::vector<Tensor> gxs;
     gxs.push_back(gx0);
     gxs.push_back(gx1);
@@ -62,15 +69,15 @@ Tensor operator-(const Tensor &lhs, const Tensor &rhs)
 
 Tensor operator-(const Tensor &lhs, data_t rhs)
 {
-    auto dims = lhs.data().dims();
-    auto x = Tensor(af::constant(rhs, dims));
+    auto dims = lhs.shape();
+    auto x    = Tensor::constant(rhs, dims);
     return sub(lhs, x);
 }
 
 Tensor operator-(data_t lhs, const Tensor &rhs)
 {
-    auto dims = rhs.data().dims();
-    auto x = Tensor(af::constant(lhs, dims));
+    auto dims = rhs.shape();
+    auto x    = Tensor::constant(lhs, dims);
     return sub(x, rhs);
 }
 

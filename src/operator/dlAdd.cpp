@@ -6,14 +6,18 @@ namespace dl
 
 std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 2) {
+    if (xs.size() != 2)
+    {
         throw std::runtime_error("Add requires exactly 2 inputs");
     }
-    
-    shape0_ = xs[0].data().dims();
-    shape1_ = xs[1].data().dims();
-    // 直接使用 ArrayFire 运算符，避免触发全局 operator+
-    auto y = Tensor(xs[0].data() + xs[1].data());
+
+    shape0_ = xs[0].shape();
+    shape1_ = xs[1].shape();
+
+    // 使用抽象层进行加法运算
+    auto result = xs[0].mat() + xs[1].mat();
+    auto y      = Tensor(std::move(result));
+
     std::vector<Tensor> outputs;
     outputs.push_back(y);
     return outputs;
@@ -31,10 +35,12 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
     if (shape0_ != shape1_)
     {
         // 实现 sum_to 功能：将梯度广播回原始形状
-        if (gx0.data().dims() != shape0_) {
+        if (gx0.shape() != shape0_)
+        {
             gx0 = sum_to(gx0, shape0_);
         }
-        if (gx1.data().dims() != shape1_) {
+        if (gx1.shape() != shape1_)
+        {
             gx1 = sum_to(gx1, shape1_);
         }
     }
@@ -61,15 +67,15 @@ Tensor operator+(const Tensor &lhs, const Tensor &rhs)
 
 Tensor operator+(const Tensor &lhs, data_t rhs)
 {
-    auto dims = lhs.data().dims();
-    auto x = Tensor(af::constant(rhs, dims));
+    auto shape = lhs.shape();
+    auto x     = Tensor::constant(rhs, shape);
     return add(lhs, x);
 }
 
 Tensor operator+(data_t lhs, const Tensor &rhs)
 {
-    auto dims = rhs.data().dims();
-    auto x = Tensor(af::constant(lhs, dims));
+    auto shape = rhs.shape();
+    auto x     = Tensor::constant(lhs, shape);
     return add(x, rhs);
 }
 

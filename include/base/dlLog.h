@@ -19,7 +19,7 @@
 class DLLog final
 {
 
-  protected:
+protected:
     DLLog()
     {
         static auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -39,7 +39,7 @@ class DLLog final
     DLLog &operator=(const DLLog &) = delete;
     virtual ~DLLog(){};
 
-  public:
+public:
     static DLLog *GetInstance()
     {
         static DLLog instance;
