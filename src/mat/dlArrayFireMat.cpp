@@ -274,6 +274,7 @@ af::dim4 ArrayFireMat::convert_shape_to_af_dim4(const Shape &shape)
     else
     {
         // 对于超过4维的情况，填充到4维
+        logw("shape is too large, fill to 4 dims");
         af::dim4 result(1, 1, 1, 1);
         for (size_t i = 0; i < std::min(dims.size(), size_t(4)); ++i)
         {
@@ -295,5 +296,6 @@ Shape ArrayFireMat::convert_af_dim4_to_shape(const af::dim4 &dims)
     }
     return Shape(shape_dims);
 }
+
 
 }  // namespace dl

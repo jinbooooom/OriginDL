@@ -19,9 +19,9 @@ int main()
 
     data_t val0     = 2;
     data_t val1     = 4;
-    af::dim4 dim    = {2, 2};
-    auto x0         = Tensor::constant(val0, Shape{static_cast<size_t>(dim[0]), static_cast<size_t>(dim[1])});
-    auto x1         = Tensor::constant(val1, Shape{static_cast<size_t>(dim[0]), static_cast<size_t>(dim[1])});
+    Shape shape       = {2, 2};
+    auto x0         = Tensor(val0, shape);
+    auto x1         = Tensor(val1, shape);
     auto y          = -x0;
     auto clear_grad = [&]() {
         y.clear_grad();

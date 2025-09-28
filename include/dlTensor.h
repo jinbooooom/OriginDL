@@ -55,6 +55,29 @@ public:
     static Tensor zeros(const Shape &shape);
     static Tensor ones(const Shape &shape);
     static Tensor randn(const Shape &shape);
+    
+    // /**
+    //  * @brief 生成均匀分布的随机张量
+    //  * @param shape 张量形状
+    //  * @return 值在[0,1)范围内的随机张量
+    //  * @details 使用均匀分布生成随机数，适用于测试数据生成
+    //  */
+    // static Tensor randu(const Shape &shape);
+    
+    // /**
+    //  * @brief 生成序列张量
+    //  * @param shape 张量形状
+    //  * @return 从0开始的连续整数序列张量
+    //  * @details 生成形如[0,1,2,3,...]的序列，按列优先顺序填充
+    //  * @example
+    //  * Tensor t = Tensor::iota(Shape{3, 4});
+    //  * 生成矩阵:
+    //  * 0.0000  3.0000  6.0000  9.0000
+    //  * 1.0000  4.0000  7.0000 10.0000  
+    //  * 2.0000  5.0000  8.0000 11.0000
+    //  */
+    // static Tensor iota(const Shape &shape);
+    
     static Tensor constant(data_t value, const Shape &shape);
     static Tensor from_data(const std::vector<data_t> &data, const Shape &shape);
 
@@ -84,13 +107,6 @@ public:
     // 调试
     void print(const std::string &desc = "") const { impl_->print(desc); }
 
-    // 测试用公共访问器（仅限测试使用）
-    const Mat &data_for_test() const { return *impl_->data_; }
-    Mat &data_for_test() { return *impl_->data_; }
-    
-    // 测试用构造函数（仅限测试使用）
-    static Tensor from_mat_for_test(std::unique_ptr<Mat> mat) { return Tensor(std::move(mat)); }
-
     // 友元类声明
     friend class Operator;
     friend class TensorImpl;
@@ -101,17 +117,6 @@ private:
 
 
 };
-
-// 类型别名
-using TensorPtr = std::shared_ptr<Tensor>;
-
-// 获取 shared_ptr 版本（用于计算图管理）
-inline TensorPtr get_shared_ptr(const Tensor &tensor)
-{
-    // 创建一个新的 shared_ptr，但共享相同的 impl_
-    return std::make_shared<Tensor>(tensor);
-}
-using TensorList = std::vector<Tensor>;
 
 }  // namespace dl
 

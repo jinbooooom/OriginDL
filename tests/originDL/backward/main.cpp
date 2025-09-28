@@ -86,11 +86,11 @@ int main(int argc, char **argv)
     auto B = FunctionPtr(new Exp());
     auto C = FunctionPtr(new Square());
 
-    af::dim4 dim = {2, 2};
-    data_t val   = 0.5;
+    Shape shape = {2, 2};
+    double val   = 0.5;
 
     logi("Test: y = (exp(x^2))^2");
-    auto x = Tensor::constant(val, Shape{static_cast<size_t>(dim[0]), static_cast<size_t>(dim[1])});
+    auto x = Tensor::constant(val, shape);
     auto a = (*A)(x);
     auto b = (*B)(a);
     auto y = (*C)(b);
@@ -99,8 +99,8 @@ int main(int argc, char **argv)
     x.grad().print("gx: ");  // gx = 3.2974
 
     logi("Test Add: y = (x0^2) + (x1^2)");
-    auto x0 = Tensor::constant(2, Shape{static_cast<size_t>(dim[0]), static_cast<size_t>(dim[1])});
-    auto x1 = Tensor::constant(3, Shape{static_cast<size_t>(dim[0]), static_cast<size_t>(dim[1])});
+    auto x0 = Tensor::constant(2, shape);
+    auto x1 = Tensor::constant(3, shape);
     // y       = add({square(x0), square(x1)});
     // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
     // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
     logi("Test Complex computation graph: y = ((x^2)^2) + ((x^2)^2) = 2 * (x^4)");
     y.clear_grad();
-    x = Tensor::constant(2, Shape{static_cast<size_t>(dim[0]), static_cast<size_t>(dim[1])});
+    x = Tensor::constant(2, shape);
     // auto s = square(x);
     // y      = add({square(s), square(s)});
     y = ((x ^ 2) ^ 2) + ((x ^ 2) ^ 2);
@@ -132,8 +132,8 @@ int main(int argc, char **argv)
     // reshape
     logi("Test Reshape:");
     y.clear_grad();
-    af::array tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
-    auto x3_4           = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor3_4));
+    // auto x3_4 = Tensor::randn(Shape{3, 4});  // 3 行 4 列随机值
+    auto x3_4 = Tensor({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, Shape{3, 4});
     x3_4.print("before reshape, x: ");
     const Shape shape_3{4, 3};
     y = dl::reshape(x3_4, shape_3);
@@ -145,8 +145,7 @@ int main(int argc, char **argv)
     logi("Test Transpose:");
     y.clear_grad();
     x3_4.clear_grad();
-    tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
-    x3_4      = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor3_4));
+    x3_4 = Tensor::randn(Shape{3, 4});  // 3 行 4 列随机值
     x3_4.print("before reshape, x: ");
     y = dl::transpose(x3_4);
     y.backward();
@@ -156,8 +155,7 @@ int main(int argc, char **argv)
     // sum
     logi("Test Sum:");
     y.clear_grad();
-    af::array tensor2_4 = af::iota(af::dim4(2, 4));
-    auto x2_4           = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor2_4));
+    auto x2_4 = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{2, 4});
     x2_4.print("before sum, x: ");
     y = dl::sum(x2_4);
     y.backward();
@@ -177,8 +175,7 @@ int main(int argc, char **argv)
     // broadcastTo
     logi("Test BroadcastTo:");
     y.clear_grad();
-    af::array tensor1_4 = af::iota(af::dim4(1, 4));
-    auto x1_4           = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor1_4));
+    auto x1_4 = Tensor({0, 1, 2, 3}, Shape{1, 4});
     x1_4.clear_grad();
     x1_4.print("before broadcastTo, x: ");
     y = dl::broadcast_to(x1_4, Shape{2, 4});
@@ -189,10 +186,8 @@ int main(int argc, char **argv)
     // matMul
     logi("Test matMul:");
     {
-        af::array tensor_x = af::iota(af::dim4(2, 4));
-        auto x             = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor_x));
-        af::array tensor_w = af::iota(af::dim4(4, 2));
-        auto w             = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor_w));
+        auto x = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{2, 4});
+        auto w = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{4, 2});
         x.print("before matMul, X: ");
         w.print("before matMul, W: ");
         auto y = dl::mat_mul(x, w);
