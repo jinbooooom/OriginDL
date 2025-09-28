@@ -39,9 +39,11 @@ Tensor Tensor::ones(const Shape &shape)
     return Tensor(data, shape);
 }
 
+// TODO：Tensor 中直接调用 ArrayFireMat 的静态方法不是一个好的设计。
+// 可以改成先创建 impl，通过 impl 的方法去创建 Mat，然后用 impl 创建 Tensor
 Tensor Tensor::randn(const Shape &shape)
 {
-    af::array rand_array = af::randu(ArrayFireMat::convert_shape_to_af_dim4(shape), af::dtype::f64);
+    af::array rand_array = af::randn(ArrayFireMat::convert_shape_to_af_dim4(shape));
     return Tensor(std::make_unique<Mat_t>(std::move(rand_array)));
 }
 
