@@ -40,9 +40,27 @@ add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
 # 禁止一些警告
 # add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-reorder -Wno-format) 
 
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/libs/)
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
 link_directories(${PROJECT_SOURCE_DIR}/3rd/lib)
 link_directories(${ARRAYFIRE_PATH}/lib64)
+
+# 编译GoogleTest库，供所有单元测试使用
+message(STATUS "Building GoogleTest libraries")
+add_subdirectory(${PROJECT_SOURCE_DIR}/3rd/googletest ${PROJECT_BINARY_DIR}/googletest_build)
+
+# 设置GoogleTest相关变量，供子项目使用
+# 直接使用GoogleTest编译后的库文件路径
+set(GTEST_LIBRARIES 
+    ${PROJECT_BINARY_DIR}/lib/libgtest.a
+    ${PROJECT_BINARY_DIR}/lib/libgtest_main.a
+    pthread
+)
+set(GTEST_INCLUDE_DIRS 
+    ${PROJECT_SOURCE_DIR}/3rd/googletest/googletest/include
+    ${PROJECT_SOURCE_DIR}/3rd/googletest/googlemock/include
+)
+
+message(STATUS "GoogleTest libraries will be built and available for all tests")
 
 # 创建spdlog静态库dllog
 file(
