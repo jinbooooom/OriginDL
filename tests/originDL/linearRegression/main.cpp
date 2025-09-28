@@ -100,7 +100,7 @@ Tensor MSE(const Tensor &x0, const Tensor &x1)
     auto diff       = x0 - x1;
     auto sum_result = dl::sum(dl::pow(diff, 2));
     // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-    auto elements = Tensor::constant(diff.data_for_test().elements(), sum_result.shape());
+    auto elements = Tensor::constant(diff.elements(), sum_result.shape());
     auto result   = sum_result / elements;
     return result;
 }
@@ -112,22 +112,15 @@ int main(int argc, char **argv)
     af::setSeed(0);
 
     // 生成随机数据
-    int input_size   = 100;
-    af::array x_data = af::randu(input_size, 1);
-    // af::print("xData", x_data);
+    size_t input_size = 100;
+    auto x = Tensor::randn(Shape{input_size, 1});
     // 设置一个噪声，使真实值在预测结果附近
-    af::array noise = af::randu(input_size, 1) * 0.1;
-    // af::print("noise", noise);
+    auto noise = Tensor::randn(Shape{input_size, 1}) * 0.1;
 #if USE_BIAS
-    af::array y_data = 2.0 * x_data + 5.0 + noise;
+    auto y = x * 2.0 + 5.0 + noise;
 #else
-    af::array y_data = 2.0 * x_data + noise;
+    auto y = x * 2.0 + noise;
 #endif
-    // af::print("yData", y_data);
-
-    // 转换为变量
-    auto x = Tensor::from_mat_for_test(std::make_unique<Mat_t>(x_data));
-    auto y = Tensor::from_mat_for_test(std::make_unique<Mat_t>(y_data));
 
     // 初始化权重和偏置
     auto w = Tensor::constant(0, Shape{1, 1});
@@ -142,6 +135,12 @@ int main(int argc, char **argv)
     // 训练
     for (int i = 0; i < iters; i++)
     {
+        // 清零梯度
+        w.clear_grad();
+#if USE_BIAS
+        b.clear_grad();
+#endif
+
 #if USE_BIAS
         auto y_pred = Predict(x, w, b);
         auto loss   = MSE(y, y_pred);
@@ -150,29 +149,20 @@ int main(int argc, char **argv)
         auto loss   = MSE(y, y_pred);
 #endif
 
-        w.clear_grad();
-#if USE_BIAS
-        b.clear_grad();
-#endif
-
         // 反向传播
         loss.backward();
 
         // 更新参数 - 使用算子而不是直接修改data()
-        auto w_update = w - lr * w.grad();
-        auto w_new    = Tensor::from_mat_for_test(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(w_update.data_for_test().clone().release())));  // 创建新的Tensor，不破坏计算图
-        w             = w_new;
+        w = w - lr * w.grad();
 #if USE_BIAS
-        auto b_update = b - lr * b.grad();
-        auto b_new    = Tensor::from_mat_for_test(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(b_update.data_for_test().clone().release())));  // 创建新的Tensor，不破坏计算图
-        b             = b_new;
+        b = b - lr * b.grad();
 #endif
 
         // 打印结果
-        float loss_val = static_cast<Mat_t &>(loss.data_for_test()).scalar<float>();
-        float w_val    = static_cast<Mat_t &>(w.data_for_test()).scalar<float>();
+        float loss_val = loss.to_vector()[0];
+        float w_val    = w.to_vector()[0];
 #if USE_BIAS
-        float b_val = static_cast<Mat_t &>(b.data_for_test()).scalar<float>();
+        float b_val = b.to_vector()[0];
 #endif
 
 #if USE_BIAS
