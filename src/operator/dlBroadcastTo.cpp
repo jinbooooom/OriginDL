@@ -11,8 +11,8 @@ std::vector<Tensor> BroadcastTo::forward(const std::vector<Tensor> &xs)
         throw std::runtime_error("BroadcastTo requires exactly 1 input");
     }
     this->x_shape_ = xs[0].shape();
-    auto result    = xs[0].data().broadcast_to(this->shape_);
-    auto y         = Tensor(std::move(result));
+    auto result    = mat(xs[0]).broadcast_to(this->shape_);
+    auto y         = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -25,8 +25,8 @@ std::vector<Tensor> BroadcastTo::backward(const std::vector<Tensor> &gys)
     {
         throw std::runtime_error("BroadcastTo backward requires exactly 1 gradient");
     }
-    auto result = gys[0].data().sum_to(this->x_shape_);
-    auto gx     = Tensor(std::move(result));
+    auto result = mat(gys[0]).sum_to(this->x_shape_);
+    auto gx     = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(gx);

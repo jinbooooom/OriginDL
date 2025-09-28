@@ -34,8 +34,6 @@ public:
     // 移动构造函数 - 转移所有权
     Tensor(Tensor &&other) noexcept : impl_(std::move(other.impl_)) {}
 
-    // 从Mat创建Tensor的构造函数 - 仅限友元类使用
-    Tensor(std::unique_ptr<Mat> mat) : impl_(std::make_shared<TensorImpl>(std::move(mat))) {}
 
     // 赋值运算符
     Tensor &operator=(const Tensor &other)
@@ -71,14 +69,6 @@ public:
     // 梯度访问
     Tensor grad() const;
 
-    // 兼容性访问器（仅限友元类使用）
-    const Mat &data() const { return *impl_->data_; }
-    Mat &data() { return *impl_->data_; }
-
-    // 获取Mat引用（仅限友元类使用）
-    const Mat &mat() const { return *impl_->data_; }
-    Mat &mat() { return *impl_->data_; }
-
     // 方法委托
     void set_creator(const FunctionPtr &func) { impl_->set_creator(func); }
     void backward() { impl_->backward(); }
@@ -94,12 +84,22 @@ public:
     // 调试
     void print(const std::string &desc = "") const { impl_->print(desc); }
 
+    // 测试用公共访问器（仅限测试使用）
+    const Mat &data_for_test() const { return *impl_->data_; }
+    Mat &data_for_test() { return *impl_->data_; }
+    
+    // 测试用构造函数（仅限测试使用）
+    static Tensor from_mat_for_test(std::unique_ptr<Mat> mat) { return Tensor(std::move(mat)); }
+
     // 友元类声明
     friend class Operator;
     friend class TensorImpl;
 
-    // 内部访问器（仅限友元类使用）
-    TensorImplPtr impl() const { return impl_; }
+private:
+    // 从Mat创建Tensor的构造函数 - 仅限友元类使用
+    Tensor(std::unique_ptr<Mat> mat) : impl_(std::make_shared<TensorImpl>(std::move(mat))) {}
+
+
 };
 
 // 类型别名

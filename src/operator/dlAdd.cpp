@@ -15,8 +15,8 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
     shape1_ = xs[1].shape();
 
     // 使用抽象层进行加法运算
-    auto result = xs[0].mat() + xs[1].mat();
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]) + mat(xs[1]);
+    auto y      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);

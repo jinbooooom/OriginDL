@@ -99,22 +99,22 @@ void TensorImpl::backward()
             auto gx = gxs[i];
 
             // 梯度累积逻辑：如果梯度为空，直接赋值；否则累加
-            if (!x.impl()->grad_)
+            if (!x.impl_->grad_)
             {
                 // 梯度为空，直接赋值
-                x.impl()->grad_ = std::unique_ptr<Mat_t>(static_cast<Mat_t *>(gx.mat().clone().release()));
+                x.impl_->grad_ = gx.impl_->data_->clone();
             }
             else
             {
                 // 梯度不为空，累加
-                auto current_grad = x.impl()->grad_->clone();
-                auto new_grad     = *current_grad + gx.mat();
-                x.impl()->grad_   = std::unique_ptr<Mat_t>(static_cast<Mat_t *>(new_grad.release()));
+                auto current_grad = x.impl_->grad_->clone();
+                auto new_grad     = *current_grad + *gx.impl_->data_;
+                x.impl_->grad_   = std::move(new_grad);
             }
 
-            if (x.impl()->creator_)
+            if (x.impl_->creator_)
             {
-                add_func(x.impl()->creator_);
+                add_func(x.impl_->creator_);
             }
         }
     }

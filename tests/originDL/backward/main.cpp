@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     logi("Test Reshape:");
     y.clear_grad();
     af::array tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
-    auto x3_4           = Tensor(std::make_unique<Mat_t>(tensor3_4));
+    auto x3_4           = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor3_4));
     x3_4.print("before reshape, x: ");
     const Shape shape_3{4, 3};
     y = dl::reshape(x3_4, shape_3);
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
     y.clear_grad();
     x3_4.clear_grad();
     tensor3_4 = af::randu(3, 4);  // 3 行 4 列随机值
-    x3_4      = Tensor(std::make_unique<Mat_t>(tensor3_4));
+    x3_4      = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor3_4));
     x3_4.print("before reshape, x: ");
     y = dl::transpose(x3_4);
     y.backward();
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
     logi("Test Sum:");
     y.clear_grad();
     af::array tensor2_4 = af::iota(af::dim4(2, 4));
-    auto x2_4           = Tensor(std::make_unique<Mat_t>(tensor2_4));
+    auto x2_4           = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor2_4));
     x2_4.print("before sum, x: ");
     y = dl::sum(x2_4);
     y.backward();
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
     logi("Test BroadcastTo:");
     y.clear_grad();
     af::array tensor1_4 = af::iota(af::dim4(1, 4));
-    auto x1_4           = Tensor(std::make_unique<Mat_t>(tensor1_4));
+    auto x1_4           = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor1_4));
     x1_4.clear_grad();
     x1_4.print("before broadcastTo, x: ");
     y = dl::broadcast_to(x1_4, Shape{2, 4});
@@ -190,9 +190,9 @@ int main(int argc, char **argv)
     logi("Test matMul:");
     {
         af::array tensor_x = af::iota(af::dim4(2, 4));
-        auto x             = Tensor(std::make_unique<Mat_t>(tensor_x));
+        auto x             = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor_x));
         af::array tensor_w = af::iota(af::dim4(4, 2));
-        auto w             = Tensor(std::make_unique<Mat_t>(tensor_w));
+        auto w             = Tensor::from_mat_for_test(std::make_unique<Mat_t>(tensor_w));
         x.print("before matMul, X: ");
         w.print("before matMul, W: ");
         auto y = dl::mat_mul(x, w);

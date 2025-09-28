@@ -8,9 +8,9 @@ void Operator::setup_computation_graph(const std::vector<Tensor> &inputs, const 
     int max_gen = 0;
     for (const auto &input : inputs)
     {
-        if (input.impl()->generation_ > max_gen)
+        if (input.impl_->generation_ > max_gen)
         {
-            max_gen = input.impl()->generation_;
+            max_gen = input.impl_->generation_;
         }
     }
     this->generation_ = max_gen;

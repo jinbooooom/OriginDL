@@ -11,8 +11,8 @@ std::vector<Tensor> Sum::forward(const std::vector<Tensor> &xs)
         throw std::runtime_error("Sum requires exactly 1 input");
     }
     // 使用抽象层进行求和运算
-    auto result = xs[0].mat().sum(this->axis_);
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]).sum(this->axis_);
+    auto y      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -25,13 +25,13 @@ std::vector<Tensor> Sum::backward(const std::vector<Tensor> &gys)
     {
         throw std::runtime_error("Sum backward requires exactly 1 gradient");
     }
-    auto gy = &gys[0].mat();
-    auto x  = &this->inputs_[0].mat();
+    auto gy = &mat(gys[0]);
+    auto x  = &mat(this->inputs_[0]);
 
     // 使用抽象层进行梯度计算
     auto x_shape   = x->shape();
     auto gx_result = gy->broadcast_to(x_shape);
-    auto gx        = Tensor(std::move(gx_result));
+    auto gx        = convert_mat_to_tensor(std::move(gx_result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(gx);

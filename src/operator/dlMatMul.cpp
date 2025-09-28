@@ -11,8 +11,8 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
     }
 
     // 使用抽象层进行矩阵乘法运算
-    auto result = xs[0].mat().matmul(xs[1].mat());
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]).matmul(mat(xs[1]));
+    auto y      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -26,9 +26,9 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
         throw std::runtime_error("MatMul backward requires exactly 1 gradient");
     }
 
-    auto x  = &this->inputs_[0].mat();
-    auto w  = &this->inputs_[1].mat();
-    auto gy = &gys[0].mat();
+    auto x  = &mat(this->inputs_[0]);
+    auto w  = &mat(this->inputs_[1]);
+    auto gy = &mat(gys[0]);
 
     // 使用抽象层进行梯度计算
     auto w_T = w->transpose();
@@ -37,8 +37,8 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
     auto gx_result = gy->matmul(*w_T);
     auto gw_result = x_T->matmul(*gy);
 
-    auto gx = Tensor(std::move(gx_result));
-    auto gw = Tensor(std::move(gw_result));
+    auto gx = convert_mat_to_tensor(std::move(gx_result));
+    auto gw = convert_mat_to_tensor(std::move(gw_result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(gx);

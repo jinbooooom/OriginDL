@@ -11,8 +11,8 @@ std::vector<Tensor> Exp::forward(const std::vector<Tensor> &xs)
     }
 
     // 使用抽象层进行指数运算
-    auto result = xs[0].mat().exp();
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]).exp();
+    auto y      = convert_mat_to_tensor(std::move(result));
     std::vector<Tensor> outputs;
     outputs.push_back(y);
     return outputs;
@@ -26,11 +26,11 @@ std::vector<Tensor> Exp::backward(const std::vector<Tensor> &gys)
     }
 
     // 使用抽象层进行梯度计算
-    auto x         = &this->inputs_[0].mat();
-    auto gy        = &gys[0].mat();
+    auto x         = &mat(this->inputs_[0]);
+    auto gy        = &mat(gys[0]);
     auto exp_x     = x->exp();
     auto gx_result = *exp_x * *gy;
-    auto gx        = Tensor(std::move(gx_result));
+    auto gx        = convert_mat_to_tensor(std::move(gx_result));
     std::vector<Tensor> outputs;
     outputs.push_back(gx);
     return outputs;
