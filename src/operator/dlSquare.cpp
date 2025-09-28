@@ -10,8 +10,8 @@ std::vector<Tensor> Square::forward(const std::vector<Tensor> &xs)
         throw std::runtime_error("Square requires exactly 1 input");
     }
     // 使用抽象层进行平方运算
-    auto result = xs[0].mat() * xs[0].mat();
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]) * mat(xs[0]);
+    auto y      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -24,13 +24,13 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
     {
         throw std::runtime_error("Square backward requires exactly 1 gradient");
     }
-    auto x  = &this->inputs_[0].mat();
-    auto gy = &gys[0].mat();
+    auto x  = &mat(this->inputs_[0]);
+    auto gy = &mat(gys[0]);
 
     // 使用抽象层进行梯度计算
     auto temp_mult = *x * *gy;
     auto gx_result = *temp_mult * 2.0;
-    auto gx        = Tensor(std::move(gx_result));
+    auto gx        = convert_mat_to_tensor(std::move(gx_result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(gx);

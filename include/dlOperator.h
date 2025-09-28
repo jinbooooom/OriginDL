@@ -51,6 +51,14 @@ public:
 
     int generation_;  // 对于复杂的计算图，用来区分哪个先计算
 
+protected:
+    // 获取Mat引用（仅限Operator子类使用）
+    const Mat &mat(const Tensor &tensor) const { return *tensor.impl_->data_; }
+    Mat &mat(Tensor &tensor) { return *tensor.impl_->data_; }
+
+    // 从Mat创建Tensor（仅限Operator子类使用）
+    Tensor convert_mat_to_tensor(std::unique_ptr<Mat> mat) { return Tensor(std::move(mat)); }
+
 private:
     void setup_computation_graph(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs);
 };

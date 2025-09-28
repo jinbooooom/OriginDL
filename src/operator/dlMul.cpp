@@ -14,8 +14,8 @@ std::vector<Tensor> Mul::forward(const std::vector<Tensor> &xs)
     shape1_ = xs[1].shape();
 
     // 使用抽象层进行乘法运算
-    auto result = xs[0].mat() * xs[1].mat();
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]) * mat(xs[1]);
+    auto y      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -29,16 +29,16 @@ std::vector<Tensor> Mul::backward(const std::vector<Tensor> &gys)
         throw std::runtime_error("Mul backward requires exactly 1 gradient");
     }
 
-    auto x0 = &this->inputs_[0].mat();
-    auto x1 = &this->inputs_[1].mat();
-    auto gy = &gys[0].mat();
+    auto x0 = &mat(this->inputs_[0]);
+    auto x1 = &mat(this->inputs_[1]);
+    auto gy = &mat(gys[0]);
 
     // 使用抽象层进行梯度计算
     auto gx0_result = *gy * *x1;
     auto gx1_result = *gy * *x0;
 
-    auto gx0 = Tensor(std::move(gx0_result));
-    auto gx1 = Tensor(std::move(gx1_result));
+    auto gx0 = convert_mat_to_tensor(std::move(gx0_result));
+    auto gx1 = convert_mat_to_tensor(std::move(gx1_result));
 
     if (shape0_ != shape1_)
     {

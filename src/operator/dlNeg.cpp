@@ -6,8 +6,8 @@ namespace dl
 std::vector<Tensor> Neg::forward(const std::vector<Tensor> &xs)
 {
     // 使用抽象层进行负号运算
-    auto result = -xs[0].mat();
-    auto y      = Tensor(std::move(result));
+    auto result = -mat(xs[0]);
+    auto y      = convert_mat_to_tensor(std::move(result));
     std::vector<Tensor> outputs;
     outputs.push_back(y);
     return outputs;
@@ -21,8 +21,8 @@ std::vector<Tensor> Neg::backward(const std::vector<Tensor> &gys)
     }
 
     // 使用抽象层进行梯度计算
-    auto result = -gys[0].mat();
-    auto gx     = Tensor(std::move(result));
+    auto result = -mat(gys[0]);
+    auto gx     = convert_mat_to_tensor(std::move(result));
     std::vector<Tensor> gxs;
     gxs.push_back(gx);
 

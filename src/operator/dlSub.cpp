@@ -13,8 +13,8 @@ std::vector<Tensor> Sub::forward(const std::vector<Tensor> &xs)
     shape0_ = xs[0].shape();
     shape1_ = xs[1].shape();
     // 使用抽象层进行减法运算
-    auto result = xs[0].mat() - xs[1].mat();
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]) - mat(xs[1]);
+    auto y      = convert_mat_to_tensor(std::move(result));
     std::vector<Tensor> outputs;
     outputs.push_back(y);
     return outputs;
@@ -29,8 +29,8 @@ std::vector<Tensor> Sub::backward(const std::vector<Tensor> &gys)
 
     auto gx0 = gys[0];
     // 直接使用 ArrayFire 运算符，避免触发全局 operator-
-    auto gx1_result = -gys[0].mat();
-    auto gx1        = Tensor(std::move(gx1_result));
+    auto gx1_result = -mat(gys[0]);
+    auto gx1        = convert_mat_to_tensor(std::move(gx1_result));
 
     if (shape0_ != shape1_)
     {

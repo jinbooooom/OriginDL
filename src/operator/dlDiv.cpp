@@ -14,8 +14,8 @@ std::vector<Tensor> Div::forward(const std::vector<Tensor> &xs)
     shape0_ = xs[0].shape();
     shape1_ = xs[1].shape();
     // 使用抽象层进行除法运算
-    auto result = xs[0].mat() / xs[1].mat();
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]) / mat(xs[1]);
+    auto y      = convert_mat_to_tensor(std::move(result));
     std::vector<Tensor> outputs;
     outputs.push_back(y);
     return outputs;
@@ -32,20 +32,20 @@ std::vector<Tensor> Div::backward(const std::vector<Tensor> &gys)
     // 对于 y = x0 / x1：
     // ∂y/∂x0 = 1/x1
     // ∂y/∂x1 = -x0/x1²
-    auto x0 = &this->inputs_[0].mat();
-    auto x1 = &this->inputs_[1].mat();
-    auto gy = &gys[0].mat();
+    auto x0 = &mat(this->inputs_[0]);
+    auto x1 = &mat(this->inputs_[1]);
+    auto gy = &mat(gys[0]);
 
     // ∂y/∂x0 = gy * (1/x1) = gy / x1
     auto gx0_result = *gy / *x1;
-    auto gx0        = Tensor(std::move(gx0_result));
+    auto gx0        = convert_mat_to_tensor(std::move(gx0_result));
 
     // ∂y/∂x1 = gy * (-x0/x1²) = -gy * x0 / x1²
     auto x1_squared = *x1 * *x1;
     auto temp_mult  = *gy * *x0;
     auto temp_div   = *temp_mult / *x1_squared;
     auto gx1_result = -*temp_div;
-    auto gx1        = Tensor(std::move(gx1_result));
+    auto gx1        = convert_mat_to_tensor(std::move(gx1_result));
 
     if (shape0_ != shape1_)
     {

@@ -23,8 +23,8 @@ std::vector<Tensor> Reshape::backward(const std::vector<Tensor> &gys)
         throw std::runtime_error("Reshape backward requires exactly 1 gradient");
     }
     auto x_shape = this->inputs_[0].shape();
-    auto result  = gys[0].data().reshape(x_shape);
-    auto gx      = Tensor(std::move(result));
+    auto result  = mat(gys[0]).reshape(x_shape);
+    auto gx      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(gx);

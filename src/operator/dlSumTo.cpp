@@ -10,8 +10,8 @@ std::vector<Tensor> SumTo::forward(const std::vector<Tensor> &xs)
     {
         throw std::runtime_error("SumTo requires exactly 1 input");
     }
-    auto result = xs[0].data().sum_to(this->shape_);
-    auto y      = Tensor(std::move(result));
+    auto result = mat(xs[0]).sum_to(this->shape_);
+    auto y      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -25,8 +25,8 @@ std::vector<Tensor> SumTo::backward(const std::vector<Tensor> &gys)
         throw std::runtime_error("SumTo backward requires exactly 1 gradient");
     }
     auto x_shape = this->inputs_[0].shape();
-    auto result  = gys[0].data().broadcast_to(x_shape);
-    auto gx      = Tensor(std::move(result));
+    auto result  = mat(gys[0]).broadcast_to(x_shape);
+    auto gx      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(gx);
