@@ -144,6 +144,23 @@ public:
     bool operator!=(const Shape &other) const { return dims_ != other.dims_; }
 
     /**
+     * @brief 转换为字符串
+     * @return 形状的字符串表示
+     */
+    std::string to_string() const
+    {
+        std::string result = "[";
+        for (size_t i = 0; i < dims_.size(); ++i)
+        {
+            if (i > 0)
+                result += ", ";
+            result += std::to_string(dims_[i]);
+        }
+        result += "]";
+        return result;
+    }
+
+    /**
      * @brief 输出操作符
      * @param os 输出流
      * @param shape Shape对象

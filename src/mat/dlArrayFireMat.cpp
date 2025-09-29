@@ -8,12 +8,33 @@ namespace dl
 
 ArrayFireMat::ArrayFireMat(const std::vector<data_t> &data, const Shape &shape)
 {
+    // 验证数据是否为空
+    if (data.empty()) {
+        throw std::invalid_argument("ArrayFireMat: Tensor data cannot be empty. Data vector is empty.");
+    }
+    
+    // 验证形状是否有效（不能有0维度）
+    for (size_t i = 0; i < shape.size(); ++i) {
+        if (shape[i] == 0) {
+            throw std::invalid_argument("ArrayFireMat: Tensor shape cannot have zero dimensions. Dimension " + 
+                                      std::to_string(i) + " is zero in shape " + shape.to_string());
+        }
+    }
+    
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     data_         = af::array(dims, data.data());
 }
 
 ArrayFireMat::ArrayFireMat(data_t value, const Shape &shape)
 {
+    // 验证形状是否有效（不能有0维度）
+    for (size_t i = 0; i < shape.size(); ++i) {
+        if (shape[i] == 0) {
+            throw std::invalid_argument("ArrayFireMat: Tensor shape cannot have zero dimensions. Dimension " + 
+                                      std::to_string(i) + " is zero in shape " + shape.to_string());
+        }
+    }
+    
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     data_         = af::constant(value, dims);
 }
