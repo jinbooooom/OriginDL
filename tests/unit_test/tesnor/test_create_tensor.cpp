@@ -16,7 +16,7 @@ protected:
     }
     
     // 辅助函数：比较两个浮点数是否相等（考虑浮点精度）
-    bool isClose(double a, double b, double tolerance = 1e-6) {
+    bool isEqual(double a, double b, double tolerance = 1e-6) {
         return std::abs(a - b) < tolerance;
     }
     
@@ -34,7 +34,7 @@ protected:
         }
         
         for (size_t i = 0; i < data_a.size(); ++i) {
-            if (!isClose(data_a[i], data_b[i], tolerance)) {
+            if (!isEqual(data_a[i], data_b[i], tolerance)) {
                 return false;
             }
         }
