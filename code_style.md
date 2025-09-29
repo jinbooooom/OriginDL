@@ -17,8 +17,6 @@ python3 format.py
 
 通常应尽量让文件名更加明确. `http_server_logs.h` 就比 `logs.h` 要好. 定义类时文件名一般成对出现, 如 `foo_bar.h` 和 `foo_bar.cpp`, 对应于类 `FooBar`。
 
-对于本仓库，习惯上让类 `Tensor` 对应的头文件名是 `dlTensor.h`，实现文件对应的文件名是 `dlTensor.cpp`。
-
 ### 重复include保护
 
 使用 #define 宏进行 .h 重复include保护，不使用 \#pragma once。
@@ -30,6 +28,10 @@ python3 format.py
 ```
 
 ### 命名规则
+
+#### 命名空间
+
+本仓库命名空间为 dl，**不允许**在本仓库中使用 `using namespace dl;`使用 Tensor 或者静态方法时一定要带上命名空间。
 
 #### 类型命名
 
