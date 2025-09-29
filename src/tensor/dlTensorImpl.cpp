@@ -10,13 +10,32 @@
 namespace dl
 {
 
+// 从数据创建TensorImpl的构造函数实现
+TensorImpl::TensorImpl(const std::vector<data_t> &data, const Shape &shape)
+    : data_(std::make_unique<Mat_t>(data, shape)), grad_(nullptr), creator_(nullptr), generation_(0)
+{
+}
+
+TensorImpl::TensorImpl(data_t scalar, const Shape &shape)
+    : data_(std::make_unique<Mat_t>(scalar, shape)), grad_(nullptr), creator_(nullptr), generation_(0)
+{
+}
+
+// 静态工厂方法实现
+TensorImpl TensorImpl::randn(const Shape &shape)
+{
+    // 通过后端Mat接口创建随机数矩阵
+    auto mat = Mat_t::randn(shape);
+    return TensorImpl(std::move(mat));
+}
+
 // 赋值运算符实现
 TensorImpl &TensorImpl::operator=(const TensorImpl &other)
 {
     if (this != &other)
     {
-        data_    = other.data_ ? std::unique_ptr<Mat_t>(static_cast<Mat_t *>(other.data_->clone().release())) : nullptr;
-        grad_    = other.grad_ ? std::unique_ptr<Mat_t>(static_cast<Mat_t *>(other.grad_->clone().release())) : nullptr;
+        data_    = other.data_ ? other.data_->clone() : nullptr;
+        grad_    = other.grad_ ? other.grad_->clone() : nullptr;
         creator_ = other.creator_;
         generation_ = other.generation_;
     }
@@ -129,50 +148,80 @@ void TensorImpl::clear_grad()
 TensorImpl TensorImpl::reshape(const Shape &shape) const
 {
     auto new_mat = data_->reshape(shape);
-    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(new_mat.release())));
+    return TensorImpl(std::move(new_mat));
 }
 
 TensorImpl TensorImpl::transpose() const
 {
     auto new_mat = data_->transpose();
-    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(new_mat.release())));
+    return TensorImpl(std::move(new_mat));
 }
 
 // 运算符重载实现
 TensorImpl TensorImpl::operator+(const TensorImpl &other) const
 {
     auto result = *data_ + *other.data_;
-    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
+    return TensorImpl(std::move(result));
 }
 
 TensorImpl TensorImpl::operator+(data_t scalar) const
 {
     auto result = *data_ + scalar;
-    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
+    return TensorImpl(std::move(result));
 }
 
 TensorImpl TensorImpl::operator-(const TensorImpl &other) const
 {
     auto result = *data_ - *other.data_;
-    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
+    return TensorImpl(std::move(result));
 }
 
 TensorImpl TensorImpl::operator*(const TensorImpl &other) const
 {
     auto result = *data_ * *other.data_;
-    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
+    return TensorImpl(std::move(result));
 }
 
 TensorImpl TensorImpl::operator/(const TensorImpl &other) const
 {
     auto result = *data_ / *other.data_;
-    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
+    return TensorImpl(std::move(result));
 }
 
 TensorImpl TensorImpl::operator-() const
 {
     auto result = -*data_;
-    return TensorImpl(std::unique_ptr<Mat_t>(static_cast<Mat_t *>(result.release())));
+    return TensorImpl(std::move(result));
+}
+
+// 访问器方法实现
+Shape TensorImpl::shape() const
+{
+    return data_->shape();
+}
+
+size_t TensorImpl::ndim() const
+{
+    return data_->shape().size();
+}
+
+size_t TensorImpl::elements() const
+{
+    return data_->elements();
+}
+
+data_t TensorImpl::item() const
+{
+    if (elements() != 1)
+    {
+        throw std::runtime_error("item() can only be called on scalar tensors");
+    }
+    return data_->to_vector()[0];
+}
+
+std::vector<data_t> TensorImpl::to_vector() const
+{
+    return data_->to_vector();
 }
 
 // 调试方法实现
