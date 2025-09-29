@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include "dlShape.h"
+#include "../base/dlTypes.h"
 
 namespace dl
 {
@@ -11,8 +12,7 @@ namespace dl
 // 前向声明
 class Shape;
 
-// 数据类型定义
-using data_t = double;
+
 
 /**
  * @brief 矩阵计算抽象接口
@@ -82,14 +82,14 @@ public:
      * @param scalar 标量值
      * @return 加法结果
      */
-    virtual std::unique_ptr<Mat> add_scalar(double scalar) const = 0;
+    virtual std::unique_ptr<Mat> add_scalar(data_t scalar) const = 0;
 
     /**
      * @brief 标量乘法
      * @param scalar 标量值
      * @return 乘法结果
      */
-    virtual std::unique_ptr<Mat> mul_scalar(double scalar) const = 0;
+    virtual std::unique_ptr<Mat> mul_scalar(data_t scalar) const = 0;
 
     /**
      * @brief 标量加法运算符
@@ -175,7 +175,7 @@ public:
      * @brief 转换为向量
      * @return 矩阵数据的向量表示
      */
-    virtual std::vector<double> to_vector() const = 0;
+    virtual std::vector<data_t> to_vector() const = 0;
 
     // 数学函数
     /**
@@ -219,31 +219,31 @@ public:
      * @param exponent 指数
      * @return 幂运算结果
      */
-    virtual std::unique_ptr<Mat> pow(double exponent) const = 0;
+    virtual std::unique_ptr<Mat> pow(data_t exponent) const = 0;
 
     /**
      * @brief 求和
      * @return 所有元素的和
      */
-    virtual double sum() const = 0;
+    virtual data_t sum() const = 0;
 
     /**
      * @brief 求最大值
      * @return 最大值
      */
-    virtual double max() const = 0;
+    virtual data_t max() const = 0;
 
     /**
      * @brief 求最小值
      * @return 最小值
      */
-    virtual double min() const = 0;
+    virtual data_t min() const = 0;
 
     /**
      * @brief 求均值
      * @return 均值
      */
-    virtual double mean() const = 0;
+    virtual data_t mean() const = 0;
 };
 
 }  // namespace dl
