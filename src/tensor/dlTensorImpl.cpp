@@ -13,13 +13,11 @@ namespace dl
 // 从数据创建TensorImpl的构造函数实现
 TensorImpl::TensorImpl(const std::vector<data_t> &data, const Shape &shape)
     : data_(std::make_unique<Mat_t>(data, shape)), grad_(nullptr), creator_(nullptr), generation_(0)
-{
-}
+{}
 
 TensorImpl::TensorImpl(data_t scalar, const Shape &shape)
     : data_(std::make_unique<Mat_t>(scalar, shape)), grad_(nullptr), creator_(nullptr), generation_(0)
-{
-}
+{}
 
 // 静态工厂方法实现
 TensorImpl TensorImpl::randn(const Shape &shape)
@@ -34,9 +32,9 @@ TensorImpl &TensorImpl::operator=(const TensorImpl &other)
 {
     if (this != &other)
     {
-        data_    = other.data_ ? other.data_->clone() : nullptr;
-        grad_    = other.grad_ ? other.grad_->clone() : nullptr;
-        creator_ = other.creator_;
+        data_       = other.data_ ? other.data_->clone() : nullptr;
+        grad_       = other.grad_ ? other.grad_->clone() : nullptr;
+        creator_    = other.creator_;
         generation_ = other.generation_;
     }
     return *this;
@@ -128,7 +126,7 @@ void TensorImpl::backward()
                 // 梯度不为空，累加
                 auto current_grad = x.impl_->grad_->clone();
                 auto new_grad     = *current_grad + *gx.impl_->data_;
-                x.impl_->grad_   = std::move(new_grad);
+                x.impl_->grad_    = std::move(new_grad);
             }
 
             if (x.impl_->creator_)

@@ -3,16 +3,14 @@
 
 #include <memory>
 #include <vector>
-#include "dlShape.h"
 #include "../base/dlTypes.h"
+#include "dlShape.h"
 
 namespace dl
 {
 
 // 前向声明
 class Shape;
-
-
 
 /**
  * @brief 矩阵计算抽象接口

@@ -19,7 +19,7 @@ int main()
 
     data_t val0     = 2;
     data_t val1     = 4;
-    Shape shape       = {2, 2};
+    Shape shape     = {2, 2};
     auto x0         = Tensor(val0, shape);
     auto x1         = Tensor(val1, shape);
     auto y          = -x0;
@@ -132,8 +132,8 @@ int main()
     x.grad().print("dx ");
 
     // 测试MatMul算子 - 使用简单的2x2矩阵
-    auto a = Tensor({1,2,3,4}, Shape{2, 2});
-    auto b = Tensor({5,6,7,8}, Shape{2, 2});
+    auto a = Tensor({1, 2, 3, 4}, Shape{2, 2});
+    auto b = Tensor({5, 6, 7, 8}, Shape{2, 2});
     logi("MatMul: y = mat_mul(a, b)");
     a.clear_grad();
     b.clear_grad();
