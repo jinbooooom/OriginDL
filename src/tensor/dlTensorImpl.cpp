@@ -13,11 +13,39 @@ namespace dl
 // 从数据创建TensorImpl的构造函数实现
 TensorImpl::TensorImpl(const std::vector<data_t> &data, const Shape &shape)
     : data_(std::make_unique<Mat_t>(data, shape)), grad_(nullptr), creator_(nullptr), generation_(0)
-{}
+{
+    // 验证数据是否为空
+    if (data.empty()) {
+        throw std::invalid_argument("Tensor data cannot be empty. Data vector is empty.");
+    }
+    
+    // 验证形状是否有效（不能有0维度）
+    for (size_t i = 0; i < shape.size(); ++i) {
+        if (shape[i] == 0) {
+            throw std::invalid_argument("Tensor shape cannot have zero dimensions. Dimension " + 
+                                      std::to_string(i) + " is zero in shape " + shape.to_string());
+        }
+    }
+    
+    // 验证数据大小与形状是否匹配
+    size_t expected_elements = shape.elements();
+    if (data.size() != expected_elements) {
+        throw std::invalid_argument("Data size (" + std::to_string(data.size()) + 
+                                  ") does not match shape elements (" + std::to_string(expected_elements) + ")");
+    }
+}
 
 TensorImpl::TensorImpl(data_t scalar, const Shape &shape)
     : data_(std::make_unique<Mat_t>(scalar, shape)), grad_(nullptr), creator_(nullptr), generation_(0)
-{}
+{
+    // 验证形状是否有效（不能有0维度）
+    for (size_t i = 0; i < shape.size(); ++i) {
+        if (shape[i] == 0) {
+            throw std::invalid_argument("Tensor shape cannot have zero dimensions. Dimension " + 
+                                      std::to_string(i) + " is zero in shape " + shape.to_string());
+        }
+    }
+}
 
 // 静态工厂方法实现
 TensorImpl TensorImpl::randn(const Shape &shape)
