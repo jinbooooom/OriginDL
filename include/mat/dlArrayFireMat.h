@@ -43,14 +43,14 @@ public:
      * @param data 数据向量
      * @param shape 矩阵形状
      */
-    ArrayFireMat(const std::vector<double> &data, const Shape &shape);
+    ArrayFireMat(const std::vector<data_t> &data, const Shape &shape);
 
     /**
      * @brief 从数据指针构造
      * @param data 数据指针
      * @param shape 矩阵形状
      */
-    ArrayFireMat(const double *data, const Shape &shape);
+    ArrayFireMat(const data_t *data, const Shape &shape);
 
     /**
      * @brief 从标量值构造常量矩阵
@@ -71,8 +71,8 @@ public:
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
-    std::unique_ptr<Mat> add_scalar(double scalar) const override;
-    std::unique_ptr<Mat> mul_scalar(double scalar) const override;
+    std::unique_ptr<Mat> add_scalar(data_t scalar) const override;
+    std::unique_ptr<Mat> mul_scalar(data_t scalar) const override;
     std::unique_ptr<Mat> operator+(data_t scalar) const override;
     std::unique_ptr<Mat> operator-(data_t scalar) const override;
     std::unique_ptr<Mat> operator*(data_t scalar) const override;
@@ -83,7 +83,7 @@ public:
     std::unique_ptr<Mat> sum(int axis = -1) const override;
     Shape shape() const override;
     size_t elements() const override;
-    std::vector<double> to_vector() const override;
+    std::vector<data_t> to_vector() const override;
 
     // 数学函数
     std::unique_ptr<Mat> exp() const override;
@@ -92,15 +92,15 @@ public:
     std::unique_ptr<Mat> cos() const override;
     std::unique_ptr<Mat> sqrt() const override;
     std::unique_ptr<Mat> square() const override;
-    std::unique_ptr<Mat> pow(double exponent) const override;
+    std::unique_ptr<Mat> pow(data_t exponent) const override;
 
     // 数据访问
     template <typename T>
     T scalar() const;
-    double sum() const override;
-    double max() const override;
-    double min() const override;
-    double mean() const override;
+    data_t sum() const override;
+    data_t max() const override;
+    data_t min() const override;
+    data_t mean() const override;
 
     // 调试方法
     void print(const std::string &desc = "") const override;
@@ -110,7 +110,7 @@ public:
      * @param arr ArrayFire数组
      * @return 数据向量
      */
-    static std::vector<double> array_to_vector(const af::array &arr);
+    static std::vector<data_t> array_to_vector(const af::array &arr);
 
     /**
      * @brief 静态辅助函数：将向量转换为ArrayFire数组
@@ -118,7 +118,7 @@ public:
      * @param shape 矩阵形状
      * @return ArrayFire数组
      */
-    static af::array vector_to_array(const std::vector<double> &data, const Shape &shape);
+    static af::array vector_to_array(const std::vector<data_t> &data, const Shape &shape);
 
     /**
      * @brief 静态辅助函数：将Shape转换为af::dim4

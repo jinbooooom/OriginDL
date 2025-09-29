@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 #endif
 
     // 设置学习率和迭代次数
-    double lr = 0.1;
+    data_t lr = 0.1;
     int iters = 200;
 
     // 训练

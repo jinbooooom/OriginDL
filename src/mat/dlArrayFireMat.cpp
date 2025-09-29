@@ -6,13 +6,13 @@
 namespace dl
 {
 
-ArrayFireMat::ArrayFireMat(const std::vector<double> &data, const Shape &shape)
+ArrayFireMat::ArrayFireMat(const std::vector<data_t> &data, const Shape &shape)
 {
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     data_         = af::array(dims, data.data());
 }
 
-ArrayFireMat::ArrayFireMat(const double *data, const Shape &shape)
+ArrayFireMat::ArrayFireMat(const data_t *data, const Shape &shape)
 {
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     data_         = af::array(dims, data);
@@ -70,12 +70,12 @@ std::unique_ptr<Mat> ArrayFireMat::operator/(const Mat &other) const
     return std::make_unique<ArrayFireMat>(data_ / other_af.data_);
 }
 
-std::unique_ptr<Mat> ArrayFireMat::add_scalar(double scalar) const
+std::unique_ptr<Mat> ArrayFireMat::add_scalar(data_t scalar) const
 {
     return std::make_unique<ArrayFireMat>(data_ + scalar);
 }
 
-std::unique_ptr<Mat> ArrayFireMat::mul_scalar(double scalar) const
+std::unique_ptr<Mat> ArrayFireMat::mul_scalar(data_t scalar) const
 {
     return std::make_unique<ArrayFireMat>(data_ * scalar);
 }
@@ -147,7 +147,7 @@ size_t ArrayFireMat::elements() const
     return data_.elements();
 }
 
-std::vector<double> ArrayFireMat::to_vector() const
+std::vector<data_t> ArrayFireMat::to_vector() const
 {
     return array_to_vector(data_);
 }
@@ -183,7 +183,7 @@ std::unique_ptr<Mat> ArrayFireMat::square() const
     return std::make_unique<ArrayFireMat>(data_ * data_);
 }
 
-std::unique_ptr<Mat> ArrayFireMat::pow(double exponent) const
+std::unique_ptr<Mat> ArrayFireMat::pow(data_t exponent) const
 {
     return std::make_unique<ArrayFireMat>(af::pow(data_, exponent));
 }
@@ -211,39 +211,38 @@ void ArrayFireMat::print(const std::string &desc) const
 }
 
 // 显式实例化
-template float ArrayFireMat::scalar<float>() const;
-template double ArrayFireMat::scalar<double>() const;
+template data_t ArrayFireMat::scalar<data_t>() const;
 template int ArrayFireMat::scalar<int>() const;
 
-double ArrayFireMat::sum() const
+data_t ArrayFireMat::sum() const
 {
-    return af::sum<double>(data_);
+    return af::sum<data_t>(data_);
 }
 
-double ArrayFireMat::max() const
+data_t ArrayFireMat::max() const
 {
-    return af::max<double>(data_);
+    return af::max<data_t>(data_);
 }
 
-double ArrayFireMat::min() const
+data_t ArrayFireMat::min() const
 {
-    return af::min<double>(data_);
+    return af::min<data_t>(data_);
 }
 
-double ArrayFireMat::mean() const
+data_t ArrayFireMat::mean() const
 {
-    return af::mean<double>(data_);
+    return af::mean<data_t>(data_);
 }
 
 // 静态辅助函数实现
-std::vector<double> ArrayFireMat::array_to_vector(const af::array &arr)
+std::vector<data_t> ArrayFireMat::array_to_vector(const af::array &arr)
 {
-    std::vector<double> result(arr.elements());
+    std::vector<data_t> result(arr.elements());
     arr.host(result.data());
     return result;
 }
 
-af::array ArrayFireMat::vector_to_array(const std::vector<double> &data, const Shape &shape)
+af::array ArrayFireMat::vector_to_array(const std::vector<data_t> &data, const Shape &shape)
 {
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     return af::array(dims, data.data());

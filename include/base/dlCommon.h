@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <arrayfire.h>
+#include "dlTypes.h"
 #include "../mat/dlArrayFireMat.h"
 #include "../mat/dlMat.h"
 #include "../mat/dlShape.h"
@@ -36,7 +37,6 @@ using Mat_t = CustomMat;  // 未来扩展
 using Mat_t = ArrayFireMat;  // 默认使用ArrayFire
 #endif
 
-using data_t  = double;
 using NdArray = af::array;
 using DLMat   = af::array;
 

@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     auto C = FunctionPtr(new Square());
 
     af::dim4 dim = {2, 2};
-    double val   = 0.5;
+    data_t val   = 0.5;
 
     logi("Test: y = (exp(x^2))^2");
     auto x = Tensor::constant(val, Shape{static_cast<size_t>(dim[0]), static_cast<size_t>(dim[1])});

@@ -17,7 +17,7 @@ int main()
     // auto B = std::make_shared<Exp>();
     // auto C = std::make_shared<Square>();
 
-    // double val = 0.5;
+    // data_t val = 0.5;
     // auto x     = std::make_shared<Variable>(af::constant(val, 1));
     // auto dy    = NumericalDiff(
     //     [](Variable x) -> Variable {
