@@ -80,7 +80,6 @@ public:
     // static Tensor iota(const Shape &shape);
 
     static Tensor constant(data_t value, const Shape &shape);
-    static Tensor from_data(const std::vector<data_t> &data, const Shape &shape);
 
     // 公共访问器
     Shape shape() const;
