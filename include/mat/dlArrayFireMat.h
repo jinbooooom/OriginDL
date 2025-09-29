@@ -45,7 +45,6 @@ public:
      */
     ArrayFireMat(const std::vector<data_t> &data, const Shape &shape);
 
-
     /**
      * @brief 从标量值构造常量矩阵
      * @param value 标量值
@@ -127,7 +126,7 @@ public:
      * @return Shape对象
      */
     static Shape convert_af_dim4_to_shape(const af::dim4 &dims);
-    
+
     /**
      * @brief 静态工厂方法：创建随机数矩阵
      * @param shape 矩阵形状

@@ -15,7 +15,7 @@ Tensor 架构层次：
 Tensor (用户接口)
     ↓ 只调用TensorImpl方法
 TensorImpl (核心实现)
-    ↓ 只调用Mat接口方法  
+    ↓ 只调用Mat接口方法
 Mat (抽象接口)
     ↓ 具体实现
 ArrayFireMat (具体后端)
@@ -45,7 +45,6 @@ public:
     // 移动构造函数 - 转移所有权
     Tensor(Tensor &&other) noexcept;
 
-
     // 赋值运算符
     Tensor &operator=(const Tensor &other);
     Tensor &operator=(Tensor &&other) noexcept;
@@ -57,7 +56,7 @@ public:
     static Tensor zeros(const Shape &shape);
     static Tensor ones(const Shape &shape);
     static Tensor randn(const Shape &shape);
-    
+
     // /**
     //  * @brief 生成均匀分布的随机张量
     //  * @param shape 张量形状
@@ -65,7 +64,7 @@ public:
     //  * @details 使用均匀分布生成随机数，适用于测试数据生成
     //  */
     // static Tensor randu(const Shape &shape);
-    
+
     // /**
     //  * @brief 生成序列张量
     //  * @param shape 张量形状
@@ -75,11 +74,11 @@ public:
     //  * Tensor t = Tensor::iota(Shape{3, 4});
     //  * 生成矩阵:
     //  * 0.0000  3.0000  6.0000  9.0000
-    //  * 1.0000  4.0000  7.0000 10.0000  
+    //  * 1.0000  4.0000  7.0000 10.0000
     //  * 2.0000  5.0000  8.0000 11.0000
     //  */
     // static Tensor iota(const Shape &shape);
-    
+
     static Tensor constant(data_t value, const Shape &shape);
     static Tensor from_data(const std::vector<data_t> &data, const Shape &shape);
 
@@ -116,8 +115,6 @@ public:
 private:
     // 从Mat创建Tensor的构造函数 - 仅限友元类使用
     Tensor(std::unique_ptr<Mat> mat);
-
-
 };
 
 }  // namespace dl

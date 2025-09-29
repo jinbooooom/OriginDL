@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     auto C = FunctionPtr(new Square());
 
     Shape shape = {2, 2};
-    double val   = 0.5;
+    double val  = 0.5;
 
     logi("Test: y = (exp(x^2))^2");
     auto x = Tensor::constant(val, shape);

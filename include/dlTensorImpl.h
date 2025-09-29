@@ -9,7 +9,7 @@ class Operator;
 namespace dl
 {
 /*
-为了使 Tensor 看起来像是值语义的指针，把Tensor中所有的数据下沉到 TensorImpl, 
+为了使 Tensor 看起来像是值语义的指针，把Tensor中所有的数据下沉到 TensorImpl,
 Tensor中只保留一个智能指针，方便值传递。
 
 TensorImpl 是 Tensor 的实现类，负责管理底层数据和操作。
@@ -28,11 +28,11 @@ public:
     // 构造函数
     TensorImpl(std::unique_ptr<Mat> data) : data_(std::move(data)), grad_(nullptr), creator_(nullptr), generation_(0) {}
     TensorImpl(const Mat &data) : data_(data.clone()), grad_(nullptr), creator_(nullptr), generation_(0) {}
-    
+
     // 从数据创建TensorImpl的构造函数
     TensorImpl(const std::vector<data_t> &data, const Shape &shape);
     TensorImpl(data_t scalar, const Shape &shape);
-    
+
     // 静态工厂方法
     static TensorImpl randn(const Shape &shape);
 

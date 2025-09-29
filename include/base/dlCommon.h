@@ -12,11 +12,11 @@
 #include <vector>
 
 #include <arrayfire.h>
-#include "dlTypes.h"
 #include "../mat/dlArrayFireMat.h"
 #include "../mat/dlMat.h"
 #include "../mat/dlShape.h"
 #include "dlLog.h"
+#include "dlTypes.h"
 
 namespace dl
 {

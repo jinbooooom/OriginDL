@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
     // 生成随机数据
     size_t input_size = 100;
-    auto x = Tensor::randn(Shape{input_size, 1});
+    auto x            = Tensor::randn(Shape{input_size, 1});
     // 设置一个噪声，使真实值在预测结果附近
     auto noise = Tensor::randn(Shape{input_size, 1}) * 0.1;
 #if USE_BIAS

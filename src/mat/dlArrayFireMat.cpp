@@ -1,7 +1,7 @@
 #include "../../include/mat/dlArrayFireMat.h"
-#include "../../include/base/dlUtils.h"
 #include <arrayfire.h>
 #include <stdexcept>
+#include "../../include/base/dlUtils.h"
 
 namespace dl
 {
@@ -11,7 +11,6 @@ ArrayFireMat::ArrayFireMat(const std::vector<data_t> &data, const Shape &shape)
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     data_         = af::array(dims, data.data());
 }
-
 
 ArrayFireMat::ArrayFireMat(data_t value, const Shape &shape)
 {
@@ -123,7 +122,7 @@ std::unique_ptr<Mat> ArrayFireMat::sum(int axis) const
         // 使用af::sum确保返回标量，性能最优
         // 先flatten再sum，确保返回标量
         auto flattened = af::flat(data_);
-        auto result = af::sum(flattened);
+        auto result    = af::sum(flattened);
         return std::make_unique<ArrayFireMat>(result);
     }
     else
@@ -295,10 +294,9 @@ Shape ArrayFireMat::convert_af_dim4_to_shape(const af::dim4 &dims)
 // 静态工厂方法实现
 std::unique_ptr<Mat> ArrayFireMat::randn(const Shape &shape)
 {
-    af::dim4 dims = convert_shape_to_af_dim4(shape);
+    af::dim4 dims      = convert_shape_to_af_dim4(shape);
     af::array rand_mat = af::randn(dims);
     return std::make_unique<ArrayFireMat>(std::move(rand_mat));
 }
-
 
 }  // namespace dl
