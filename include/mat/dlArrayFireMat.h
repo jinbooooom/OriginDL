@@ -45,12 +45,6 @@ public:
      */
     ArrayFireMat(const std::vector<data_t> &data, const Shape &shape);
 
-    /**
-     * @brief 从数据指针构造
-     * @param data 数据指针
-     * @param shape 矩阵形状
-     */
-    ArrayFireMat(const data_t *data, const Shape &shape);
 
     /**
      * @brief 从标量值构造常量矩阵
@@ -110,7 +104,7 @@ public:
      * @param arr ArrayFire数组
      * @return 数据向量
      */
-    static std::vector<data_t> array_to_vector(const af::array &arr);
+    static std::vector<data_t> mat_to_vector(const af::array &arr);
 
     /**
      * @brief 静态辅助函数：将向量转换为ArrayFire数组
@@ -118,7 +112,7 @@ public:
      * @param shape 矩阵形状
      * @return ArrayFire数组
      */
-    static af::array vector_to_array(const std::vector<data_t> &data, const Shape &shape);
+    static af::array vector_to_mat(const std::vector<data_t> &data, const Shape &shape);
 
     /**
      * @brief 静态辅助函数：将Shape转换为af::dim4
@@ -133,6 +127,13 @@ public:
      * @return Shape对象
      */
     static Shape convert_af_dim4_to_shape(const af::dim4 &dims);
+    
+    /**
+     * @brief 静态工厂方法：创建随机数矩阵
+     * @param shape 矩阵形状
+     * @return 随机数矩阵
+     */
+    static std::unique_ptr<Mat> randn(const Shape &shape);
 };
 
 }  // namespace dl

@@ -246,6 +246,22 @@ public:
     virtual data_t mean() const = 0;
 };
 
+/**
+ * @brief Mat工厂函数，用于创建Mat对象而不暴露具体后端类型
+ * @param data 数据向量
+ * @param shape 矩阵形状
+ * @return Mat对象的智能指针
+ */
+std::unique_ptr<Mat> create_mat(const std::vector<data_t> &data, const Shape &shape);
+
+/**
+ * @brief Mat工厂函数，用于创建标量矩阵
+ * @param value 标量值
+ * @param shape 矩阵形状
+ * @return Mat对象的智能指针
+ */
+std::unique_ptr<Mat> create_mat(data_t value, const Shape &shape);
+
 }  // namespace dl
 
 #endif  // __ORIGIN_DL_MAT_H__

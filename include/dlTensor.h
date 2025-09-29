@@ -10,6 +10,17 @@ namespace dl
 // 前向声明
 class Operator;
 
+/*
+Tensor 架构层次：
+Tensor (用户接口)
+    ↓ 只调用TensorImpl方法
+TensorImpl (核心实现)
+    ↓ 只调用Mat接口方法  
+Mat (抽象接口)
+    ↓ 具体实现
+ArrayFireMat (具体后端)
+*/
+
 /**
  * @brief 张量类，深度学习计算的核心数据结构
  * @details 使用抽象层设计，支持多种后端，完全隐藏底层实现
@@ -20,7 +31,7 @@ private:
     TensorImplPtr impl_;  // 唯一的成员：智能指针
 
     // 内部构造函数 - 仅限内部使用
-    Tensor(TensorImplPtr impl) : impl_(impl) {}
+    Tensor(TensorImplPtr impl);
 
 public:
     // 公共构造函数
@@ -29,24 +40,15 @@ public:
     Tensor(data_t scalar, const Shape &shape);
 
     // 拷贝构造函数 - 浅拷贝，共享实现
-    Tensor(const Tensor &other) : impl_(other.impl_) {}
+    Tensor(const Tensor &other);
 
     // 移动构造函数 - 转移所有权
-    Tensor(Tensor &&other) noexcept : impl_(std::move(other.impl_)) {}
+    Tensor(Tensor &&other) noexcept;
 
 
     // 赋值运算符
-    Tensor &operator=(const Tensor &other)
-    {
-        impl_ = other.impl_;
-        return *this;
-    }
-
-    Tensor &operator=(Tensor &&other) noexcept
-    {
-        impl_ = std::move(other.impl_);
-        return *this;
-    }
+    Tensor &operator=(const Tensor &other);
+    Tensor &operator=(Tensor &&other) noexcept;
 
     // 析构函数
     ~Tensor() = default;
@@ -93,9 +95,9 @@ public:
     Tensor grad() const;
 
     // 方法委托
-    void set_creator(const FunctionPtr &func) { impl_->set_creator(func); }
-    void backward() { impl_->backward(); }
-    void clear_grad() { impl_->clear_grad(); }
+    void set_creator(const FunctionPtr &func);
+    void backward();
+    void clear_grad();
 
     // 张量操作 - 返回新的 Tensor
     Tensor reshape(const Shape &shape) const;
@@ -105,7 +107,7 @@ public:
     std::vector<data_t> to_vector() const;
 
     // 调试
-    void print(const std::string &desc = "") const { impl_->print(desc); }
+    void print(const std::string &desc = "") const;
 
     // 友元类声明
     friend class Operator;
@@ -113,7 +115,7 @@ public:
 
 private:
     // 从Mat创建Tensor的构造函数 - 仅限友元类使用
-    Tensor(std::unique_ptr<Mat> mat) : impl_(std::make_shared<TensorImpl>(std::move(mat))) {}
+    Tensor(std::unique_ptr<Mat> mat);
 
 
 };

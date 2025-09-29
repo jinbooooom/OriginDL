@@ -12,11 +12,6 @@ ArrayFireMat::ArrayFireMat(const std::vector<data_t> &data, const Shape &shape)
     data_         = af::array(dims, data.data());
 }
 
-ArrayFireMat::ArrayFireMat(const data_t *data, const Shape &shape)
-{
-    af::dim4 dims = convert_shape_to_af_dim4(shape);
-    data_         = af::array(dims, data);
-}
 
 ArrayFireMat::ArrayFireMat(data_t value, const Shape &shape)
 {
@@ -149,7 +144,7 @@ size_t ArrayFireMat::elements() const
 
 std::vector<data_t> ArrayFireMat::to_vector() const
 {
-    return array_to_vector(data_);
+    return mat_to_vector(data_);
 }
 
 // 数学函数实现
@@ -235,14 +230,14 @@ data_t ArrayFireMat::mean() const
 }
 
 // 静态辅助函数实现
-std::vector<data_t> ArrayFireMat::array_to_vector(const af::array &arr)
+std::vector<data_t> ArrayFireMat::mat_to_vector(const af::array &arr)
 {
     std::vector<data_t> result(arr.elements());
     arr.host(result.data());
     return result;
 }
 
-af::array ArrayFireMat::vector_to_array(const std::vector<data_t> &data, const Shape &shape)
+af::array ArrayFireMat::vector_to_mat(const std::vector<data_t> &data, const Shape &shape)
 {
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     return af::array(dims, data.data());
@@ -295,6 +290,14 @@ Shape ArrayFireMat::convert_af_dim4_to_shape(const af::dim4 &dims)
         }
     }
     return Shape(shape_dims);
+}
+
+// 静态工厂方法实现
+std::unique_ptr<Mat> ArrayFireMat::randn(const Shape &shape)
+{
+    af::dim4 dims = convert_shape_to_af_dim4(shape);
+    af::array rand_mat = af::randn(dims);
+    return std::make_unique<ArrayFireMat>(std::move(rand_mat));
 }
 
 
