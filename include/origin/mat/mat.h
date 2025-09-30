@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <vector>
-#include "../base/types.h"
+#include "basic_types.h"
 #include "shape.h"
 
 namespace origin

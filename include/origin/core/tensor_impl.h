@@ -1,7 +1,7 @@
 #ifndef __ORIGIN_DL_TENSOR_IMPL_H__
 #define __ORIGIN_DL_TENSOR_IMPL_H__
 
-#include "base/common.h"
+#include "../mat/types.h"
 
 // 前向声明
 class Operator;

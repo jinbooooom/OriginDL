@@ -56,25 +56,25 @@ public:
 }  // namespace origin
 
 // 简化的异常抛出宏：先记录日志，再抛出异常
-#define DL_WARN_THROW(message)                                                   \
-    do                                                                           \
-    {                                                                            \
-        logw("{}", message);                                                     \
+#define DL_WARN_THROW(message)                                                       \
+    do                                                                               \
+    {                                                                                \
+        logw("{}", message);                                                         \
         throw origin::DLWarningException(message, __FILE__, __LINE__, __FUNCTION__); \
     } while (0)
 
-#define DL_ERROR_THROW(message)                                                \
-    do                                                                         \
-    {                                                                          \
-        loge("{}", message);                                                   \
+#define DL_ERROR_THROW(message)                                                    \
+    do                                                                             \
+    {                                                                              \
+        loge("{}", message);                                                       \
         throw origin::DLErrorException(message, __FILE__, __LINE__, __FUNCTION__); \
     } while (0)
 
-#define DL_CRITICAL_THROW(message)                                                \
-    do                                                                            \
-    {                                                                             \
-        logc("{}", __FUNCTION__, message);                                        \
+#define DL_CRITICAL_THROW(message)                                                    \
+    do                                                                                \
+    {                                                                                 \
+        logc("{}", __FUNCTION__, message);                                            \
         throw origin::DLCriticalException(message, __FILE__, __LINE__, __FUNCTION__); \
     } while (0)
 
-#endif // __ORIGIN_DL_EXCEPTION_H__
+#endif  // __ORIGIN_DL_EXCEPTION_H__

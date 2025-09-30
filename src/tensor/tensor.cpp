@@ -1,7 +1,7 @@
-#include "tensor.h"
+#include "origin/core/tensor.h"
 #include <stdexcept>
-#include "../include/mat/array_fire_mat.h"
-#include "base/exception.h"
+#include "origin/mat/array_fire_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {

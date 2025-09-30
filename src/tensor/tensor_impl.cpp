@@ -1,11 +1,11 @@
-#include "../include/tensor_impl.h"
+#include "origin/core/tensor_impl.h"
 #include <list>
 #include <set>
 #include <stdexcept>
-#include "../include/base/exception.h"
-#include "../include/operator.h"
-#include "../include/tensor.h"
-#include "../include/mat/array_fire_mat.h"
+#include "origin/core/operator.h"
+#include "origin/core/tensor.h"
+#include "origin/mat/array_fire_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {

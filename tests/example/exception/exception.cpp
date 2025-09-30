@@ -1,6 +1,6 @@
+#include "origin/utils/exception.h"
 #include <iostream>
 #include <stdexcept>
-#include "base/exception.h"
 #include "origin.h"
 
 using namespace origin;
