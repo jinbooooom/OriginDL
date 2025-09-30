@@ -9,18 +9,21 @@ namespace dl
 ArrayFireMat::ArrayFireMat(const std::vector<data_t> &data, const Shape &shape)
 {
     // 验证数据是否为空
-    if (data.empty()) {
+    if (data.empty())
+    {
         throw std::invalid_argument("ArrayFireMat: Tensor data cannot be empty. Data vector is empty.");
     }
-    
+
     // 验证形状是否有效（不能有0维度）
-    for (size_t i = 0; i < shape.size(); ++i) {
-        if (shape[i] == 0) {
-            throw std::invalid_argument("ArrayFireMat: Tensor shape cannot have zero dimensions. Dimension " + 
-                                      std::to_string(i) + " is zero in shape " + shape.to_string());
+    for (size_t i = 0; i < shape.size(); ++i)
+    {
+        if (shape[i] == 0)
+        {
+            throw std::invalid_argument("ArrayFireMat: Tensor shape cannot have zero dimensions. Dimension " +
+                                        std::to_string(i) + " is zero in shape " + shape.to_string());
         }
     }
-    
+
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     data_         = af::array(dims, data.data());
 }
@@ -28,13 +31,15 @@ ArrayFireMat::ArrayFireMat(const std::vector<data_t> &data, const Shape &shape)
 ArrayFireMat::ArrayFireMat(data_t value, const Shape &shape)
 {
     // 验证形状是否有效（不能有0维度）
-    for (size_t i = 0; i < shape.size(); ++i) {
-        if (shape[i] == 0) {
-            throw std::invalid_argument("ArrayFireMat: Tensor shape cannot have zero dimensions. Dimension " + 
-                                      std::to_string(i) + " is zero in shape " + shape.to_string());
+    for (size_t i = 0; i < shape.size(); ++i)
+    {
+        if (shape[i] == 0)
+        {
+            throw std::invalid_argument("ArrayFireMat: Tensor shape cannot have zero dimensions. Dimension " +
+                                        std::to_string(i) + " is zero in shape " + shape.to_string());
         }
     }
-    
+
     af::dim4 dims = convert_shape_to_af_dim4(shape);
     data_         = af::constant(value, dims);
 }
@@ -148,6 +153,14 @@ std::unique_ptr<Mat> ArrayFireMat::sum(int axis) const
     }
     else
     {
+        // ===== ArrayFire与PyTorch行为差异说明 =====
+        // ArrayFire使用列主序（column-major）内存布局，PyTorch使用行主序（row-major）
+        // 这会导致：
+        // 1. 维度压缩：PyTorch会自动压缩求和轴，ArrayFire不会
+        // 2. 数据排列：由于内存布局差异，求和结果的数据排列可能不同
+        // 3. 形状处理：ArrayFire保持4维结构，PyTorch会压缩到实际维度
+        // 注意：此实现可能不匹配PyTorch的预期行为
+        // ===========================================
         return std::make_unique<ArrayFireMat>(af::sum(data_, axis));
     }
 }
