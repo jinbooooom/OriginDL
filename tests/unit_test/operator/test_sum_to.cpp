@@ -223,7 +223,7 @@ TEST_F(SumToOperatorTest, BackwardToLargerShape)
 
     auto gx_data = x.grad().to_vector();
 
-    EXPECT_EQ(gx_data.size(), 1);
+    EXPECT_EQ(gx_data.size(), 1U);
     EXPECT_NEAR(gx_data[0], 3.0, kTolerance);  // 广播的梯度应该求和
 }
 

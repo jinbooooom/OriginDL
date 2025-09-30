@@ -189,7 +189,7 @@ TEST_F(NegOperatorTest, BackwardDifferentShapes)
 
     auto gx_data = x.grad().to_vector();
 
-    EXPECT_EQ(gx_data.size(), 4);
+    EXPECT_EQ(gx_data.size(), 4U);
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
