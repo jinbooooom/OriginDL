@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.12)
 project (common_tests)
 
 set(BIN_PREFIX 3rd)
+set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/3rd)
 
 # 在当前 CMakeLists.txt 文件中使用 file 命令查找所有子目录
 file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)

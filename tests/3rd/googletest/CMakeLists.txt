@@ -21,7 +21,12 @@ message(STATUS "GoogleTest include directories: ${GTEST_INCLUDE_DIRS}")
 
 # 创建测试可执行文件（Calculator类实现已直接包含在测试文件中）
 add_executable(3rd_googletest
-    googleTest.cpp
+    googletest.cpp
+)
+
+# 设置输出目录
+set_target_properties(3rd_googletest PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
 )
 
 # 确保依赖GoogleTest库的编译
@@ -41,14 +46,6 @@ target_include_directories(3rd_googletest PRIVATE
 
 # 启用测试
 enable_testing()
-
-# 添加测试
-add_test(NAME CalculatorTests COMMAND 3rd_googletest)
-
-# 设置测试属性
-set_tests_properties(CalculatorTests PROPERTIES
-    TIMEOUT 30
-)
 
 # 打印配置信息
 message(STATUS "GoogleTest Demo configuration completed")

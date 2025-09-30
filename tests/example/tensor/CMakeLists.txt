@@ -4,8 +4,6 @@ cmake_minimum_required (VERSION 3.12)
 get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 project(${BIN_PREFIX}_${PROJECT_NAME})
 
-add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
-
 include_directories(${ORIGINDL_ROOT_DIR}/include)
 # 使用主CMakeLists.txt中定义的ARRAYFIRE_PATH变量
 include_directories(${ARRAYFIRE_PATH}/include)
@@ -13,5 +11,10 @@ include_directories(${ARRAYFIRE_PATH}/include)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/ SRC)
 
 add_executable(${PROJECT_NAME} ${SRC}) 
-add_dependencies(${PROJECT_NAME} ${MY_LIB_NAME} dllog)
-target_link_libraries(${PROJECT_NAME} PRIVATE dllog ${MY_LIB_NAME} -laf)
+add_dependencies(${PROJECT_NAME} ${MY_LIB_NAME})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${MY_LIB_NAME} -laf)
+
+# 设置输出目录
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
+)
