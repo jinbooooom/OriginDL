@@ -1,9 +1,9 @@
 #include <arrayfire.h>
 #include <getopt.h>
 #include <iostream>
-#include "originDL.h"
+#include "origin.h"
 
-using namespace dl;
+using namespace origin;
 
 void Usage()
 {
@@ -83,13 +83,13 @@ int SetBackend(int argc, char **argv)
 #if USE_BIAS
 Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
 {
-    auto y = dl::mat_mul(x, w) + b;
+    auto y = origin::mat_mul(x, w) + b;
     return y;
 }
 #else
 Tensor Predict(const Tensor &x, const Tensor &w)
 {
-    auto y = dl::mat_mul(x, w);
+    auto y = origin::mat_mul(x, w);
     return y;
 }
 #endif
@@ -98,7 +98,7 @@ Tensor Predict(const Tensor &x, const Tensor &w)
 Tensor MSE(const Tensor &x0, const Tensor &x1)
 {
     auto diff       = x0 - x1;
-    auto sum_result = dl::sum(dl::pow(diff, 2));
+    auto sum_result = origin::sum(origin::pow(diff, 2));
     // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
     auto elements = Tensor::constant(diff.elements(), sum_result.shape());
     auto result   = sum_result / elements;

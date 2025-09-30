@@ -1,9 +1,7 @@
 #include <arrayfire.h>
 #include <getopt.h>
 #include <iostream>
-#include "originDL.h"
-
-using namespace dl;
+#include "origin.h"
 
 void Usage()
 {
@@ -82,15 +80,15 @@ int main(int argc, char **argv)
 {
     SetBackend(argc, argv);
 
-    auto A = FunctionPtr(new Square());
-    auto B = FunctionPtr(new Exp());
-    auto C = FunctionPtr(new Square());
+    auto A = origin::FunctionPtr(new origin::Square());
+    auto B = origin::FunctionPtr(new origin::Exp());
+    auto C = origin::FunctionPtr(new origin::Square());
 
-    Shape shape = {2, 2};
-    double val  = 0.5;
+    origin::Shape shape = {2, 2};
+    double val          = 0.5;
 
-    logi("Test: y = (exp(x^2))^2");
-    auto x = Tensor::constant(val, shape);
+    logi("Test: y = (origin::exp(x^2))^2");
+    auto x = origin::Tensor::constant(val, shape);
     auto a = (*A)(x);
     auto b = (*B)(a);
     auto y = (*C)(b);
@@ -99,9 +97,9 @@ int main(int argc, char **argv)
     x.grad().print("gx: ");  // gx = 3.2974
 
     logi("Test Add: y = (x0^2) + (x1^2)");
-    auto x0 = Tensor::constant(2, shape);
-    auto x1 = Tensor::constant(3, shape);
-    // y       = add({square(x0), square(x1)});
+    auto x0 = origin::Tensor::constant(2, shape);
+    auto x1 = origin::Tensor::constant(3, shape);
+    // y       = origin::add({origin::square(x0), origin::square(x1)});
     // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
     // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
     y = ((x0) ^ 2) + ((x1) ^ 2);
@@ -121,9 +119,9 @@ int main(int argc, char **argv)
 
     logi("Test Complex computation graph: y = ((x^2)^2) + ((x^2)^2) = 2 * (x^4)");
     y.clear_grad();
-    x = Tensor::constant(2, shape);
-    // auto s = square(x);
-    // y      = add({square(s), square(s)});
+    x = origin::Tensor::constant(2, shape);
+    // auto s = origin::square(x);
+    // y      = origin::add({origin::square(s), origin::square(s)});
     y = ((x ^ 2) ^ 2) + ((x ^ 2) ^ 2);
     y.print("y: ");  // 32
     y.backward();
@@ -132,11 +130,11 @@ int main(int argc, char **argv)
     // reshape
     logi("Test Reshape:");
     y.clear_grad();
-    // auto x3_4 = Tensor::randn(Shape{3, 4});  // 3 行 4 列随机值
-    auto x3_4 = Tensor({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, Shape{3, 4});
+    // auto x3_4 = origin::Tensor::randn(origin::Shape{3, 4});  // 3 行 4 列随机值
+    auto x3_4 = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, origin::Shape{3, 4});
     x3_4.print("before reshape, x: ");
-    const Shape shape_3{4, 3};
-    y = dl::reshape(x3_4, shape_3);
+    const origin::Shape shape_3{4, 3};
+    y = origin::reshape(x3_4, shape_3);
     y.backward();
     y.print("after reshape, y: ");
     x3_4.grad().print("gx: ");
@@ -145,9 +143,9 @@ int main(int argc, char **argv)
     logi("Test Transpose:");
     y.clear_grad();
     x3_4.clear_grad();
-    x3_4 = Tensor::randn(Shape{3, 4});  // 3 行 4 列随机值
+    x3_4 = origin::Tensor::randn(origin::Shape{3, 4});  // 3 行 4 列随机值
     x3_4.print("before reshape, x: ");
-    y = dl::transpose(x3_4);
+    y = origin::transpose(x3_4);
     y.backward();
     y.print("after transpose, y: ");
     x3_4.grad().print("gx: ");
@@ -155,9 +153,9 @@ int main(int argc, char **argv)
     // sum
     logi("Test Sum:");
     y.clear_grad();
-    auto x2_4 = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{2, 4});
+    auto x2_4 = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{2, 4});
     x2_4.print("before sum, x: ");
-    y = dl::sum(x2_4);
+    y = origin::sum(x2_4);
     y.backward();
     y.print("after sum, y: ");
     x2_4.grad().print("gx: ");
@@ -167,7 +165,7 @@ int main(int argc, char **argv)
     y.clear_grad();
     x2_4.clear_grad();
     x2_4.print("before sumTo, x: ");
-    y = dl::sum_to(x2_4, Shape{1, 4});
+    y = origin::sum_to(x2_4, origin::Shape{1, 4});
     y.backward();
     y.print("after sumTo, y: ");
     x2_4.grad().print("gx: ");
@@ -175,10 +173,10 @@ int main(int argc, char **argv)
     // broadcastTo
     logi("Test BroadcastTo:");
     y.clear_grad();
-    auto x1_4 = Tensor({0, 1, 2, 3}, Shape{1, 4});
+    auto x1_4 = origin::Tensor({0, 1, 2, 3}, origin::Shape{1, 4});
     x1_4.clear_grad();
     x1_4.print("before broadcastTo, x: ");
-    y = dl::broadcast_to(x1_4, Shape{2, 4});
+    y = origin::broadcast_to(x1_4, origin::Shape{2, 4});
     y.backward();
     y.print("after broadcastTo, y: ");
     x1_4.grad().print("gx: ");
@@ -186,11 +184,11 @@ int main(int argc, char **argv)
     // matMul
     logi("Test matMul:");
     {
-        auto x = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{2, 4});
-        auto w = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{4, 2});
+        auto x = origin::Tensor(std::vector<origin::data_t>{0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{2, 4});
+        auto w = origin::Tensor(std::vector<origin::data_t>{0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{4, 2});
         x.print("before matMul, X: ");
         w.print("before matMul, W: ");
-        auto y = dl::mat_mul(x, w);
+        auto y = origin::mat_mul(x, w);
         y.backward();
         y.print("after matMul, y: ");
         x.grad().print("gx: ");

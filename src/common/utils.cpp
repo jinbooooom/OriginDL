@@ -1,6 +1,6 @@
-#include "base/dlUtils.h"
+#include "base/utils.h"
 
-namespace dl
+namespace origin
 {
 namespace utils
 {
@@ -125,4 +125,4 @@ af::array SumTo(const af::array &src, const af::dim4 &targetShape)
 }
 
 }  // namespace utils
-}  // namespace dl
+}  // namespace origin

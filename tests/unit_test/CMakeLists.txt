@@ -25,7 +25,7 @@ include_directories(${GTEST_INCLUDE_DIRS})
 set(UNIT_TEST_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/unit_test)
 
 # 添加Tensor基础测试
-add_executable(test_tensor_create tesnor/test_create_tensor.cpp)
+add_executable(test_tensor_create tensor/test_create_tensor.cpp)
 add_dependencies(test_tensor_create gtest gtest_main origindl)
 target_link_libraries(test_tensor_create 
     ${GTEST_LIBRARIES}

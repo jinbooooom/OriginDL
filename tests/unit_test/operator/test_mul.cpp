@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "dlOperator.h"
-#include "dlTensor.h"
+#include "operator.h"
+#include "tensor.h"
 
-using namespace dl;
+using namespace origin;
 
 class MulOperatorTest : public ::testing::Test
 {

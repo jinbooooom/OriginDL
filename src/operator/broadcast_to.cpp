@@ -1,0 +1,44 @@
+#include "base/utils.h"
+#include "operator.h"
+
+namespace origin
+{
+
+std::vector<Tensor> BroadcastTo::forward(const std::vector<Tensor> &xs)
+{
+    if (xs.size() != 1)
+    {
+        throw std::runtime_error("BroadcastTo requires exactly 1 input");
+    }
+    this->x_shape_ = xs[0].shape();
+    auto result    = mat(xs[0]).broadcast_to(this->shape_);
+    auto y         = convert_mat_to_tensor(std::move(result));
+
+    std::vector<Tensor> outputs;
+    outputs.push_back(y);
+    return outputs;
+}
+
+std::vector<Tensor> BroadcastTo::backward(const std::vector<Tensor> &gys)
+{
+    if (gys.size() != 1)
+    {
+        throw std::runtime_error("BroadcastTo backward requires exactly 1 gradient");
+    }
+    auto result = mat(gys[0]).sum_to(this->x_shape_);
+    auto gx     = convert_mat_to_tensor(std::move(result));
+
+    std::vector<Tensor> outputs;
+    outputs.push_back(gx);
+    return outputs;
+}
+
+Tensor broadcast_to(const Tensor &x, const Shape &shape)
+{
+    auto op                    = std::make_shared<BroadcastTo>(shape);
+    std::vector<Tensor> inputs = {x};
+    std::vector<Tensor> result = (*op)(inputs);
+    return result[0];
+}
+
+}  // namespace origin
