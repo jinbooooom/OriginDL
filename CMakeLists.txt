@@ -10,7 +10,8 @@ file(
     GLOB MY_LIB_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operator/*.cpp 
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/common/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/backend_mat_utils.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/tensor/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp 
 )

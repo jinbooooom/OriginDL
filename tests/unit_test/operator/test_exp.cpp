@@ -2,8 +2,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "operator.h"
-#include "tensor.h"
+#include "origin.h"
 
 using namespace origin;
 

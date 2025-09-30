@@ -1,7 +1,7 @@
 #ifndef __ORIGIN_DL_TENSOR_H__
 #define __ORIGIN_DL_TENSOR_H__
 
-#include "base/common.h"
+#include "../mat/types.h"
 #include "tensor_impl.h"
 
 namespace origin

@@ -2,8 +2,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include "operator.h"
-#include "tensor.h"
+#include "origin.h"
 
 using namespace origin;
 

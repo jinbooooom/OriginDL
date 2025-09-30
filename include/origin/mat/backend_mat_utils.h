@@ -1,7 +1,7 @@
-#ifndef __ORIGIN_DL_UTILS_H__
-#define __ORIGIN_DL_UTILS_H__
+#ifndef __ORIGIN_DL_BACKEND_MAT_UTILS_H__
+#define __ORIGIN_DL_BACKEND_MAT_UTILS_H__
 
-#include "common.h"
+#include "types.h"
 
 namespace origin
 {

@@ -1,7 +1,8 @@
-#include "../../include/mat/array_fire_mat.h"
+#include "origin/mat/array_fire_mat.h"
 #include <arrayfire.h>
 #include <stdexcept>
-#include "../../include/base/utils.h"
+#include "origin/mat/backend_mat_utils.h"
+#include "origin/utils/log.h"
 
 namespace origin
 {

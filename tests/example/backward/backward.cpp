@@ -2,6 +2,7 @@
 #include <getopt.h>
 #include <iostream>
 #include "origin.h"
+#include "origin/utils/log.h"
 
 void Usage()
 {
