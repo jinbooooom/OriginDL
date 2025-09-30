@@ -205,8 +205,8 @@ TEST_F(MulOperatorTest, BackwardDifferentShapes)
     auto gx0_data = x0.grad().to_vector();
     auto gx1_data = x1.grad().to_vector();
 
-    EXPECT_EQ(gx0_data.size(), 2);
-    EXPECT_EQ(gx1_data.size(), 1);
+    EXPECT_EQ(gx0_data.size(), 2U);
+    EXPECT_EQ(gx1_data.size(), 1U);
 
     for (size_t i = 0; i < gx0_data.size(); ++i)
     {

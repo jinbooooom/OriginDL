@@ -218,8 +218,8 @@ TEST_F(MatMulOperatorTest, BackwardDifferentSizes)
     auto gx_data = x.grad().to_vector();
     auto gw_data = w.grad().to_vector();
 
-    EXPECT_EQ(gx_data.size(), 6);
-    EXPECT_EQ(gw_data.size(), 6);
+    EXPECT_EQ(gx_data.size(), 6U);
+    EXPECT_EQ(gw_data.size(), 6U);
 
     // 验证梯度不为零
     for (size_t i = 0; i < gx_data.size(); ++i)
