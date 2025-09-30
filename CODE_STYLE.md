@@ -15,7 +15,10 @@ python3 format.py
 
 ### 文件命名
 
+文件名与文件夹名全小写，多个单词用下划线分开。
 通常应尽量让文件名更加明确. `http_server_logs.h` 就比 `logs.h` 要好. 定义类时文件名一般成对出现, 如 `foo_bar.h` 和 `foo_bar.cpp`, 对应于类 `FooBar`。
+
+
 
 ### 重复include保护
 
@@ -31,7 +34,7 @@ python3 format.py
 
 #### 命名空间
 
-本仓库命名空间为 dl，**不允许**在本仓库中使用 `using namespace dl;`使用 Tensor 或者静态方法时一定要带上命名空间。
+本仓库命名空间为 origin。include/ 与 src/ 目录下的文件必须要被包括在 origin 命名空间中。
 
 #### 类型命名
 

@@ -1,6 +1,6 @@
-#include "originDL.h"
+#include "origin.h"
 
-using namespace dl;
+using namespace origin;
 
 int main()
 {

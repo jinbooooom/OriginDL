@@ -2,10 +2,10 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "dlOperator.h"
-#include "dlTensor.h"
+#include "operator.h"
+#include "tensor.h"
 
-using namespace dl;
+using namespace origin;
 
 class SumOperatorTest : public ::testing::Test
 {
@@ -289,9 +289,9 @@ TEST_F(SumOperatorTest, ThreeDimensionalWithAxis)
    15.0000    19.0000    23.0000
    16.0000    20.0000    24.0000
     */
-    auto x = dl::Tensor(
+    auto x = origin::Tensor(
         {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24},
-        dl::Shape{4, 3, 2});
+        origin::Shape{4, 3, 2});
 
     // 沿轴0求和（对第一个维度求和）
     auto result0 = sum(x, 0);

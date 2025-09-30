@@ -1,9 +1,9 @@
 #include <iostream>
 #include <stdexcept>
-#include "base/dlException.h"
-#include "originDL.h"
+#include "base/exception.h"
+#include "origin.h"
 
-using namespace dl;
+using namespace origin;
 
 void testWarningException()
 {

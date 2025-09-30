@@ -2,10 +2,10 @@
 #include <iostream>
 #include <memory>
 #include <vector>
-#include "dlOperator.h"
-#include "dlTensor.h"
+#include "operator.h"
+#include "tensor.h"
 
-using namespace dl;
+using namespace origin;
 
 void origindl_transpose_example()
 {
