@@ -188,6 +188,17 @@ set_target_properties(test_matmul PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+# 自动微分测试
+add_executable(test_linear_regression autograd/test_linear_regression.cpp)
+add_dependencies(test_linear_regression gtest gtest_main origindl)
+target_link_libraries(test_linear_regression ${GTEST_LIBRARIES} origindl pthread)
+target_include_directories(test_linear_regression PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_linear_regression PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 
 # 启用测试
 enable_testing()
@@ -208,6 +219,7 @@ add_test(NAME broadcast_to_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_broadcast_t
 add_test(NAME transpose_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_transpose)
 add_test(NAME reshape_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_reshape)
 add_test(NAME matmul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_matmul)
+add_test(NAME linear_regression_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_linear_regression)
 
 # 设置测试属性
 set_tests_properties(tensor_create_test PROPERTIES TIMEOUT 60)
@@ -225,6 +237,7 @@ set_tests_properties(broadcast_to_test PROPERTIES TIMEOUT 60)
 set_tests_properties(transpose_test PROPERTIES TIMEOUT 60)
 set_tests_properties(reshape_test PROPERTIES TIMEOUT 60)
 set_tests_properties(matmul_test PROPERTIES TIMEOUT 60)
+set_tests_properties(linear_regression_test PROPERTIES TIMEOUT 60)
 
 # 添加PyTorch对比示例子目录选项
 option(BUILD_PYTORCH_COMPARISON "Build PyTorch comparison examples" OFF)
@@ -244,14 +257,14 @@ message(STATUS "GoogleTest include directories: ${GTEST_INCLUDE_DIRS}")
 # 添加自定义目标来运行所有测试
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul
+    DEPENDS test_tensor_create test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMENT "Run all unit tests"
 )
 
 # 添加自定义目标来编译和运行测试
 add_custom_target(test_all
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul
+    DEPENDS test_tensor_create test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMENT "Compile and run all unit tests"
 )
