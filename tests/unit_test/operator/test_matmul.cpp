@@ -186,14 +186,19 @@ TEST_F(MatMulOperatorTest, BackwardWithGradient)
     auto gx_data = x.grad().to_vector();
     auto gw_data = w.grad().to_vector();
 
-    // 验证梯度被正确缩放
+    // 验证梯度计算正确（libtorch行为）
+    // x.grad = gy @ w^T = [[2,2],[2,2]] @ [[5,7],[6,8]] = [[22,30],[22,30]]
+    std::vector<data_t> expected_gx = {22.0, 30.0, 22.0, 30.0};
+    // w.grad = x^T @ gy = [[1,3],[2,4]] @ [[2,2],[2,2]] = [[8,8],[12,12]]
+    std::vector<data_t> expected_gw = {8.0, 8.0, 12.0, 12.0};
+    
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
-        EXPECT_NEAR(gx_data[i], 2.0, kTolerance);
+        EXPECT_NEAR(gx_data[i], expected_gx[i], kTolerance);
     }
     for (size_t i = 0; i < gw_data.size(); ++i)
     {
-        EXPECT_NEAR(gw_data[i], 2.0, kTolerance);
+        EXPECT_NEAR(gw_data[i], expected_gw[i], kTolerance);
     }
 }
 
@@ -235,16 +240,17 @@ TEST_F(MatMulOperatorTest, BackwardIdentityMatrix)
     auto gx_data        = x.grad().to_vector();
     auto gidentity_data = identity.grad().to_vector();
 
-    // x的梯度应该等于输出梯度
+    // x的梯度应该等于输出梯度（libtorch行为）
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
         EXPECT_NEAR(gx_data[i], 1.0, kTolerance);
     }
 
-    // identity的梯度应该等于x
+    // identity的梯度应该是x^T @ gy = [[1,3],[2,4]] @ [[1,1],[1,1]] = [[4,4],[6,6]]
+    std::vector<data_t> expected_gidentity = {4.0, 4.0, 6.0, 6.0};
     for (size_t i = 0; i < gidentity_data.size(); ++i)
     {
-        EXPECT_NEAR(gidentity_data[i], x.to_vector()[i], kTolerance);
+        EXPECT_NEAR(gidentity_data[i], expected_gidentity[i], kTolerance);
     }
 }
 
@@ -285,13 +291,22 @@ TEST_F(MatMulOperatorTest, LargeMatrix)
 
 TEST_F(MatMulOperatorTest, ThreeDimensional)
 {
-    // 测试三维张量矩阵乘法
+    // 测试三维张量矩阵乘法（libtorch支持）
     auto x = Tensor({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, Shape{2, 2, 2});
     auto w = Tensor({1.0, 0.0, 0.0, 1.0}, Shape{2, 2});
 
-    // 注意：这里可能需要调整，因为三维张量的矩阵乘法可能不被支持
-    // 或者需要特殊的处理方式
-    EXPECT_THROW(mat_mul(x, w), std::exception);
+    // libtorch支持三维张量矩阵乘法，结果形状为[2, 2, 2]
+    auto result = mat_mul(x, w);
+    Shape expected_shape{2, 2, 2};
+    EXPECT_EQ(result.shape(), expected_shape);
+    
+    // 验证结果正确性（单位矩阵乘法，结果应该等于输入）
+    auto result_data = result.to_vector();
+    auto x_data = x.to_vector();
+    for (size_t i = 0; i < result_data.size(); ++i)
+    {
+        EXPECT_NEAR(result_data[i], x_data[i], kTolerance);
+    }
 }
 
 // ==================== 数值稳定性测试 ====================
@@ -391,6 +406,15 @@ TEST_F(MatMulOperatorTest, DimensionValidation)
     auto x = Tensor({1.0, 2.0, 3.0, 4.0}, Shape{2, 2});
     auto w = Tensor({5.0, 6.0, 7.0, 8.0, 9.0, 10.0}, Shape{2, 3});
 
+    // 维度匹配，应该成功
+    auto result = mat_mul(x, w);
+    Shape expected_shape{2, 3};
+    EXPECT_EQ(result.shape(), expected_shape);
+    
+    // 测试真正不匹配的维度
+    auto x2 = Tensor({1.0, 2.0, 3.0, 4.0}, Shape{2, 2});
+    auto w2 = Tensor({5.0, 6.0, 7.0, 8.0, 9.0, 10.0}, Shape{3, 2});
+    
     // 维度不匹配应该抛出异常
-    EXPECT_THROW(mat_mul(x, w), std::exception);
+    EXPECT_THROW(mat_mul(x2, w2), std::exception);
 }
