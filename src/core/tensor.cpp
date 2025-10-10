@@ -1,6 +1,6 @@
 #include "origin/core/tensor.h"
 #include <stdexcept>
-#include "origin/mat/array_fire_mat.h"
+#include "origin/mat/backend.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -147,6 +147,12 @@ Tensor Tensor::transpose() const
 std::vector<data_t> Tensor::to_vector() const
 {
     return impl_->to_vector();
+}
+
+// 后端信息
+int Tensor::backend_type() const
+{
+    return impl_->backend_type();
 }
 
 }  // namespace origin

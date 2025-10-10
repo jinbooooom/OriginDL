@@ -7,9 +7,11 @@ namespace origin
 {
 namespace utils
 {
-af::array BroadcastTo(const af::array &src, const af::dim4 &targetShape);
-
-af::array SumTo(const af::array &src, const af::dim4 &targetShape);
+// 临时注释掉ArrayFire相关函数
+// #if MAT_BACKEND == ARRAYFIRE
+// af::array BroadcastTo(const af::array &src, const af::dim4 &targetShape);
+// af::array SumTo(const af::array &src, const af::dim4 &targetShape);
+// #endif
 }  // namespace utils
 }  // namespace origin
 

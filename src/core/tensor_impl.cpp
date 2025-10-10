@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/mat/array_fire_mat.h"
+#include "origin/mat/backend.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -254,6 +254,11 @@ data_t TensorImpl::item() const
 std::vector<data_t> TensorImpl::to_vector() const
 {
     return data_->to_vector();
+}
+
+int TensorImpl::backend_type() const
+{
+    return data_->backend_type();
 }
 
 // 调试方法实现

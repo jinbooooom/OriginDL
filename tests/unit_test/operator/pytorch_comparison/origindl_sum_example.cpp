@@ -1,4 +1,3 @@
-#include <arrayfire.h>
 #include <iostream>
 #include <memory>
 #include <vector>

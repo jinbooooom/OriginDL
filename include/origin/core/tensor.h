@@ -104,6 +104,9 @@ public:
     // 数据转换
     std::vector<data_t> to_vector() const;
 
+    // 后端信息
+    int backend_type() const;
+
     // 调试
     void print(const std::string &desc = "") const;
 

@@ -18,6 +18,10 @@ OriginDL 是一个从零开始构建的分布式深度学习框架，采用 C++ 
 # 下载并安装 ArrayFire
 wget https://arrayfire.s3.amazonaws.com/3.9.0/ArrayFire-v3.9.0_Linux_x86_64.sh
 sudo sh ArrayFire-v3.9.0_Linux_x86_64.sh --skip-license --prefix=/opt/arrayfire
+
+cd 3rd
+wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcpu.zip
+unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cpu.zip
 ```
 
 ### 编译项目

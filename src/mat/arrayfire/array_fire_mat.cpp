@@ -1,7 +1,8 @@
-#include "origin/mat/array_fire_mat.h"
+#include "origin/mat/arrayfire/array_fire_mat.h"
 #include <arrayfire.h>
 #include <stdexcept>
 #include "origin/mat/backend_mat_utils.h"
+#include "origin/mat/backend_constants.h"
 #include "origin/utils/log.h"
 
 namespace origin
@@ -261,6 +262,11 @@ data_t ArrayFireMat::min() const
 data_t ArrayFireMat::mean() const
 {
     return af::mean<data_t>(data_);
+}
+
+int ArrayFireMat::backend_type() const
+{
+    return ARRAYFIRE_CONST;
 }
 
 // 静态辅助函数实现

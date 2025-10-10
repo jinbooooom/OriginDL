@@ -51,12 +51,12 @@ public:
     spdlog::logger *mLogger;
 };
 
-#define logger (DLLog::GetInstance()->mLogger)
-#define logt(format, ...) SPDLOG_LOGGER_TRACE(logger, format, ##__VA_ARGS__)
-#define logd(format, ...) SPDLOG_LOGGER_DEBUG(logger, format, ##__VA_ARGS__)
-#define logi(format, ...) SPDLOG_LOGGER_INFO(logger, format, ##__VA_ARGS__)
-#define logw(format, ...) SPDLOG_LOGGER_WARN(logger, format, ##__VA_ARGS__)
-#define loge(format, ...) SPDLOG_LOGGER_ERROR(logger, format, ##__VA_ARGS__)
-#define logc(format, ...) SPDLOG_LOGGER_CRITICAL(logger, format, ##__VA_ARGS__)
+#define origin_logger (DLLog::GetInstance()->mLogger)
+#define logt(format, ...) SPDLOG_LOGGER_TRACE(origin_logger, format, ##__VA_ARGS__)
+#define logd(format, ...) SPDLOG_LOGGER_DEBUG(origin_logger, format, ##__VA_ARGS__)
+#define logi(format, ...) SPDLOG_LOGGER_INFO(origin_logger, format, ##__VA_ARGS__)
+#define logw(format, ...) SPDLOG_LOGGER_WARN(origin_logger, format, ##__VA_ARGS__)
+#define loge(format, ...) SPDLOG_LOGGER_ERROR(origin_logger, format, ##__VA_ARGS__)
+#define logc(format, ...) SPDLOG_LOGGER_CRITICAL(origin_logger, format, ##__VA_ARGS__)
 
 #endif

@@ -84,6 +84,7 @@ public:
     size_t elements() const;
     data_t item() const;
     std::vector<data_t> to_vector() const;
+    int backend_type() const;
 
     // 调试
     void print(const std::string &desc = "") const;

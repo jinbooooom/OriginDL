@@ -6,13 +6,31 @@ project (${MY_LIB_NAME})
 
 set(DLZERO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
+# 使用GLOB自动收集源文件，避免手动维护文件列表
 file(
     GLOB MY_LIB_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operators/*.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/torch/*.cpp
+        # ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/arrayfire/*.cpp
 )
+
+# 硬编码使用TORCH后端
+# if(MAT_BACKEND STREQUAL "ARRAYFIRE")
+#     list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/array_fire_mat.cpp)
+#     list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/backend_mat_utils.cpp)
+#     add_definitions(-DMAT_BACKEND=ARRAYFIRE)
+# elseif(MAT_BACKEND STREQUAL "TORCH")
+# torch_mat.cpp is now included via GLOB pattern: src/mat/torch/*.cpp
+add_definitions(-DMAT_BACKEND=TORCH)
+# else()
+#     # 默认使用TORCH后端
+#     list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/torch_mat.cpp)
+#     add_definitions(-DMAT_BACKEND=TORCH)
+# endif()
 
 # message(WARNING ${MY_LIB_SRCS})
 
@@ -29,11 +47,29 @@ else()
     set(ARRAYFIRE_PATH /opt/arrayfire)
 endif()
 
+# 检查环境变量TORCH_PATH是否存在，如果存在则使用它，否则使用默认路径
+if(DEFINED ENV{TORCH_PATH})
+    set(TORCH_PATH $ENV{TORCH_PATH})
+else()
+    set(TORCH_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rd/libtorch)
+endif()
+
 message(STATUS "Using ArrayFire path: ${ARRAYFIRE_PATH}")
+message(STATUS "Using LibTorch path: ${TORCH_PATH}")
 
 include_directories(${ARRAYFIRE_PATH}/include)
 include_directories(3rd/)
 include_directories(include)
+
+# 根据后端选择包含LibTorch
+if(MAT_BACKEND STREQUAL "TORCH")
+    # 设置LibTorch的cmake路径
+    set(Torch_DIR "${TORCH_PATH}/share/cmake/Torch")
+    find_package(Torch REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+    message(STATUS "LibTorch version: ${Torch_VERSION}")
+    message(STATUS "LibTorch libraries: ${TORCH_LIBRARIES}")
+endif()
 
 add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
 # 禁止一些警告
@@ -42,6 +78,11 @@ add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
 link_directories(${PROJECT_SOURCE_DIR}/3rd/lib)
 link_directories(${ARRAYFIRE_PATH}/lib64)
+
+# 根据后端添加相应的库目录
+if(MAT_BACKEND STREQUAL "TORCH")
+    link_directories(${TORCH_PATH}/lib)
+endif()
 
 # 编译GoogleTest库，供所有单元测试使用
 message(STATUS "Building GoogleTest libraries")
@@ -71,7 +112,15 @@ target_include_directories(dllog PUBLIC 3rd/)
 target_compile_definitions(dllog PUBLIC SPDLOG_COMPILED_LIB)
 
 add_library(${PROJECT_NAME} SHARED ${MY_LIB_SRCS})
-target_link_libraries(${PROJECT_NAME} dllog -lpthread -laf)
+
+# 硬编码使用LibTorch链接库
+# if(MAT_BACKEND STREQUAL "TORCH")
+    target_link_libraries(${PROJECT_NAME} dllog -lpthread "${TORCH_LIBRARIES}")
+    message(STATUS "Linking with LibTorch backend")
+# else()
+#     target_link_libraries(${PROJECT_NAME} dllog -lpthread -laf)
+#     message(STATUS "Linking with ArrayFire backend")
+# endif()
 
 # 开始编译可执行程序
 # 设置输出目录为 build/bin

@@ -1,4 +1,3 @@
-#include <arrayfire.h>
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
@@ -13,15 +12,7 @@ protected:
     static constexpr double kTolerance = 1e-3;
     void SetUp() override
     {
-        // 初始化ArrayFire后端
-        try
-        {
-            af::setBackend(AF_BACKEND_CPU);
-        }
-        catch (const af::exception &e)
-        {
-            // 忽略错误，继续测试
-        }
+        // 测试前的设置
     }
 
     void TearDown() override

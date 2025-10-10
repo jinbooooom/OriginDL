@@ -119,15 +119,19 @@ public:
     /**
      * @brief 转换为ArrayFire的dim4格式
      * @return af::dim4对象
+     * @note 仅在ArrayFire后端可用
      */
-    af::dim4 to_af_dim4() const
-    {
-        size_t d0 = dims_.size() > 0 ? dims_[0] : 1;
-        size_t d1 = dims_.size() > 1 ? dims_[1] : 1;
-        size_t d2 = dims_.size() > 2 ? dims_[2] : 1;
-        size_t d3 = dims_.size() > 3 ? dims_[3] : 1;
-        return af::dim4(d0, d1, d2, d3);
-    }
+// 临时注释掉ArrayFire相关方法
+// #if defined(MAT_BACKEND) && MAT_BACKEND == ARRAYFIRE
+//     af::dim4 to_af_dim4() const
+//     {
+//         size_t d0 = dims_.size() > 0 ? dims_[0] : 1;
+//         size_t d1 = dims_.size() > 1 ? dims_[1] : 1;
+//         size_t d2 = dims_.size() > 2 ? dims_[2] : 1;
+//         size_t d3 = dims_.size() > 3 ? dims_[3] : 1;
+//         return af::dim4(d0, d1, d2, d3);
+//     }
+// #endif
 
     /**
      * @brief 比较操作
