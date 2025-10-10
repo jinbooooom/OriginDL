@@ -1,4 +1,3 @@
-#include <arrayfire.h>
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
@@ -18,18 +17,8 @@ protected:
     void SetUp() override
     {
         // 测试前的设置
-        // 初始化ArrayFire后端
-        try
-        {
-            af::setBackend(AF_BACKEND_CPU);
-        }
-        catch (const af::exception &e)
-        {
-            // 忽略错误，继续测试
-        }
-        
         // 设置随机种子确保可重复性
-        af::setSeed(0);
+        torch::manual_seed(0);
     }
 
     void TearDown() override
@@ -60,7 +49,7 @@ protected:
 TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
 {
     // 设置随机种子
-    af::setSeed(0);
+    torch::manual_seed(0);
 
     // 生成随机数据
     size_t input_size = 100;

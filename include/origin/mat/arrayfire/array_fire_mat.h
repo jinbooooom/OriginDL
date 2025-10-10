@@ -4,9 +4,9 @@
 #include <arrayfire.h>
 #include <memory>
 #include <vector>
-#include "basic_types.h"
-#include "mat.h"
-#include "shape.h"
+#include "../basic_types.h"
+#include "../mat.h"
+#include "../shape.h"
 
 namespace origin
 {

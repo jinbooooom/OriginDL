@@ -141,7 +141,6 @@ int main(int argc, char **argv)
     std::cout << std::endl;
 
     // 设置后端
-    af::setBackend(AF_BACKEND_CPU);
 
     // 运行各种异常测试
     testWarningException();

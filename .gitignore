@@ -15,6 +15,7 @@ data/*
 *.h.gch
 compile_commands.json
 dllog/*
+3rd/libtorch/*
 
 r
 s

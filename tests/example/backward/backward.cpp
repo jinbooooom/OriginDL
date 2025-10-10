@@ -1,4 +1,3 @@
-#include <arrayfire.h>
 #include <getopt.h>
 #include <iostream>
 #include "origin.h"
@@ -35,18 +34,20 @@ int SetBackend(int argc, char **argv)
     }
 
     // 设置计算后端
+    // 临时注释掉ArrayFire后端设置，专注TorchMat
+    /*
     try
     {
         switch (backend_code)
         {
             case 1:
-                af::setBackend(AF_BACKEND_CUDA);  // [4]() CUDA后端
+                af::setBackend(AF_BACKEND_CUDA);
                 break;
             case 2:
-                af::setBackend(AF_BACKEND_OPENCL);  // OpenCL后端
+                af::setBackend(AF_BACKEND_OPENCL);
                 break;
             default:
-                af::setBackend(AF_BACKEND_CPU);  // CPU后端
+                af::setBackend(AF_BACKEND_CPU);
         }
     }
     catch (const af::exception &e)
@@ -56,10 +57,9 @@ int SetBackend(int argc, char **argv)
     }
 
     // 验证后端设置
-    af::info();  // 输出设备信息
     std::cout << std::endl;
-    switch (af::getActiveBackend())
-    {  // 获取当前后端
+    switch (af::getActiveBackend())  // 获取当前后端
+    {
         case AF_BACKEND_CUDA:
             logw("Active Backend: CUDA");
             break;
@@ -73,6 +73,10 @@ int SetBackend(int argc, char **argv)
             loge("Invalid Backend");
             exit(0);
     }
+    */
+    
+    // 使用TorchMat后端
+    logi("Using TorchMat backend");
 
     return 0;
 }

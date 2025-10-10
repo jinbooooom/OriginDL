@@ -242,6 +242,12 @@ public:
      * @return 均值
      */
     virtual data_t mean() const = 0;
+
+    /**
+     * @brief 获取后端类型
+     * @return 后端类型标识符
+     */
+    virtual int backend_type() const = 0;
 };
 
 /**

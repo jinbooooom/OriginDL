@@ -5,18 +5,7 @@ using namespace origin;
 
 int main()
 {
-    // 输出设备信息并初始化ArrayFire
-    // 初始化ArrayFire后端
-    try
-    {
-        af::setBackend(AF_BACKEND_CPU);  // 使用CPU后端
-        af::info();                      // 输出设备信息并初始化ArrayFire
-    }
-    catch (const af::exception &e)
-    {
-        loge("Failed to initialize ArrayFire: {}", e.what());
-        return 1;
-    }
+
 
     data_t val0     = 2;
     data_t val1     = 4;
