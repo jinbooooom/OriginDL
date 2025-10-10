@@ -58,7 +58,25 @@ std::unique_ptr<Mat> TorchMat::reshape(const Shape &shape) const
 
 std::unique_ptr<Mat> TorchMat::transpose() const
 {
-    return std::make_unique<TorchMat>(data_.transpose(-2, -1));
+    /*
+    对于2D张量：交换行和列（完全转置）
+    对于高维张量：只交换最后两个维度
+    # 对于2D张量
+    x = torch.randn(3, 4)
+    x_t = x.T  # 结果形状为 (4, 3)
+
+    # 对于高维张量
+    y = torch.randn(2, 3, 4, 5)
+    y_t = y.T  # 结果形状为 (2, 3, 5, 4)
+    */
+    auto dims = data_.dim();
+    if (dims < 2) {
+        // 一维张量转置返回自身
+        return std::make_unique<TorchMat>(data_);
+    } else {
+        // 二维及以上张量转置最后两个维度
+        return std::make_unique<TorchMat>(data_.transpose(-2, -1));
+    }
 }
 
 std::unique_ptr<Mat> TorchMat::operator+(const Mat &other) const
@@ -129,7 +147,8 @@ std::unique_ptr<Mat> TorchMat::operator-() const
 std::unique_ptr<Mat> TorchMat::broadcast_to(const Shape &shape) const
 {
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    return std::make_unique<TorchMat>(data_.expand(sizes));
+    // 使用clone()确保返回实际的数据副本，而不是视图
+    return std::make_unique<TorchMat>(data_.expand(sizes).clone());
 }
 
 std::unique_ptr<Mat> TorchMat::sum_to(const Shape &shape) const
@@ -141,36 +160,69 @@ std::unique_ptr<Mat> TorchMat::sum_to(const Shape &shape) const
     auto current_sizes = data_.sizes();
     auto target_sizes = sizes;
     
-    // 从右到左处理维度
-    for (int i = current_sizes.size() - 1, j = target_sizes.size() - 1; i >= 0 && j >= 0; --i, --j)
-    {
-        if (current_sizes[i] != target_sizes[j])
-        {
-            result = result.sum(i, true);
+    // 如果源数组已经是目标形状，则直接返回
+    if (current_sizes == target_sizes) {
+        return std::make_unique<TorchMat>(result);
+    }
+    
+    // 计算元素总数
+    size_t current_elements = 1;
+    for (auto dim : current_sizes) {
+        current_elements *= dim;
+    }
+    
+    size_t target_elements = 1;
+    for (auto dim : target_sizes) {
+        target_elements *= dim;
+    }
+    
+    if (target_elements > current_elements) {
+        // 目标形状更大，libtorch的sum_to不支持广播，抛出异常
+        throw std::runtime_error("sum_to: Target shape cannot have more elements than source tensor");
+    } else {
+        // 目标形状更小或相等，需要求和压缩
+        // 收集需要求和的维度
+        std::vector<int> sum_dims;
+        for (int i = 0; i < std::min(current_sizes.size(), target_sizes.size()); ++i) {
+            if (target_sizes[i] == 1 && current_sizes[i] > 1) {
+                sum_dims.push_back(i);
+            }
+        }
+        
+        // 处理多余的维度
+        for (int i = target_sizes.size(); i < current_sizes.size(); ++i) {
+            sum_dims.push_back(i);
+        }
+        
+        // 一次性对所有需要求和的维度进行求和
+        // 注意：需要从大到小排序，避免维度索引变化
+        std::sort(sum_dims.begin(), sum_dims.end(), std::greater<int>());
+        for (int dim : sum_dims) {
+            result = result.sum(dim, false);
+        }
+        
+        // 确保结果的形状正确
+        if (result.sizes() != target_sizes) {
+            result = result.reshape(sizes);
         }
     }
     
-    // 处理多余的维度
-    for (int i = 0; i < current_sizes.size() - target_sizes.size(); ++i)
-    {
-        result = result.sum(0, true);
-    }
-    
-    return std::make_unique<TorchMat>(result.reshape(sizes));
+    return std::make_unique<TorchMat>(result);
 }
 
 std::unique_ptr<Mat> TorchMat::sum(int axis) const
 {
     if (axis == -1)
     {
-        // 对所有元素求和，返回标量
+        // 对所有元素求和，返回形状为[1]的张量（与PyTorch测试期望一致）
         auto result = data_.sum();
-        return std::make_unique<TorchMat>(result);
+        // 将标量转换为形状为[1]的张量
+        return std::make_unique<TorchMat>(result.unsqueeze(0));
     }
     else
     {
-        // 沿指定轴求和，保持维度
-        return std::make_unique<TorchMat>(data_.sum(axis, true));
+        // 沿指定轴求和，压缩维度（与PyTorch默认行为一致）
+        return std::make_unique<TorchMat>(data_.sum(axis, false));
     }
 }
 
@@ -235,7 +287,6 @@ T TorchMat::scalar() const
 // 调试方法
 void TorchMat::print(const std::string &desc) const
 {
-    std::cout << "DL Mat Shape: " << shape() << std::endl;
     if (!desc.empty())
     {
         std::cout << desc << ": " << std::endl;

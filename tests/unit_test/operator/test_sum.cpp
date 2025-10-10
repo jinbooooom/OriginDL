@@ -126,22 +126,19 @@ TEST_F(SumOperatorTest, ForwardWithAxis)
     // 测试指定轴的求和
     auto x = Tensor({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, Shape{2, 3});
     /*
-    因为是列主序，所以矩阵显示为：
-    [2 3 1 1]
-    1.0000     3.0000     5.0000
-    2.0000     4.0000     6.0000
+    在行主序（PyTorch行为）下，矩阵显示为：
+    1.0000     2.0000     3.0000
+    4.0000     5.0000     6.0000
     */
 
     // 沿轴0求和（列求和）
     auto result0 = sum(x, 0);
     /*
-    [1 3 1 1]
-    3.0000     7.0000    11.0000
+    沿轴0求和结果：[5.0, 7.0, 9.0]
     */
-    // 跳过形状检查，因为ArrayFire与PyTorch行为差异
-    // EXPECT_EQ(result0.shape(), Shape{3});
+    EXPECT_EQ(result0.shape(), Shape{3});
     auto result0_data             = result0.to_vector();
-    std::vector<data_t> expected0 = {3.0, 7.0, 11.0};
+    std::vector<data_t> expected0 = {5.0, 7.0, 9.0};
 
     for (size_t i = 0; i < expected0.size(); ++i)
     {
@@ -152,13 +149,11 @@ TEST_F(SumOperatorTest, ForwardWithAxis)
     // 沿轴1求和（行求和）
     auto result1 = sum(x, 1);
     /*
-    [2 1 1 1]
-    9.0000
-    12.0000
+    沿轴1求和结果：[6.0, 15.0]
     */
-    // EXPECT_EQ(result1.shape(), Shape{2});
+    EXPECT_EQ(result1.shape(), Shape{2});
     auto result1_data             = result1.to_vector();
-    std::vector<data_t> expected1 = {9.0, 12.0};
+    std::vector<data_t> expected1 = {6.0, 15.0};
 
     for (size_t i = 0; i < expected1.size(); ++i)
     {
@@ -266,32 +261,21 @@ TEST_F(SumOperatorTest, ThreeDimensional)
 TEST_F(SumOperatorTest, ThreeDimensionalWithAxis)
 {
     // 测试三维张量带轴求和
-    /*
-    [4 3 2 1]
-    1.0000     5.0000     9.0000
-    2.0000     6.0000    10.0000
-    3.0000     7.0000    11.0000
-    4.0000     8.0000    12.0000
-
-   13.0000    17.0000    21.0000
-   14.0000    18.0000    22.0000
-   15.0000    19.0000    23.0000
-   16.0000    20.0000    24.0000
-    */
+    // 在行主序（PyTorch行为）下，数据排列为：
+    // [[[ 1.,  2.], [ 3.,  4.], [ 5.,  6.]],
+    //  [[ 7.,  8.], [ 9., 10.], [11., 12.]],
+    //  [[13., 14.], [15., 16.], [17., 18.]],
+    //  [[19., 20.], [21., 22.], [23., 24.]]]
     auto x = origin::Tensor(
         {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24},
         origin::Shape{4, 3, 2});
 
     // 沿轴0求和（对第一个维度求和）
     auto result0 = sum(x, 0);
-    /*
-    [1 3 2 1]
-    10.0000    26.0000    42.0000
-
-    58.0000    74.0000    90.0000
-    */
+    Shape expected_shape0{3, 2};
+    EXPECT_EQ(result0.shape(), expected_shape0);
     auto result0_data             = result0.to_vector();
-    std::vector<data_t> expected0 = {10.0, 26.0, 42.0, 58.0, 74.0, 90.0};
+    std::vector<data_t> expected0 = {40.0, 44.0, 48.0, 52.0, 56.0, 60.0};
     for (size_t i = 0; i < expected0.size(); ++i)
     {
         EXPECT_NEAR(result0_data[i], expected0[i], kTolerance);
@@ -299,20 +283,10 @@ TEST_F(SumOperatorTest, ThreeDimensionalWithAxis)
 
     // 沿轴1求和（对第二个维度求和）
     auto result1 = sum(x, 1);
-    /*
-    [4 1 2 1]
-    15.0000
-    18.0000
-    21.0000
-    24.0000
-
-    51.0000
-    54.0000
-    57.0000
-    60.0000
-    */
+    Shape expected_shape1{4, 2};
+    EXPECT_EQ(result1.shape(), expected_shape1);
     auto result1_data             = result1.to_vector();
-    std::vector<data_t> expected1 = {15.0, 18.0, 21.0, 24.0, 51.0, 54.0, 57.0, 60.0};
+    std::vector<data_t> expected1 = {9.0, 12.0, 27.0, 30.0, 45.0, 48.0, 63.0, 66.0};
     for (size_t i = 0; i < expected1.size(); ++i)
     {
         EXPECT_NEAR(result1_data[i], expected1[i], kTolerance);
@@ -320,15 +294,10 @@ TEST_F(SumOperatorTest, ThreeDimensionalWithAxis)
 
     // 沿轴2求和（对第三个维度求和）
     auto result2 = sum(x, 2);
-    /*
-    [4 3 1 1]
-    14.0000    22.0000    30.0000
-    16.0000    24.0000    32.0000
-    18.0000    26.0000    34.0000
-    20.0000    28.0000    36.0000
-    */
+    Shape expected_shape2{4, 3};
+    EXPECT_EQ(result2.shape(), expected_shape2);
     auto result2_data             = result2.to_vector();
-    std::vector<data_t> expected2 = {14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0, 32.0, 34.0, 36.0};
+    std::vector<data_t> expected2 = {3.0, 7.0, 11.0, 15.0, 19.0, 23.0, 27.0, 31.0, 35.0, 39.0, 43.0, 47.0};
     for (size_t i = 0; i < expected2.size(); ++i)
     {
         EXPECT_NEAR(result2_data[i], expected2[i], kTolerance);

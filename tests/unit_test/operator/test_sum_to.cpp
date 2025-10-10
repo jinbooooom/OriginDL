@@ -99,20 +99,11 @@ TEST_F(SumToOperatorTest, ForwardToSameShape)
 
 TEST_F(SumToOperatorTest, ForwardToLargerShape)
 {
-    // 测试到更大形状（应该广播）
+    // 测试到更大形状（应该抛出异常，因为libtorch不支持广播）
     auto x = Tensor({5.0}, Shape{1});
     Shape target_shape{3};
 
-    auto result = sum_to(x, target_shape);
-
-    // EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
-    std::vector<data_t> expected = {5.0, 5.0, 5.0};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], kTolerance);
-    }
+    EXPECT_THROW(sum_to(x, target_shape), std::runtime_error);
 }
 
 TEST_F(SumToOperatorTest, ForwardToSmallerShape)
@@ -205,17 +196,11 @@ TEST_F(SumToOperatorTest, BackwardToSameShape)
 
 TEST_F(SumToOperatorTest, BackwardToLargerShape)
 {
-    // 测试到更大形状的反向传播
+    // 测试到更大形状的反向传播（应该抛出异常，因为libtorch不支持广播）
     auto x = Tensor({5.0}, Shape{1});
     Shape target_shape{3};
 
-    auto y = sum_to(x, target_shape);
-    y.backward();
-
-    auto gx_data = x.grad().to_vector();
-
-    EXPECT_EQ(gx_data.size(), 1U);
-    EXPECT_NEAR(gx_data[0], 3.0, kTolerance);  // 广播的梯度应该求和
+    EXPECT_THROW(sum_to(x, target_shape), std::runtime_error);
 }
 
 // ==================== 边界情况测试 ====================

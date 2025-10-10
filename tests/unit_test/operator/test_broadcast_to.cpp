@@ -55,7 +55,7 @@ protected:
 
 TEST_F(BroadcastToOperatorTest, ForwardBasic)
 {
-    // 测试基本广播运算
+    // 测试基本广播运算（匹配libtorch的行主序行为）
     auto x = Tensor({1.0, 2.0}, Shape{2});
     Shape target_shape{2, 2};
 
@@ -63,6 +63,7 @@ TEST_F(BroadcastToOperatorTest, ForwardBasic)
 
     EXPECT_EQ(result.shape(), target_shape);
     auto result_data             = result.to_vector();
+    // libtorch行主序：[1,2] expand到[2,2] = [[1,2],[1,2]] = [1,2,1,2]
     std::vector<data_t> expected = {1.0, 2.0, 1.0, 2.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
