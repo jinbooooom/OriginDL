@@ -62,7 +62,7 @@ TEST_F(BroadcastToOperatorTest, ForwardBasic)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data = result.to_vector();
     // libtorch行主序：[1,2] expand到[2,2] = [[1,2],[1,2]] = [1,2,1,2]
     std::vector<data_t> expected = {1.0, 2.0, 1.0, 2.0};
 

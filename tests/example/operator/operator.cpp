@@ -6,7 +6,6 @@ using namespace origin;
 int main()
 {
 
-
     data_t val0     = 2;
     data_t val1     = 4;
     Shape shape     = {2, 2};

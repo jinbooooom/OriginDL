@@ -13,7 +13,7 @@ protected:
     static constexpr double kTolerance = 0.1;  // 线性回归允许较大的误差
     static constexpr double kExpectedW = 2.0;  // 期望的权重
     static constexpr double kExpectedB = 5.0;  // 期望的偏置
-    
+
     void SetUp() override
     {
         // 测试前的设置
@@ -53,7 +53,7 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
 
     // 生成随机数据
     size_t input_size = 100;
-    auto x = Tensor::randn(Shape{input_size, 1});
+    auto x            = Tensor::randn(Shape{input_size, 1});
     // 设置一个噪声，使真实值在预测结果附近
     auto noise = Tensor::randn(Shape{input_size, 1}) * 0.1;
     // 生成真实标签：y = x * 2.0 + 5.0 + noise
@@ -75,7 +75,7 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
         b.clear_grad();
 
         auto y_pred = Predict(x, w, b);
-        auto loss = MSE(y, y_pred);
+        auto loss   = MSE(y, y_pred);
 
         // 反向传播
         loss.backward();
@@ -96,11 +96,11 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
     // 验证权重是否收敛到期望值
     float final_w = w.to_vector()[0];
     float final_b = b.to_vector()[0];
-    
-    EXPECT_NEAR(final_w, kExpectedW, kTolerance) 
+
+    EXPECT_NEAR(final_w, kExpectedW, kTolerance)
         << "Weight w should converge to " << kExpectedW << ", but got " << final_w;
-    
+
     // 验证偏置是否收敛到期望值
-    EXPECT_NEAR(final_b, kExpectedB, kTolerance) 
+    EXPECT_NEAR(final_b, kExpectedB, kTolerance)
         << "Bias b should converge to " << kExpectedB << ", but got " << final_b;
 }

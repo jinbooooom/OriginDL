@@ -62,7 +62,7 @@ TEST_F(TransposeOperatorTest, ForwardBasic)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data = result.to_vector();
     // libtorch行主序：[[1,2],[3,4]]转置为[[1,3],[2,4]]，展开为[1,2,3,4]
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0};
 
@@ -90,7 +90,7 @@ TEST_F(TransposeOperatorTest, Forward3x2Matrix)
 
     Shape expected_shape{2, 3};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data = result.to_vector();
     // libtorch行主序：[[1,2],[3,4],[5,6]]转置为[[1,3,5],[2,4,6]]，展开为[1,2,3,4,5,6]
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 
@@ -109,7 +109,7 @@ TEST_F(TransposeOperatorTest, ForwardSquareMatrix)
 
     Shape expected_shape{3, 3};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data = result.to_vector();
     // libtorch行主序：[[1,2,3],[4,5,6],[7,8,9]]转置为[[1,4,7],[2,5,8],[3,6,9]]，展开为[1,2,3,4,5,6,7,8,9]
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
 
@@ -291,7 +291,7 @@ TEST_F(TransposeOperatorTest, NumericalStability)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data = result.to_vector();
     // libtorch行主序：[[1e10,1e-10],[1e10,1e-10]]转置为[[1e10,1e10],[1e-10,1e-10]]，展开为[1e10,1e-10,1e10,1e-10]
     std::vector<data_t> expected = {1e10, 1e-10, 1e10, 1e-10};
 
@@ -310,7 +310,7 @@ TEST_F(TransposeOperatorTest, PrecisionTest)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data = result.to_vector();
     // libtorch行主序：[[0.1,0.2],[0.3,0.4]]转置为[[0.1,0.3],[0.2,0.4]]，展开为[0.1,0.2,0.3,0.4]
     std::vector<data_t> expected = {0.1, 0.2, 0.3, 0.4};
 
@@ -331,7 +331,7 @@ TEST_F(TransposeOperatorTest, MixedSigns)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data = result.to_vector();
     // libtorch行主序：[[1,-2],[3,-4]]转置为[[1,3],[-2,-4]]，展开为[1,-2,3,-4]
     std::vector<data_t> expected = {1.0, -2.0, 3.0, -4.0};
 

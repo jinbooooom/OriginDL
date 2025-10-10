@@ -191,7 +191,7 @@ TEST_F(MatMulOperatorTest, BackwardWithGradient)
     std::vector<data_t> expected_gx = {22.0, 30.0, 22.0, 30.0};
     // w.grad = x^T @ gy = [[1,3],[2,4]] @ [[2,2],[2,2]] = [[8,8],[12,12]]
     std::vector<data_t> expected_gw = {8.0, 8.0, 12.0, 12.0};
-    
+
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
         EXPECT_NEAR(gx_data[i], expected_gx[i], kTolerance);
@@ -299,10 +299,10 @@ TEST_F(MatMulOperatorTest, ThreeDimensional)
     auto result = mat_mul(x, w);
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 验证结果正确性（单位矩阵乘法，结果应该等于输入）
     auto result_data = result.to_vector();
-    auto x_data = x.to_vector();
+    auto x_data      = x.to_vector();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], x_data[i], kTolerance);
@@ -410,11 +410,11 @@ TEST_F(MatMulOperatorTest, DimensionValidation)
     auto result = mat_mul(x, w);
     Shape expected_shape{2, 3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 测试真正不匹配的维度
     auto x2 = Tensor({1.0, 2.0, 3.0, 4.0}, Shape{2, 2});
     auto w2 = Tensor({5.0, 6.0, 7.0, 8.0, 9.0, 10.0}, Shape{3, 2});
-    
+
     // 维度不匹配应该抛出异常
     EXPECT_THROW(mat_mul(x2, w2), std::exception);
 }
