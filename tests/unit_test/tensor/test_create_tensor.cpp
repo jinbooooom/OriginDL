@@ -7,13 +7,9 @@ using namespace origin;
 class TensorCreateTest : public ::testing::Test
 {
 protected:
-    void SetUp() override
-    {
-    }
+    void SetUp() override {}
 
-    void TearDown() override
-    {
-    }
+    void TearDown() override {}
 
     // 辅助函数：比较两个浮点数是否相等（考虑浮点精度）
     bool isEqual(double a, double b, double tolerance = 1e-6) { return std::abs(a - b) < tolerance; }
@@ -27,7 +23,7 @@ TEST_F(TensorCreateTest, ConstructorFromVector)
     Tensor tensor(data, shape);
 
     EXPECT_EQ(tensor.shape(), shape);
-    EXPECT_EQ(tensor.elements(), 4);
+    EXPECT_EQ(tensor.elements(), 4U);
 
     auto result_data = tensor.to_vector();
     for (size_t i = 0; i < data.size(); ++i)
@@ -43,9 +39,9 @@ TEST_F(TensorCreateTest, ConstructorFromInitializerList)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(tensor.shape(), expected_shape);
-    EXPECT_EQ(tensor.elements(), 4);
+    EXPECT_EQ(tensor.elements(), 4U);
 
-    auto result_data = tensor.to_vector();
+    auto result_data             = tensor.to_vector();
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0};
     for (size_t i = 0; i < expected.size(); ++i)
     {
@@ -61,7 +57,7 @@ TEST_F(TensorCreateTest, ConstructorFromScalar)
     Tensor tensor(value, shape);
 
     EXPECT_EQ(tensor.shape(), shape);
-    EXPECT_EQ(tensor.elements(), 9);
+    EXPECT_EQ(tensor.elements(), 9U);
 
     auto result_data = tensor.to_vector();
     for (size_t i = 0; i < result_data.size(); ++i)
@@ -82,7 +78,7 @@ TEST_F(TensorCreateTest, CopyConstructor)
     EXPECT_EQ(copy.elements(), original.elements());
 
     auto original_data = original.to_vector();
-    auto copy_data = copy.to_vector();
+    auto copy_data     = copy.to_vector();
     for (size_t i = 0; i < original_data.size(); ++i)
     {
         EXPECT_NEAR(copy_data[i], original_data[i], 1e-6);
@@ -98,7 +94,7 @@ TEST_F(TensorCreateTest, MoveConstructor)
     Tensor moved(std::move(original));
 
     EXPECT_EQ(moved.shape(), shape);
-    EXPECT_EQ(moved.elements(), 4);
+    EXPECT_EQ(moved.elements(), 4U);
 
     auto moved_data = moved.to_vector();
     for (size_t i = 0; i < data.size(); ++i)
@@ -133,7 +129,7 @@ TEST_F(TensorCreateTest, AssignmentOperators)
     Tensor tensor3(data2, shape);
     tensor3 = std::move(tensor1);
     EXPECT_EQ(tensor3.shape(), shape);
-    EXPECT_EQ(tensor3.elements(), 4);
+    EXPECT_EQ(tensor3.elements(), 4U);
 }
 
 // 工厂方法测试
@@ -160,7 +156,7 @@ TEST_F(TensorCreateTest, FactoryMethods)
     }
 
     // constant
-    data_t value = 2.5;
+    data_t value           = 2.5;
     Tensor constant_tensor = Tensor::constant(value, shape);
     EXPECT_EQ(constant_tensor.shape(), shape);
     auto constant_data = constant_tensor.to_vector();
@@ -177,13 +173,13 @@ TEST_F(TensorCreateTest, RandnFactory)
     Tensor rand_tensor = Tensor::randn(shape);
 
     EXPECT_EQ(rand_tensor.shape(), shape);
-    EXPECT_EQ(rand_tensor.elements(), 4);
+    EXPECT_EQ(rand_tensor.elements(), 4U);
 
     // 随机数应该在合理范围内
     auto rand_data = rand_tensor.to_vector();
     for (size_t i = 0; i < rand_data.size(); ++i)
     {
-        EXPECT_TRUE(std::abs(rand_data[i]) < 10.0); // 大部分随机数应该在[-10, 10]范围内
+        EXPECT_TRUE(std::abs(rand_data[i]) < 10.0);  // 大部分随机数应该在[-10, 10]范围内
     }
 }
 
@@ -197,7 +193,7 @@ TEST_F(TensorCreateTest, ShapeValidation)
 
     // 测试数据大小不匹配
     Shape valid_shape{2, 2};
-    std::vector<data_t> small_data = {1.0}; // 只有1个元素，但形状需要4个元素
+    std::vector<data_t> small_data = {1.0};  // 只有1个元素，但形状需要4个元素
     EXPECT_THROW(Tensor tensor(small_data, valid_shape), std::invalid_argument);
 
     // 测试有效形状
@@ -210,7 +206,7 @@ TEST_F(TensorCreateTest, EmptyTensor)
 {
     std::vector<data_t> empty_data;
     Shape empty_shape{0};
-    
+
     EXPECT_THROW(Tensor tensor(empty_data, empty_shape), std::invalid_argument);
 }
 
@@ -221,7 +217,7 @@ TEST_F(TensorCreateTest, ScalarTensor)
     Shape shape{1};
     Tensor tensor(data, shape);
 
-    EXPECT_EQ(tensor.elements(), 1);
+    EXPECT_EQ(tensor.elements(), 1U);
     EXPECT_NEAR(tensor.item(), 42.0, 1e-6);
 }
 
@@ -251,8 +247,8 @@ TEST_F(TensorCreateTest, OneDimensionalTensor)
     Tensor tensor(data, shape);
 
     EXPECT_EQ(tensor.shape(), shape);
-    EXPECT_EQ(tensor.ndim(), 1);
-    EXPECT_EQ(tensor.elements(), 5);
+    EXPECT_EQ(tensor.ndim(), 1U);
+    EXPECT_EQ(tensor.elements(), 5U);
 
     auto result_data = tensor.to_vector();
     for (size_t i = 0; i < data.size(); ++i)
@@ -264,13 +260,13 @@ TEST_F(TensorCreateTest, OneDimensionalTensor)
 // 三维张量测试
 TEST_F(TensorCreateTest, ThreeDimensionalTensor)
 {
-    std::vector<data_t> data(24, 1.0); // 2*3*4 = 24
+    std::vector<data_t> data(24, 1.0);  // 2*3*4 = 24
     Shape shape{2, 3, 4};
     Tensor tensor(data, shape);
 
     EXPECT_EQ(tensor.shape(), shape);
-    EXPECT_EQ(tensor.ndim(), 3);
-    EXPECT_EQ(tensor.elements(), 24);
+    EXPECT_EQ(tensor.ndim(), 3U);
+    EXPECT_EQ(tensor.elements(), 24U);
 
     auto result_data = tensor.to_vector();
     for (size_t i = 0; i < data.size(); ++i)
@@ -299,15 +295,15 @@ TEST_F(TensorCreateTest, MemoryManagement)
 {
     std::vector<data_t> data = {1.0, 2.0, 3.0, 4.0};
     Shape shape{2, 2};
-    
+
     {
         Tensor tensor1(data, shape);
         Tensor tensor2 = tensor1;             // 拷贝构造
         Tensor tensor3 = std::move(tensor1);  // 移动构造
-        
+
         EXPECT_EQ(tensor2.shape(), shape);
         EXPECT_EQ(tensor3.shape(), shape);
-        
+
         auto data2 = tensor2.to_vector();
         auto data3 = tensor3.to_vector();
         for (size_t i = 0; i < data.size(); ++i)
@@ -315,5 +311,5 @@ TEST_F(TensorCreateTest, MemoryManagement)
             EXPECT_NEAR(data2[i], data[i], 1e-6);
             EXPECT_NEAR(data3[i], data[i], 1e-6);
         }
-    } // 离开作用域后，张量应该被正确销毁
+    }  // 离开作用域后，张量应该被正确销毁
 }

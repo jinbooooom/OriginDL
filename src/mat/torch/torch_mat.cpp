@@ -26,7 +26,7 @@ TorchMat::TorchMat(const std::vector<data_t> &data, const Shape &shape)
     }
 
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    data_ = torch::from_blob(const_cast<data_t*>(data.data()), sizes, torch::kFloat32).clone();
+    data_      = torch::from_blob(const_cast<data_t *>(data.data()), sizes, torch::kFloat32).clone();
 }
 
 TorchMat::TorchMat(data_t value, const Shape &shape)
@@ -42,7 +42,7 @@ TorchMat::TorchMat(data_t value, const Shape &shape)
     }
 
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    data_ = torch::full(sizes, value, torch::kFloat32);
+    data_      = torch::full(sizes, value, torch::kFloat32);
 }
 
 std::unique_ptr<Mat> TorchMat::clone() const
@@ -70,10 +70,13 @@ std::unique_ptr<Mat> TorchMat::transpose() const
     y_t = y.T  # 结果形状为 (2, 3, 5, 4)
     */
     auto dims = data_.dim();
-    if (dims < 2) {
+    if (dims < 2)
+    {
         // 一维张量转置返回自身
         return std::make_unique<TorchMat>(data_);
-    } else {
+    }
+    else
+    {
         // 二维及以上张量转置最后两个维度
         return std::make_unique<TorchMat>(data_.transpose(-2, -1));
     }
@@ -153,60 +156,71 @@ std::unique_ptr<Mat> TorchMat::broadcast_to(const Shape &shape) const
 
 std::unique_ptr<Mat> TorchMat::sum_to(const Shape &shape) const
 {
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
+    auto sizes  = TorchMat::convert_shape_to_torch_sizes(shape);
     auto result = data_;
-    
+
     // 计算需要求和的维度
     auto current_sizes = data_.sizes();
-    auto target_sizes = sizes;
-    
+    auto target_sizes  = sizes;
+
     // 如果源数组已经是目标形状，则直接返回
-    if (current_sizes == target_sizes) {
+    if (current_sizes == target_sizes)
+    {
         return std::make_unique<TorchMat>(result);
     }
-    
+
     // 计算元素总数
     size_t current_elements = 1;
-    for (auto dim : current_sizes) {
+    for (auto dim : current_sizes)
+    {
         current_elements *= dim;
     }
-    
+
     size_t target_elements = 1;
-    for (auto dim : target_sizes) {
+    for (auto dim : target_sizes)
+    {
         target_elements *= dim;
     }
-    
-    if (target_elements > current_elements) {
+
+    if (target_elements > current_elements)
+    {
         // 目标形状更大，libtorch的sum_to不支持广播，抛出异常
         throw std::runtime_error("sum_to: Target shape cannot have more elements than source tensor");
-    } else {
+    }
+    else
+    {
         // 目标形状更小或相等，需要求和压缩
         // 收集需要求和的维度
         std::vector<int> sum_dims;
-        for (int i = 0; i < std::min(current_sizes.size(), target_sizes.size()); ++i) {
-            if (target_sizes[i] == 1 && current_sizes[i] > 1) {
+        for (size_t i = 0; i < std::min(current_sizes.size(), target_sizes.size()); ++i)
+        {
+            if (target_sizes[i] == 1 && current_sizes[i] > 1)
+            {
                 sum_dims.push_back(i);
             }
         }
-        
+
         // 处理多余的维度
-        for (int i = target_sizes.size(); i < current_sizes.size(); ++i) {
+        for (size_t i = target_sizes.size(); i < current_sizes.size(); ++i)
+        {
             sum_dims.push_back(i);
         }
-        
+
         // 一次性对所有需要求和的维度进行求和
         // 注意：需要从大到小排序，避免维度索引变化
         std::sort(sum_dims.begin(), sum_dims.end(), std::greater<int>());
-        for (int dim : sum_dims) {
+        for (int dim : sum_dims)
+        {
             result = result.sum(dim, false);
         }
-        
+
         // 确保结果的形状正确
-        if (result.sizes() != target_sizes) {
+        if (result.sizes() != target_sizes)
+        {
             result = result.reshape(sizes);
         }
     }
-    
+
     return std::make_unique<TorchMat>(result);
 }
 
@@ -335,7 +349,7 @@ std::vector<data_t> TorchMat::tensor_to_vector(const torch::Tensor &tensor)
 torch::Tensor TorchMat::vector_to_tensor(const std::vector<data_t> &data, const Shape &shape)
 {
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    return torch::from_blob(const_cast<data_t*>(data.data()), sizes, torch::kFloat32).clone();
+    return torch::from_blob(const_cast<data_t *>(data.data()), sizes, torch::kFloat32).clone();
 }
 
 std::vector<int64_t> TorchMat::convert_shape_to_torch_sizes(const Shape &shape)
@@ -345,14 +359,14 @@ std::vector<int64_t> TorchMat::convert_shape_to_torch_sizes(const Shape &shape)
     {
         return {1};
     }
-    
+
     std::vector<int64_t> sizes;
     sizes.reserve(dims.size());
     for (size_t dim : dims)
     {
         sizes.push_back(static_cast<int64_t>(dim));
     }
-    
+
     return sizes;
 }
 
@@ -370,7 +384,7 @@ Shape TorchMat::convert_torch_sizes_to_shape(const torch::IntArrayRef &sizes)
 // 静态工厂方法实现
 std::unique_ptr<Mat> TorchMat::randn(const Shape &shape)
 {
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
+    auto sizes                = TorchMat::convert_shape_to_torch_sizes(shape);
     torch::Tensor rand_tensor = torch::randn(sizes, torch::kFloat32);
     return std::make_unique<TorchMat>(std::move(rand_tensor));
 }
