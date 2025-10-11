@@ -255,8 +255,6 @@ public:
 };
 extern Tensor mat_mul(const Tensor &x, const Tensor &w);
 
-extern NdArray numerical_diff(std::function<Tensor(Tensor)> f, const Tensor &x, data_t eps = 1e-4);
-
 }  // namespace origin
 
 #endif

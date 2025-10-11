@@ -1,7 +1,6 @@
 #include "origin/mat/torch/torch_mat.h"
 #include <torch/torch.h>
 #include <stdexcept>
-#include "origin/mat/backend_constants.h"
 #include "origin/utils/log.h"
 
 namespace origin
@@ -334,7 +333,7 @@ data_t TorchMat::mean() const
 
 int TorchMat::backend_type() const
 {
-    return TORCH_CONST;
+    return TORCH_BACKEND_TYPE;
 }
 
 // 静态辅助函数实现

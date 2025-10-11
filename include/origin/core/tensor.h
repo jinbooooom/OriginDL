@@ -1,14 +1,14 @@
 #ifndef __ORIGIN_DL_TENSOR_H__
 #define __ORIGIN_DL_TENSOR_H__
 
-#include "../mat/types.h"
+#include "../common/inner_types.h"
 #include "tensor_impl.h"
+
+// 前向声明
+class Mat;
 
 namespace origin
 {
-
-// 前向声明
-class Operator;
 
 /*
 Tensor 架构层次：
@@ -18,7 +18,7 @@ TensorImpl (核心实现)
     ↓ 只调用Mat接口方法
 Mat (抽象接口)
     ↓ 具体实现
-ArrayFireMat (具体后端)
+TorchMat (具体后端)
 */
 
 /**

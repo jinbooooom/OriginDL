@@ -239,16 +239,6 @@ set_tests_properties(reshape_test PROPERTIES TIMEOUT 60)
 set_tests_properties(matmul_test PROPERTIES TIMEOUT 60)
 set_tests_properties(linear_regression_test PROPERTIES TIMEOUT 60)
 
-# 添加PyTorch对比示例子目录选项
-option(BUILD_PYTORCH_COMPARISON "Build PyTorch comparison examples" OFF)
-
-if(BUILD_PYTORCH_COMPARISON)
-    message(STATUS "Building PyTorch comparison examples")
-    add_subdirectory(operator/pytorch_comparison)
-else()
-    message(STATUS "Skipping PyTorch comparison examples (BUILD_PYTORCH_COMPARISON=OFF)")
-endif()
-
 # 打印配置信息
 message(STATUS "Unit tests configuration completed")
 message(STATUS "GoogleTest libraries: ${GTEST_LIBRARIES}")
