@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 3.12)
 set(MY_LIB_NAME origindl)
 project (${MY_LIB_NAME})
 
-set(DLZERO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # 使用GLOB自动收集源文件，避免手动维护文件列表
 file(
@@ -34,11 +34,11 @@ add_definitions(-DMAT_BACKEND=TORCH)
 
 # message(WARNING ${MY_LIB_SRCS})
 
-execute_process(
-    COMMAND bash "-c" "git log|head -n 1|awk '{printf $2}'"
-    OUTPUT_VARIABLE GIT_COMMIT
-    )
-add_definitions(-DGIT_COMMIT_SHA1="${GIT_COMMIT}")
+# execute_process(
+#     COMMAND bash "-c" "git log|head -n 1|awk '{printf $2}'"
+#     OUTPUT_VARIABLE GIT_COMMIT
+#     )
+# add_definitions(-DGIT_COMMIT_SHA1="${GIT_COMMIT}")
 
 # 检查环境变量ARRAYFIRE_PATH是否存在，如果存在则使用它，否则使用默认路径
 if(DEFINED ENV{ARRAYFIRE_PATH})

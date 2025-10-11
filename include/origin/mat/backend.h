@@ -1,7 +1,10 @@
 #ifndef __ORIGIN_DL_BACKEND_H__
 #define __ORIGIN_DL_BACKEND_H__
 
-#include "backend_constants.h"
+/*
+该文件会包含具体的矩阵计算后端头文件，在include的时候要分外注意。
+*/
+
 #include "mat.h"
 
 // 硬编码使用TORCH后端
@@ -9,7 +12,7 @@
 // #include <arrayfire.h>
 // #include "array_fire_mat.h"
 // #elif MAT_BACKEND == TORCH
-#include <torch/torch.h>
+// #include <torch/torch.h>
 #include "torch/torch_mat.h"
 // #elif MAT_BACKEND == EIGEN
 // #include "eigen_mat.h"  // 未来扩展
@@ -21,9 +24,6 @@ namespace origin
 {
 
 // 硬编码使用TORCH后端
-// #ifndef MAT_BACKEND
-// #    define MAT_BACKEND ARRAYFIRE
-// #endif
 
 // 硬编码使用TorchMat
 // #if MAT_BACKEND == ARRAYFIRE
@@ -36,19 +36,6 @@ using Mat_t = TorchMat;
 // using Mat_t = CustomMat;  // 未来扩展
 // #else
 // using Mat_t = TorchMat;  // 默认使用TorchMat
-// #endif
-
-// 硬编码使用torch::Tensor类型别名
-// #if MAT_BACKEND == ARRAYFIRE
-// using NdArray = af::array;
-// using DLMat   = af::array;
-// #elif MAT_BACKEND == TORCH
-using NdArray = torch::Tensor;
-using DLMat   = torch::Tensor;
-// #else
-// // 默认使用TorchMat
-// using NdArray = torch::Tensor;
-// using DLMat   = torch::Tensor;
 // #endif
 
 }  // namespace origin

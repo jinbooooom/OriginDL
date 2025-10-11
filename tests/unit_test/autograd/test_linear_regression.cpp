@@ -17,8 +17,6 @@ protected:
     void SetUp() override
     {
         // 测试前的设置
-        // 设置随机种子确保可重复性
-        torch::manual_seed(0);
     }
 
     void TearDown() override
@@ -48,9 +46,6 @@ protected:
 // 线性回归收敛性测试
 TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
 {
-    // 设置随机种子
-    torch::manual_seed(0);
-
     // 生成随机数据
     size_t input_size = 100;
     auto x            = Tensor::randn(Shape{input_size, 1});

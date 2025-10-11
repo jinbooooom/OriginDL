@@ -1,7 +1,12 @@
 #ifndef __ORIGIN_DL_TENSOR_IMPL_H__
 #define __ORIGIN_DL_TENSOR_IMPL_H__
 
-#include "../mat/types.h"
+#include <memory>
+#include <vector>
+#include "../common/inner_types.h"
+#include "../mat/basic_types.h"
+#include "../mat/mat.h"
+#include "../mat/shape.h"
 
 // 前向声明
 class Operator;
