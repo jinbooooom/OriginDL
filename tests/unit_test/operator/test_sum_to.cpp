@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -71,7 +71,7 @@ TEST_F(SumToOperatorTest, ForwardBasic)
     auto result = sum_to(x, target_shape);
 
     // EXPECT_EQ(result.shape(), target_shape);
-    EXPECT_NEAR(result.item(), 10.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 10.0, kTolerance);
 }
 
 TEST_F(SumToOperatorTest, ForwardToScalar)
@@ -83,7 +83,7 @@ TEST_F(SumToOperatorTest, ForwardToScalar)
     auto result = sum_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    EXPECT_NEAR(result.item(), 15.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 15.0, kTolerance);
 }
 
 TEST_F(SumToOperatorTest, ForwardToSameShape)
@@ -115,7 +115,7 @@ TEST_F(SumToOperatorTest, ForwardToSmallerShape)
     auto result = sum_to(x, target_shape);
 
     // EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {6.0, 15.0};  // 第一行和：1+2+3=6，第二行和：4+5+6=15
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -133,7 +133,7 @@ TEST_F(SumToOperatorTest, ForwardZeroTensor)
     auto result = sum_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    EXPECT_NEAR(result.item(), 0.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 0.0, kTolerance);
 }
 
 // ==================== 反向传播测试 ====================
@@ -148,7 +148,7 @@ TEST_F(SumToOperatorTest, BackwardBasic)
     y.backward();
 
     // sum_to算子的梯度：∂y/∂x = 1（广播回原始形状）
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -169,7 +169,7 @@ TEST_F(SumToOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0}, Shape{1});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -186,7 +186,7 @@ TEST_F(SumToOperatorTest, BackwardToSameShape)
     auto y = sum_to(x, target_shape);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -214,7 +214,7 @@ TEST_F(SumToOperatorTest, SingleElement)
     auto result = sum_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    EXPECT_NEAR(result.item(), 5.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 5.0, kTolerance);
 }
 
 TEST_F(SumToOperatorTest, LargeTensor)
@@ -227,7 +227,7 @@ TEST_F(SumToOperatorTest, LargeTensor)
     auto result = sum_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    EXPECT_NEAR(result.item(), 100.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 100.0, kTolerance);
 }
 
 TEST_F(SumToOperatorTest, ThreeDimensional)
@@ -239,7 +239,7 @@ TEST_F(SumToOperatorTest, ThreeDimensional)
     auto result = sum_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    EXPECT_NEAR(result.item(), 36.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 36.0, kTolerance);
 }
 
 TEST_F(SumToOperatorTest, ThreeDimensionalTo2D)
@@ -251,7 +251,7 @@ TEST_F(SumToOperatorTest, ThreeDimensionalTo2D)
     auto result = sum_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {10.0, 26.0};  // 前4个元素和：1+2+3+4=10，后4个元素和：5+6+7+8=26
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -270,7 +270,7 @@ TEST_F(SumToOperatorTest, NumericalStability)
 
     auto result = sum_to(x, target_shape);
 
-    EXPECT_NEAR(result.item(), 0.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 0.0, kTolerance);
 }
 
 TEST_F(SumToOperatorTest, PrecisionTest)
@@ -281,7 +281,7 @@ TEST_F(SumToOperatorTest, PrecisionTest)
 
     auto result = sum_to(x, target_shape);
 
-    EXPECT_NEAR(result.item(), 0.6, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 0.6, kTolerance);
 }
 
 // ==================== 特殊值测试 ====================
@@ -294,7 +294,7 @@ TEST_F(SumToOperatorTest, MixedSigns)
 
     auto result = sum_to(x, target_shape);
 
-    EXPECT_NEAR(result.item(), 3.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 3.0, kTolerance);
 }
 
 TEST_F(SumToOperatorTest, IdentityProperty)
@@ -330,5 +330,5 @@ TEST_F(SumToOperatorTest, CommutativeProperty)
     auto result1 = sum_to(x + y, target_shape);
     auto result2 = sum_to(x, target_shape) + sum_to(y, target_shape);
 
-    EXPECT_NEAR(result1.item(), result2.item(), kTolerance);
+    EXPECT_NEAR(result1.item<float>(), result2.item<float>(), kTolerance);
 }

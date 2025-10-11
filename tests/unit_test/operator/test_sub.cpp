@@ -31,8 +31,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -62,7 +62,7 @@ TEST_F(SubOperatorTest, ForwardBasic)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {4.0, 4.0, 4.0, 4.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -81,7 +81,7 @@ TEST_F(SubOperatorTest, ForwardOperatorOverload)
 
     Shape expected_shape{2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {4.0, 4.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -102,8 +102,8 @@ TEST_F(SubOperatorTest, ForwardScalarTensor)
     EXPECT_EQ(result1.shape(), Shape{3});
     EXPECT_EQ(result2.shape(), Shape{3});
 
-    auto data1                    = result1.to_vector();
-    auto data2                    = result2.to_vector();
+    auto data1                    = result1.to_vector<float>();
+    auto data2                    = result2.to_vector<float>();
     std::vector<data_t> expected1 = {3.0, 4.0, 5.0};
     std::vector<data_t> expected2 = {-3.0, -4.0, -5.0};
 
@@ -133,7 +133,7 @@ TEST_F(SubOperatorTest, ForwardNegativeValues)
 
     auto result = sub(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-4.0, -6.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -154,8 +154,8 @@ TEST_F(SubOperatorTest, BackwardBasic)
     y.backward();
 
     // 减法算子的梯度：∂y/∂x0 = 1, ∂y/∂x1 = -1
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx0_data.size(); ++i)
     {
@@ -175,8 +175,8 @@ TEST_F(SubOperatorTest, BackwardWithGradient)
     // 减法算子的梯度：∂y/∂x0 = 1, ∂y/∂x1 = -1
     y.backward();
 
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx0_data.size(); ++i)
     {
@@ -195,8 +195,8 @@ TEST_F(SubOperatorTest, BackwardDifferentShapes)
     y.backward();
 
     // 梯度应该正确广播
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
     EXPECT_EQ(gx0_data.size(), 2U);
     EXPECT_EQ(gx1_data.size(), 1U);
@@ -220,7 +220,7 @@ TEST_F(SubOperatorTest, SingleElement)
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), 2.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 2.0, kTolerance);
 }
 
 TEST_F(SubOperatorTest, LargeTensor)
@@ -235,7 +235,7 @@ TEST_F(SubOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -253,7 +253,7 @@ TEST_F(SubOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     // 期望值：x0[i] - x1[i]
     std::vector<double> expected = {0.9, 1.8, 2.7, 3.6, 4.5, 5.4, 6.3, 7.2};
@@ -274,7 +274,7 @@ TEST_F(SubOperatorTest, NumericalStability)
 
     auto result = sub(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1e10, -1e10};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -291,7 +291,7 @@ TEST_F(SubOperatorTest, PrecisionTest)
 
     auto result = sub(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {0.2, 0.2};
 
     for (size_t i = 0; i < expected.size(); ++i)

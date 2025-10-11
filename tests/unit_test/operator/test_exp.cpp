@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -62,7 +62,7 @@ TEST_F(ExpOperatorTest, ForwardBasic)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, std::exp(1.0), std::exp(2.0)};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -78,7 +78,7 @@ TEST_F(ExpOperatorTest, ForwardZero)
 
     auto result = exp(x);
 
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], 1.0, kTolerance);
@@ -92,7 +92,7 @@ TEST_F(ExpOperatorTest, ForwardNegativeValues)
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {std::exp(-1.0), std::exp(-2.0)};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -108,7 +108,7 @@ TEST_F(ExpOperatorTest, ForwardLargeValues)
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {std::exp(5.0), std::exp(10.0)};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -128,8 +128,8 @@ TEST_F(ExpOperatorTest, BackwardBasic)
     y.backward();
 
     // 指数算子的梯度：∂y/∂x = exp(x)
-    auto gx_data = x.grad().to_vector();
-    auto y_data  = y.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto y_data  = y.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -149,8 +149,8 @@ TEST_F(ExpOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0}, Shape{2});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
-    auto y_data  = y.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto y_data  = y.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -166,7 +166,7 @@ TEST_F(ExpOperatorTest, BackwardZeroGradient)
     auto y = exp(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -182,8 +182,8 @@ TEST_F(ExpOperatorTest, BackwardNegativeValues)
     auto y = exp(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
-    auto y_data  = y.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto y_data  = y.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -202,7 +202,7 @@ TEST_F(ExpOperatorTest, SingleElement)
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), std::exp(1.0), kTolerance);
+    EXPECT_NEAR(result.item<float>(), std::exp(1.0), kTolerance);
 }
 
 TEST_F(ExpOperatorTest, LargeTensor)
@@ -215,7 +215,7 @@ TEST_F(ExpOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     data_t expected  = std::exp(1.0);
 
     for (size_t i = 0; i < result_data.size(); ++i)
@@ -233,7 +233,7 @@ TEST_F(ExpOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -250,7 +250,7 @@ TEST_F(ExpOperatorTest, NumericalStability)
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {std::exp(-10.0), 1.0, std::exp(10.0)};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -266,7 +266,7 @@ TEST_F(ExpOperatorTest, PrecisionTest)
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {std::exp(0.1), std::exp(0.2)};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -284,7 +284,7 @@ TEST_F(ExpOperatorTest, SmallValues)
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {std::exp(kTolerance), std::exp(2e-6)};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -300,7 +300,7 @@ TEST_F(ExpOperatorTest, VerySmallValues)
 
     auto result = exp(x);
 
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // 这些值应该非常接近0
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -315,7 +315,7 @@ TEST_F(ExpOperatorTest, IdentityProperty)
 
     auto result = exp(x);
 
-    EXPECT_NEAR(result.item(), 1.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 1.0, kTolerance);
 }
 
 TEST_F(ExpOperatorTest, MonotonicProperty)
@@ -327,5 +327,5 @@ TEST_F(ExpOperatorTest, MonotonicProperty)
     auto y1 = exp(x1);
     auto y2 = exp(x2);
 
-    EXPECT_LT(y1.item(), y2.item());
+    EXPECT_LT(y1.item<float>(), y2.item<float>());
 }

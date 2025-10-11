@@ -37,7 +37,7 @@ protected:
         auto diff       = x0 - x1;
         auto sum_result = origin::sum(origin::pow(diff, 2));
         // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-        auto elements = Tensor::constant(diff.elements(), sum_result.shape());
+        auto elements = Tensor(diff.elements(), sum_result.shape());
         auto result   = sum_result / elements;
         return result;
     }
@@ -55,8 +55,8 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
     auto y = x * kExpectedW + kExpectedB + noise;
 
     // 初始化权重和偏置
-    auto w = Tensor::constant(0, Shape{1, 1});
-    auto b = Tensor::constant(0, Shape{1, 1});
+    auto w = Tensor(0, Shape{1, 1});
+    auto b = Tensor(0, Shape{1, 1});
 
     // 设置学习率和迭代次数
     data_t lr = 0.1;
@@ -81,16 +81,16 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
 
         // 打印结果
 #if 0
-        float loss_val = loss.to_vector()[0];
-        float w_val = w.to_vector()[0];
-        float b_val = b.to_vector()[0];
+        float loss_val = loss.to_vector<float>()[0];
+        float w_val = w.to_vector<float>()[0];
+        float b_val = b.to_vector<float>()[0];
         logi("Iteration {}: loss = {:.6f}, w = {:.6f}, b = {:.6f}", i, loss_val, w_val, b_val);
 #endif
     }
 
     // 验证权重是否收敛到期望值
-    float final_w = w.to_vector()[0];
-    float final_b = b.to_vector()[0];
+    float final_w = w.to_vector<float>()[0];
+    float final_b = b.to_vector<float>()[0];
 
     EXPECT_NEAR(final_w, kExpectedW, kTolerance)
         << "Weight w should converge to " << kExpectedW << ", but got " << final_w;

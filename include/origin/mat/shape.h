@@ -11,7 +11,7 @@ namespace origin
 
 /**
  * @brief 张量形状类，用于表示多维张量的维度信息
- * @details 替代ArrayFire的af::dim4，使用std::vector<size_t>存储维度信息
+ * @details 替代底层矩阵计算库的形状信息，使用std::vector<size_t>存储维度信息
  */
 class Shape
 {
@@ -36,14 +36,6 @@ public:
      */
     Shape(std::initializer_list<size_t> dims) : dims_(dims) {}
 
-    /**
-     * @brief 从4个维度构造（兼容ArrayFire的af::dim4）
-     * @param d0 第0维
-     * @param d1 第1维，默认为1
-     * @param d2 第2维，默认为1
-     * @param d3 第3维，默认为1
-     */
-    Shape(size_t d0, size_t d1 = 1, size_t d2 = 1, size_t d3 = 1) : dims_{d0, d1, d2, d3} {}
 
     /**
      * @brief 获取维度向量

@@ -89,8 +89,10 @@ public:
 extern Tensor add(const std::vector<Tensor> &xs);
 extern Tensor add(const Tensor &lhs, const Tensor &rhs);
 Tensor operator+(const Tensor &lhs, const Tensor &rhs);
-Tensor operator+(const Tensor &lhs, data_t rhs);
-Tensor operator+(data_t lhs, const Tensor &rhs);
+template <typename T>
+Tensor operator+(const Tensor &lhs, T rhs);
+template <typename T>
+Tensor operator+(T lhs, const Tensor &rhs);
 
 class Sub : public Operator
 {
@@ -106,8 +108,10 @@ public:
 extern Tensor sub(const std::vector<Tensor> &xs);
 extern Tensor sub(const Tensor &lhs, const Tensor &rhs);
 Tensor operator-(const Tensor &lhs, const Tensor &rhs);
-Tensor operator-(const Tensor &lhs, data_t rhs);
-Tensor operator-(data_t lhs, const Tensor &rhs);
+template <typename T>
+Tensor operator-(const Tensor &lhs, T rhs);
+template <typename T>
+Tensor operator-(T lhs, const Tensor &rhs);
 
 class Mul : public Operator
 {
@@ -123,8 +127,10 @@ public:
 extern Tensor mul(const std::vector<Tensor> &xs);
 extern Tensor mul(const Tensor &lhs, const Tensor &rhs);
 Tensor operator*(const Tensor &lhs, const Tensor &rhs);
-Tensor operator*(const Tensor &lhs, data_t rhs);
-Tensor operator*(data_t lhs, const Tensor &rhs);
+template <typename T>
+Tensor operator*(const Tensor &lhs, T rhs);
+template <typename T>
+Tensor operator*(T lhs, const Tensor &rhs);
 
 class Div : public Operator
 {
@@ -140,8 +146,10 @@ public:
 extern Tensor div(const std::vector<Tensor> &xs);
 extern Tensor div(const Tensor &lhs, const Tensor &rhs);
 Tensor operator/(const Tensor &lhs, const Tensor &rhs);
-Tensor operator/(const Tensor &lhs, data_t rhs);
-Tensor operator/(data_t lhs, const Tensor &rhs);
+template <typename T>
+Tensor operator/(const Tensor &lhs, T rhs);
+template <typename T>
+Tensor operator/(T lhs, const Tensor &rhs);
 
 class Square : public Operator
 {
@@ -156,7 +164,7 @@ extern Tensor square(const Tensor &x);
 class Pow : public Operator
 {
 public:
-    Pow(int n) : exponent_(n) {};
+    Pow(int n) : exponent_(n){};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
@@ -207,8 +215,8 @@ public:
     int axis_;  // 对那个轴求和
 
     Shape x_shape_;  // 输入的形状
-    Sum() : axis_(-1) {};
-    Sum(const int axis) : axis_(axis) {};
+    Sum() : axis_(-1){};
+    Sum(const int axis) : axis_(axis){};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
@@ -223,7 +231,7 @@ public:
 
     Shape x_shape_;  // 输入的形状
 
-    BroadcastTo(const Shape &shape) : shape_(shape) {};
+    BroadcastTo(const Shape &shape) : shape_(shape){};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
@@ -238,7 +246,7 @@ public:
 
     Shape x_shape_;  // 输入的形状
 
-    SumTo(const Shape &shape) : shape_(shape) {};
+    SumTo(const Shape &shape) : shape_(shape){};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
