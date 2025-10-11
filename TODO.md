@@ -1,10 +1,5 @@
 # TODO List
 
-这几个错误与Shape有关，暂时先忽略。是 Pytorch 与 arrayFile 的不一致导致的。
-
-The following tests FAILED:
-         11 - sum_to_test (Failed)
-         12 - broadcast_to_test (Failed)
-         13 - transpose_test (Failed)
-         14 - reshape_test (SEGFAULT)
-         15 - matmul_test (Failed)
+- 25/10/10：跑通所以的单元测试
+- 增加后端矩阵计算库 OriginMat
+- 支持创建不同数据类型的张量（目前只支持float）
