@@ -90,16 +90,63 @@ TEST_F(TensorCreateTest, MoveConstructor)
 {
     std::vector<data_t> data = {1.0, 2.0, 3.0, 4.0};
     Shape shape{2, 2};
-    Tensor original(data, shape);
-    Tensor moved(std::move(original));
+    Tensor original_tensor(data, shape);
+    
+    // 保存原始数据，用于后续验证
+    auto original_data = original_tensor.to_vector();
+    
+    // 执行移动构造
+    Tensor moved_tensor(std::move(original_tensor));
 
-    EXPECT_EQ(moved.shape(), shape);
-    EXPECT_EQ(moved.elements(), 4U);
+    // 验证移动后的对象数据正确
+    EXPECT_EQ(moved_tensor.shape(), shape);
+    EXPECT_EQ(moved_tensor.elements(), 4U);
 
-    auto moved_data = moved.to_vector();
+    auto moved_data = moved_tensor.to_vector();
     for (size_t i = 0; i < data.size(); ++i)
     {
         EXPECT_NEAR(moved_data[i], data[i], 1e-6);
+    }
+    
+    // 验证移动构造的核心特性：原始对象应该处于无效状态
+    // 由于Tensor使用shared_ptr，移动后original_tensor.impl_变为nullptr
+    // 这是正确的移动语义行为：所有权被转移，原对象不再拥有资源
+    
+    // 验证移动构造确实发生了：尝试访问移动后的对象应该导致段错误
+    // 这证明了移动构造函数的正确实现
+    // 注意：这个测试期望程序崩溃，这是正确的行为
+    // 在实际使用中，不应该访问移动后的对象
+    
+    // 下面的代码来验证移动构造
+    // EXPECT_DEATH 会启动一个子进程来执行测试，由于访问 nullptr，子进程产生段错误，父进程捕获子进程的崩溃信号
+    EXPECT_DEATH({
+        printf("access moved object...\n");
+        fflush(stdout);
+        original_tensor.shape();
+        printf("this message should not print\n");
+    }, ".*"); 
+    EXPECT_DEATH(original_tensor.elements(), ".*");  // 期望段错误
+    EXPECT_DEATH(original_tensor.to_vector(), ".*");  // 期望段错误
+    
+    // 验证多次移动构造的正确性
+    Tensor another_tensor = std::move(moved_tensor);
+    EXPECT_EQ(another_tensor.shape(), shape);
+    EXPECT_EQ(another_tensor.elements(), 4U);
+    
+    auto another_data = another_tensor.to_vector();
+    for (size_t i = 0; i < data.size(); ++i)
+    {
+        EXPECT_NEAR(another_data[i], data[i], 1e-6);
+    }
+    
+    Tensor final_tensor = std::move(another_tensor);
+    EXPECT_EQ(final_tensor.shape(), shape);
+    EXPECT_EQ(final_tensor.elements(), 4U);
+    
+    auto final_data = final_tensor.to_vector();
+    for (size_t i = 0; i < data.size(); ++i)
+    {
+        EXPECT_NEAR(final_data[i], data[i], 1e-6);
     }
 }
 
