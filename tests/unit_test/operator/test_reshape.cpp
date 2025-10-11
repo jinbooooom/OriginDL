@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -71,7 +71,7 @@ TEST_F(ReshapeOperatorTest, ForwardBasic)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -100,7 +100,7 @@ TEST_F(ReshapeOperatorTest, ForwardTo1D)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -118,7 +118,7 @@ TEST_F(ReshapeOperatorTest, ForwardTo2D)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -136,7 +136,7 @@ TEST_F(ReshapeOperatorTest, ForwardTo3D)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -154,7 +154,7 @@ TEST_F(ReshapeOperatorTest, ForwardZeroTensor)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -174,7 +174,7 @@ TEST_F(ReshapeOperatorTest, BackwardBasic)
     y.backward();
 
     // 重塑算子的梯度：∂y/∂x = reshape(gy, x.shape())
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -195,7 +195,7 @@ TEST_F(ReshapeOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0, 2.0, 2.0}, Shape{4, 1});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -212,7 +212,7 @@ TEST_F(ReshapeOperatorTest, BackwardToSameShape)
     auto y = reshape(x, target_shape);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -229,7 +229,7 @@ TEST_F(ReshapeOperatorTest, BackwardToDifferentShape)
     auto y = reshape(x, target_shape);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -248,7 +248,7 @@ TEST_F(ReshapeOperatorTest, SingleElement)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    EXPECT_NEAR(result.item(), 5.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 5.0, kTolerance);
 }
 
 TEST_F(ReshapeOperatorTest, LargeTensor)
@@ -261,7 +261,7 @@ TEST_F(ReshapeOperatorTest, LargeTensor)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -278,7 +278,7 @@ TEST_F(ReshapeOperatorTest, ThreeDimensional)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -298,7 +298,7 @@ TEST_F(ReshapeOperatorTest, NumericalStability)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1e10, 1e-10, 1e10, 1e-10};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -316,7 +316,7 @@ TEST_F(ReshapeOperatorTest, PrecisionTest)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {0.1, 0.2, 0.3, 0.4};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -336,7 +336,7 @@ TEST_F(ReshapeOperatorTest, MixedSigns)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, -2.0, 3.0, -4.0};
 
     for (size_t i = 0; i < expected.size(); ++i)

@@ -68,7 +68,7 @@ void testTensorException()
     try
     {
         // 模拟一个会导致异常的张量操作
-        auto x = Tensor::constant(1.0, Shape{2, 2});
+        auto x = Tensor(1.0, Shape{2, 2});
 
         // 故意创建一个无效的梯度来触发异常
         // 这里我们模拟一个会导致 critical 异常的情况
@@ -92,8 +92,8 @@ void testOperatorException()
     try
     {
         // 模拟一个会导致异常的操作符
-        auto x = Tensor::constant(1.0, Shape{2, 2});
-        auto y = Tensor::constant(2.0, Shape{2, 2});
+        auto x = Tensor(1.0, Shape{2, 2});
+        auto y = Tensor(2.0, Shape{2, 2});
 
         // 故意触发一个警告异常
         DL_WARN_THROW("Simulated operator parameter validation failure");

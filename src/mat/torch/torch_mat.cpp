@@ -1,48 +1,12 @@
 #include "origin/mat/torch/torch_mat.h"
 #include <torch/torch.h>
 #include <stdexcept>
+#include "origin/mat/basic_types.h"
 #include "origin/utils/log.h"
 
 namespace origin
 {
 
-TorchMat::TorchMat(const std::vector<data_t> &data, const Shape &shape)
-{
-    // 验证数据是否为空
-    if (data.empty())
-    {
-        throw std::invalid_argument("TorchMat: Tensor data cannot be empty. Data vector is empty.");
-    }
-
-    // 验证形状是否有效（不能有0维度）
-    for (size_t i = 0; i < shape.size(); ++i)
-    {
-        if (shape[i] == 0)
-        {
-            throw std::invalid_argument("TorchMat: Tensor shape cannot have zero dimensions. Dimension " +
-                                        std::to_string(i) + " is zero in shape " + shape.to_string());
-        }
-    }
-
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    data_      = torch::from_blob(const_cast<data_t *>(data.data()), sizes, torch::kFloat32).clone();
-}
-
-TorchMat::TorchMat(data_t value, const Shape &shape)
-{
-    // 验证形状是否有效（不能有0维度）
-    for (size_t i = 0; i < shape.size(); ++i)
-    {
-        if (shape[i] == 0)
-        {
-            throw std::invalid_argument("TorchMat: Tensor shape cannot have zero dimensions. Dimension " +
-                                        std::to_string(i) + " is zero in shape " + shape.to_string());
-        }
-    }
-
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    data_      = torch::full(sizes, value, torch::kFloat32);
-}
 
 std::unique_ptr<Mat> TorchMat::clone() const
 {
@@ -111,34 +75,107 @@ std::unique_ptr<Mat> TorchMat::operator/(const Mat &other) const
     return std::make_unique<TorchMat>(data_ / other_torch.data_);
 }
 
+// 虚函数重写实现 - 调用模板版本
 std::unique_ptr<Mat> TorchMat::add_scalar(data_t scalar) const
 {
-    return std::make_unique<TorchMat>(data_ + scalar);
+    return add_scalar<data_t>(scalar);
+}
+
+template <typename U>
+std::unique_ptr<Mat> TorchMat::add_scalar(U scalar) const
+{
+    // 根据输入类型动态转换
+    auto data_type = get_data_type_from_template<U>();
+    auto torch_type = get_torch_type(data_type);
+    
+    // 创建标量tensor
+    torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
+    return std::make_unique<TorchMat>(data_ + scalar_tensor);
 }
 
 std::unique_ptr<Mat> TorchMat::mul_scalar(data_t scalar) const
 {
-    return std::make_unique<TorchMat>(data_ * scalar);
+    return mul_scalar<data_t>(scalar);
+}
+
+template <typename U>
+std::unique_ptr<Mat> TorchMat::mul_scalar(U scalar) const
+{
+    // 根据输入类型动态转换
+    auto data_type = get_data_type_from_template<U>();
+    auto torch_type = get_torch_type(data_type);
+    
+    // 创建标量tensor
+    torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
+    return std::make_unique<TorchMat>(data_ * scalar_tensor);
 }
 
 std::unique_ptr<Mat> TorchMat::operator+(data_t scalar) const
 {
-    return std::make_unique<TorchMat>(data_ + scalar);
+    return operator+<data_t>(scalar);
+}
+
+template <typename U>
+std::unique_ptr<Mat> TorchMat::operator+(U scalar) const
+{
+    // 根据输入类型动态转换
+    auto data_type = get_data_type_from_template<U>();
+    auto torch_type = get_torch_type(data_type);
+    
+    // 创建标量tensor
+    torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
+    return std::make_unique<TorchMat>(data_ + scalar_tensor);
 }
 
 std::unique_ptr<Mat> TorchMat::operator-(data_t scalar) const
 {
-    return std::make_unique<TorchMat>(data_ - scalar);
+    return operator-<data_t>(scalar);
+}
+
+template <typename U>
+std::unique_ptr<Mat> TorchMat::operator-(U scalar) const
+{
+    // 根据输入类型动态转换
+    auto data_type = get_data_type_from_template<U>();
+    auto torch_type = get_torch_type(data_type);
+    
+    // 创建标量tensor
+    torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
+    return std::make_unique<TorchMat>(data_ - scalar_tensor);
 }
 
 std::unique_ptr<Mat> TorchMat::operator*(data_t scalar) const
 {
-    return std::make_unique<TorchMat>(data_ * scalar);
+    return operator*<data_t>(scalar);
+}
+
+template <typename U>
+std::unique_ptr<Mat> TorchMat::operator*(U scalar) const
+{
+    // 根据输入类型动态转换
+    auto data_type = get_data_type_from_template<U>();
+    auto torch_type = get_torch_type(data_type);
+    
+    // 创建标量tensor
+    torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
+    return std::make_unique<TorchMat>(data_ * scalar_tensor);
 }
 
 std::unique_ptr<Mat> TorchMat::operator/(data_t scalar) const
 {
-    return std::make_unique<TorchMat>(data_ / scalar);
+    return operator/<data_t>(scalar);
+}
+
+template <typename U>
+std::unique_ptr<Mat> TorchMat::operator/(U scalar) const
+{
+    // 根据输入类型动态转换
+    auto data_type = get_data_type_from_template<U>();
+    auto torch_type = get_torch_type(data_type);
+    
+    // 创建标量tensor
+    torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
+    return std::make_unique<TorchMat>(data_ / scalar_tensor);
 }
 
 std::unique_ptr<Mat> TorchMat::operator-() const
@@ -251,7 +288,13 @@ size_t TorchMat::elements() const
 
 std::vector<data_t> TorchMat::to_vector() const
 {
-    return TorchMat::tensor_to_vector(data_);
+    return to_vector<data_t>();
+}
+
+template <typename U>
+std::vector<U> TorchMat::to_vector() const
+{
+    return TorchMat::tensor_to_vector<U>(data_);
 }
 
 // 数学函数实现
@@ -287,14 +330,26 @@ std::unique_ptr<Mat> TorchMat::square() const
 
 std::unique_ptr<Mat> TorchMat::pow(data_t exponent) const
 {
-    return std::make_unique<TorchMat>(torch::pow(data_, exponent));
+    return pow<data_t>(exponent);
+}
+
+template <typename U>
+std::unique_ptr<Mat> TorchMat::pow(U exponent) const
+{
+    // 根据输入类型动态转换
+    auto data_type = get_data_type_from_template<U>();
+    auto torch_type = get_torch_type(data_type);
+    
+    // 创建标量tensor
+    torch::Tensor exponent_tensor = torch::full({}, exponent, torch_type);
+    return std::make_unique<TorchMat>(torch::pow(data_, exponent_tensor));
 }
 
 // 数据访问方法
-template <typename T>
-T TorchMat::scalar() const
+template <typename U>
+U TorchMat::scalar() const
 {
-    return data_.item<T>();
+    return data_.item<U>();
 }
 
 // 调试方法
@@ -311,22 +366,24 @@ void TorchMat::print(const std::string &desc) const
 template data_t TorchMat::scalar<data_t>() const;
 template int TorchMat::scalar<int>() const;
 
-data_t TorchMat::sum() const
+// 全局聚合函数实现 - 返回标量值
+// 注意：这些函数重命名为 *_all() 是为了避免与 sum(int axis) 等按轴操作的函数名冲突
+data_t TorchMat::sum_all() const
 {
     return data_.sum().item<data_t>();
 }
 
-data_t TorchMat::max() const
+data_t TorchMat::max_all() const
 {
     return data_.max().item<data_t>();
 }
 
-data_t TorchMat::min() const
+data_t TorchMat::min_all() const
 {
     return data_.min().item<data_t>();
 }
 
-data_t TorchMat::mean() const
+data_t TorchMat::mean_all() const
 {
     return data_.mean().item<data_t>();
 }
@@ -337,18 +394,22 @@ int TorchMat::backend_type() const
 }
 
 // 静态辅助函数实现
-std::vector<data_t> TorchMat::tensor_to_vector(const torch::Tensor &tensor)
+template <typename U>
+std::vector<U> TorchMat::tensor_to_vector(const torch::Tensor &tensor)
 {
-    std::vector<data_t> result(tensor.numel());
-    auto data_ptr = tensor.data_ptr<data_t>();
+    std::vector<U> result(tensor.numel());
+    auto data_ptr = tensor.data_ptr<U>();
     std::copy(data_ptr, data_ptr + tensor.numel(), result.begin());
     return result;
 }
 
-torch::Tensor TorchMat::vector_to_tensor(const std::vector<data_t> &data, const Shape &shape)
+template <typename U>
+torch::Tensor TorchMat::vector_to_tensor(const std::vector<U> &data, const Shape &shape)
 {
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    return torch::from_blob(const_cast<data_t *>(data.data()), sizes, torch::kFloat32).clone();
+    auto data_type = get_data_type_from_template<U>();
+    auto torch_type = get_torch_type(data_type);
+    return torch::from_blob(const_cast<U *>(data.data()), sizes, torch_type).clone();
 }
 
 std::vector<int64_t> TorchMat::convert_shape_to_torch_sizes(const Shape &shape)
@@ -387,5 +448,114 @@ std::unique_ptr<Mat> TorchMat::randn(const Shape &shape)
     torch::Tensor rand_tensor = torch::randn(sizes, torch::kFloat32);
     return std::make_unique<TorchMat>(std::move(rand_tensor));
 }
+
+
+// 类型相关方法实现
+DataType TorchMat::dtype() const {
+    return get_data_type_from_torch(data_.scalar_type());
+}
+
+std::unique_ptr<Mat> TorchMat::to(DataType target_type) const {
+    auto torch_type = get_torch_type(target_type);
+    auto converted_tensor = data_.to(torch_type);
+    return std::make_unique<TorchMat>(std::move(converted_tensor));
+}
+
+
+
+torch::ScalarType TorchMat::get_torch_type(DataType dtype) {
+    switch (dtype) {
+        case DataType::kFloat32:
+            return torch::kFloat32;
+        case DataType::kDouble:
+            return torch::kFloat64;
+        case DataType::kInt32:
+            return torch::kInt32;
+        case DataType::kInt8:
+            return torch::kInt8;
+        default:
+            throw std::invalid_argument("Unsupported data type");
+    }
+}
+
+DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type) {
+    switch (torch_type) {
+        case torch::kFloat32:
+            return DataType::kFloat32;
+        case torch::kFloat64:
+            return DataType::kDouble;
+        case torch::kInt32:
+            return DataType::kInt32;
+        case torch::kInt8:
+            return DataType::kInt8;
+        default:
+            throw std::invalid_argument("Unsupported torch scalar type");
+    }
+}
+
+// === TorchMat泛型方法实现 ===
+template <typename U>
+U* TorchMat::data_ptr() {
+    return data_.data_ptr<U>();
+}
+
+// === 模板实例化 ===
+template float* TorchMat::data_ptr<float>();
+template double* TorchMat::data_ptr<double>();
+template int32_t* TorchMat::data_ptr<int32_t>();
+template int8_t* TorchMat::data_ptr<int8_t>();
+
+// 标量操作模板实例化（注释掉，让编译器自动实例化）
+// template std::unique_ptr<Mat> TorchMat::add_scalar<float>(float scalar) const;
+// template std::unique_ptr<Mat> TorchMat::add_scalar<double>(double scalar) const;
+// template std::unique_ptr<Mat> TorchMat::add_scalar<int32_t>(int32_t scalar) const;
+// template std::unique_ptr<Mat> TorchMat::add_scalar<int8_t>(int8_t scalar) const;
+
+// template std::unique_ptr<Mat> TorchMat::mul_scalar<float>(float scalar) const;
+// template std::unique_ptr<Mat> TorchMat::mul_scalar<double>(double scalar) const;
+// template std::unique_ptr<Mat> TorchMat::mul_scalar<int32_t>(int32_t scalar) const;
+// template std::unique_ptr<Mat> TorchMat::mul_scalar<int8_t>(int8_t scalar) const;
+
+// template std::unique_ptr<Mat> TorchMat::operator+<float>(float scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator+<double>(double scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator+<int32_t>(int32_t scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator+<int8_t>(int8_t scalar) const;
+
+// template std::unique_ptr<Mat> TorchMat::operator-<float>(float scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator-<double>(double scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator-<int32_t>(int32_t scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator-<int8_t>(int8_t scalar) const;
+
+// template std::unique_ptr<Mat> TorchMat::operator*<float>(float scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator*<double>(double scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator*<int32_t>(int32_t scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator*<int8_t>(int8_t scalar) const;
+
+// template std::unique_ptr<Mat> TorchMat::operator/<float>(float scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator/<double>(double scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator/<int32_t>(int32_t scalar) const;
+// template std::unique_ptr<Mat> TorchMat::operator/<int8_t>(int8_t scalar) const;
+
+// pow 模板实例化（如果需要的话）
+// template std::unique_ptr<Mat> TorchMat::pow<float>(float exponent) const;
+// template std::unique_ptr<Mat> TorchMat::pow<double>(double exponent) const;
+// template std::unique_ptr<Mat> TorchMat::pow<int32_t>(int32_t exponent) const;
+// template std::unique_ptr<Mat> TorchMat::pow<int8_t>(int8_t exponent) const;
+
+template std::vector<float> TorchMat::to_vector<float>() const;
+template std::vector<double> TorchMat::to_vector<double>() const;
+template std::vector<int32_t> TorchMat::to_vector<int32_t>() const;
+template std::vector<int8_t> TorchMat::to_vector<int8_t>() const;
+
+template std::vector<float> TorchMat::tensor_to_vector<float>(const torch::Tensor &tensor);
+template std::vector<double> TorchMat::tensor_to_vector<double>(const torch::Tensor &tensor);
+template std::vector<int32_t> TorchMat::tensor_to_vector<int32_t>(const torch::Tensor &tensor);
+template std::vector<int8_t> TorchMat::tensor_to_vector<int8_t>(const torch::Tensor &tensor);
+
+// vector_to_tensor 模板实例化（如果需要的话）
+// template torch::Tensor TorchMat::vector_to_tensor<float>(const std::vector<float> &data, const Shape &shape);
+// template torch::Tensor TorchMat::vector_to_tensor<double>(const std::vector<double> &data, const Shape &shape);
+// template torch::Tensor TorchMat::vector_to_tensor<int32_t>(const std::vector<int32_t> &data, const Shape &shape);
+// template torch::Tensor TorchMat::vector_to_tensor<int8_t>(const std::vector<int8_t> &data, const Shape &shape);
 
 }  // namespace origin

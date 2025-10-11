@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     double val          = 0.5;
 
     logi("Test: y = (origin::exp(x^2))^2");
-    auto x = origin::Tensor::constant(val, shape);
+    auto x = origin::Tensor(val, shape);
     auto a = (*A)(x);
     auto b = (*B)(a);
     auto y = (*C)(b);
@@ -23,8 +23,8 @@ int main(int argc, char **argv)
     x.grad().print("gx: ");  // gx = 3.2974
 
     logi("Test Add: y = (x0^2) + (x1^2)");
-    auto x0 = origin::Tensor::constant(2, shape);
-    auto x1 = origin::Tensor::constant(3, shape);
+    auto x0 = origin::Tensor(2, shape);
+    auto x1 = origin::Tensor(3, shape);
     // y       = origin::add({origin::square(x0), origin::square(x1)});
     // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
     // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 
     logi("Test Complex computation graph: y = ((x^2)^2) + ((x^2)^2) = 2 * (x^4)");
     y.clear_grad();
-    x = origin::Tensor::constant(2, shape);
+    x = origin::Tensor(2, shape);
     // auto s = origin::square(x);
     // y      = origin::add({origin::square(s), origin::square(s)});
     y = ((x ^ 2) ^ 2) + ((x ^ 2) ^ 2);

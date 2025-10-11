@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -62,7 +62,7 @@ TEST_F(BroadcastToOperatorTest, ForwardBasic)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // libtorch行主序：[1,2] expand到[2,2] = [[1,2],[1,2]] = [1,2,1,2]
     std::vector<data_t> expected = {1.0, 2.0, 1.0, 2.0};
 
@@ -81,7 +81,7 @@ TEST_F(BroadcastToOperatorTest, ForwardScalar)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {5.0, 5.0, 5.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -119,7 +119,7 @@ TEST_F(BroadcastToOperatorTest, ForwardToLargerShape)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 2.0, 1.0, 2.0, 1.0, 2.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -137,7 +137,7 @@ TEST_F(BroadcastToOperatorTest, ForwardTo3D)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     // 验证广播的正确性
     for (size_t i = 0; i < result_data.size(); i += 2)
@@ -156,7 +156,7 @@ TEST_F(BroadcastToOperatorTest, ForwardZeroTensor)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -176,7 +176,7 @@ TEST_F(BroadcastToOperatorTest, BackwardBasic)
     y.backward();
 
     // broadcast_to算子的梯度：∂y/∂x = sum_to(gy, x.shape())
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -197,7 +197,7 @@ TEST_F(BroadcastToOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0, 2.0, 2.0}, Shape{2, 2});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -214,7 +214,7 @@ TEST_F(BroadcastToOperatorTest, BackwardToSameShape)
     auto y = broadcast_to(x, target_shape);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -231,7 +231,7 @@ TEST_F(BroadcastToOperatorTest, BackwardToLargerShape)
     auto y = broadcast_to(x, target_shape);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     EXPECT_EQ(gx_data.size(), 1U);
     EXPECT_NEAR(gx_data[0], 3.0, kTolerance);  // 广播的梯度应该求和
@@ -248,7 +248,7 @@ TEST_F(BroadcastToOperatorTest, SingleElement)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    EXPECT_NEAR(result.item(), 5.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 5.0, kTolerance);
 }
 
 TEST_F(BroadcastToOperatorTest, LargeTensor)
@@ -261,7 +261,7 @@ TEST_F(BroadcastToOperatorTest, LargeTensor)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -278,7 +278,7 @@ TEST_F(BroadcastToOperatorTest, ThreeDimensional)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); i += 2)
     {
@@ -298,7 +298,7 @@ TEST_F(BroadcastToOperatorTest, NumericalStability)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1e10, 1e-10, 1e10, 1e-10};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -316,7 +316,7 @@ TEST_F(BroadcastToOperatorTest, PrecisionTest)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {0.1, 0.2, 0.1, 0.2};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -336,7 +336,7 @@ TEST_F(BroadcastToOperatorTest, MixedSigns)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); i += 2)
     {
