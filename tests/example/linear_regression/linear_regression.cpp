@@ -17,7 +17,7 @@ Tensor MSE(const Tensor &x0, const Tensor &x1)
     auto diff       = x0 - x1;
     auto sum_result = origin::sum(origin::pow(diff, 2));
     // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-    auto elements = Tensor(diff.elements(), sum_result.shape());
+    auto elements = Tensor(diff.elements(), sum_result.shape(), DataType::kFloat32);
     auto result   = sum_result / elements;
     return result;
 }
@@ -27,15 +27,15 @@ int main(int argc, char **argv)
     size_t input_size = 100;
     auto x            = Tensor::randn(Shape{input_size, 1});
     // 设置一个噪声，使真实值在预测结果附近
-    auto noise = Tensor::randn(Shape{input_size, 1}) * 0.1;
-    auto y     = x * 2.0 + 5.0 + noise;
+    auto noise = Tensor::randn(Shape{input_size, 1}) * 0.1f;
+    auto y     = x * 2.0f + 5.0f + noise;
 
-    // 初始化权重和偏置
-    auto w = Tensor(0, Shape{1, 1});
-    auto b = Tensor(0, Shape{1, 1});
+    // 初始化权重和偏置 - 确保使用float类型以匹配输入数据
+    auto w = Tensor(0.0f, Shape{1, 1});
+    auto b = Tensor(0.0f, Shape{1, 1});
 
     // 设置学习率和迭代次数
-    data_t lr = 0.1;
+    float lr = 0.1f;
     int iters = 200;
 
     // 训练
