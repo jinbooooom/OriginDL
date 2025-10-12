@@ -84,9 +84,13 @@ struct TypeFromDataType<DataType::kInt8>
 template <typename T>
 inline DataType get_data_type_from_template()
 {
-    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>)
+    if constexpr (std::is_same_v<T, float>)
     {
         return DataType::kFloat32;
+    }
+    else if constexpr (std::is_same_v<T, double>)
+    {
+        return DataType::kDouble;
     }
     else if constexpr (std::is_same_v<T, int32_t>)
     {
@@ -95,6 +99,11 @@ inline DataType get_data_type_from_template()
     else if constexpr (std::is_same_v<T, int8_t>)
     {
         return DataType::kInt8;
+    }
+    else if constexpr (std::is_same_v<T, unsigned long> || std::is_same_v<T, size_t>)
+    {
+        // 将unsigned long/size_t映射到int32，因为通常用于索引和计数
+        return DataType::kInt32;
     }
     else
     {
