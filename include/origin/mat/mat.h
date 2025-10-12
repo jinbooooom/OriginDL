@@ -92,7 +92,7 @@ public:
     // === 泛型标量操作 ===
     template <typename T>
     std::unique_ptr<Mat> add_scalar(T scalar) const;
-    
+
     template <typename T>
     std::unique_ptr<Mat> mul_scalar(T scalar) const;
 
@@ -127,13 +127,13 @@ public:
     // === 泛型标量运算符 ===
     template <typename T>
     std::unique_ptr<Mat> operator+(T scalar) const;
-    
+
     template <typename T>
     std::unique_ptr<Mat> operator-(T scalar) const;
-    
+
     template <typename T>
     std::unique_ptr<Mat> operator*(T scalar) const;
-    
+
     template <typename T>
     std::unique_ptr<Mat> operator/(T scalar) const;
 
@@ -184,8 +184,8 @@ public:
     T scalar() const;
 
     template <typename T>
-    T* data_ptr();
-    
+    T *data_ptr();
+
     template <typename T>
     std::vector<T> to_vector() const;
 
@@ -277,13 +277,13 @@ public:
     // === 泛型版本的数据访问方法 ===
     template <typename T>
     T sum_as() const;
-    
+
     template <typename T>
     T max_as() const;
-    
+
     template <typename T>
     T min_as() const;
-    
+
     template <typename T>
     T mean_as() const;
 
@@ -305,7 +305,6 @@ public:
      * @return 转换后的矩阵
      */
     virtual std::unique_ptr<Mat> to(DataType target_type) const = 0;
-
 };
 
 /**
@@ -326,72 +325,85 @@ std::unique_ptr<Mat> create_mat(data_t value, const Shape &shape);
 
 // === Mat模板方法实现 ===
 template <typename T>
-std::unique_ptr<Mat> Mat::add_scalar(T scalar) const {
+std::unique_ptr<Mat> Mat::add_scalar(T scalar) const
+{
     // 将泛型标量转换为data_t，然后调用现有的虚函数
     return add_scalar(static_cast<data_t>(scalar));
 }
 
 template <typename T>
-std::unique_ptr<Mat> Mat::mul_scalar(T scalar) const {
+std::unique_ptr<Mat> Mat::mul_scalar(T scalar) const
+{
     // 将泛型标量转换为data_t，然后调用现有的虚函数
     return mul_scalar(static_cast<data_t>(scalar));
 }
 
 template <typename T>
-std::unique_ptr<Mat> Mat::operator+(T scalar) const {
+std::unique_ptr<Mat> Mat::operator+(T scalar) const
+{
     return add_scalar<T>(scalar);
 }
 
 template <typename T>
-std::unique_ptr<Mat> Mat::operator-(T scalar) const {
+std::unique_ptr<Mat> Mat::operator-(T scalar) const
+{
     return operator+(-scalar);
 }
 
 template <typename T>
-std::unique_ptr<Mat> Mat::operator*(T scalar) const {
+std::unique_ptr<Mat> Mat::operator*(T scalar) const
+{
     return mul_scalar<T>(scalar);
 }
 
 template <typename T>
-std::unique_ptr<Mat> Mat::operator/(T scalar) const {
+std::unique_ptr<Mat> Mat::operator/(T scalar) const
+{
     return mul_scalar<T>(1.0 / scalar);
 }
 
 template <typename T>
-T Mat::sum_as() const {
+T Mat::sum_as() const
+{
     // 调用现有的虚函数，然后转换类型
     return static_cast<T>(sum_all());
 }
 
 template <typename T>
-T Mat::max_as() const {
+T Mat::max_as() const
+{
     return static_cast<T>(max_all());
 }
 
 template <typename T>
-T Mat::min_as() const {
+T Mat::min_as() const
+{
     return static_cast<T>(min_all());
 }
 
 template <typename T>
-T Mat::mean_as() const {
+T Mat::mean_as() const
+{
     return static_cast<T>(mean_all());
 }
 
 template <typename T>
-T* Mat::data_ptr() {
+T *Mat::data_ptr()
+{
     // 对于泛型data_ptr，我们需要在子类中实现
     // 这里先返回nullptr，子类需要重写这个方法
     return nullptr;
 }
 
 template <typename T>
-std::vector<T> Mat::to_vector() const {
+std::vector<T> Mat::to_vector() const
+{
     // 调用现有的虚函数，然后转换类型
     auto data_t_vec = to_vector();
     std::vector<T> result;
     result.reserve(data_t_vec.size());
-    for (const auto& val : data_t_vec) {
+    for (const auto &val : data_t_vec)
+    {
         result.push_back(static_cast<T>(val));
     }
     return result;

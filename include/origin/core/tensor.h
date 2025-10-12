@@ -36,19 +36,19 @@ private:
 public:
     // 默认构造函数
     Tensor() = default;
-    
+
     // === 构造函数：自动类型推断 ===
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape)
     {
         // 验证数据大小与形状是否匹配
         size_t expected_elements = shape.elements();
-        if (data.size() != expected_elements) {
-            throw std::invalid_argument("Data size (" + std::to_string(data.size()) + 
-                                       ") does not match shape elements (" + 
-                                       std::to_string(expected_elements) + ")");
+        if (data.size() != expected_elements)
+        {
+            throw std::invalid_argument("Data size (" + std::to_string(data.size()) +
+                                        ") does not match shape elements (" + std::to_string(expected_elements) + ")");
         }
-        
+
         create_tensor_from_data(data.data(), data.size(), shape);
     }
 
@@ -65,7 +65,7 @@ public:
     {
         create_tensor_from_scalar(scalar, shape);
     }
-    
+
     // 标量构造函数（指定数据类型）
     template <typename T>
     Tensor(T scalar, const Shape &shape, DataType dtype)
@@ -79,19 +79,19 @@ public:
     {
         // 验证数据大小与形状是否匹配
         size_t expected_elements = shape.elements();
-        if (data.size() != expected_elements) {
-            throw std::invalid_argument("Data size (" + std::to_string(data.size()) + 
-                                       ") does not match shape elements (" + 
-                                       std::to_string(expected_elements) + ")");
+        if (data.size() != expected_elements)
+        {
+            throw std::invalid_argument("Data size (" + std::to_string(data.size()) +
+                                        ") does not match shape elements (" + std::to_string(expected_elements) + ")");
         }
-        
+
         // 创建临时vector并转换到指定类型
         std::vector<T> data_vec(data);
         create_tensor_from_data_with_dtype(data_vec.data(), data_vec.size(), shape, dtype);
     }
 
     // === 显式类型构造函数（不给默认值）===
-    Tensor(const void* data, const Shape &shape, DataType dtype);
+    Tensor(const void *data, const Shape &shape, DataType dtype);
 
     // 拷贝构造函数 - 浅拷贝，共享实现
     Tensor(const Tensor &other);
@@ -107,13 +107,16 @@ public:
     ~Tensor() = default;
 
     // === 显式类型构造函数（不给默认值）===
-    static Tensor from_blob(void* data, const Shape &shape, DataType dtype);
+    static Tensor from_blob(void *data, const Shape &shape, DataType dtype);
 
     // === 工厂方法（给默认值）===
     static Tensor zeros(const Shape &shape, DataType dtype = DataType::kFloat32);
     static Tensor ones(const Shape &shape, DataType dtype = DataType::kFloat32);
     static Tensor randn(const Shape &shape, DataType dtype = DataType::kFloat32);
-    static Tensor full(const Shape &shape, double value, DataType dtype = DataType::kFloat32); // TODO: 已经有了Tensor(T scalar, const Shape &shape)，此方法可以删除
+    static Tensor full(
+        const Shape &shape,
+        double value,
+        DataType dtype = DataType::kFloat32);  // TODO: 已经有了Tensor(T scalar, const Shape &shape)，此方法可以删除
 
     // === 形状和维度 ===
     Shape shape() const;
@@ -123,17 +126,16 @@ public:
     // === 数据访问：类型安全 ===
     template <typename T>
     T item() const;
-    
+
     template <typename T>
-    T* data_ptr();
-    
+    T *data_ptr();
+
     template <typename T>
     std::vector<T> to_vector() const;
 
     // === 类型查询和转换 ===
     DataType dtype() const;
     Tensor to(DataType target_type) const;
-
 
     // === 梯度相关 ===
     Tensor grad() const;
@@ -148,13 +150,13 @@ public:
     // === 泛型标量操作 ===
     template <typename T>
     Tensor operator+(T scalar) const;
-    
+
     template <typename T>
     Tensor operator-(T scalar) const;
-    
+
     template <typename T>
     Tensor operator*(T scalar) const;
-    
+
     template <typename T>
     Tensor operator/(T scalar) const;
 
@@ -180,9 +182,9 @@ private:
     // === 用于自动类型推断的方法 ===
     template <typename T>
     void create_tensor_from_scalar(T data, const Shape &shape);
-    
+
     template <typename T>
-    void create_tensor_from_data(const T* data, size_t count, const Shape &shape);
+    void create_tensor_from_data(const T *data, size_t count, const Shape &shape);
 
     // === 用于显式类型指定的方法 ===
     /**
@@ -192,8 +194,8 @@ private:
      * @param shape 张量形状
      * @param dtype 目标数据类型
      */
-    void create_tensor_from_scalar_with_dtype(const void* data, const Shape &shape, DataType dtype);
-    
+    void create_tensor_from_scalar_with_dtype(const void *data, const Shape &shape, DataType dtype);
+
     /**
      * @brief 从原始数据创建张量（显式指定类型）
      * @details 用于from_blob()方法，原始数据是void*指针，直接传递，类型信息由dtype参数提供
@@ -201,8 +203,8 @@ private:
      * @param shape 张量形状
      * @param dtype 目标数据类型
      */
-    void create_tensor_from_raw_data(const void* data, const Shape &shape, DataType dtype);
-    
+    void create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype);
+
     /**
      * @brief 从带类型的数据创建张量（显式指定类型）
      * @details 用于带DataType的构造函数，带类型的数据保持原始类型信息，可以进行类型转换和验证
@@ -212,7 +214,7 @@ private:
      * @param dtype 目标数据类型
      */
     template <typename T>
-    void create_tensor_from_data_with_dtype(const T* data, size_t count, const Shape &shape, DataType dtype);
+    void create_tensor_from_data_with_dtype(const T *data, size_t count, const Shape &shape, DataType dtype);
 };
 
 }  // namespace origin

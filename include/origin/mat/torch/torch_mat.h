@@ -112,7 +112,7 @@ public:
     std::unique_ptr<Mat> operator-(data_t scalar) const override;
     std::unique_ptr<Mat> operator*(data_t scalar) const override;
     std::unique_ptr<Mat> operator/(data_t scalar) const override;
-    
+
     // 模板版本（提供泛型支持）
     template <typename U>
     std::unique_ptr<Mat> add_scalar(U scalar) const;
@@ -134,7 +134,7 @@ public:
     size_t elements() const override;
     // 虚函数重写
     std::vector<data_t> to_vector() const override;
-    
+
     // 模板版本
     template <typename U>
     std::vector<U> to_vector() const;
@@ -148,7 +148,7 @@ public:
     std::unique_ptr<Mat> square() const override;
     // 虚函数重写
     std::unique_ptr<Mat> pow(data_t exponent) const override;
-    
+
     // 模板版本
     template <typename U>
     std::unique_ptr<Mat> pow(U exponent) const;
@@ -168,7 +168,7 @@ public:
 
     // === 泛型数据访问方法 ===
     template <typename U>
-    U* data_ptr();
+    U *data_ptr();
 
     // 调试方法
     void print(const std::string &desc = "") const override;

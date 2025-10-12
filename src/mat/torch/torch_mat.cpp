@@ -187,6 +187,10 @@ std::unique_ptr<Mat> TorchMat::broadcast_to(const Shape &shape) const
 {
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
     // 使用clone()确保返回实际的数据副本，而不是视图
+    // 注意：LibTorch的expand()方法遵循严格的广播规则：
+    // 1. 从右到左比较维度大小
+    // 2. 每个维度要么大小相同，要么其中一个为1，要么其中一个不存在
+    // 3. 如果违反规则会抛出"expanded size must match existing size"异常
     return std::make_unique<TorchMat>(data_.expand(sizes).clone());
 }
 

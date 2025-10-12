@@ -179,7 +179,7 @@ TEST_F(MulOperatorTest, BackwardWithGradient)
 
     for (size_t i = 0; i < gx0_data.size(); ++i)
     {
-        EXPECT_NEAR(gx0_data[i], 1.0, 1e-6);                // ∂y/∂x0 = x1 = 1
+        EXPECT_NEAR(gx0_data[i], 1.0, 1e-6);                       // ∂y/∂x0 = x1 = 1
         EXPECT_NEAR(gx1_data[i], x0.to_vector<float>()[i], 1e-6);  // ∂y/∂x1 = x0
     }
 }

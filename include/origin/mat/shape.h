@@ -36,7 +36,6 @@ public:
      */
     Shape(std::initializer_list<size_t> dims) : dims_(dims) {}
 
-
     /**
      * @brief 获取维度向量
      * @return 维度向量的常量引用

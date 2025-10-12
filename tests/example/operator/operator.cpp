@@ -105,9 +105,12 @@ int main()
     x.grad().print("dx ");
 
     // 测试BroadcastTo算子 - 使用更合适的广播用例
-    logi("BroadcastTo: y = broadcast_to(x, {2, 4, 1})");
+    // 注意：LibTorch的广播规则要求从右到左比较维度，每个维度要么大小相同，要么其中一个为1，要么其中一个不存在
+    // 错误的广播示例：[2,4] -> [2,4,4] 或 [2,4] -> [2,4,1] 会失败，因为第2个维度不存在于源tensor中
+    // 正确的广播示例：[2,4] -> [2,4] 或 [1,4] -> [2,4] 或 [2,1] -> [2,4]
+    logi("BroadcastTo: y = broadcast_to(x, {2, 4})");
     x.clear_grad();
-    auto x_broadcasted = broadcast_to(x, Shape{2, 4, 1});
+    auto x_broadcasted = broadcast_to(x, Shape{2, 4});
     x_broadcasted.backward();
     x_broadcasted.print("y ");
     x.grad().print("dx ");
