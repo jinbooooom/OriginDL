@@ -127,7 +127,7 @@ TEST_F(TensorCreateTest, MoveConstructor)
             printf("this message should not print\n");
         },
         ".*");
-    EXPECT_DEATH(original_tensor.elements(), ".*");   // 期望段错误
+    EXPECT_DEATH(original_tensor.elements(), ".*");          // 期望段错误
     EXPECT_DEATH(original_tensor.to_vector<float>(), ".*");  // 期望段错误
 
     // 验证多次移动构造的正确性

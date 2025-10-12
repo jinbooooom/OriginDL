@@ -110,14 +110,14 @@ public:
 
     // === 泛型数据访问方法 ===
     template <typename T>
-    T* data_ptr();
-    
+    T *data_ptr();
+
     template <typename T>
     TensorImpl operator-(T scalar) const;
-    
+
     template <typename T>
     TensorImpl operator*(T scalar) const;
-    
+
     template <typename T>
     TensorImpl operator/(T scalar) const;
 

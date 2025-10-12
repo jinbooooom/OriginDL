@@ -64,7 +64,8 @@ void TensorImpl::backward()
     if (!grad_)
     {
         auto data_type = data_->dtype();
-        switch (data_type) {
+        switch (data_type)
+        {
             case DataType::kFloat32:
                 grad_ = std::make_unique<Mat_t>(1.0f, data_->shape());
                 break;
@@ -244,7 +245,7 @@ std::vector<T> TensorImpl::to_vector() const
 // === 泛型数据访问方法实现 ===
 
 template <typename T>
-T* TensorImpl::data_ptr()
+T *TensorImpl::data_ptr()
 {
     return data_->data_ptr<T>();
 }
@@ -367,10 +368,10 @@ template double TensorImpl::item<double>() const;
 template int32_t TensorImpl::item<int32_t>() const;
 template int8_t TensorImpl::item<int8_t>() const;
 
-template float* TensorImpl::data_ptr<float>();
-template double* TensorImpl::data_ptr<double>();
-template int32_t* TensorImpl::data_ptr<int32_t>();
-template int8_t* TensorImpl::data_ptr<int8_t>();
+template float *TensorImpl::data_ptr<float>();
+template double *TensorImpl::data_ptr<double>();
+template int32_t *TensorImpl::data_ptr<int32_t>();
+template int8_t *TensorImpl::data_ptr<int8_t>();
 
 template std::vector<float> TensorImpl::to_vector<float>() const;
 template std::vector<double> TensorImpl::to_vector<double>() const;
@@ -401,7 +402,7 @@ template TensorImpl TensorImpl::operator/<int8_t>(int8_t scalar) const;
 // 额外的模板实例化（只添加新的类型）
 template TensorImpl TensorImpl::operator+<unsigned long>(unsigned long scalar) const;
 template unsigned long TensorImpl::item<unsigned long>() const;
-template unsigned long* TensorImpl::data_ptr<unsigned long>();
+template unsigned long *TensorImpl::data_ptr<unsigned long>();
 template std::vector<unsigned long> TensorImpl::to_vector<unsigned long>() const;
 
 }  // namespace origin
