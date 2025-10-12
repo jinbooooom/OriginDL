@@ -79,7 +79,7 @@ int main()
     x0.grad().print("dx0 ");
 
     // 测试Reshape算子
-    auto x = Tensor({1, 1, 1, 1, 1, 1, 1, 1}, Shape{2, 4});
+    auto x = Tensor({1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}, Shape{2, 4}, DataType::kFloat32);
     x.print("x ");
     logi("Reshape: y = reshape(x, {4, 2})");
     x.clear_grad();
@@ -105,9 +105,9 @@ int main()
     x.grad().print("dx ");
 
     // 测试BroadcastTo算子 - 使用更合适的广播用例
-    logi("BroadcastTo: y = broadcast_to(x, {2, 4, 2})");
+    logi("BroadcastTo: y = broadcast_to(x, {2, 4, 1})");
     x.clear_grad();
-    auto x_broadcasted = broadcast_to(x, Shape{2, 4, 2});
+    auto x_broadcasted = broadcast_to(x, Shape{2, 4, 1});
     x_broadcasted.backward();
     x_broadcasted.print("y ");
     x.grad().print("dx ");
