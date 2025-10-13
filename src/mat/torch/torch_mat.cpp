@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include "origin/mat/basic_types.h"
 #include "origin/utils/log.h"
+#include "origin/core/tensor_options.h"
 
 namespace origin
 {
@@ -482,6 +483,32 @@ std::unique_ptr<Mat> TorchMat::randn(const Shape &shape)
     return std::make_unique<TorchMat>(std::move(rand_tensor));
 }
 
+std::unique_ptr<Mat> TorchMat::randn(const Shape &shape, const TensorOptions &options)
+{
+    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
+    
+    // 对于非浮点类型，先生成float32再转换
+    if (options.dtype() == DataType::kFloat32 || options.dtype() == DataType::kDouble) {
+        auto torch_options = get_torch_tensor_options(options);
+        torch::Tensor rand_tensor = torch::randn(sizes, torch_options);
+        return std::make_unique<TorchMat>(std::move(rand_tensor));
+    } else {
+        // 对于整数类型，先生成float32再转换
+        torch::Tensor rand_tensor = torch::randn(sizes, torch::kFloat32);
+        auto result = std::make_unique<TorchMat>(std::move(rand_tensor));
+        
+        // 转换到目标类型
+        auto converted = result->to(options.dtype());
+        
+        // 如果设备不是CPU，移动到指定设备
+        if (options.device().type() != DeviceType::kCPU) {
+            converted = converted->to_device(options.device());
+        }
+        
+        return converted;
+    }
+}
+
 
 // 类型相关方法实现
 DataType TorchMat::dtype() const {
@@ -492,6 +519,31 @@ std::unique_ptr<Mat> TorchMat::to(DataType target_type) const {
     auto torch_type = get_torch_type(target_type);
     auto converted_tensor = data_.to(torch_type);
     return std::make_unique<TorchMat>(std::move(converted_tensor));
+}
+
+Device TorchMat::device() const {
+    auto torch_device = data_.device();
+    if (torch_device.is_cpu()) {
+        return Device(DeviceType::kCPU);
+    } else if (torch_device.is_cuda()) {
+        return Device(DeviceType::kCUDA, torch_device.index());
+    } else {
+        throw std::runtime_error("Unsupported device type");
+    }
+}
+
+std::unique_ptr<Mat> TorchMat::to_device(Device device) const {
+    torch::Device torch_device = torch::kCPU; // 默认初始化为CPU
+    if (device.type() == DeviceType::kCPU) {
+        torch_device = torch::kCPU;
+    } else if (device.type() == DeviceType::kCUDA) {
+        torch_device = torch::Device(torch::kCUDA, device.index());
+    } else {
+        throw std::invalid_argument("Unsupported device type");
+    }
+    
+    auto moved_tensor = data_.to(torch_device);
+    return std::make_unique<TorchMat>(std::move(moved_tensor));
 }
 
 
@@ -524,6 +576,19 @@ DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type) {
         default:
             throw std::invalid_argument("Unsupported torch scalar type");
     }
+}
+
+torch::TensorOptions TorchMat::get_torch_tensor_options(const TensorOptions &options) {
+    auto torch_options = torch::TensorOptions()
+        .dtype(get_torch_type(options.dtype()));
+    
+    if (options.device().type() == DeviceType::kCUDA) {
+        torch_options = torch_options.device(torch::kCUDA, options.device().index());
+    } else {
+        torch_options = torch_options.device(torch::kCPU);
+    }
+    
+    return torch_options;
 }
 
 // === TorchMat泛型方法实现 ===

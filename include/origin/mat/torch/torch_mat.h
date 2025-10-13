@@ -7,6 +7,7 @@
 #include "../basic_types.h"
 #include "../mat.h"
 #include "../shape.h"
+#include "../../core/tensor_options.h"
 
 namespace origin
 {
@@ -93,6 +94,60 @@ public:
         data_           = torch::full(sizes, static_cast<T>(value), torch_type);
     }
 
+    /**
+     * @brief 通用构造函数：从数据创建（支持TensorOptions）
+     * @param data 数据向量
+     * @param shape 矩阵形状
+     * @param options 张量选项
+     */
+    template <typename T>
+    TorchMat(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
+    {
+        // 验证数据是否为空
+        if (data.empty())
+        {
+            throw std::invalid_argument("TorchMat: Tensor data cannot be empty. Data vector is empty.");
+        }
+
+        // 验证形状是否有效
+        for (size_t i = 0; i < shape.size(); ++i)
+        {
+            if (shape[i] == 0)
+            {
+                throw std::invalid_argument("TorchMat: Tensor shape cannot have zero dimensions. Dimension " +
+                                            std::to_string(i) + " is zero in shape " + shape.to_string());
+            }
+        }
+
+        auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
+        auto torch_options = get_torch_tensor_options(options);
+        data_ = torch::from_blob(const_cast<T *>(data.data()), sizes, torch_options).clone();
+    }
+
+    /**
+     * @brief 通用构造函数：从标量创建（支持TensorOptions）
+     * @param value 标量值
+     * @param shape 矩阵形状
+     * @param options 张量选项
+     */
+    template <typename T>
+    TorchMat(T value, const Shape &shape, const TensorOptions &options)
+    {
+        // 验证形状是否有效
+        for (size_t i = 0; i < shape.size(); ++i)
+        {
+            if (shape[i] == 0)
+            {
+                throw std::invalid_argument("TorchMat: Tensor shape cannot have zero dimensions. Dimension " +
+                                            std::to_string(i) + " is zero in shape " + shape.to_string());
+            }
+        }
+
+        auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
+        auto torch_options = get_torch_tensor_options(options);
+        data_ = torch::full(sizes, static_cast<T>(value), torch_options);
+    }
+
     // 实现Mat接口的所有虚函数
     std::unique_ptr<Mat> clone() const override;
     std::unique_ptr<Mat> reshape(const Shape &shape) const override;
@@ -166,6 +221,10 @@ public:
     DataType dtype() const override;
     std::unique_ptr<Mat> to(DataType target_type) const override;
 
+    // 新增：设备相关方法
+    Device device() const override;
+    std::unique_ptr<Mat> to_device(Device device) const override;
+
     // === 泛型数据访问方法 ===
     template <typename U>
     U *data_ptr();
@@ -211,6 +270,14 @@ public:
      */
     static std::unique_ptr<Mat> randn(const Shape &shape);
 
+    /**
+     * @brief 静态工厂方法：创建随机数矩阵（支持TensorOptions）
+     * @param shape 矩阵形状
+     * @param options 张量选项
+     * @return 随机数矩阵
+     */
+    static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options);
+
 private:
     /**
      * @brief 类型推断辅助函数
@@ -235,6 +302,13 @@ private:
      * @return 对应的DataType
      */
     static DataType get_data_type_from_torch(torch::ScalarType torch_type);
+
+    /**
+     * @brief 将TensorOptions转换为torch::TensorOptions
+     * @param options 张量选项
+     * @return 对应的torch::TensorOptions
+     */
+    static torch::TensorOptions get_torch_tensor_options(const TensorOptions &options);
 };
 
 }  // namespace origin

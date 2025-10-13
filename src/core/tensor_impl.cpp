@@ -7,6 +7,7 @@
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
 #include "origin/utils/exception.h"
+#include "origin/core/tensor_options.h"
 
 namespace origin
 {
@@ -18,11 +19,29 @@ TensorImpl::TensorImpl(const void *data, const Shape &shape, DataType dtype)
     create_impl_from_data(data, shape, dtype);
 }
 
+// 从void*数据构造的实现（支持TensorOptions）
+TensorImpl::TensorImpl(const void *data, const Shape &shape, const TensorOptions &options)
+    : grad_(nullptr), creator_(nullptr), generation_(0)
+{
+    create_impl_from_data(data, shape, options.dtype());
+    // 如果设备不是CPU，需要移动到指定设备
+    if (options.device().type() != DeviceType::kCPU) {
+        data_ = data_->to_device(options.device());
+    }
+}
+
 // 静态工厂方法实现
 TensorImpl TensorImpl::randn(const Shape &shape)
 {
     // 通过后端Mat接口创建随机数矩阵
     auto mat = Mat_t::randn(shape);
+    return TensorImpl(std::move(mat));
+}
+
+TensorImpl TensorImpl::randn(const Shape &shape, const TensorOptions &options)
+{
+    // 通过后端Mat接口创建随机数矩阵
+    auto mat = Mat_t::randn(shape, options);
     return TensorImpl(std::move(mat));
 }
 
@@ -285,6 +304,16 @@ void TensorImpl::print(const std::string &desc) const
     {
         data_->print(desc);
     }
+}
+
+// 类型转换实现
+TensorImpl TensorImpl::to(const TensorOptions &options) const
+{
+    auto converted_mat = data_->to(options.dtype());
+    if (options.device().type() != DeviceType::kCPU) {
+        converted_mat = converted_mat->to_device(options.device());
+    }
+    return TensorImpl(std::move(converted_mat));
 }
 
 // 私有辅助方法实现

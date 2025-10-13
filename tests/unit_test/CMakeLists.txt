@@ -60,6 +60,24 @@ set_target_properties(test_multi_type_tensor PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+# 添加TensorOptions测试
+add_executable(test_tensor_options tensor/test_tensor_options.cpp)
+add_dependencies(test_tensor_options gtest gtest_main origindl)
+target_link_libraries(test_tensor_options 
+    ${GTEST_LIBRARIES}
+    origindl
+    pthread
+)
+target_include_directories(test_tensor_options PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_tensor_options PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 # 添加算子测试
 # 基础算术算子测试
 add_executable(test_add operator/test_add.cpp)
@@ -224,6 +242,7 @@ enable_testing()
 # 添加测试
 add_test(NAME tensor_create_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_create)
 add_test(NAME multi_type_tensor_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_multi_type_tensor)
+add_test(NAME tensor_options_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_options)
 add_test(NAME add_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_add)
 add_test(NAME sub_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sub)
 add_test(NAME mul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_mul)
@@ -243,6 +262,7 @@ add_test(NAME linear_regression_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_linear
 # 设置测试属性
 set_tests_properties(tensor_create_test PROPERTIES TIMEOUT 60)
 set_tests_properties(multi_type_tensor_test PROPERTIES TIMEOUT 60)
+set_tests_properties(tensor_options_test PROPERTIES TIMEOUT 60)
 set_tests_properties(add_test PROPERTIES TIMEOUT 60)
 set_tests_properties(sub_test PROPERTIES TIMEOUT 60)
 set_tests_properties(mul_test PROPERTIES TIMEOUT 60)
@@ -267,14 +287,14 @@ message(STATUS "GoogleTest include directories: ${GTEST_INCLUDE_DIRS}")
 # 添加自定义目标来运行所有测试
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMENT "Run all unit tests"
 )
 
 # 添加自定义目标来编译和运行测试
 add_custom_target(test_all
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMENT "Compile and run all unit tests"
 )

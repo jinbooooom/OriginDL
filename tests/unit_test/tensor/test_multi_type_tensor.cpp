@@ -86,10 +86,10 @@ TEST_F(MultiTypeTensorTest, ExplicitTypeConstructor)
     std::vector<int32_t> int_data = {4, 5, 6};
 
     // 使用from_blob方法指定类型
-    Tensor t1 = Tensor::from_blob(float_data.data(), Shape{3}, DataType::kFloat32);
+    Tensor t1 = Tensor::from_blob(float_data.data(), Shape{3}, dtype(DataType::kFloat32));
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
 
-    Tensor t2 = Tensor::from_blob(int_data.data(), Shape{3}, DataType::kInt32);
+    Tensor t2 = Tensor::from_blob(int_data.data(), Shape{3}, dtype(DataType::kInt32));
     EXPECT_EQ(t2.dtype(), DataType::kInt32);
 
     // 使用标量构造函数指定类型
@@ -129,33 +129,33 @@ TEST_F(MultiTypeTensorTest, ExplicitTypeConstructor)
 TEST_F(MultiTypeTensorTest, FactoryFunctions)
 {
     // 测试zeros工厂函数
-    Tensor t1 = Tensor::zeros(Shape{2, 3});  // 默认kFloat32
+    Tensor t1 = Tensor::zeros(Shape{2, 3}, dtype(DataType::kFloat32));  // 默认kFloat32
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
     EXPECT_EQ(t1.shape(), (Shape{2, 3}));
 
-    Tensor t2 = Tensor::zeros(Shape{2, 3}, DataType::kInt32);
+    Tensor t2 = Tensor::zeros(Shape{2, 3}, dtype(DataType::kInt32));
     EXPECT_EQ(t2.dtype(), DataType::kInt32);
     EXPECT_EQ(t2.shape(), (Shape{2, 3}));
 
-    Tensor t3 = Tensor::zeros(Shape{2, 3}, DataType::kInt8);
+    Tensor t3 = Tensor::zeros(Shape{2, 3}, dtype(DataType::kInt8));
     EXPECT_EQ(t3.dtype(), DataType::kInt8);
     EXPECT_EQ(t3.shape(), (Shape{2, 3}));
 
     // 测试ones工厂函数
-    Tensor t4 = Tensor::ones(Shape{2, 2});  // 默认kFloat32
+    Tensor t4 = Tensor::ones(Shape{2, 2}, dtype(DataType::kFloat32));  // 默认kFloat32
     EXPECT_EQ(t4.dtype(), DataType::kFloat32);
     EXPECT_EQ(t4.shape(), (Shape{2, 2}));
 
-    Tensor t5 = Tensor::ones(Shape{2, 2}, DataType::kInt32);
+    Tensor t5 = Tensor::ones(Shape{2, 2}, dtype(DataType::kInt32));
     EXPECT_EQ(t5.dtype(), DataType::kInt32);
     EXPECT_EQ(t5.shape(), (Shape{2, 2}));
 
     // 测试randn工厂函数
-    Tensor t6 = Tensor::randn(Shape{3, 3});  // 默认kFloat32
+    Tensor t6 = Tensor::randn(Shape{3, 3}, dtype(DataType::kFloat32));  // 默认kFloat32
     EXPECT_EQ(t6.dtype(), DataType::kFloat32);
     EXPECT_EQ(t6.shape(), (Shape{3, 3}));
 
-    Tensor t7 = Tensor::randn(Shape{3, 3}, DataType::kInt32);
+    Tensor t7 = Tensor::randn(Shape{3, 3}, dtype(DataType::kInt32));
     EXPECT_EQ(t7.dtype(), DataType::kInt32);
     EXPECT_EQ(t7.shape(), (Shape{3, 3}));
 }

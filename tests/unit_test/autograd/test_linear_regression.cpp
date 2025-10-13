@@ -48,9 +48,9 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
 {
     // 生成随机数据
     size_t input_size = 100;
-    auto x            = Tensor::randn(Shape{input_size, 1}, Float32);
+    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32));
     // 设置一个噪声，使真实值在预测结果附近
-    auto noise = Tensor::randn(Shape{input_size, 1}, Float32) * 0.1f;
+    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32)) * 0.1f;
     // 生成真实标签：y = x * 2.0 + 5.0 + noise
     auto y = x * kExpectedW + kExpectedB + noise;
 

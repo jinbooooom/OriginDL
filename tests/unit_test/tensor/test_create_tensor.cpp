@@ -187,7 +187,7 @@ TEST_F(TensorCreateTest, FactoryMethods)
     Shape shape{3, 3};
 
     // zeros
-    Tensor zeros_tensor = Tensor::zeros(shape);
+    Tensor zeros_tensor = Tensor::zeros(shape, dtype(DataType::kFloat32));
     EXPECT_EQ(zeros_tensor.shape(), shape);
     auto zeros_data = zeros_tensor.to_vector<float>();
     for (size_t i = 0; i < zeros_data.size(); ++i)
@@ -196,7 +196,7 @@ TEST_F(TensorCreateTest, FactoryMethods)
     }
 
     // ones
-    Tensor ones_tensor = Tensor::ones(shape);
+    Tensor ones_tensor = Tensor::ones(shape, dtype(DataType::kFloat32));
     EXPECT_EQ(ones_tensor.shape(), shape);
     auto ones_data = ones_tensor.to_vector<float>();
     for (size_t i = 0; i < ones_data.size(); ++i)
@@ -219,7 +219,7 @@ TEST_F(TensorCreateTest, FactoryMethods)
 TEST_F(TensorCreateTest, RandnFactory)
 {
     Shape shape{2, 2};
-    Tensor rand_tensor = Tensor::randn(shape);
+    Tensor rand_tensor = Tensor::randn(shape, dtype(DataType::kFloat32));
 
     EXPECT_EQ(rand_tensor.shape(), shape);
     EXPECT_EQ(rand_tensor.elements(), 4U);

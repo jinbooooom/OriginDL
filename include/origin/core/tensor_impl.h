@@ -7,6 +7,7 @@
 #include "../mat/basic_types.h"
 #include "../mat/mat.h"
 #include "../mat/shape.h"
+#include "tensor_options.h"
 
 // 前向声明
 class Operator;
@@ -52,8 +53,12 @@ public:
     // 从void*数据构造，需要指定数据类型
     TensorImpl(const void *data, const Shape &shape, DataType dtype);
 
+    // 从void*数据构造，支持TensorOptions
+    TensorImpl(const void *data, const Shape &shape, const TensorOptions &options);
+
     // 静态工厂方法
     static TensorImpl randn(const Shape &shape);
+    static TensorImpl randn(const Shape &shape, const TensorOptions &options);
 
     // 拷贝构造函数
     TensorImpl(const TensorImpl &other)
@@ -123,6 +128,9 @@ public:
 
     // 调试
     void print(const std::string &desc = "") const;
+
+    // 类型转换
+    TensorImpl to(const TensorOptions &options) const;
 
 private:
     // 类型推断辅助函数
