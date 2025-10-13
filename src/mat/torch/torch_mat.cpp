@@ -292,7 +292,36 @@ size_t TorchMat::elements() const
 
 std::vector<data_t> TorchMat::to_vector() const
 {
-    return to_vector<data_t>();
+    // 根据张量的实际类型进行转换
+    if (data_.scalar_type() == torch::kFloat32) {
+        return to_vector<float>();
+    } else if (data_.scalar_type() == torch::kFloat64) {
+        auto double_vec = to_vector<double>();
+        std::vector<data_t> result;
+        result.reserve(double_vec.size());
+        for (const auto &val : double_vec) {
+            result.push_back(static_cast<data_t>(val));
+        }
+        return result;
+    } else if (data_.scalar_type() == torch::kInt32) {
+        auto int_vec = to_vector<int32_t>();
+        std::vector<data_t> result;
+        result.reserve(int_vec.size());
+        for (const auto &val : int_vec) {
+            result.push_back(static_cast<data_t>(val));
+        }
+        return result;
+    } else if (data_.scalar_type() == torch::kInt8) {
+        auto int_vec = to_vector<int8_t>();
+        std::vector<data_t> result;
+        result.reserve(int_vec.size());
+        for (const auto &val : int_vec) {
+            result.push_back(static_cast<data_t>(val));
+        }
+        return result;
+    } else {
+        throw std::runtime_error("Unsupported tensor type for to_vector()");
+    }
 }
 
 template <typename U>

@@ -18,7 +18,14 @@ enum class DataType
 };
 
 // 基础数据类型定义（保持向后兼容）
-using data_t = float;
+using data_t = float; // TODO: 未来去掉这个类型
+
+// 数据类型别名，提供更简洁的命名，这样用户可以通过 origin::Float32 去创建 origin::DataType::kFloat32 类型的张量
+constexpr auto Float32 = DataType::kFloat32;
+constexpr auto Double = DataType::kDouble;
+constexpr auto Float64 = DataType::kDouble;
+constexpr auto Int32 = DataType::kInt32;
+constexpr auto Int8 = DataType::kInt8;
 
 // 类型特征模板，用于在编译时确定数据类型
 template <typename T>
