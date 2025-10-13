@@ -106,8 +106,6 @@ public:
         create_tensor_from_data_with_dtype(data_vec.data(), data_vec.size(), shape, dtype);
     }
 
-    // === 显式类型构造函数（不给默认值）===
-    Tensor(const void *data, const Shape &shape, DataType dtype);
 
     // 拷贝构造函数 - 浅拷贝，共享实现
     Tensor(const Tensor &other);

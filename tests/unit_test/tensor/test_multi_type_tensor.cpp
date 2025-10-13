@@ -83,13 +83,13 @@ TEST_F(MultiTypeTensorTest, ScalarTensors)
 TEST_F(MultiTypeTensorTest, ExplicitTypeConstructor)
 {
     std::vector<float> float_data = {1.0f, 2.0f, 3.0f};
-    std::vector<int32_t> int_data = {1, 2, 3};
+    std::vector<int32_t> int_data = {4, 5, 6};
 
-    // 使用void*构造函数指定类型
-    Tensor t1(float_data.data(), Shape{3}, DataType::kFloat32);
+    // 使用from_blob方法指定类型
+    Tensor t1 = Tensor::from_blob(float_data.data(), Shape{3}, DataType::kFloat32);
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
 
-    Tensor t2(int_data.data(), Shape{3}, DataType::kInt32);
+    Tensor t2 = Tensor::from_blob(int_data.data(), Shape{3}, DataType::kInt32);
     EXPECT_EQ(t2.dtype(), DataType::kInt32);
 
     // 使用标量构造函数指定类型
@@ -103,8 +103,26 @@ TEST_F(MultiTypeTensorTest, ExplicitTypeConstructor)
     Tensor t5(float_data, Shape{3});  // 默认应该是kFloat32
     EXPECT_EQ(t5.dtype(), DataType::kFloat32);
 
-    Tensor t6(5.0, Shape{1});  // 默认应该是kFloat32
+    Tensor t6(5.0f, Shape{1});  // 默认应该是kFloat32
     EXPECT_EQ(t6.dtype(), DataType::kFloat32);
+
+    Tensor t7(5.0, Shape{1}); // 没有加 .f，当做 double 处理
+    EXPECT_EQ(t7.dtype(), DataType::kDouble);
+
+    Tensor t8(5.0, Shape{1}, DataType::kInt32); // 指定类型，当做 int32 处理
+    EXPECT_EQ(t8.dtype(), DataType::kInt32);
+
+    Tensor t9(5.0, Shape{1}, DataType::kInt8);
+    EXPECT_EQ(t9.dtype(), DataType::kInt8);
+
+    Tensor t10(float_data, Shape{3}, DataType::kFloat32);
+    EXPECT_EQ(t10.dtype(), DataType::kFloat32);
+
+    Tensor t11(int_data, Shape{3}, DataType::kInt32);
+    EXPECT_EQ(t11.dtype(), DataType::kInt32);
+
+    Tensor t12(int_data, Shape{3}, DataType::kInt8);
+    EXPECT_EQ(t12.dtype(), DataType::kInt8);
 }
 
 // 测试工厂函数
