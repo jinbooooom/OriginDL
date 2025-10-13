@@ -104,16 +104,18 @@ int main()
     x_sum.print("y ");
     x.grad().print("dx ");
 
-    // 测试BroadcastTo算子 - 使用更合适的广播用例
+    // 广播规则非常严格：只有单例维度（大小为1）才能扩展，其他维度必须完全匹配
     // 注意：LibTorch的广播规则要求从右到左比较维度，每个维度要么大小相同，要么其中一个为1，要么其中一个不存在
     // 错误的广播示例：[2,4] -> [2,4,4] 或 [2,4] -> [2,4,1] 会失败，因为第2个维度不存在于源tensor中
     // 正确的广播示例：[2,4] -> [2,4] 或 [1,4] -> [2,4] 或 [2,1] -> [2,4]
-    logi("BroadcastTo: y = broadcast_to(x, {2, 4})");
+    auto x_1_2_4 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{1, 2, 4}, DataType::kFloat32);
+    x_1_2_4.print("x_1_2_4:");
+    logi("BroadcastTo: y = broadcast_to(x_1_2_4, {2, 2, 4})");
     x.clear_grad();
-    auto x_broadcasted = broadcast_to(x, Shape{2, 4});
+    auto x_broadcasted = broadcast_to(x_1_2_4, Shape{2, 2, 4});
     x_broadcasted.backward();
     x_broadcasted.print("y ");
-    x.grad().print("dx ");
+    x_1_2_4.grad().print("dx ");
 
     // 测试SumTo算子
     logi("SumTo: y = sum_to(x, {1, 1})");
@@ -127,6 +129,8 @@ int main()
     auto a = Tensor({1, 2, 3, 4}, Shape{2, 2});
     auto b = Tensor({5, 6, 7, 8}, Shape{2, 2});
     logi("MatMul: y = mat_mul(a, b)");
+    a.print("a ");
+    b.print("b ");
     a.clear_grad();
     b.clear_grad();
     auto ab_matmul = mat_mul(a, b);
