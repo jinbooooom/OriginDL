@@ -305,6 +305,19 @@ public:
      * @return 转换后的矩阵
      */
     virtual std::unique_ptr<Mat> to(DataType target_type) const = 0;
+
+    /**
+     * @brief 获取设备信息
+     * @return 当前设备
+     */
+    virtual Device device() const = 0;
+
+    /**
+     * @brief 设备转换
+     * @param device 目标设备
+     * @return 转换后的矩阵
+     */
+    virtual std::unique_ptr<Mat> to_device(Device device) const = 0;
 };
 
 /**

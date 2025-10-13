@@ -25,9 +25,9 @@ int main(int argc, char **argv)
 {
     // 生成随机数据
     size_t input_size = 100;
-    auto x            = Tensor::randn(Shape{input_size, 1});
+    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32));
     // 设置一个噪声，使真实值在预测结果附近
-    auto noise = Tensor::randn(Shape{input_size, 1}) * 0.1f;
+    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32)) * 0.1f;
     auto y     = x * 2.0f + 5.0f + noise;
 
     // 初始化权重和偏置 - 确保使用float类型以匹配输入数据

@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     logi("Test Transpose:");
     y.clear_grad();
     x3_4.clear_grad();
-    x3_4 = origin::Tensor::randn(origin::Shape{3, 4});  // 3 行 4 列随机值
+    x3_4 = origin::Tensor::randn(origin::Shape{3, 4}, origin::dtype(origin::DataType::kFloat32));  // 3 行 4 列随机值
     x3_4.print("before reshape, x: ");
     y = origin::transpose(x3_4);
     y.backward();

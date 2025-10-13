@@ -3,6 +3,7 @@
 
 #include "../common/inner_types.h"
 #include "tensor_impl.h"
+#include "tensor_options.h"
 
 // 前向声明
 class Mat;
@@ -37,6 +38,7 @@ public:
     // 默认构造函数
     Tensor() = default;
 
+    // TODO：没有TensorOptions版本的构造函数未来考虑去掉
     // === 构造函数：自动类型推断 ===
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape)
@@ -106,6 +108,37 @@ public:
         create_tensor_from_data_with_dtype(data_vec.data(), data_vec.size(), shape, dtype);
     }
 
+    // === TensorOptions版本的构造函数 ===
+    template <typename T>
+    Tensor(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
+    {
+        // 验证数据大小与形状是否匹配
+        size_t expected_elements = shape.elements();
+        if (data.size() != expected_elements)
+        {
+            throw std::invalid_argument("Data size (" + std::to_string(data.size()) +
+                                        ") does not match shape elements (" + std::to_string(expected_elements) + ")");
+        }
+
+        create_tensor_from_data_with_dtype(data.data(), data.size(), shape, options.dtype());
+        // 如果设备不是CPU，需要移动到指定设备
+        if (options.device().type() != DeviceType::kCPU) {
+            impl_ = std::make_shared<TensorImpl>(impl_->to(options));
+        }
+    }
+
+    template <typename T>
+    Tensor(T scalar, const Shape &shape, const TensorOptions &options)
+    {
+        static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type (int, float, double, etc.)");
+        static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
+        create_tensor_from_scalar_with_dtype(scalar, shape, options.dtype());
+        // 如果设备不是CPU，需要移动到指定设备
+        if (options.device().type() != DeviceType::kCPU) {
+            impl_ = std::make_shared<TensorImpl>(impl_->to(options));
+        }
+    }
+
 
     // 拷贝构造函数 - 浅拷贝，共享实现
     Tensor(const Tensor &other);
@@ -120,17 +153,14 @@ public:
     // 析构函数
     ~Tensor() = default;
 
-    // === 显式类型构造函数（不给默认值）===
-    static Tensor from_blob(void *data, const Shape &shape, DataType dtype);
+    // === 工厂方法（只保留TensorOptions版本）===
 
-    // === 工厂方法（给默认值）===
-    static Tensor zeros(const Shape &shape, DataType dtype = DataType::kFloat32);
-    static Tensor ones(const Shape &shape, DataType dtype = DataType::kFloat32);
-    static Tensor randn(const Shape &shape, DataType dtype = DataType::kFloat32);
-    static Tensor full(
-        const Shape &shape,
-        double value,
-        DataType dtype = DataType::kFloat32);  // TODO: 已经有了Tensor(T scalar, const Shape &shape)，此方法可以删除
+    // === TensorOptions版本的工厂方法 ===
+    static Tensor zeros(const Shape &shape, const TensorOptions &options = TensorOptions());
+    static Tensor ones(const Shape &shape, const TensorOptions &options = TensorOptions());
+    static Tensor randn(const Shape &shape, const TensorOptions &options = TensorOptions());
+    static Tensor full(const Shape &shape, double value, const TensorOptions &options = TensorOptions());
+    static Tensor from_blob(void *data, const Shape &shape, const TensorOptions &options = TensorOptions());
 
     // === 形状和维度 ===
     Shape shape() const;
@@ -150,6 +180,7 @@ public:
     // === 类型查询和转换 ===
     DataType dtype() const;
     Tensor to(DataType target_type) const;
+    Tensor to(const TensorOptions &options) const;
 
     // === 梯度相关 ===
     Tensor grad() const;

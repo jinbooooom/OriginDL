@@ -3,6 +3,7 @@
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
 #include "origin/utils/exception.h"
+#include "origin/core/tensor_options.h"
 
 namespace origin
 {
@@ -53,96 +54,94 @@ void Tensor::print(const std::string &desc) const
 // 从Mat创建Tensor的构造函数实现
 Tensor::Tensor(std::unique_ptr<Mat> mat) : impl_(std::make_shared<TensorImpl>(std::move(mat))) {}
 
-// 工厂函数实现
-Tensor Tensor::zeros(const Shape &shape, DataType dtype)
+// 工厂函数实现（只保留TensorOptions版本）
+
+// TensorOptions版本的工厂方法实现
+Tensor Tensor::zeros(const Shape &shape, const TensorOptions &options)
 {
-    switch (dtype)
+    switch (options.dtype())
     {
         case DataType::kFloat32:
         {
             std::vector<float> data(shape.elements(), 0.0f);
-            return Tensor(data, shape);
+            return Tensor(data, shape, options);
         }
         case DataType::kInt32:
         {
             std::vector<int32_t> data(shape.elements(), 0);
-            return Tensor(data, shape);
+            return Tensor(data, shape, options);
         }
         case DataType::kInt8:
         {
             std::vector<int8_t> data(shape.elements(), 0);
-            return Tensor(data, shape);
+            return Tensor(data, shape, options);
         }
         default:
             throw std::invalid_argument("Unsupported data type for zeros");
     }
 }
 
-Tensor Tensor::ones(const Shape &shape, DataType dtype)
+Tensor Tensor::ones(const Shape &shape, const TensorOptions &options)
 {
-    switch (dtype)
+    switch (options.dtype())
     {
         case DataType::kFloat32:
         {
             std::vector<float> data(shape.elements(), 1.0f);
-            return Tensor(data, shape);
+            return Tensor(data, shape, options);
         }
         case DataType::kInt32:
         {
             std::vector<int32_t> data(shape.elements(), 1);
-            return Tensor(data, shape);
+            return Tensor(data, shape, options);
         }
         case DataType::kInt8:
         {
             std::vector<int8_t> data(shape.elements(), 1);
-            return Tensor(data, shape);
+            return Tensor(data, shape, options);
         }
         default:
             throw std::invalid_argument("Unsupported data type for ones");
     }
 }
 
-Tensor Tensor::randn(const Shape &shape, DataType dtype)
+Tensor Tensor::randn(const Shape &shape, const TensorOptions &options)
 {
-    // 目前randn只支持float32，其他类型需要先创建float32再转换
-    auto impl   = TensorImpl::randn(shape);
-    auto tensor = Tensor(std::make_shared<TensorImpl>(std::move(impl)));
-
-    if (dtype == DataType::kFloat32)
-    {
-        return tensor;
-    }
-    else
-    {
-        return tensor.to(dtype);
-    }
+    auto impl = TensorImpl::randn(shape, options);
+    return Tensor(std::make_shared<TensorImpl>(std::move(impl)));
 }
 
-// === 显式类型构造函数实现 ===
-Tensor Tensor::from_blob(void *data, const Shape &shape, DataType dtype)
+Tensor Tensor::full(const Shape &shape, double value, const TensorOptions &options)
 {
-    Tensor result;
-    result.create_tensor_from_raw_data(data, shape, dtype);
-    return result;
-}
-
-// === 工厂方法实现 ===
-Tensor Tensor::full(const Shape &shape, double value, DataType dtype)
-{
-    switch (dtype)
+    switch (options.dtype())
     {
         case DataType::kFloat32:
-            return Tensor(static_cast<float>(value), shape);
+            return Tensor(static_cast<float>(value), shape, options);
         case DataType::kDouble:
-            return Tensor(value, shape);
+            return Tensor(value, shape, options);
         case DataType::kInt32:
-            return Tensor(static_cast<int32_t>(value), shape);
+            return Tensor(static_cast<int32_t>(value), shape, options);
         case DataType::kInt8:
-            return Tensor(static_cast<int8_t>(value), shape);
+            return Tensor(static_cast<int8_t>(value), shape, options);
         default:
             throw std::invalid_argument("Unsupported data type for full");
     }
 }
+
+Tensor Tensor::from_blob(void *data, const Shape &shape, const TensorOptions &options)
+{
+    Tensor result;
+    result.create_tensor_from_raw_data(data, shape, options.dtype());
+    // 如果设备不是CPU，需要移动到指定设备
+    if (options.device().type() != DeviceType::kCPU) {
+        result = result.to(options);
+    }
+    return result;
+}
+
+// === 显式类型构造函数实现（只保留TensorOptions版本）===
+
+// === 工厂方法实现（只保留TensorOptions版本）===
 
 // 公共访问器实现
 Shape Tensor::shape() const
@@ -183,7 +182,7 @@ Tensor Tensor::grad() const
 {
     if (!impl_->grad_)
     {
-        return Tensor::zeros(shape());
+        return Tensor::zeros(shape(), origin::dtype(DataType::kFloat32)); // TODO，创建与input同类型的gtad
     }
     // 通过TensorImpl创建，避免直接类型转换
     return Tensor(impl_->grad_->clone());
@@ -244,6 +243,12 @@ Tensor Tensor::to(DataType target_type) const
 {
     auto converted_mat = impl_->data_->to(target_type);
     return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
+}
+
+Tensor Tensor::to(const TensorOptions &options) const
+{
+    auto converted_impl = impl_->to(options);
+    return Tensor(std::make_shared<TensorImpl>(std::move(converted_impl)));
 }
 
 DataType Tensor::dtype() const

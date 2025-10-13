@@ -118,6 +118,46 @@ inline DataType get_data_type_from_template()
     }
 }
 
+// 设备类型枚举
+enum class DeviceType {
+    kCPU = 0,
+    kCUDA = 1
+};
+
+// 设备类
+class Device {
+public:
+    Device(DeviceType type, int index = 0) : type_(type), index_(index) {}
+    
+    DeviceType type() const { return type_; }
+    int index() const { return index_; }
+    
+    bool operator==(const Device& other) const {
+        return type_ == other.type_ && index_ == other.index_;
+    }
+    
+    bool operator!=(const Device& other) const {
+        return !(*this == other);
+    }
+    
+    std::string to_string() const {
+        if (type_ == DeviceType::kCPU) {
+            return "cpu";
+        } else if (type_ == DeviceType::kCUDA) {
+            return "cuda:" + std::to_string(index_);
+        }
+        return "unknown device type";
+    }
+    
+private:
+    DeviceType type_;
+    int index_;
+};
+
+// 设备常量
+const Device kCPU = Device(DeviceType::kCPU);
+const Device kCUDA = Device(DeviceType::kCUDA);
+
 // 矩阵计算后端的类型
 constexpr int ORIGIN_BACKEND_TYPE = 0;
 constexpr int TORCH_BACKEND_TYPE  = 1;
