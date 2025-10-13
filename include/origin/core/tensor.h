@@ -53,6 +53,20 @@ public:
     }
 
     template <typename T>
+    Tensor(const std::vector<T> &data, const Shape &shape, DataType dtype)
+    {
+        // 验证数据大小与形状是否匹配
+        size_t expected_elements = shape.elements();
+        if (data.size() != expected_elements)
+        {
+            throw std::invalid_argument("Data size (" + std::to_string(data.size()) +
+                                        ") does not match shape elements (" + std::to_string(expected_elements) + ")");
+        }
+
+        create_tensor_from_data_with_dtype(data.data(), data.size(), shape, dtype);
+    }
+
+    template <typename T>
     Tensor(std::initializer_list<T> data, const Shape &shape)
     {
         // 对于initializer_list，我们需要创建临时vector，因为迭代器不能直接转换为void*
