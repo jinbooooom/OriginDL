@@ -84,7 +84,9 @@ public:
     template <typename T>
     Tensor(T scalar, const Shape &shape, DataType dtype)
     {
-        create_tensor_from_scalar_with_dtype(&scalar, shape, dtype);
+        static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type (int, float, double, etc.)");
+        static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
+        create_tensor_from_scalar_with_dtype(scalar, shape, dtype);
     }
 
     // === 支持DataType的构造函数（不给默认值）===
@@ -208,7 +210,8 @@ private:
      * @param shape 张量形状
      * @param dtype 目标数据类型
      */
-    void create_tensor_from_scalar_with_dtype(const void *data, const Shape &shape, DataType dtype);
+    template <typename T>
+    void create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, DataType dtype);
 
     /**
      * @brief 从原始数据创建张量（显式指定类型）

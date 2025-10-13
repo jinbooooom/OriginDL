@@ -278,7 +278,7 @@ template <typename T>
 void Tensor::create_tensor_from_scalar(T data, const Shape &shape)
 {
     auto inferred_type = get_data_type<T>();
-    create_tensor_from_scalar_with_dtype(&data, shape, inferred_type);
+    create_tensor_from_scalar_with_dtype(data, shape, inferred_type);
 }
 
 template <typename T>
@@ -289,8 +289,12 @@ void Tensor::create_tensor_from_data(const T *data, size_t count, const Shape &s
 }
 
 // === 用于显式类型指定的方法实现 ===
-void Tensor::create_tensor_from_scalar_with_dtype(const void *data, const Shape &shape, DataType dtype)
+template <typename T>
+void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, DataType dtype)
 {
+    static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type (int, float, double, etc.)");
+    static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
+    
     // 验证形状是否有效
     for (size_t i = 0; i < shape.size(); ++i)
     {
@@ -305,25 +309,25 @@ void Tensor::create_tensor_from_scalar_with_dtype(const void *data, const Shape 
     {
         case DataType::kFloat32:
         {
-            float val = *static_cast<const float *>(data);
+            float val = static_cast<float>(scalar);
             impl_     = std::make_unique<TensorImpl>(val, shape);
             break;
         }
         case DataType::kDouble:
         {
-            double val = *static_cast<const double *>(data);
+            double val = static_cast<double>(scalar);
             impl_      = std::make_unique<TensorImpl>(val, shape);
             break;
         }
         case DataType::kInt32:
         {
-            int32_t val = *static_cast<const int32_t *>(data);
+            int32_t val = static_cast<int32_t>(scalar);
             impl_       = std::make_unique<TensorImpl>(val, shape);
             break;
         }
         case DataType::kInt8:
         {
-            int8_t val = *static_cast<const int8_t *>(data);
+            int8_t val = static_cast<int8_t>(scalar);
             impl_      = std::make_unique<TensorImpl>(val, shape);
             break;
         }
@@ -471,5 +475,22 @@ template void Tensor::create_tensor_from_data_with_dtype<int8_t>(const int8_t *d
                                                                  size_t count,
                                                                  const Shape &shape,
                                                                  DataType dtype);
+
+// 模板实例化 - create_tensor_from_scalar_with_dtype
+template void Tensor::create_tensor_from_scalar_with_dtype<float>(float scalar,
+                                                                 const Shape &shape,
+                                                                 DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<double>(double scalar,
+                                                                  const Shape &shape,
+                                                                  DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<int32_t>(int32_t scalar,
+                                                                    const Shape &shape,
+                                                                    DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<int8_t>(int8_t scalar,
+                                                                   const Shape &shape,
+                                                                   DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<size_t>(size_t scalar,
+                                                                   const Shape &shape,
+                                                                   DataType dtype);
 
 }  // namespace origin
