@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -62,7 +62,7 @@ TEST_F(SquareOperatorTest, ForwardBasic)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 4.0, 9.0, 16.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -78,7 +78,7 @@ TEST_F(SquareOperatorTest, ForwardZeroTensor)
 
     auto result = square(x);
 
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], 0.0, kTolerance);
@@ -92,7 +92,7 @@ TEST_F(SquareOperatorTest, ForwardNegativeValues)
 
     auto result = square(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 4.0, 9.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -108,7 +108,7 @@ TEST_F(SquareOperatorTest, ForwardMixedSigns)
 
     auto result = square(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {4.0, 0.0, 4.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -128,8 +128,8 @@ TEST_F(SquareOperatorTest, BackwardBasic)
     y.backward();
 
     // 平方算子的梯度：∂y/∂x = 2x
-    auto gx_data = x.grad().to_vector();
-    auto x_data  = x.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto x_data  = x.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -149,8 +149,8 @@ TEST_F(SquareOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0}, Shape{2});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
-    auto x_data  = x.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto x_data  = x.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -166,7 +166,7 @@ TEST_F(SquareOperatorTest, BackwardZeroGradient)
     auto y = square(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -182,8 +182,8 @@ TEST_F(SquareOperatorTest, BackwardNegativeValues)
     auto y = square(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
-    auto x_data  = x.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto x_data  = x.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -202,7 +202,7 @@ TEST_F(SquareOperatorTest, SingleElement)
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), 25.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 25.0, kTolerance);
 }
 
 TEST_F(SquareOperatorTest, LargeTensor)
@@ -215,7 +215,7 @@ TEST_F(SquareOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -232,7 +232,7 @@ TEST_F(SquareOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -249,7 +249,7 @@ TEST_F(SquareOperatorTest, NumericalStability)
 
     auto result = square(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1e10, 1e-10};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -265,7 +265,7 @@ TEST_F(SquareOperatorTest, PrecisionTest)
 
     auto result = square(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {0.01, 0.04};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -283,7 +283,7 @@ TEST_F(SquareOperatorTest, SmallValues)
 
     auto result = square(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {kTolerance, 4e-12};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -299,7 +299,7 @@ TEST_F(SquareOperatorTest, LargeValues)
 
     auto result = square(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1e12, 4e12};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -316,8 +316,8 @@ TEST_F(SquareOperatorTest, IdentityProperty)
     auto y1 = square(x);
     auto y2 = square(y1);
 
-    auto y2_data = y2.to_vector();
-    auto x_data  = x.to_vector();
+    auto y2_data = y2.to_vector<float>();
+    auto x_data  = x.to_vector<float>();
 
     for (size_t i = 0; i < y2_data.size(); ++i)
     {

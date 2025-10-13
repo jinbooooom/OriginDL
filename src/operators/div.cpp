@@ -81,18 +81,33 @@ Tensor operator/(const Tensor &lhs, const Tensor &rhs)
     return div(lhs, rhs);
 }
 
-Tensor operator/(const Tensor &lhs, data_t rhs)
+template <typename T>
+Tensor operator/(const Tensor &lhs, T rhs)
 {
     auto dims = lhs.shape();
-    auto x    = Tensor::constant(rhs, dims);
+    auto x    = Tensor(rhs, dims);
     return div(lhs, x);
 }
 
-Tensor operator/(data_t lhs, const Tensor &rhs)
+template <typename T>
+Tensor operator/(T lhs, const Tensor &rhs)
 {
     auto dims = rhs.shape();
-    auto x    = Tensor::constant(lhs, dims);
+    auto x    = Tensor(lhs, dims);
     return div(x, rhs);
 }
+
+// 模板实例化
+template Tensor operator/(const Tensor &lhs, float rhs);
+template Tensor operator/(const Tensor &lhs, double rhs);
+template Tensor operator/(const Tensor &lhs, int32_t rhs);
+template Tensor operator/(const Tensor &lhs, int8_t rhs);
+template Tensor operator/(const Tensor &lhs, unsigned long rhs);
+
+template Tensor operator/(float lhs, const Tensor &rhs);
+template Tensor operator/(double lhs, const Tensor &rhs);
+template Tensor operator/(int32_t lhs, const Tensor &rhs);
+template Tensor operator/(int8_t lhs, const Tensor &rhs);
+template Tensor operator/(unsigned long lhs, const Tensor &rhs);
 
 }  // namespace origin

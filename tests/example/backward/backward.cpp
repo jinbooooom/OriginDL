@@ -11,10 +11,10 @@ int main(int argc, char **argv)
     auto C = origin::FunctionPtr(new origin::Square());
 
     origin::Shape shape = {2, 2};
-    double val          = 0.5;
+    float val           = 0.5f;
 
     logi("Test: y = (origin::exp(x^2))^2");
-    auto x = origin::Tensor::constant(val, shape);
+    auto x = origin::Tensor(val, shape, origin::Float32);
     auto a = (*A)(x);
     auto b = (*B)(a);
     auto y = (*C)(b);
@@ -23,8 +23,8 @@ int main(int argc, char **argv)
     x.grad().print("gx: ");  // gx = 3.2974
 
     logi("Test Add: y = (x0^2) + (x1^2)");
-    auto x0 = origin::Tensor::constant(2, shape);
-    auto x1 = origin::Tensor::constant(3, shape);
+    auto x0 = origin::Tensor(2, shape);
+    auto x1 = origin::Tensor(3, shape);
     // y       = origin::add({origin::square(x0), origin::square(x1)});
     // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
     // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 
     logi("Test Complex computation graph: y = ((x^2)^2) + ((x^2)^2) = 2 * (x^4)");
     y.clear_grad();
-    x = origin::Tensor::constant(2, shape);
+    x = origin::Tensor(2, shape);
     // auto s = origin::square(x);
     // y      = origin::add({origin::square(s), origin::square(s)});
     y = ((x ^ 2) ^ 2) + ((x ^ 2) ^ 2);
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     logi("Test Transpose:");
     y.clear_grad();
     x3_4.clear_grad();
-    x3_4 = origin::Tensor::randn(origin::Shape{3, 4});  // 3 行 4 列随机值
+    x3_4 = origin::Tensor::randn(origin::Shape{3, 4}, origin::dtype(origin::DataType::kFloat32));  // 3 行 4 列随机值
     x3_4.print("before reshape, x: ");
     y = origin::transpose(x3_4);
     y.backward();
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     // sum
     logi("Test Sum:");
     y.clear_grad();
-    auto x2_4 = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{2, 4});
+    auto x2_4 = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{2, 4}, origin::Float32);
     x2_4.print("before sum, x: ");
     y = origin::sum(x2_4);
     y.backward();
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
     // broadcastTo
     logi("Test BroadcastTo:");
     y.clear_grad();
-    auto x1_4 = origin::Tensor({0, 1, 2, 3}, origin::Shape{1, 4});
+    auto x1_4 = origin::Tensor({0, 1, 2, 3}, origin::Shape{1, 4}, origin::Float32);
     x1_4.clear_grad();
     x1_4.print("before broadcastTo, x: ");
     y = origin::broadcast_to(x1_4, origin::Shape{2, 4});
@@ -110,8 +110,12 @@ int main(int argc, char **argv)
     // matMul
     logi("Test matMul:");
     {
-        auto x = origin::Tensor(std::vector<origin::data_t>{0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{2, 4});
-        auto w = origin::Tensor(std::vector<origin::data_t>{0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{4, 2});
+        // auto vx = std::vector<float>{0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f};
+        // auto vw = std::vector<float>{0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f};
+        // auto x = origin::Tensor(vx, origin::Shape{2, 4}, origin::Float32);
+        // auto w = origin::Tensor(vw, origin::Shape{4, 2}, origin::Float32);
+        auto x = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{2, 4}, origin::Float32);
+        auto w = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{4, 2}, origin::Float32);
         x.print("before matMul, X: ");
         w.print("before matMul, W: ");
         auto y = origin::mat_mul(x, w);
