@@ -19,7 +19,7 @@ TensorImpl (核心实现)
     ↓ 只调用Mat接口方法
 Mat (抽象接口)
     ↓ 具体实现
-TorchMat (具体后端)
+TorchMat/OriginMat (具体后端)
 */
 
 /**
@@ -38,26 +38,21 @@ public:
     // 默认构造函数
     Tensor() = default;
 
-    // TODO：没有TensorOptions版本的构造函数未来考虑去掉
-    // === 构造函数：自动类型推断 ===
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape)
+        : Tensor(data, shape, get_data_type_from_template<T>())  // 根据T推断数据类型，然后委托给DataType版本的构造函数
     {
-        // 验证数据大小与形状是否匹配
-        size_t expected_elements = shape.elements();
-        if (data.size() != expected_elements)
-        {
-            throw std::invalid_argument("Data size (" + std::to_string(data.size()) +
-                                        ") does not match shape elements (" + std::to_string(expected_elements) + ")");
-        }
-
-        create_tensor_from_data(data.data(), data.size(), shape);
     }
 
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape, DataType dtype)
+        : Tensor(data, shape, TensorOptions(dtype))  // 委托给TensorOptions版本的构造函数
     {
-        // 验证数据大小与形状是否匹配
+    }
+
+    template <typename T>
+    Tensor(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
+    {
         size_t expected_elements = shape.elements();
         if (data.size() != expected_elements)
         {
@@ -65,7 +60,11 @@ public:
                                         ") does not match shape elements (" + std::to_string(expected_elements) + ")");
         }
 
-        create_tensor_from_data_with_dtype(data.data(), data.size(), shape, dtype);
+        create_tensor_from_data_with_dtype(data.data(), data.size(), shape, options.dtype());
+        // 如果设备不是CPU，需要移动到指定设备
+        if (options.device().type() != DeviceType::kCPU) {
+            impl_ = std::make_shared<TensorImpl>(impl_->to(options));
+        }
     }
 
     template <typename T>
@@ -106,25 +105,6 @@ public:
         // 创建临时vector并转换到指定类型
         std::vector<T> data_vec(data);
         create_tensor_from_data_with_dtype(data_vec.data(), data_vec.size(), shape, dtype);
-    }
-
-    // === TensorOptions版本的构造函数 ===
-    template <typename T>
-    Tensor(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
-    {
-        // 验证数据大小与形状是否匹配
-        size_t expected_elements = shape.elements();
-        if (data.size() != expected_elements)
-        {
-            throw std::invalid_argument("Data size (" + std::to_string(data.size()) +
-                                        ") does not match shape elements (" + std::to_string(expected_elements) + ")");
-        }
-
-        create_tensor_from_data_with_dtype(data.data(), data.size(), shape, options.dtype());
-        // 如果设备不是CPU，需要移动到指定设备
-        if (options.device().type() != DeviceType::kCPU) {
-            impl_ = std::make_shared<TensorImpl>(impl_->to(options));
-        }
     }
 
     template <typename T>
