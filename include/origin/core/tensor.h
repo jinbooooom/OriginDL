@@ -36,18 +36,30 @@ private:
 
 public:
     // 默认构造函数
-    Tensor() = default;
+    Tensor() = default;  // TODO，可以去掉
+    // 拷贝构造函数 - 浅拷贝，共享实现
+    Tensor(const Tensor &other);
+    // 移动构造函数 - 转移所有权
+    Tensor(Tensor &&other) noexcept;
+    // 赋值运算符
+    Tensor &operator=(const Tensor &other);
+    Tensor &operator=(Tensor &&other) noexcept;
+    // 析构函数
+    ~Tensor() = default;
 
+    // 向量构造函数（自动推断类型）
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape)
         : Tensor(data, shape, get_data_type_from_template<T>())  // 根据T推断数据类型，然后委托给DataType版本的构造函数
     {}
 
+    // 向量构造函数（指定数据类型）
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape, DataType dtype)
         : Tensor(data, shape, TensorOptions(dtype))  // 委托给TensorOptions版本的构造函数
     {}
 
+    // 向量构造函数（指定TensorOptions）
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
     {
@@ -67,37 +79,38 @@ public:
         }
     }
 
+    // TODO: 初始化列表的方式到vector的方式有性能问题，未来需要优化
+    // 初始化列表构造函数（自动推断类型）
     template <typename T>
     Tensor(std::initializer_list<T> data, const Shape &shape)
         : Tensor(std::vector<T>(data), shape)  // 委托给vector版本的构造函数
     {}
 
-    // === 支持DataType的构造函数（不给默认值）===
+    // 初始化列表构造函数（指定数据类型）
     template <typename T>
     Tensor(std::initializer_list<T> data, const Shape &shape, DataType dtype)
         : Tensor(std::vector<T>(data), shape, dtype)  // 委托给vector版本的构造函数
     {}
 
+    // 初始化列表构造函数（指定TensorOptions）
     template <typename T>
     Tensor(std::initializer_list<T> data, const Shape &shape, const TensorOptions &options)
         : Tensor(std::vector<T>(data), shape, options)  // 委托给vector版本的TensorOptions构造函数
     {}
 
+    // 标量构造函数（自动推断类型）
     template <typename T>
     Tensor(T scalar, const Shape &shape)
-    {
-        create_tensor_from_scalar(scalar, shape);
-    }
+        : Tensor(scalar, shape, get_data_type_from_template<T>())  // 委托给DataType版本的构造函数
+    {}
 
     // 标量构造函数（指定数据类型）
     template <typename T>
     Tensor(T scalar, const Shape &shape, DataType dtype)
-    {
-        static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type (int, float, double, etc.)");
-        static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
-        create_tensor_from_scalar_with_dtype(scalar, shape, dtype);
-    }
+        : Tensor(scalar, shape, TensorOptions(dtype))  // 委托给TensorOptions版本的构造函数
+    {}
 
+    // 标量构造函数（指定TensorOptions）
     template <typename T>
     Tensor(T scalar, const Shape &shape, const TensorOptions &options)
     {
@@ -111,22 +124,7 @@ public:
         }
     }
 
-    // 拷贝构造函数 - 浅拷贝，共享实现
-    Tensor(const Tensor &other);
-
-    // 移动构造函数 - 转移所有权
-    Tensor(Tensor &&other) noexcept;
-
-    // 赋值运算符
-    Tensor &operator=(const Tensor &other);
-    Tensor &operator=(Tensor &&other) noexcept;
-
-    // 析构函数
-    ~Tensor() = default;
-
     // === 工厂方法（只保留TensorOptions版本）===
-
-    // === TensorOptions版本的工厂方法 ===
     static Tensor zeros(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor ones(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor randn(const Shape &shape, const TensorOptions &options = TensorOptions());
@@ -144,9 +142,6 @@ public:
 
     template <typename T>
     T *data_ptr();
-
-    template <typename T>
-    std::vector<T> to_vector() const;
 
     // === 类型查询和转换 ===
     DataType dtype() const;
@@ -178,6 +173,8 @@ public:
 
     // === 调试 ===
     void print(const std::string &desc = "") const;
+    template <typename T>
+    std::vector<T> to_vector() const;
     int backend_type() const;
 
     // 友元类声明
@@ -194,13 +191,6 @@ private:
     {
         return get_data_type_from_template<T>();
     }
-
-    // === 用于自动类型推断的方法 ===
-    template <typename T>
-    void create_tensor_from_scalar(T data, const Shape &shape);
-
-    template <typename T>
-    void create_tensor_from_data(const T *data, size_t count, const Shape &shape);
 
     // === 用于显式类型指定的方法 ===
     /**

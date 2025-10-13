@@ -59,6 +59,7 @@ def main():
                             "tests/3rd/flatbuffers/",
                             "tools",
                             "build",
+                            "s",
                             ]
 
     # 解析命令行参数
