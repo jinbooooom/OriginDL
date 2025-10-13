@@ -4,10 +4,10 @@
 #include <stdexcept>
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
+#include "origin/core/tensor_options.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
 #include "origin/utils/exception.h"
-#include "origin/core/tensor_options.h"
 
 namespace origin
 {
@@ -25,7 +25,8 @@ TensorImpl::TensorImpl(const void *data, const Shape &shape, const TensorOptions
 {
     create_impl_from_data(data, shape, options.dtype());
     // 如果设备不是CPU，需要移动到指定设备
-    if (options.device().type() != DeviceType::kCPU) {
+    if (options.device().type() != DeviceType::kCPU)
+    {
         data_ = data_->to_device(options.device());
     }
 }
@@ -310,7 +311,8 @@ void TensorImpl::print(const std::string &desc) const
 TensorImpl TensorImpl::to(const TensorOptions &options) const
 {
     auto converted_mat = data_->to(options.dtype());
-    if (options.device().type() != DeviceType::kCPU) {
+    if (options.device().type() != DeviceType::kCPU)
+    {
         converted_mat = converted_mat->to_device(options.device());
     }
     return TensorImpl(std::move(converted_mat));

@@ -4,10 +4,10 @@
 #include <torch/torch.h>
 #include <memory>
 #include <vector>
+#include "../../core/tensor_options.h"
 #include "../basic_types.h"
 #include "../mat.h"
 #include "../shape.h"
-#include "../../core/tensor_options.h"
 
 namespace origin
 {
@@ -119,9 +119,9 @@ public:
             }
         }
 
-        auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
+        auto sizes         = TorchMat::convert_shape_to_torch_sizes(shape);
         auto torch_options = get_torch_tensor_options(options);
-        data_ = torch::from_blob(const_cast<T *>(data.data()), sizes, torch_options).clone();
+        data_              = torch::from_blob(const_cast<T *>(data.data()), sizes, torch_options).clone();
     }
 
     /**
@@ -143,9 +143,9 @@ public:
             }
         }
 
-        auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
+        auto sizes         = TorchMat::convert_shape_to_torch_sizes(shape);
         auto torch_options = get_torch_tensor_options(options);
-        data_ = torch::full(sizes, static_cast<T>(value), torch_options);
+        data_              = torch::full(sizes, static_cast<T>(value), torch_options);
     }
 
     // 实现Mat接口的所有虚函数

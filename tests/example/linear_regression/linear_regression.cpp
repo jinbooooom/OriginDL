@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     auto b = Tensor(0.0f, Shape{1, 1});
 
     // 设置学习率和迭代次数
-    float lr = 0.1f;
+    float lr  = 0.1f;
     int iters = 200;
 
     // 训练

@@ -41,18 +41,17 @@ public:
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape)
         : Tensor(data, shape, get_data_type_from_template<T>())  // 根据T推断数据类型，然后委托给DataType版本的构造函数
-    {
-    }
+    {}
 
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape, DataType dtype)
         : Tensor(data, shape, TensorOptions(dtype))  // 委托给TensorOptions版本的构造函数
-    {
-    }
+    {}
 
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
     {
+        // 验证数据大小与形状是否匹配
         size_t expected_elements = shape.elements();
         if (data.size() != expected_elements)
         {
@@ -62,18 +61,27 @@ public:
 
         create_tensor_from_data_with_dtype(data.data(), data.size(), shape, options.dtype());
         // 如果设备不是CPU，需要移动到指定设备
-        if (options.device().type() != DeviceType::kCPU) {
+        if (options.device().type() != DeviceType::kCPU)
+        {
             impl_ = std::make_shared<TensorImpl>(impl_->to(options));
         }
     }
 
     template <typename T>
     Tensor(std::initializer_list<T> data, const Shape &shape)
-    {
-        // 对于initializer_list，我们需要创建临时vector，因为迭代器不能直接转换为void*
-        std::vector<T> data_vec(data);
-        create_tensor_from_data(data_vec.data(), data_vec.size(), shape);
-    }
+        : Tensor(std::vector<T>(data), shape)  // 委托给vector版本的构造函数
+    {}
+
+    // === 支持DataType的构造函数（不给默认值）===
+    template <typename T>
+    Tensor(std::initializer_list<T> data, const Shape &shape, DataType dtype)
+        : Tensor(std::vector<T>(data), shape, dtype)  // 委托给vector版本的构造函数
+    {}
+
+    template <typename T>
+    Tensor(std::initializer_list<T> data, const Shape &shape, const TensorOptions &options)
+        : Tensor(std::vector<T>(data), shape, options)  // 委托给vector版本的TensorOptions构造函数
+    {}
 
     template <typename T>
     Tensor(T scalar, const Shape &shape)
@@ -90,23 +98,6 @@ public:
         create_tensor_from_scalar_with_dtype(scalar, shape, dtype);
     }
 
-    // === 支持DataType的构造函数（不给默认值）===
-    template <typename T>
-    Tensor(std::initializer_list<T> data, const Shape &shape, DataType dtype)
-    {
-        // 验证数据大小与形状是否匹配
-        size_t expected_elements = shape.elements();
-        if (data.size() != expected_elements)
-        {
-            throw std::invalid_argument("Data size (" + std::to_string(data.size()) +
-                                        ") does not match shape elements (" + std::to_string(expected_elements) + ")");
-        }
-
-        // 创建临时vector并转换到指定类型
-        std::vector<T> data_vec(data);
-        create_tensor_from_data_with_dtype(data_vec.data(), data_vec.size(), shape, dtype);
-    }
-
     template <typename T>
     Tensor(T scalar, const Shape &shape, const TensorOptions &options)
     {
@@ -114,11 +105,11 @@ public:
         static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
         create_tensor_from_scalar_with_dtype(scalar, shape, options.dtype());
         // 如果设备不是CPU，需要移动到指定设备
-        if (options.device().type() != DeviceType::kCPU) {
+        if (options.device().type() != DeviceType::kCPU)
+        {
             impl_ = std::make_shared<TensorImpl>(impl_->to(options));
         }
     }
-
 
     // 拷贝构造函数 - 浅拷贝，共享实现
     Tensor(const Tensor &other);

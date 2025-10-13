@@ -373,50 +373,52 @@ TEST_F(TensorCreateTest, TensorMemoryLifecycle)
         std::vector<float> data1 = {1.0f, 2.0f, 3.0f, 4.0f};
         std::vector<float> data2 = {5.0f, 6.0f, 7.0f, 8.0f};
         std::vector<float> data3 = {9.0f, 10.0f, 11.0f, 12.0f};
-        
+
         // 创建张量
         tensor1 = Tensor(data1, Shape{2, 2}, Float32);
         tensor2 = Tensor(data2, Shape{2, 2}, Float32);
         tensor3 = Tensor(data3, Shape{2, 2}, Float32);
-        
+
         // tensor1.print("tensor1");
         // tensor2.print("tensor2");
         // tensor3.print("tensor3");
-        
+
         // 验证数据正确性
         auto result1 = tensor1.to_vector<float>();
         auto result2 = tensor2.to_vector<float>();
         auto result3 = tensor3.to_vector<float>();
-        
-        for (size_t i = 0; i < data1.size(); ++i) {
+
+        for (size_t i = 0; i < data1.size(); ++i)
+        {
             EXPECT_NEAR(result1[i], data1[i], 1e-6);
             EXPECT_NEAR(result2[i], data2[i], 1e-6);
             EXPECT_NEAR(result3[i], data3[i], 1e-6);
         }
-        
+
     }  // 数据离开作用域，但张量应该仍然有效
-    
+
     // std::cout << "After data leaves scope..." << std::endl;
-    
+
     // 验证张量在数据离开作用域后仍然有效
     // std::cout << "Tensor1 outside scope:" << std::endl;
     // tensor1.print("tensor1: ");
-    
+
     // std::cout << "Tensor2 outside scope:" << std::endl;
     // tensor2.print("tensor2: ");
-    
+
     // std::cout << "Tensor3 outside scope:" << std::endl;
     // tensor3.print("tensor3: ");
-    
+
     // 再次验证数据正确性
     auto result1 = tensor1.to_vector<float>();
     auto result2 = tensor2.to_vector<float>();
     auto result3 = tensor3.to_vector<float>();
-    
+
     std::vector<float> expected1 = {1.0f, 2.0f, 3.0f, 4.0f};
     std::vector<float> expected2 = {5.0f, 6.0f, 7.0f, 8.0f};
     std::vector<float> expected3 = {9.0f, 10.0f, 11.0f, 12.0f};
-    for (size_t i = 0; i < expected1.size(); ++i) {
+    for (size_t i = 0; i < expected1.size(); ++i)
+    {
         EXPECT_NEAR(result1[i], expected1[i], 1e-6);
         EXPECT_NEAR(result2[i], expected2[i], 1e-6);
         EXPECT_NEAR(result3[i], expected3[i], 1e-6);
@@ -428,21 +430,25 @@ TEST_F(TensorCreateTest, DifferentDataTypeCreation)
 {
     // 测试 float 类型
     std::vector<float> float_data = {0.0f, 1.0f, 2.0f, 3.0f};
-    auto float_tensor = Tensor(float_data, Shape{2, 2}, Float32);
-    auto float_result = float_tensor.to_vector<float>();
-    
-    for (size_t i = 0; i < float_data.size(); ++i) {
-        // std::cout << "float_result[" << i << "] = " << float_result[i] << " (expected: " << float_data[i] << ")" << std::endl;
+    auto float_tensor             = Tensor(float_data, Shape{2, 2}, Float32);
+    auto float_result             = float_tensor.to_vector<float>();
+
+    for (size_t i = 0; i < float_data.size(); ++i)
+    {
+        // std::cout << "float_result[" << i << "] = " << float_result[i] << " (expected: " << float_data[i] << ")" <<
+        // std::endl;
         EXPECT_NEAR(float_result[i], float_data[i], 1e-6);
     }
-    
+
     // 测试 int 类型
     std::vector<int32_t> int_data = {0, 1, 2, 3};
-    auto int_tensor = Tensor(int_data, Shape{2, 2}, Int32);
-    auto int_result = int_tensor.to_vector<int32_t>();
-    
-    for (size_t i = 0; i < int_data.size(); ++i) {
-        // std::cout << "int_result[" << i << "] = " << int_result[i] << " (expected: " << int_data[i] << ")" << std::endl;
+    auto int_tensor               = Tensor(int_data, Shape{2, 2}, Int32);
+    auto int_result               = int_tensor.to_vector<int32_t>();
+
+    for (size_t i = 0; i < int_data.size(); ++i)
+    {
+        // std::cout << "int_result[" << i << "] = " << int_result[i] << " (expected: " << int_data[i] << ")" <<
+        // std::endl;
         EXPECT_EQ(int_result[i], int_data[i]);
     }
 }
