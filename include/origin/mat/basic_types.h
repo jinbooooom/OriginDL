@@ -19,14 +19,14 @@ enum class DataType
 };
 
 // 基础数据类型定义（保持向后兼容）
-using data_t = float; // TODO: 未来去掉这个类型
+using data_t = float;  // TODO: 未来去掉这个类型
 
 // 数据类型别名，提供更简洁的命名，这样用户可以通过 origin::Float32 去创建 origin::DataType::kFloat32 类型的张量
 constexpr auto Float32 = DataType::kFloat32;
 constexpr auto Float64 = DataType::kDouble;
-constexpr auto Double = DataType::kDouble;
-constexpr auto Int32 = DataType::kInt32;
-constexpr auto Int8 = DataType::kInt8;
+constexpr auto Double  = DataType::kDouble;
+constexpr auto Int32   = DataType::kInt32;
+constexpr auto Int8    = DataType::kInt8;
 
 // 类型特征模板，用于在编译时确定数据类型
 template <typename T>
@@ -120,43 +120,45 @@ inline DataType get_data_type_from_template()
 }
 
 // 设备类型枚举
-enum class DeviceType {
-    kCPU = 0,
+enum class DeviceType
+{
+    kCPU  = 0,
     kCUDA = 1
 };
 
 // 设备类
-class Device {
+class Device
+{
 public:
     Device(DeviceType type, int index = 0) : type_(type), index_(index) {}
-    
+
     DeviceType type() const { return type_; }
     int index() const { return index_; }
-    
-    bool operator==(const Device& other) const {
-        return type_ == other.type_ && index_ == other.index_;
-    }
-    
-    bool operator!=(const Device& other) const {
-        return !(*this == other);
-    }
-    
-    std::string to_string() const {
-        if (type_ == DeviceType::kCPU) {
+
+    bool operator==(const Device &other) const { return type_ == other.type_ && index_ == other.index_; }
+
+    bool operator!=(const Device &other) const { return !(*this == other); }
+
+    std::string to_string() const
+    {
+        if (type_ == DeviceType::kCPU)
+        {
             return "cpu";
-        } else if (type_ == DeviceType::kCUDA) {
+        }
+        else if (type_ == DeviceType::kCUDA)
+        {
             return "cuda:" + std::to_string(index_);
         }
         return "unknown device type";
     }
-    
+
 private:
     DeviceType type_;
     int index_;
 };
 
 // 设备常量
-const Device kCPU = Device(DeviceType::kCPU);
+const Device kCPU  = Device(DeviceType::kCPU);
 const Device kCUDA = Device(DeviceType::kCUDA);
 
 // 矩阵计算后端的类型

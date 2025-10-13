@@ -26,7 +26,9 @@ int main()
     origin::Tensor t5(data5, origin::Shape{3, 2}, origin::dtype(origin::Float32));
     t5.print("t5");
 
-    auto t6 = origin::Tensor::ones(origin::Shape{2, 2}, origin::dtype(origin::DataType::kFloat32).device(origin::Device(origin::DeviceType::kCPU)));
+    auto t6 = origin::Tensor::ones(
+        origin::Shape{2, 2},
+        origin::dtype(origin::DataType::kFloat32).device(origin::Device(origin::DeviceType::kCPU)));
     t6.print("t6");
 
     return 0;

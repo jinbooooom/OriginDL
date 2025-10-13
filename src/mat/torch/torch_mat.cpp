@@ -1,13 +1,12 @@
 #include "origin/mat/torch/torch_mat.h"
 #include <torch/torch.h>
 #include <stdexcept>
+#include "origin/core/tensor_options.h"
 #include "origin/mat/basic_types.h"
 #include "origin/utils/log.h"
-#include "origin/core/tensor_options.h"
 
 namespace origin
 {
-
 
 std::unique_ptr<Mat> TorchMat::clone() const
 {
@@ -86,9 +85,9 @@ template <typename U>
 std::unique_ptr<Mat> TorchMat::add_scalar(U scalar) const
 {
     // 根据输入类型动态转换
-    auto data_type = get_data_type_from_template<U>();
+    auto data_type  = get_data_type_from_template<U>();
     auto torch_type = get_torch_type(data_type);
-    
+
     // 创建标量tensor
     torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
     return std::make_unique<TorchMat>(data_ + scalar_tensor);
@@ -103,9 +102,9 @@ template <typename U>
 std::unique_ptr<Mat> TorchMat::mul_scalar(U scalar) const
 {
     // 根据输入类型动态转换
-    auto data_type = get_data_type_from_template<U>();
+    auto data_type  = get_data_type_from_template<U>();
     auto torch_type = get_torch_type(data_type);
-    
+
     // 创建标量tensor
     torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
     return std::make_unique<TorchMat>(data_ * scalar_tensor);
@@ -120,9 +119,9 @@ template <typename U>
 std::unique_ptr<Mat> TorchMat::operator+(U scalar) const
 {
     // 根据输入类型动态转换
-    auto data_type = get_data_type_from_template<U>();
+    auto data_type  = get_data_type_from_template<U>();
     auto torch_type = get_torch_type(data_type);
-    
+
     // 创建标量tensor
     torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
     return std::make_unique<TorchMat>(data_ + scalar_tensor);
@@ -137,9 +136,9 @@ template <typename U>
 std::unique_ptr<Mat> TorchMat::operator-(U scalar) const
 {
     // 根据输入类型动态转换
-    auto data_type = get_data_type_from_template<U>();
+    auto data_type  = get_data_type_from_template<U>();
     auto torch_type = get_torch_type(data_type);
-    
+
     // 创建标量tensor
     torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
     return std::make_unique<TorchMat>(data_ - scalar_tensor);
@@ -154,9 +153,9 @@ template <typename U>
 std::unique_ptr<Mat> TorchMat::operator*(U scalar) const
 {
     // 根据输入类型动态转换
-    auto data_type = get_data_type_from_template<U>();
+    auto data_type  = get_data_type_from_template<U>();
     auto torch_type = get_torch_type(data_type);
-    
+
     // 创建标量tensor
     torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
     return std::make_unique<TorchMat>(data_ * scalar_tensor);
@@ -171,9 +170,9 @@ template <typename U>
 std::unique_ptr<Mat> TorchMat::operator/(U scalar) const
 {
     // 根据输入类型动态转换
-    auto data_type = get_data_type_from_template<U>();
+    auto data_type  = get_data_type_from_template<U>();
     auto torch_type = get_torch_type(data_type);
-    
+
     // 创建标量tensor
     torch::Tensor scalar_tensor = torch::full({}, scalar, torch_type);
     return std::make_unique<TorchMat>(data_ / scalar_tensor);
@@ -294,33 +293,45 @@ size_t TorchMat::elements() const
 std::vector<data_t> TorchMat::to_vector() const
 {
     // 根据张量的实际类型进行转换
-    if (data_.scalar_type() == torch::kFloat32) {
+    if (data_.scalar_type() == torch::kFloat32)
+    {
         return to_vector<float>();
-    } else if (data_.scalar_type() == torch::kFloat64) {
+    }
+    else if (data_.scalar_type() == torch::kFloat64)
+    {
         auto double_vec = to_vector<double>();
         std::vector<data_t> result;
         result.reserve(double_vec.size());
-        for (const auto &val : double_vec) {
+        for (const auto &val : double_vec)
+        {
             result.push_back(static_cast<data_t>(val));
         }
         return result;
-    } else if (data_.scalar_type() == torch::kInt32) {
+    }
+    else if (data_.scalar_type() == torch::kInt32)
+    {
         auto int_vec = to_vector<int32_t>();
         std::vector<data_t> result;
         result.reserve(int_vec.size());
-        for (const auto &val : int_vec) {
+        for (const auto &val : int_vec)
+        {
             result.push_back(static_cast<data_t>(val));
         }
         return result;
-    } else if (data_.scalar_type() == torch::kInt8) {
+    }
+    else if (data_.scalar_type() == torch::kInt8)
+    {
         auto int_vec = to_vector<int8_t>();
         std::vector<data_t> result;
         result.reserve(int_vec.size());
-        for (const auto &val : int_vec) {
+        for (const auto &val : int_vec)
+        {
             result.push_back(static_cast<data_t>(val));
         }
         return result;
-    } else {
+    }
+    else
+    {
         throw std::runtime_error("Unsupported tensor type for to_vector()");
     }
 }
@@ -371,9 +382,9 @@ template <typename U>
 std::unique_ptr<Mat> TorchMat::pow(U exponent) const
 {
     // 根据输入类型动态转换
-    auto data_type = get_data_type_from_template<U>();
+    auto data_type  = get_data_type_from_template<U>();
     auto torch_type = get_torch_type(data_type);
-    
+
     // 创建标量tensor
     torch::Tensor exponent_tensor = torch::full({}, exponent, torch_type);
     return std::make_unique<TorchMat>(torch::pow(data_, exponent_tensor));
@@ -440,8 +451,8 @@ std::vector<U> TorchMat::tensor_to_vector(const torch::Tensor &tensor)
 template <typename U>
 torch::Tensor TorchMat::vector_to_tensor(const std::vector<U> &data, const Shape &shape)
 {
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    auto data_type = get_data_type_from_template<U>();
+    auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
+    auto data_type  = get_data_type_from_template<U>();
     auto torch_type = get_torch_type(data_type);
     return torch::from_blob(const_cast<U *>(data.data()), sizes, torch_type).clone();
 }
@@ -486,70 +497,87 @@ std::unique_ptr<Mat> TorchMat::randn(const Shape &shape)
 std::unique_ptr<Mat> TorchMat::randn(const Shape &shape, const TensorOptions &options)
 {
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    
+
     // 对于非浮点类型，先生成float32再转换
-    if (options.dtype() == DataType::kFloat32 || options.dtype() == DataType::kDouble) {
-        auto torch_options = get_torch_tensor_options(options);
+    if (options.dtype() == DataType::kFloat32 || options.dtype() == DataType::kDouble)
+    {
+        auto torch_options        = get_torch_tensor_options(options);
         torch::Tensor rand_tensor = torch::randn(sizes, torch_options);
         return std::make_unique<TorchMat>(std::move(rand_tensor));
-    } else {
+    }
+    else
+    {
         // 对于整数类型，先生成float32再转换
         torch::Tensor rand_tensor = torch::randn(sizes, torch::kFloat32);
-        auto result = std::make_unique<TorchMat>(std::move(rand_tensor));
-        
+        auto result               = std::make_unique<TorchMat>(std::move(rand_tensor));
+
         // 转换到目标类型
         auto converted = result->to(options.dtype());
-        
+
         // 如果设备不是CPU，移动到指定设备
-        if (options.device().type() != DeviceType::kCPU) {
+        if (options.device().type() != DeviceType::kCPU)
+        {
             converted = converted->to_device(options.device());
         }
-        
+
         return converted;
     }
 }
 
-
 // 类型相关方法实现
-DataType TorchMat::dtype() const {
+DataType TorchMat::dtype() const
+{
     return get_data_type_from_torch(data_.scalar_type());
 }
 
-std::unique_ptr<Mat> TorchMat::to(DataType target_type) const {
-    auto torch_type = get_torch_type(target_type);
+std::unique_ptr<Mat> TorchMat::to(DataType target_type) const
+{
+    auto torch_type       = get_torch_type(target_type);
     auto converted_tensor = data_.to(torch_type);
     return std::make_unique<TorchMat>(std::move(converted_tensor));
 }
 
-Device TorchMat::device() const {
+Device TorchMat::device() const
+{
     auto torch_device = data_.device();
-    if (torch_device.is_cpu()) {
+    if (torch_device.is_cpu())
+    {
         return Device(DeviceType::kCPU);
-    } else if (torch_device.is_cuda()) {
+    }
+    else if (torch_device.is_cuda())
+    {
         return Device(DeviceType::kCUDA, torch_device.index());
-    } else {
+    }
+    else
+    {
         throw std::runtime_error("Unsupported device type");
     }
 }
 
-std::unique_ptr<Mat> TorchMat::to_device(Device device) const {
-    torch::Device torch_device = torch::kCPU; // 默认初始化为CPU
-    if (device.type() == DeviceType::kCPU) {
+std::unique_ptr<Mat> TorchMat::to_device(Device device) const
+{
+    torch::Device torch_device = torch::kCPU;  // 默认初始化为CPU
+    if (device.type() == DeviceType::kCPU)
+    {
         torch_device = torch::kCPU;
-    } else if (device.type() == DeviceType::kCUDA) {
+    }
+    else if (device.type() == DeviceType::kCUDA)
+    {
         torch_device = torch::Device(torch::kCUDA, device.index());
-    } else {
+    }
+    else
+    {
         throw std::invalid_argument("Unsupported device type");
     }
-    
+
     auto moved_tensor = data_.to(torch_device);
     return std::make_unique<TorchMat>(std::move(moved_tensor));
 }
 
-
-
-torch::ScalarType TorchMat::get_torch_type(DataType dtype) {
-    switch (dtype) {
+torch::ScalarType TorchMat::get_torch_type(DataType dtype)
+{
+    switch (dtype)
+    {
         case DataType::kFloat32:
             return torch::kFloat32;
         case DataType::kDouble:
@@ -563,8 +591,10 @@ torch::ScalarType TorchMat::get_torch_type(DataType dtype) {
     }
 }
 
-DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type) {
-    switch (torch_type) {
+DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type)
+{
+    switch (torch_type)
+    {
         case torch::kFloat32:
             return DataType::kFloat32;
         case torch::kFloat64:
@@ -578,30 +608,34 @@ DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type) {
     }
 }
 
-torch::TensorOptions TorchMat::get_torch_tensor_options(const TensorOptions &options) {
-    auto torch_options = torch::TensorOptions()
-        .dtype(get_torch_type(options.dtype()));
-    
-    if (options.device().type() == DeviceType::kCUDA) {
+torch::TensorOptions TorchMat::get_torch_tensor_options(const TensorOptions &options)
+{
+    auto torch_options = torch::TensorOptions().dtype(get_torch_type(options.dtype()));
+
+    if (options.device().type() == DeviceType::kCUDA)
+    {
         torch_options = torch_options.device(torch::kCUDA, options.device().index());
-    } else {
+    }
+    else
+    {
         torch_options = torch_options.device(torch::kCPU);
     }
-    
+
     return torch_options;
 }
 
 // === TorchMat泛型方法实现 ===
 template <typename U>
-U* TorchMat::data_ptr() {
+U *TorchMat::data_ptr()
+{
     return data_.data_ptr<U>();
 }
 
 // === 模板实例化 ===
-template float* TorchMat::data_ptr<float>();
-template double* TorchMat::data_ptr<double>();
-template int32_t* TorchMat::data_ptr<int32_t>();
-template int8_t* TorchMat::data_ptr<int8_t>();
+template float *TorchMat::data_ptr<float>();
+template double *TorchMat::data_ptr<double>();
+template int32_t *TorchMat::data_ptr<int32_t>();
+template int8_t *TorchMat::data_ptr<int8_t>();
 
 // 标量操作模板实例化（注释掉，让编译器自动实例化）
 // template std::unique_ptr<Mat> TorchMat::add_scalar<float>(float scalar) const;

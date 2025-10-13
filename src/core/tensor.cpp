@@ -1,9 +1,9 @@
 #include "origin/core/tensor.h"
 #include <stdexcept>
+#include "origin/core/tensor_options.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
 #include "origin/utils/exception.h"
-#include "origin/core/tensor_options.h"
 
 namespace origin
 {
@@ -133,7 +133,8 @@ Tensor Tensor::from_blob(void *data, const Shape &shape, const TensorOptions &op
     Tensor result;
     result.create_tensor_from_raw_data(data, shape, options.dtype());
     // 如果设备不是CPU，需要移动到指定设备
-    if (options.device().type() != DeviceType::kCPU) {
+    if (options.device().type() != DeviceType::kCPU)
+    {
         result = result.to(options);
     }
     return result;
@@ -182,7 +183,7 @@ Tensor Tensor::grad() const
 {
     if (!impl_->grad_)
     {
-        return Tensor::zeros(shape(), origin::dtype(DataType::kFloat32)); // TODO，创建与input同类型的gtad
+        return Tensor::zeros(shape(), origin::dtype(DataType::kFloat32));  // TODO，创建与input同类型的gtad
     }
     // 通过TensorImpl创建，避免直接类型转换
     return Tensor(impl_->grad_->clone());
@@ -256,7 +257,6 @@ DataType Tensor::dtype() const
     return impl_->data_->dtype();
 }
 
-
 void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype)
 {
     // 验证形状是否有效（不能有0维度）
@@ -294,7 +294,7 @@ void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, 
 {
     static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type (int, float, double, etc.)");
     static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
-    
+
     // 验证形状是否有效
     for (size_t i = 0; i < shape.size(); ++i)
     {
@@ -477,20 +477,10 @@ template void Tensor::create_tensor_from_data_with_dtype<int8_t>(const int8_t *d
                                                                  DataType dtype);
 
 // 模板实例化 - create_tensor_from_scalar_with_dtype
-template void Tensor::create_tensor_from_scalar_with_dtype<float>(float scalar,
-                                                                 const Shape &shape,
-                                                                 DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<double>(double scalar,
-                                                                  const Shape &shape,
-                                                                  DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<int32_t>(int32_t scalar,
-                                                                    const Shape &shape,
-                                                                    DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<int8_t>(int8_t scalar,
-                                                                   const Shape &shape,
-                                                                   DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<size_t>(size_t scalar,
-                                                                   const Shape &shape,
-                                                                   DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<float>(float scalar, const Shape &shape, DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<double>(double scalar, const Shape &shape, DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<int32_t>(int32_t scalar, const Shape &shape, DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<int8_t>(int8_t scalar, const Shape &shape, DataType dtype);
+template void Tensor::create_tensor_from_scalar_with_dtype<size_t>(size_t scalar, const Shape &shape, DataType dtype);
 
 }  // namespace origin

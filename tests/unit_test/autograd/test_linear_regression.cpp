@@ -10,9 +10,9 @@ class LinearRegressionTest : public ::testing::Test
 {
 protected:
     // 精度忍受常量
-    static constexpr double kTolerance = 0.1;  // 线性回归允许较大的误差
-    static constexpr float kExpectedW = 2.0f;  // 期望的权重
-    static constexpr float kExpectedB = 5.0f;  // 期望的偏置
+    static constexpr double kTolerance = 0.1;   // 线性回归允许较大的误差
+    static constexpr float kExpectedW  = 2.0f;  // 期望的权重
+    static constexpr float kExpectedB  = 5.0f;  // 期望的偏置
 
     void SetUp() override
     {
@@ -59,7 +59,7 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
     auto b = Tensor(0.0f, Shape{1, 1}, Float32);
 
     // 设置学习率和迭代次数
-    float lr = 0.1f;
+    float lr  = 0.1f;
     int iters = 200;
 
     // 训练

@@ -106,10 +106,10 @@ TEST_F(MultiTypeTensorTest, ExplicitTypeConstructor)
     Tensor t6(5.0f, Shape{1});  // 默认应该是kFloat32
     EXPECT_EQ(t6.dtype(), DataType::kFloat32);
 
-    Tensor t7(5.0, Shape{1}); // 没有加 .f，当做 double 处理
+    Tensor t7(5.0, Shape{1});  // 没有加 .f，当做 double 处理
     EXPECT_EQ(t7.dtype(), DataType::kDouble);
 
-    Tensor t8(5.0, Shape{1}, DataType::kInt32); // 指定类型，当做 int32 处理
+    Tensor t8(5.0, Shape{1}, DataType::kInt32);  // 指定类型，当做 int32 处理
     EXPECT_EQ(t8.dtype(), DataType::kInt32);
 
     Tensor t9(5.0, Shape{1}, DataType::kInt8);

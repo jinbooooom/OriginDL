@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     auto C = origin::FunctionPtr(new origin::Square());
 
     origin::Shape shape = {2, 2};
-    float val          = 0.5f;
+    float val           = 0.5f;
 
     logi("Test: y = (origin::exp(x^2))^2");
     auto x = origin::Tensor(val, shape, origin::Float32);
