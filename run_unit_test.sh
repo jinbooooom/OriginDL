@@ -32,7 +32,7 @@ print_error() {
 # 检查是否在正确的目录
 check_directory() {
     if [ ! -f "CMakeLists.txt" ]; then
-        print_error "请在项目根目录下运行此脚本"
+        print_error "Please run this script from the project root directory"
         exit 1
     fi
 }
@@ -40,7 +40,7 @@ check_directory() {
 # 检查build目录是否存在
 check_build_directory() {
     if [ ! -d "build" ]; then
-        print_error "build目录不存在，请先运行 'bash build.sh' 编译项目"
+        print_error "build directory does not exist, please run 'bash build.sh' to build the project first"
         exit 1
     fi
 }
@@ -48,15 +48,15 @@ check_build_directory() {
 # 检查ctest是否可用
 check_ctest() {
     if ! command -v ctest &> /dev/null; then
-        print_error "ctest命令不可用，请确保已安装CMake"
+        print_error "ctest command is not available, please ensure CMake is installed"
         exit 1
     fi
 }
 
 # 运行单元测试
 run_tests() {
-    print_info "开始运行单元测试..."
-    print_info "使用ctest --verbose执行所有测试"
+    print_info "Starting unit tests..."
+    print_info "Running all tests with ctest --verbose"
     echo "----------------------------------------"
     
     # 进入单元测试目录
@@ -64,36 +64,16 @@ run_tests() {
     
     # 运行ctest
     if ctest --verbose; then
-        print_success "所有测试执行完成"
+        print_success "All tests completed successfully"
     else
-        print_warning "部分测试失败，请查看上面的输出"
+        print_warning "Some tests failed, please check the output above"
         exit 1
-    fi
-}
-
-# 显示测试统计
-show_statistics() {
-    print_info "测试统计信息："
-    echo "----------------------------------------"
-    
-    # 统计通过的测试
-    local passed=$(ctest --verbose 2>&1 | grep -c "Passed" || echo "0")
-    # 统计失败的测试
-    local failed=$(ctest --verbose 2>&1 | grep -c "Failed" || echo "0")
-    
-    echo "通过的测试: $passed"
-    echo "失败的测试: $failed"
-    
-    if [ "$failed" -eq 0 ]; then
-        print_success "所有测试都通过了！"
-    else
-        print_warning "有 $failed 个测试失败"
     fi
 }
 
 # 主函数
 main() {
-    print_info "OriginDL 单元测试运行脚本"
+    print_info "OriginDL Unit Test Runner Script"
     echo "========================================"
     
     # 检查环境
@@ -103,28 +83,15 @@ main() {
     
     # 运行测试
     run_tests
-    
-    # 显示统计
-    show_statistics
-    
-    print_info "脚本执行完成"
 }
 
 # 处理命令行参数
 case "${1:-}" in
     -h|--help)
-        echo "用法: $0 [选项]"
-        echo "选项:"
-        echo "  -h, --help     显示此帮助信息"
-        echo "  -s, --stats    只显示测试统计信息"
-        echo "  -q, --quiet    静默模式（不显示详细输出）"
-        exit 0
-        ;;
-    -s|--stats)
-        check_directory
-        check_build_directory
-        cd build/tests/unit_test
-        show_statistics
+        echo "Usage: $0 [options]"
+        echo "Options:"
+        echo "  -h, --help     Show this help message"
+        echo "  -q, --quiet    Quiet mode (no verbose output)"
         exit 0
         ;;
     -q|--quiet)
@@ -138,8 +105,8 @@ case "${1:-}" in
         main
         ;;
     *)
-        print_error "未知选项: $1"
-        echo "使用 '$0 --help' 查看帮助信息"
+        print_error "Unknown option: $1"
+        echo "Use '$0 --help' to see help information"
         exit 1
         ;;
 esac
