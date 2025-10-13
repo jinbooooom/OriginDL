@@ -11,8 +11,8 @@ class LinearRegressionTest : public ::testing::Test
 protected:
     // 精度忍受常量
     static constexpr double kTolerance = 0.1;  // 线性回归允许较大的误差
-    static constexpr double kExpectedW = 2.0;  // 期望的权重
-    static constexpr double kExpectedB = 5.0;  // 期望的偏置
+    static constexpr float kExpectedW = 2.0f;  // 期望的权重
+    static constexpr float kExpectedB = 5.0f;  // 期望的偏置
 
     void SetUp() override
     {
@@ -35,9 +35,9 @@ protected:
     Tensor MSE(const Tensor &x0, const Tensor &x1)
     {
         auto diff       = x0 - x1;
-        auto sum_result = origin::sum(origin::pow(diff, 2));
+        auto sum_result = origin::sum(origin::pow(diff, 2.0f));
         // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-        auto elements = Tensor(diff.elements(), sum_result.shape());
+        auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(), Float32);
         auto result   = sum_result / elements;
         return result;
     }
@@ -48,18 +48,18 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
 {
     // 生成随机数据
     size_t input_size = 100;
-    auto x            = Tensor::randn(Shape{input_size, 1});
+    auto x            = Tensor::randn(Shape{input_size, 1}, Float32);
     // 设置一个噪声，使真实值在预测结果附近
-    auto noise = Tensor::randn(Shape{input_size, 1}) * 0.1;
+    auto noise = Tensor::randn(Shape{input_size, 1}, Float32) * 0.1f;
     // 生成真实标签：y = x * 2.0 + 5.0 + noise
     auto y = x * kExpectedW + kExpectedB + noise;
 
     // 初始化权重和偏置
-    auto w = Tensor(0, Shape{1, 1});
-    auto b = Tensor(0, Shape{1, 1});
+    auto w = Tensor(0.0f, Shape{1, 1}, Float32);
+    auto b = Tensor(0.0f, Shape{1, 1}, Float32);
 
     // 设置学习率和迭代次数
-    data_t lr = 0.1;
+    float lr = 0.1f;
     int iters = 200;
 
     // 训练
