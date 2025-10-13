@@ -8,6 +8,8 @@
 namespace origin
 {
 
+// === 构造函数和析构函数实现 ===
+
 // 内部构造函数实现
 Tensor::Tensor(TensorImplPtr impl) : impl_(impl) {}
 
@@ -29,34 +31,11 @@ Tensor &Tensor::operator=(Tensor &&other) noexcept
     return *this;
 }
 
-// 方法委托实现
-void Tensor::set_creator(const FunctionPtr &func)
-{
-    impl_->set_creator(func);
-}
-
-void Tensor::backward()
-{
-    impl_->backward();
-}
-
-void Tensor::clear_grad()
-{
-    impl_->clear_grad();
-}
-
-// 调试方法实现
-void Tensor::print(const std::string &desc) const
-{
-    impl_->print(desc);
-}
-
 // 从Mat创建Tensor的构造函数实现
 Tensor::Tensor(std::unique_ptr<Mat> mat) : impl_(std::make_shared<TensorImpl>(std::move(mat))) {}
 
-// 工厂函数实现（只保留TensorOptions版本）
+// === 工厂方法实现 ===
 
-// TensorOptions版本的工厂方法实现
 Tensor Tensor::zeros(const Shape &shape, const TensorOptions &options)
 {
     switch (options.dtype())
@@ -140,11 +119,8 @@ Tensor Tensor::from_blob(void *data, const Shape &shape, const TensorOptions &op
     return result;
 }
 
-// === 显式类型构造函数实现（只保留TensorOptions版本）===
+// === 形状和维度实现 ===
 
-// === 工厂方法实现（只保留TensorOptions版本）===
-
-// 公共访问器实现
 Shape Tensor::shape() const
 {
     return impl_->shape();
@@ -161,6 +137,7 @@ size_t Tensor::elements() const
 }
 
 // === 数据访问：类型安全实现 ===
+
 template <typename T>
 T Tensor::item() const
 {
@@ -173,11 +150,26 @@ T *Tensor::data_ptr()
     return impl_->data_ptr<T>();
 }
 
-template <typename T>
-std::vector<T> Tensor::to_vector() const
+// === 类型查询和转换实现 ===
+
+DataType Tensor::dtype() const
 {
-    return impl_->to_vector<T>();
+    return impl_->data_->dtype();
 }
+
+Tensor Tensor::to(DataType target_type) const
+{
+    auto converted_mat = impl_->data_->to(target_type);
+    return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
+}
+
+Tensor Tensor::to(const TensorOptions &options) const
+{
+    auto converted_impl = impl_->to(options);
+    return Tensor(std::make_shared<TensorImpl>(std::move(converted_impl)));
+}
+
+// === 梯度相关实现 ===
 
 Tensor Tensor::grad() const
 {
@@ -189,7 +181,23 @@ Tensor Tensor::grad() const
     return Tensor(impl_->grad_->clone());
 }
 
-// 张量操作实现
+void Tensor::set_creator(const FunctionPtr &func)
+{
+    impl_->set_creator(func);
+}
+
+void Tensor::backward()
+{
+    impl_->backward();
+}
+
+void Tensor::clear_grad()
+{
+    impl_->clear_grad();
+}
+
+// === 张量操作实现 ===
+
 Tensor Tensor::reshape(const Shape &shape) const
 {
     // 通过TensorImpl的reshape方法，避免直接操作Mat
@@ -205,6 +213,7 @@ Tensor Tensor::transpose() const
 }
 
 // === 泛型标量操作实现 ===
+
 template <typename T>
 Tensor Tensor::operator+(T scalar) const
 {
@@ -233,29 +242,25 @@ Tensor Tensor::operator/(T scalar) const
     return Tensor(std::make_shared<TensorImpl>(std::move(result)));
 }
 
-// 后端信息
+// === 调试实现 ===
+
+void Tensor::print(const std::string &desc) const
+{
+    impl_->print(desc);
+}
+
+template <typename T>
+std::vector<T> Tensor::to_vector() const
+{
+    return impl_->to_vector<T>();
+}
+
 int Tensor::backend_type() const
 {
     return impl_->backend_type();
 }
 
-// 类型转换和查询
-Tensor Tensor::to(DataType target_type) const
-{
-    auto converted_mat = impl_->data_->to(target_type);
-    return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
-}
-
-Tensor Tensor::to(const TensorOptions &options) const
-{
-    auto converted_impl = impl_->to(options);
-    return Tensor(std::make_shared<TensorImpl>(std::move(converted_impl)));
-}
-
-DataType Tensor::dtype() const
-{
-    return impl_->data_->dtype();
-}
+// === 私有方法实现 ===
 
 void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype)
 {
@@ -273,22 +278,6 @@ void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, D
     impl_ = std::make_unique<TensorImpl>(data, shape, dtype);
 }
 
-// === 用于自动类型推断的方法实现 ===
-template <typename T>
-void Tensor::create_tensor_from_scalar(T data, const Shape &shape)
-{
-    auto inferred_type = get_data_type<T>();
-    create_tensor_from_scalar_with_dtype(data, shape, inferred_type);
-}
-
-template <typename T>
-void Tensor::create_tensor_from_data(const T *data, size_t count, const Shape &shape)
-{
-    auto inferred_type = get_data_type<T>();
-    create_tensor_from_data_with_dtype(data, count, shape, inferred_type);
-}
-
-// === 用于显式类型指定的方法实现 ===
 template <typename T>
 void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, DataType dtype)
 {
@@ -404,6 +393,7 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
 }
 
 // === 模板实例化 ===
+
 // 数据访问方法
 template float Tensor::item<float>() const;
 template double Tensor::item<double>() const;
@@ -445,20 +435,6 @@ template Tensor Tensor::operator/<int32_t>(int32_t scalar) const;
 template Tensor Tensor::operator/<int8_t>(int8_t scalar) const;
 
 // 内部辅助方法
-template void Tensor::create_tensor_from_scalar<float>(float data, const Shape &shape);
-template void Tensor::create_tensor_from_scalar<double>(double data, const Shape &shape);
-template void Tensor::create_tensor_from_scalar<int32_t>(int32_t data, const Shape &shape);
-template void Tensor::create_tensor_from_scalar<int8_t>(int8_t data, const Shape &shape);
-template void Tensor::create_tensor_from_scalar<unsigned long>(unsigned long data, const Shape &shape);
-
-template void Tensor::create_tensor_from_data<float>(const float *data, size_t count, const Shape &shape);
-template void Tensor::create_tensor_from_data<double>(const double *data, size_t count, const Shape &shape);
-template void Tensor::create_tensor_from_data<int32_t>(const int32_t *data, size_t count, const Shape &shape);
-template void Tensor::create_tensor_from_data<int8_t>(const int8_t *data, size_t count, const Shape &shape);
-template void Tensor::create_tensor_from_data<unsigned long>(const unsigned long *data,
-                                                             size_t count,
-                                                             const Shape &shape);
-
 template void Tensor::create_tensor_from_data_with_dtype<float>(const float *data,
                                                                 size_t count,
                                                                 const Shape &shape,
