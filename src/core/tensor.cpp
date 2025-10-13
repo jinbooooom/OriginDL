@@ -251,11 +251,6 @@ DataType Tensor::dtype() const
     return impl_->data_->dtype();
 }
 
-// 指定数据类型的构造函数实现
-Tensor::Tensor(const void *data, const Shape &shape, DataType dtype)
-{
-    create_tensor_from_raw_data(data, shape, dtype);
-}
 
 void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype)
 {
