@@ -29,8 +29,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -60,7 +60,7 @@ TEST_F(MulOperatorTest, ForwardBasic)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {2.0, 6.0, 12.0, 20.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -78,7 +78,7 @@ TEST_F(MulOperatorTest, ForwardOperatorOverload)
     auto result = x0 * x1;
 
     EXPECT_EQ(result.shape(), Shape{2});
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {8.0, 15.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -99,8 +99,8 @@ TEST_F(MulOperatorTest, ForwardScalarTensor)
     EXPECT_EQ(result1.shape(), Shape{3});
     EXPECT_EQ(result2.shape(), Shape{3});
 
-    auto data1                   = result1.to_vector();
-    auto data2                   = result2.to_vector();
+    auto data1                   = result1.to_vector<float>();
+    auto data2                   = result2.to_vector<float>();
     std::vector<data_t> expected = {2.0, 4.0, 6.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -118,7 +118,7 @@ TEST_F(MulOperatorTest, ForwardZeroTensor)
 
     auto result = mul(x0, x1);
 
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], 0.0, 1e-6);
@@ -133,7 +133,7 @@ TEST_F(MulOperatorTest, ForwardNegativeValues)
 
     auto result = mul(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-3.0, -8.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -154,13 +154,13 @@ TEST_F(MulOperatorTest, BackwardBasic)
     y.backward();
 
     // 乘法算子的梯度：∂y/∂x0 = x1, ∂y/∂x1 = x0
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx0_data.size(); ++i)
     {
-        EXPECT_NEAR(gx0_data[i], x1.to_vector()[i], 1e-6);
-        EXPECT_NEAR(gx1_data[i], x0.to_vector()[i], 1e-6);
+        EXPECT_NEAR(gx0_data[i], x1.to_vector<float>()[i], 1e-6);
+        EXPECT_NEAR(gx1_data[i], x0.to_vector<float>()[i], 1e-6);
     }
 }
 
@@ -174,13 +174,13 @@ TEST_F(MulOperatorTest, BackwardWithGradient)
     // 乘法算子的梯度：∂y/∂x0 = x1, ∂y/∂x1 = x0
     y.backward();
 
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx0_data.size(); ++i)
     {
-        EXPECT_NEAR(gx0_data[i], 1.0, 1e-6);                // ∂y/∂x0 = x1 = 1
-        EXPECT_NEAR(gx1_data[i], x0.to_vector()[i], 1e-6);  // ∂y/∂x1 = x0
+        EXPECT_NEAR(gx0_data[i], 1.0, 1e-6);                       // ∂y/∂x0 = x1 = 1
+        EXPECT_NEAR(gx1_data[i], x0.to_vector<float>()[i], 1e-6);  // ∂y/∂x1 = x0
     }
 }
 
@@ -194,8 +194,8 @@ TEST_F(MulOperatorTest, BackwardDifferentShapes)
     y.backward();
 
     // 梯度应该正确广播
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
     EXPECT_EQ(gx0_data.size(), 2U);
     EXPECT_EQ(gx1_data.size(), 1U);
@@ -218,7 +218,7 @@ TEST_F(MulOperatorTest, SingleElement)
     auto result = mul(x0, x1);
 
     EXPECT_EQ(result.shape(), Shape{1});
-    EXPECT_NEAR(result.item(), 15.0, 1e-6);
+    EXPECT_NEAR(result.item<float>(), 15.0, 1e-6);
 }
 
 TEST_F(MulOperatorTest, LargeTensor)
@@ -233,7 +233,7 @@ TEST_F(MulOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -251,7 +251,7 @@ TEST_F(MulOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -269,7 +269,7 @@ TEST_F(MulOperatorTest, NumericalStability)
 
     auto result = mul(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 1.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -286,7 +286,7 @@ TEST_F(MulOperatorTest, PrecisionTest)
 
     auto result = mul(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {0.03, 0.08};
 
     for (size_t i = 0; i < expected.size(); ++i)

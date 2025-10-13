@@ -24,7 +24,7 @@ TensorImpl (核心实现)
     ↓ 只调用Mat接口方法
 Mat (抽象接口)
     ↓ 具体实现
-ArrayFireMat (具体后端)
+Torch/Origin Mat (具体后端)
 */
 ```
 

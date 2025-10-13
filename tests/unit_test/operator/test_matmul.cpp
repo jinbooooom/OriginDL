@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -72,7 +72,7 @@ TEST_F(MatMulOperatorTest, ForwardBasic)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // 结果应该是 [[1*5+2*7, 1*6+2*8], [3*5+4*7, 3*6+4*8]] = [[19, 22], [43, 50]]
     std::vector<data_t> expected = {19.0, 22.0, 43.0, 50.0};
 
@@ -92,7 +92,7 @@ TEST_F(MatMulOperatorTest, ForwardOperatorOverload)
 
     Shape expected_shape{1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), 11.0, kTolerance);  // 1*3 + 2*4 = 11
+    EXPECT_NEAR(result.item<float>(), 11.0, kTolerance);  // 1*3 + 2*4 = 11
 }
 
 TEST_F(MatMulOperatorTest, ForwardDifferentSizes)
@@ -105,7 +105,7 @@ TEST_F(MatMulOperatorTest, ForwardDifferentSizes)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // 结果应该是 [[1*7+2*9+3*11, 1*8+2*10+3*12], [4*7+5*9+6*11, 4*8+5*10+6*12]]
     // = [[58, 64], [139, 154]]
     std::vector<data_t> expected = {58.0, 64.0, 139.0, 154.0};
@@ -135,7 +135,7 @@ TEST_F(MatMulOperatorTest, ForwardZeroMatrix)
 
     auto result = mat_mul(x, zero);
 
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], 0.0, kTolerance);
@@ -156,8 +156,8 @@ TEST_F(MatMulOperatorTest, BackwardBasic)
     // 矩阵乘法算子的梯度：
     // ∂y/∂x = gy * w^T
     // ∂y/∂w = x^T * gy
-    auto gx_data = x.grad().to_vector();
-    auto gw_data = w.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto gw_data = w.grad().to_vector<float>();
 
     // 验证梯度不为零
     for (size_t i = 0; i < gx_data.size(); ++i)
@@ -183,8 +183,8 @@ TEST_F(MatMulOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0, 2.0, 2.0}, Shape{2, 2});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
-    auto gw_data = w.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto gw_data = w.grad().to_vector<float>();
 
     // 验证梯度计算正确（libtorch行为）
     // x.grad = gy @ w^T = [[2,2],[2,2]] @ [[5,7],[6,8]] = [[22,30],[22,30]]
@@ -211,8 +211,8 @@ TEST_F(MatMulOperatorTest, BackwardDifferentSizes)
     auto y = mat_mul(x, w);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
-    auto gw_data = w.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto gw_data = w.grad().to_vector<float>();
 
     EXPECT_EQ(gx_data.size(), 6U);
     EXPECT_EQ(gw_data.size(), 6U);
@@ -237,8 +237,8 @@ TEST_F(MatMulOperatorTest, BackwardIdentityMatrix)
     auto y = mat_mul(x, identity);
     y.backward();
 
-    auto gx_data        = x.grad().to_vector();
-    auto gidentity_data = identity.grad().to_vector();
+    auto gx_data        = x.grad().to_vector<float>();
+    auto gidentity_data = identity.grad().to_vector<float>();
 
     // x的梯度应该等于输出梯度（libtorch行为）
     for (size_t i = 0; i < gx_data.size(); ++i)
@@ -266,7 +266,7 @@ TEST_F(MatMulOperatorTest, SingleElement)
 
     Shape expected_shape{1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), 15.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 15.0, kTolerance);
 }
 
 TEST_F(MatMulOperatorTest, LargeMatrix)
@@ -281,7 +281,7 @@ TEST_F(MatMulOperatorTest, LargeMatrix)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -301,8 +301,8 @@ TEST_F(MatMulOperatorTest, ThreeDimensional)
     EXPECT_EQ(result.shape(), expected_shape);
 
     // 验证结果正确性（单位矩阵乘法，结果应该等于输入）
-    auto result_data = result.to_vector();
-    auto x_data      = x.to_vector();
+    auto result_data = result.to_vector<float>();
+    auto x_data      = x.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], x_data[i], kTolerance);
@@ -321,7 +321,7 @@ TEST_F(MatMulOperatorTest, NumericalStability)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     // 验证结果在合理范围内
     for (size_t i = 0; i < result_data.size(); ++i)
@@ -340,7 +340,7 @@ TEST_F(MatMulOperatorTest, PrecisionTest)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // 结果应该是 [[0.1*0.5+0.2*0.7, 0.1*0.6+0.2*0.8], [0.3*0.5+0.4*0.7, 0.3*0.6+0.4*0.8]]
     // = [[0.19, 0.22], [0.43, 0.50]]
     std::vector<data_t> expected = {0.19, 0.22, 0.43, 0.50};
@@ -363,7 +363,7 @@ TEST_F(MatMulOperatorTest, MixedSigns)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // 结果应该是 [[1*(-1)+(-2)*(-3), 1*2+(-2)*4], [3*(-1)+(-4)*(-3), 3*2+(-4)*4]]
     // = [[5, -6], [9, -10]]
     std::vector<data_t> expected = {5.0, -6.0, 9.0, -10.0};

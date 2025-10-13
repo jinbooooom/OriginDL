@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -62,7 +62,7 @@ TEST_F(NegOperatorTest, ForwardBasic)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-1.0, 2.0, -3.0, 4.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -80,7 +80,7 @@ TEST_F(NegOperatorTest, ForwardOperatorOverload)
 
     Shape expected_shape{2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-2.0, 3.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -106,7 +106,7 @@ TEST_F(NegOperatorTest, ForwardPositiveValues)
 
     auto result = neg(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-1.0, -2.0, -3.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -122,7 +122,7 @@ TEST_F(NegOperatorTest, ForwardNegativeValues)
 
     auto result = neg(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1.0, 2.0, 3.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -142,7 +142,7 @@ TEST_F(NegOperatorTest, BackwardBasic)
     y.backward();
 
     // 负号算子的梯度：∂y/∂x = -1
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -162,7 +162,7 @@ TEST_F(NegOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0}, Shape{2});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -178,7 +178,7 @@ TEST_F(NegOperatorTest, BackwardDifferentShapes)
     auto y = neg(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     EXPECT_EQ(gx_data.size(), 4U);
 
@@ -199,7 +199,7 @@ TEST_F(NegOperatorTest, SingleElement)
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), -5.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), -5.0, kTolerance);
 }
 
 TEST_F(NegOperatorTest, LargeTensor)
@@ -212,7 +212,7 @@ TEST_F(NegOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -229,7 +229,7 @@ TEST_F(NegOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -246,7 +246,7 @@ TEST_F(NegOperatorTest, NumericalStability)
 
     auto result = neg(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-1e10, -1e-10};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -262,7 +262,7 @@ TEST_F(NegOperatorTest, PrecisionTest)
 
     auto result = neg(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-0.1, -0.2};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -290,7 +290,7 @@ TEST_F(NegOperatorTest, MixedSigns)
 
     auto result = neg(x);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-1.0, 2.0, 0.0, 4.0, -5.0};
 
     for (size_t i = 0; i < expected.size(); ++i)

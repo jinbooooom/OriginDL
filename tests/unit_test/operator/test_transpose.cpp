@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -62,7 +62,7 @@ TEST_F(TransposeOperatorTest, ForwardBasic)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // libtorch行主序：[[1,2],[3,4]]转置为[[1,3],[2,4]]，展开为[1,2,3,4]
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0};
 
@@ -90,7 +90,7 @@ TEST_F(TransposeOperatorTest, Forward3x2Matrix)
 
     Shape expected_shape{2, 3};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // libtorch行主序：[[1,2],[3,4],[5,6]]转置为[[1,3,5],[2,4,6]]，展开为[1,2,3,4,5,6]
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
 
@@ -109,7 +109,7 @@ TEST_F(TransposeOperatorTest, ForwardSquareMatrix)
 
     Shape expected_shape{3, 3};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // libtorch行主序：[[1,2,3],[4,5,6],[7,8,9]]转置为[[1,4,7],[2,5,8],[3,6,9]]，展开为[1,2,3,4,5,6,7,8,9]
     std::vector<data_t> expected = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
 
@@ -140,7 +140,7 @@ TEST_F(TransposeOperatorTest, ForwardZeroTensor)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -159,8 +159,8 @@ TEST_F(TransposeOperatorTest, BackwardBasic)
     y.backward();
 
     // 转置算子的梯度：∂y/∂x = transpose(gy)
-    auto gx_data = x.grad().to_vector();
-    auto y_data  = y.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto y_data  = y.to_vector<float>();
 
     // 梯度应该是转置后的结果（libtorch行为：gy=1时，梯度=1）
     std::vector<data_t> expected = {1.0, 1.0, 1.0, 1.0};
@@ -183,7 +183,7 @@ TEST_F(TransposeOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0, 2.0, 2.0}, Shape{2, 2});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -199,7 +199,7 @@ TEST_F(TransposeOperatorTest, Backward3x2Matrix)
     auto y = transpose(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     // 梯度应该是转置后的结果（libtorch行为：gy=1时，梯度=1）
     std::vector<data_t> expected = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
@@ -218,7 +218,7 @@ TEST_F(TransposeOperatorTest, BackwardOneDimensional)
     auto y = transpose(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -237,7 +237,7 @@ TEST_F(TransposeOperatorTest, SingleElement)
 
     Shape expected_shape{1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), 5.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 5.0, kTolerance);
 }
 
 TEST_F(TransposeOperatorTest, LargeMatrix)
@@ -250,7 +250,7 @@ TEST_F(TransposeOperatorTest, LargeMatrix)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -267,7 +267,7 @@ TEST_F(TransposeOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     // 验证转置的正确性（libtorch行主序行为）
     EXPECT_NEAR(result_data[0], 1.0, kTolerance);
@@ -291,7 +291,7 @@ TEST_F(TransposeOperatorTest, NumericalStability)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // libtorch行主序：[[1e10,1e-10],[1e10,1e-10]]转置为[[1e10,1e10],[1e-10,1e-10]]，展开为[1e10,1e-10,1e10,1e-10]
     std::vector<data_t> expected = {1e10, 1e-10, 1e10, 1e-10};
 
@@ -310,7 +310,7 @@ TEST_F(TransposeOperatorTest, PrecisionTest)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // libtorch行主序：[[0.1,0.2],[0.3,0.4]]转置为[[0.1,0.3],[0.2,0.4]]，展开为[0.1,0.2,0.3,0.4]
     std::vector<data_t> expected = {0.1, 0.2, 0.3, 0.4};
 
@@ -331,7 +331,7 @@ TEST_F(TransposeOperatorTest, MixedSigns)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     // libtorch行主序：[[1,-2],[3,-4]]转置为[[1,3],[-2,-4]]，展开为[1,-2,3,-4]
     std::vector<data_t> expected = {1.0, -2.0, 3.0, -4.0};
 

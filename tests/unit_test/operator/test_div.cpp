@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -63,7 +63,7 @@ TEST_F(DivOperatorTest, ForwardBasic)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {3.0, 2.0, 2.0, 2.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -82,7 +82,7 @@ TEST_F(DivOperatorTest, ForwardOperatorOverload)
 
     Shape expected_shape{2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {3.0, 2.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -103,8 +103,8 @@ TEST_F(DivOperatorTest, ForwardScalarTensor)
     EXPECT_EQ(result1.shape(), Shape{3});
     EXPECT_EQ(result2.shape(), Shape{3});
 
-    auto data1                    = result1.to_vector();
-    auto data2                    = result2.to_vector();
+    auto data1                    = result1.to_vector<float>();
+    auto data2                    = result2.to_vector<float>();
     std::vector<data_t> expected1 = {3.0, 4.0, 5.0};
     std::vector<data_t> expected2 = {1.0 / 3.0, 0.25, 0.2};
 
@@ -134,7 +134,7 @@ TEST_F(DivOperatorTest, ForwardNegativeValues)
 
     auto result = div(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {-3.0, -2.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -156,11 +156,11 @@ TEST_F(DivOperatorTest, BackwardBasic)
 
     // 除法算子的梯度：
     // ∂y/∂x0 = 1/x1, ∂y/∂x1 = -x0/x1²
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
-    auto x0_data = x0.to_vector();
-    auto x1_data = x1.to_vector();
+    auto x0_data = x0.to_vector<float>();
+    auto x1_data = x1.to_vector<float>();
 
     for (size_t i = 0; i < gx0_data.size(); ++i)
     {
@@ -182,11 +182,11 @@ TEST_F(DivOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0}, Shape{2});
     y.backward();
 
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
-    auto x0_data = x0.to_vector();
-    auto x1_data = x1.to_vector();
+    auto x0_data = x0.to_vector<float>();
+    auto x1_data = x1.to_vector<float>();
 
     for (size_t i = 0; i < gx0_data.size(); ++i)
     {
@@ -205,8 +205,8 @@ TEST_F(DivOperatorTest, BackwardDifferentShapes)
     y.backward();
 
     // 梯度应该正确广播
-    auto gx0_data = x0.grad().to_vector();
-    auto gx1_data = x1.grad().to_vector();
+    auto gx0_data = x0.grad().to_vector<float>();
+    auto gx1_data = x1.grad().to_vector<float>();
 
     EXPECT_EQ(gx0_data.size(), 2U);
     EXPECT_EQ(gx1_data.size(), 1U);
@@ -230,7 +230,7 @@ TEST_F(DivOperatorTest, SingleElement)
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), 5.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 5.0, kTolerance);
 }
 
 TEST_F(DivOperatorTest, LargeTensor)
@@ -245,7 +245,7 @@ TEST_F(DivOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -263,7 +263,7 @@ TEST_F(DivOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -281,7 +281,7 @@ TEST_F(DivOperatorTest, NumericalStability)
 
     auto result = div(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1e20, 1e-20};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -298,7 +298,7 @@ TEST_F(DivOperatorTest, PrecisionTest)
 
     auto result = div(x0, x1);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {0.5, 0.5};
 
     for (size_t i = 0; i < expected.size(); ++i)

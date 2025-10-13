@@ -32,8 +32,8 @@ protected:
             return false;
         }
 
-        auto data_a = a.to_vector();
-        auto data_b = b.to_vector();
+        auto data_a = a.to_vector<float>();
+        auto data_b = b.to_vector<float>();
 
         if (data_a.size() != data_b.size())
         {
@@ -63,7 +63,7 @@ TEST_F(PowOperatorTest, ForwardBasic)
 
     Shape expected_shape{2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {4.0, 9.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -82,7 +82,7 @@ TEST_F(PowOperatorTest, ForwardOperatorOverload)
 
     Shape expected_shape{2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {8.0, 27.0};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -99,7 +99,7 @@ TEST_F(PowOperatorTest, ForwardZeroExponent)
 
     auto result = pow(x, exponent);
 
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], 1.0, kTolerance);
@@ -114,7 +114,7 @@ TEST_F(PowOperatorTest, ForwardNegativeExponent)
 
     auto result = pow(x, exponent);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {0.5, 0.25};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -131,7 +131,7 @@ TEST_F(PowOperatorTest, ForwardZeroBase)
 
     auto result = pow(x, exponent);
 
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], 0.0, kTolerance);
@@ -150,8 +150,8 @@ TEST_F(PowOperatorTest, BackwardBasic)
     y.backward();
 
     // 幂算子的梯度：∂y/∂x = exponent * x^(exponent-1)
-    auto gx_data = x.grad().to_vector();
-    auto x_data  = x.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto x_data  = x.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -172,8 +172,8 @@ TEST_F(PowOperatorTest, BackwardWithGradient)
     auto gy = Tensor({2.0, 2.0}, Shape{2});
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
-    auto x_data  = x.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto x_data  = x.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -190,7 +190,7 @@ TEST_F(PowOperatorTest, BackwardZeroExponent)
     auto y = pow(x, exponent);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
+    auto gx_data = x.grad().to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -207,8 +207,8 @@ TEST_F(PowOperatorTest, BackwardNegativeExponent)
     auto y = pow(x, exponent);
     y.backward();
 
-    auto gx_data = x.grad().to_vector();
-    auto x_data  = x.to_vector();
+    auto gx_data = x.grad().to_vector<float>();
+    auto x_data  = x.to_vector<float>();
 
     for (size_t i = 0; i < gx_data.size(); ++i)
     {
@@ -228,7 +228,7 @@ TEST_F(PowOperatorTest, SingleElement)
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item(), 8.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 8.0, kTolerance);
 }
 
 TEST_F(PowOperatorTest, LargeTensor)
@@ -242,7 +242,7 @@ TEST_F(PowOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -260,7 +260,7 @@ TEST_F(PowOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
 
     for (size_t i = 0; i < result_data.size(); ++i)
     {
@@ -278,7 +278,7 @@ TEST_F(PowOperatorTest, NumericalStability)
 
     auto result = pow(x, exponent);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {1e-10, 1e10};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -295,7 +295,7 @@ TEST_F(PowOperatorTest, PrecisionTest)
 
     auto result = pow(x, exponent);
 
-    auto result_data             = result.to_vector();
+    auto result_data             = result.to_vector<float>();
     std::vector<data_t> expected = {0.001, 0.008};
 
     for (size_t i = 0; i < expected.size(); ++i)
@@ -313,15 +313,15 @@ TEST_F(PowOperatorTest, DifferentExponents)
 
     // 测试指数为1
     auto result1 = pow(x, 1);
-    EXPECT_NEAR(result1.item(), 2.0, kTolerance);
+    EXPECT_NEAR(result1.item<float>(), 2.0, kTolerance);
 
     // 测试指数为2
     auto result2 = pow(x, 2);
-    EXPECT_NEAR(result2.item(), 4.0, kTolerance);
+    EXPECT_NEAR(result2.item<float>(), 4.0, kTolerance);
 
     // 测试指数为3
     auto result3 = pow(x, 3);
-    EXPECT_NEAR(result3.item(), 8.0, kTolerance);
+    EXPECT_NEAR(result3.item<float>(), 8.0, kTolerance);
 }
 
 TEST_F(PowOperatorTest, IdentityProperty)
@@ -341,7 +341,7 @@ TEST_F(PowOperatorTest, ZeroPowerProperty)
 
     auto result = pow(x, 0);
 
-    auto result_data = result.to_vector();
+    auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], 1.0, kTolerance);
@@ -356,5 +356,5 @@ TEST_F(PowOperatorTest, LargeExponent)
 
     auto result = pow(x, exponent);
 
-    EXPECT_NEAR(result.item(), std::pow(1.1, 10), kTolerance);
+    EXPECT_NEAR(result.item<float>(), std::pow(1.1, 10), kTolerance);
 }
