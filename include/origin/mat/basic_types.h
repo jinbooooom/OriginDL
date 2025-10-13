@@ -12,6 +12,7 @@ namespace origin
 enum class DataType
 {
     kFloat32 = 0,  // float
+    kFloat64 = 1,  // double
     kDouble  = 1,  // double
     kInt32   = 2,  // int32_t
     kInt8    = 3   // int8_t
@@ -22,8 +23,8 @@ using data_t = float; // TODO: 未来去掉这个类型
 
 // 数据类型别名，提供更简洁的命名，这样用户可以通过 origin::Float32 去创建 origin::DataType::kFloat32 类型的张量
 constexpr auto Float32 = DataType::kFloat32;
-constexpr auto Double = DataType::kDouble;
 constexpr auto Float64 = DataType::kDouble;
+constexpr auto Double = DataType::kDouble;
 constexpr auto Int32 = DataType::kInt32;
 constexpr auto Int8 = DataType::kInt8;
 
