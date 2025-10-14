@@ -237,11 +237,11 @@ TEST_F(MultiTypeTensorTest, ShapeAndElements)
 {
     Tensor t1({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2});
     EXPECT_EQ(t1.shape(), (Shape{2, 2}));
-    EXPECT_EQ(t1.elements(), 4);
-    EXPECT_EQ(t1.ndim(), 2);
+    EXPECT_EQ(t1.elements(), 4u);
+    EXPECT_EQ(t1.ndim(), 2u);
 
     Tensor t2(5.0f, Shape{1});
     EXPECT_EQ(t2.shape(), (Shape{1}));
-    EXPECT_EQ(t2.elements(), 1);
-    EXPECT_EQ(t2.ndim(), 1);
+    EXPECT_EQ(t2.elements(), 1u);
+    EXPECT_EQ(t2.ndim(), 1u);
 }
