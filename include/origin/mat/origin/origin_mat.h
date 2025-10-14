@@ -27,7 +27,6 @@ protected:
     std::vector<size_t> strides_;
 
 private:
-
     // Helper to calculate strides
     std::vector<size_t> calculate_strides(const Shape &shape, DataType dtype);
 
@@ -160,7 +159,7 @@ public:
     // 调试
     void print(const std::string &desc = "") const override;
     int backend_type() const override;
-    
+
     // 访问storage_的公共方法
     std::shared_ptr<Storage> get_storage() const { return storage_; }
 

@@ -159,17 +159,7 @@ public:
     Tensor transpose() const;
 
     // === 泛型标量操作 ===
-    template <typename T>
-    Tensor operator+(T scalar) const;
-
-    template <typename T>
-    Tensor operator-(T scalar) const;
-
-    template <typename T>
-    Tensor operator*(T scalar) const;
-
-    template <typename T>
-    Tensor operator/(T scalar) const;
+    // 注意：标量操作使用全局操作符重载，避免与成员操作符冲突
 
     // === 调试 ===
     void print(const std::string &desc = "") const;

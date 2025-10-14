@@ -6,4 +6,5 @@
 - [ ] 增加自己写的后端矩阵计算库 OriginMat(GPU版框架)
 - [ ] Tensor 增加静态检查
 - [x] 拆分 originMat，当前这个文件太长了
+- [ ] OriginMat支持视图转置
 - [ ] 等到稳定后删除 arrayfire

@@ -1,19 +1,24 @@
-#include "origin/mat/origin/origin_mat.h"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include <cstring>
 #include <stdexcept>
+#include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 
-namespace origin {
-namespace cpu {
+namespace origin
+{
+namespace cpu
+{
 
-std::unique_ptr<OriginMat> reshape(const OriginMat& mat, const Shape& new_shape) {
-    if (new_shape.elements() != mat.elements()) {
+std::unique_ptr<OriginMat> reshape(const OriginMat &mat, const Shape &new_shape)
+{
+    if (new_shape.elements() != mat.elements())
+    {
         throw std::invalid_argument("Reshape: total elements must match");
     }
     // 创建一个新的OriginMat，共享存储但使用新的形状
     auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
     // 复制数据
-    switch (mat.dtype()) {
+    switch (mat.dtype())
+    {
         case DataType::kFloat32:
             memcpy(result->data_ptr<float>(), mat.data_ptr<float>(), mat.elements() * sizeof(float));
             break;
@@ -32,5 +37,5 @@ std::unique_ptr<OriginMat> reshape(const OriginMat& mat, const Shape& new_shape)
     return result;
 }
 
-} // namespace cpu
-} // namespace origin
+}  // namespace cpu
+}  // namespace origin
