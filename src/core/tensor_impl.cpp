@@ -410,28 +410,28 @@ template std::vector<int32_t> TensorImpl::to_vector<int32_t>() const;
 template std::vector<int8_t> TensorImpl::to_vector<int8_t>() const;
 
 // 泛型标量操作
-template TensorImpl TensorImpl::operator+<float>(float scalar) const;
-template TensorImpl TensorImpl::operator+<double>(double scalar) const;
-template TensorImpl TensorImpl::operator+<int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator+<int8_t>(int8_t scalar) const;
+template TensorImpl TensorImpl::operator+ <float>(float scalar) const;
+template TensorImpl TensorImpl::operator+ <double>(double scalar) const;
+template TensorImpl TensorImpl::operator+ <int32_t>(int32_t scalar) const;
+template TensorImpl TensorImpl::operator+ <int8_t>(int8_t scalar) const;
 
-template TensorImpl TensorImpl::operator-<float>(float scalar) const;
-template TensorImpl TensorImpl::operator-<double>(double scalar) const;
-template TensorImpl TensorImpl::operator-<int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator-<int8_t>(int8_t scalar) const;
+template TensorImpl TensorImpl::operator- <float>(float scalar) const;
+template TensorImpl TensorImpl::operator- <double>(double scalar) const;
+template TensorImpl TensorImpl::operator- <int32_t>(int32_t scalar) const;
+template TensorImpl TensorImpl::operator- <int8_t>(int8_t scalar) const;
 
-template TensorImpl TensorImpl::operator*<float>(float scalar) const;
-template TensorImpl TensorImpl::operator*<double>(double scalar) const;
-template TensorImpl TensorImpl::operator*<int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator*<int8_t>(int8_t scalar) const;
+template TensorImpl TensorImpl::operator* <float>(float scalar) const;
+template TensorImpl TensorImpl::operator* <double>(double scalar) const;
+template TensorImpl TensorImpl::operator* <int32_t>(int32_t scalar) const;
+template TensorImpl TensorImpl::operator* <int8_t>(int8_t scalar) const;
 
-template TensorImpl TensorImpl::operator/<float>(float scalar) const;
-template TensorImpl TensorImpl::operator/<double>(double scalar) const;
-template TensorImpl TensorImpl::operator/<int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator/<int8_t>(int8_t scalar) const;
+template TensorImpl TensorImpl::operator/ <float>(float scalar) const;
+template TensorImpl TensorImpl::operator/ <double>(double scalar) const;
+template TensorImpl TensorImpl::operator/ <int32_t>(int32_t scalar) const;
+template TensorImpl TensorImpl::operator/ <int8_t>(int8_t scalar) const;
 
 // 额外的模板实例化（只添加新的类型）
-template TensorImpl TensorImpl::operator+<unsigned long>(unsigned long scalar) const;
+template TensorImpl TensorImpl::operator+ <unsigned long>(unsigned long scalar) const;
 template unsigned long TensorImpl::item<unsigned long>() const;
 template unsigned long *TensorImpl::data_ptr<unsigned long>();
 template std::vector<unsigned long> TensorImpl::to_vector<unsigned long>() const;

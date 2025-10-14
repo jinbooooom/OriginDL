@@ -23,6 +23,7 @@ t
 tmp
 t.cpp
 build
+torch_build
 main
 **/bin/*
 

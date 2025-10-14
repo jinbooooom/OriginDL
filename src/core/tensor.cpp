@@ -414,25 +414,25 @@ template std::vector<int8_t> Tensor::to_vector<int8_t>() const;
 template std::vector<unsigned long> Tensor::to_vector<unsigned long>() const;
 
 // 泛型标量操作
-template Tensor Tensor::operator+<float>(float scalar) const;
-template Tensor Tensor::operator+<double>(double scalar) const;
-template Tensor Tensor::operator+<int32_t>(int32_t scalar) const;
-template Tensor Tensor::operator+<int8_t>(int8_t scalar) const;
+template Tensor Tensor::operator+ <float>(float scalar) const;
+template Tensor Tensor::operator+ <double>(double scalar) const;
+template Tensor Tensor::operator+ <int32_t>(int32_t scalar) const;
+template Tensor Tensor::operator+ <int8_t>(int8_t scalar) const;
 
-template Tensor Tensor::operator-<float>(float scalar) const;
-template Tensor Tensor::operator-<double>(double scalar) const;
-template Tensor Tensor::operator-<int32_t>(int32_t scalar) const;
-template Tensor Tensor::operator-<int8_t>(int8_t scalar) const;
+template Tensor Tensor::operator- <float>(float scalar) const;
+template Tensor Tensor::operator- <double>(double scalar) const;
+template Tensor Tensor::operator- <int32_t>(int32_t scalar) const;
+template Tensor Tensor::operator- <int8_t>(int8_t scalar) const;
 
-template Tensor Tensor::operator*<float>(float scalar) const;
-template Tensor Tensor::operator*<double>(double scalar) const;
-template Tensor Tensor::operator*<int32_t>(int32_t scalar) const;
-template Tensor Tensor::operator*<int8_t>(int8_t scalar) const;
+template Tensor Tensor::operator* <float>(float scalar) const;
+template Tensor Tensor::operator* <double>(double scalar) const;
+template Tensor Tensor::operator* <int32_t>(int32_t scalar) const;
+template Tensor Tensor::operator* <int8_t>(int8_t scalar) const;
 
-template Tensor Tensor::operator/<float>(float scalar) const;
-template Tensor Tensor::operator/<double>(double scalar) const;
-template Tensor Tensor::operator/<int32_t>(int32_t scalar) const;
-template Tensor Tensor::operator/<int8_t>(int8_t scalar) const;
+template Tensor Tensor::operator/ <float>(float scalar) const;
+template Tensor Tensor::operator/ <double>(double scalar) const;
+template Tensor Tensor::operator/ <int32_t>(int32_t scalar) const;
+template Tensor Tensor::operator/ <int8_t>(int8_t scalar) const;
 
 // 内部辅助方法
 template void Tensor::create_tensor_from_data_with_dtype<float>(const float *data,
