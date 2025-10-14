@@ -18,6 +18,23 @@ enum class DataType
     kInt8    = 3   // int8_t
 };
 
+inline std::string dtype_to_string(DataType dtype)
+{
+    switch (dtype)
+    {
+        case DataType::kFloat32:
+            return "float32";
+        case DataType::kFloat64:
+            return "float64";
+        case DataType::kInt32:
+            return "int32";
+        case DataType::kInt8:
+            return "int8";
+        default:
+            return "unknown data type";
+    }
+}
+
 // 基础数据类型定义（保持向后兼容）
 using data_t = float;  // TODO: 未来去掉这个类型
 

@@ -7,36 +7,48 @@
 
 #include "mat.h"
 
-// 硬编码使用TORCH后端
-// #if MAT_BACKEND == ARRAYFIRE
-// #include <arrayfire.h>
-// #include "array_fire_mat.h"
-// #elif MAT_BACKEND == TORCH
-// #include <torch/torch.h>
-#include "torch/torch_mat.h"
-// #elif MAT_BACKEND == EIGEN
-// #include "eigen_mat.h"  // 未来扩展
-// #elif MAT_BACKEND == CUSTOM
-// #include "custom_mat.h"  // 未来扩展
-// #endif
+// 支持多种后端选择
+#ifdef MAT_BACKEND
+#    if MAT_BACKEND == 0  // ARRAYFIRE
+#        include <arrayfire.h>
+#        include "array_fire_mat.h"
+#    elif MAT_BACKEND == 1  // TORCH
+#        include <torch/torch.h>
+#        include "torch/torch_mat.h"
+#    elif MAT_BACKEND == 2  // ORIGIN
+#        include "origin/origin_mat.h"
+#    elif MAT_BACKEND == 3       // EIGEN
+#        include "eigen_mat.h"   // 未来扩展
+#    elif MAT_BACKEND == 4       // CUSTOM
+#        include "custom_mat.h"  // 未来扩展
+#    endif
+#else
+// 默认使用TORCH后端
+#    include <torch/torch.h>
+#    include "torch/torch_mat.h"
+#endif
 
 namespace origin
 {
 
-// 硬编码使用TORCH后端
-
-// 硬编码使用TorchMat
-// #if MAT_BACKEND == ARRAYFIRE
-// using Mat_t = ArrayFireMat;
-// #elif MAT_BACKEND == TORCH
+// 根据后端选择对应的Mat类型
+#ifdef MAT_BACKEND
+#    if MAT_BACKEND == 0  // ARRAYFIRE
+using Mat_t = ArrayFireMat;
+#    elif MAT_BACKEND == 1  // TORCH
 using Mat_t = TorchMat;
-// #elif MAT_BACKEND == EIGEN
-// using Mat_t = EigenMat;  // 未来扩展
-// #elif MAT_BACKEND == CUSTOM
-// using Mat_t = CustomMat;  // 未来扩展
-// #else
-// using Mat_t = TorchMat;  // 默认使用TorchMat
-// #endif
+#    elif MAT_BACKEND == 2  // ORIGIN
+using Mat_t = OriginMat;
+#    elif MAT_BACKEND == 3  // EIGEN
+using Mat_t = EigenMat;  // 未来扩展
+#    elif MAT_BACKEND == 4  // CUSTOM
+using Mat_t = CustomMat;  // 未来扩展
+#    else
+using Mat_t = TorchMat;  // 默认使用TorchMat
+#    endif
+#else
+using Mat_t = TorchMat;  // 默认使用TorchMat
+#endif
 
 }  // namespace origin
 

@@ -7,30 +7,38 @@ project (${MY_LIB_NAME})
 set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # 使用GLOB自动收集源文件，避免手动维护文件列表
+# 基础源文件
 file(
     GLOB MY_LIB_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operators/*.cpp 
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/torch/*.cpp
-        # ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/arrayfire/*.cpp
 )
 
-# 硬编码使用TORCH后端
-# if(MAT_BACKEND STREQUAL "ARRAYFIRE")
-#     list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/array_fire_mat.cpp)
-#     list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/backend_mat_utils.cpp)
-#     add_definitions(-DMAT_BACKEND=ARRAYFIRE)
-# elseif(MAT_BACKEND STREQUAL "TORCH")
-# torch_mat.cpp is now included via GLOB pattern: src/mat/torch/*.cpp
-add_definitions(-DMAT_BACKEND=TORCH)
-# else()
-#     # 默认使用TORCH后端
-#     list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/torch_mat.cpp)
-#     add_definitions(-DMAT_BACKEND=TORCH)
-# endif()
+# 根据后端添加对应的源文件
+if(MAT_BACKEND STREQUAL "ARRAYFIRE")
+    list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/array_fire_mat.cpp)
+    list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/backend_mat_utils.cpp)
+elseif(MAT_BACKEND STREQUAL "TORCH")
+    file(GLOB TORCH_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/torch/*.cpp)
+    list(APPEND MY_LIB_SRCS ${TORCH_SRCS})
+elseif(MAT_BACKEND STREQUAL "ORIGIN")
+    file(GLOB ORIGIN_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/*.cpp)
+    list(APPEND MY_LIB_SRCS ${ORIGIN_SRCS})
+endif()
+
+# 支持多种后端选择
+if(MAT_BACKEND STREQUAL "ARRAYFIRE")
+    add_definitions(-DMAT_BACKEND=0)  # ARRAYFIRE = 0
+elseif(MAT_BACKEND STREQUAL "TORCH")
+    add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
+elseif(MAT_BACKEND STREQUAL "ORIGIN")
+    add_definitions(-DMAT_BACKEND=2)  # ORIGIN = 2
+else()
+    # 默认使用TORCH后端
+    add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
+endif()
 
 # message(WARNING ${MY_LIB_SRCS})
 
@@ -75,7 +83,16 @@ add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
 # 禁止一些警告
 # add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-reorder -Wno-format) 
 
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
+# 根据后端动态设置库输出目录
+if(MAT_BACKEND STREQUAL "ORIGIN")
+    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
+elseif(MAT_BACKEND STREQUAL "TORCH")
+    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/lib/)
+elseif(MAT_BACKEND STREQUAL "ARRAYFIRE")
+    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/arrayfire_build/lib/)
+else()
+    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
+endif()
 link_directories(${PROJECT_SOURCE_DIR}/3rd/lib)
 link_directories(${ARRAYFIRE_PATH}/lib64)
 
@@ -113,18 +130,32 @@ target_compile_definitions(dllog PUBLIC SPDLOG_COMPILED_LIB)
 
 add_library(${PROJECT_NAME} SHARED ${MY_LIB_SRCS})
 
-# 硬编码使用LibTorch链接库
-# if(MAT_BACKEND STREQUAL "TORCH")
+# 根据后端选择相应的链接库
+if(MAT_BACKEND STREQUAL "TORCH")
     target_link_libraries(${PROJECT_NAME} dllog -lpthread "${TORCH_LIBRARIES}")
     message(STATUS "Linking with LibTorch backend")
-# else()
-#     target_link_libraries(${PROJECT_NAME} dllog -lpthread -laf)
-#     message(STATUS "Linking with ArrayFire backend")
-# endif()
+elseif(MAT_BACKEND STREQUAL "ARRAYFIRE")
+    target_link_libraries(${PROJECT_NAME} dllog -lpthread -laf)
+    message(STATUS "Linking with ArrayFire backend")
+elseif(MAT_BACKEND STREQUAL "ORIGIN")
+    target_link_libraries(${PROJECT_NAME} dllog -lpthread)
+    message(STATUS "Linking with OriginMat backend")
+else()
+    target_link_libraries(${PROJECT_NAME} dllog -lpthread)
+    message(STATUS "Linking with default backend")
+endif()
 
 # 开始编译可执行程序
-# 设置输出目录为 build/bin
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
+# 根据后端动态设置输出目录
+if(MAT_BACKEND STREQUAL "ORIGIN")
+    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
+elseif(MAT_BACKEND STREQUAL "TORCH")
+    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/bin)
+elseif(MAT_BACKEND STREQUAL "ARRAYFIRE")
+    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/arrayfire_build/bin)
+else()
+    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
+endif()
 
 # 设置传递给测试子目录的变量
 set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
