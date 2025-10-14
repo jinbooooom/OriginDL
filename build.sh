@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # OriginDL Build Script
-# Usage: ./build.sh [ARRAYFIRE|TORCH]
+# Usage: ./build.sh [ORIGIN|TORCH]
 
 set -e
 
-BACKEND=${1:-TORCH}
+BACKEND=${1:-ORIGIN}
 
 # Check backend parameter
-if [ "$BACKEND" != "ARRAYFIRE" ] && [ "$BACKEND" != "TORCH" ]; then
+if [ "$BACKEND" != "TORCH" ] && [ "$BACKEND" != "ORIGIN" ]; then
     echo "Error: Invalid backend parameter '$BACKEND'"
-    echo "Usage: $0 [ARRAYFIRE|TORCH]"
+    echo "Usage: $0 [ORIGIN|TORCH]"
     exit 1
 fi
 
@@ -27,13 +27,24 @@ if [ "$BACKEND" = "TORCH" ]; then
         echo "Error: LibTorch not found at $TORCH_PATH"
         exit 1
     fi
+elif [ "$BACKEND" = "ORIGIN" ]; then
+    echo "Using OriginMat backend (no external dependencies)"
 else
     echo "Error: Other backends are not supported"
     exit 1
 fi
 
-mkdir -p build
-cd build
+# 根据后端选择不同的构建目录
+if [ "$BACKEND" = "ORIGIN" ]; then
+    BUILD_DIR="build"
+elif [ "$BACKEND" = "TORCH" ]; then
+    BUILD_DIR="torch_build"
+else
+    BUILD_DIR="other_build"
+fi
+
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
 
 # 配置项目并启用编译命令导出 compile_commands.json, 保证 vscode 可以跳转
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DMAT_BACKEND=$BACKEND ..

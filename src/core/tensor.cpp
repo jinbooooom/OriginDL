@@ -213,34 +213,7 @@ Tensor Tensor::transpose() const
 }
 
 // === 泛型标量操作实现 ===
-
-template <typename T>
-Tensor Tensor::operator+(T scalar) const
-{
-    auto result = impl_->operator+(scalar);
-    return Tensor(std::make_shared<TensorImpl>(std::move(result)));
-}
-
-template <typename T>
-Tensor Tensor::operator-(T scalar) const
-{
-    auto result = impl_->operator-(scalar);
-    return Tensor(std::make_shared<TensorImpl>(std::move(result)));
-}
-
-template <typename T>
-Tensor Tensor::operator*(T scalar) const
-{
-    auto result = impl_->operator*(scalar);
-    return Tensor(std::make_shared<TensorImpl>(std::move(result)));
-}
-
-template <typename T>
-Tensor Tensor::operator/(T scalar) const
-{
-    auto result = impl_->operator/(scalar);
-    return Tensor(std::make_shared<TensorImpl>(std::move(result)));
-}
+// 注意：标量操作使用全局操作符重载，避免与成员操作符冲突
 
 // === 调试实现 ===
 
@@ -414,25 +387,7 @@ template std::vector<int8_t> Tensor::to_vector<int8_t>() const;
 template std::vector<unsigned long> Tensor::to_vector<unsigned long>() const;
 
 // 泛型标量操作
-template Tensor Tensor::operator+<float>(float scalar) const;
-template Tensor Tensor::operator+<double>(double scalar) const;
-template Tensor Tensor::operator+<int32_t>(int32_t scalar) const;
-template Tensor Tensor::operator+<int8_t>(int8_t scalar) const;
-
-template Tensor Tensor::operator-<float>(float scalar) const;
-template Tensor Tensor::operator-<double>(double scalar) const;
-template Tensor Tensor::operator-<int32_t>(int32_t scalar) const;
-template Tensor Tensor::operator-<int8_t>(int8_t scalar) const;
-
-template Tensor Tensor::operator*<float>(float scalar) const;
-template Tensor Tensor::operator*<double>(double scalar) const;
-template Tensor Tensor::operator*<int32_t>(int32_t scalar) const;
-template Tensor Tensor::operator*<int8_t>(int8_t scalar) const;
-
-template Tensor Tensor::operator/<float>(float scalar) const;
-template Tensor Tensor::operator/<double>(double scalar) const;
-template Tensor Tensor::operator/<int32_t>(int32_t scalar) const;
-template Tensor Tensor::operator/<int8_t>(int8_t scalar) const;
+// 成员操作符模板实例化已移除，使用全局操作符重载
 
 // 内部辅助方法
 template void Tensor::create_tensor_from_data_with_dtype<float>(const float *data,

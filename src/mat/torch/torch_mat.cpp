@@ -438,12 +438,20 @@ int TorchMat::backend_type() const
     return TORCH_BACKEND_TYPE;
 }
 
+/*
+视图转置 vs 数据转置：PyTorch的transpose()是视图操作，不重新排列内存数据
+连续性检查：使用contiguous()确保数据按逻辑形状排列
+性能考虑：contiguous()只在需要时重新排列数据，避免不必要的内存拷贝
+*/
 // 静态辅助函数实现
 template <typename U>
 std::vector<U> TorchMat::tensor_to_vector(const torch::Tensor &tensor)
 {
     std::vector<U> result(tensor.numel());
-    auto data_ptr = tensor.data_ptr<U>();
+    // 确保张量是连续的，这样数据会按照逻辑形状重新排列。
+    // 考虑到转置的情况，使用视图转置，数据的内存顺序不会改变。所以直接返回tensor.data_ptr<U>()导致看不出转置的效果。
+    auto contiguous_tensor = tensor.contiguous();
+    auto data_ptr          = contiguous_tensor.data_ptr<U>();
     std::copy(data_ptr, data_ptr + tensor.numel(), result.begin());
     return result;
 }

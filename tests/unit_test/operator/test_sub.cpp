@@ -93,8 +93,8 @@ TEST_F(SubOperatorTest, ForwardOperatorOverload)
 TEST_F(SubOperatorTest, ForwardScalarTensor)
 {
     // 测试标量与张量的减法
-    auto x        = Tensor({5.0, 6.0, 7.0}, Shape{3});
-    data_t scalar = 2.0;
+    auto x        = Tensor({5.0f, 6.0f, 7.0f}, Shape{3});
+    data_t scalar = 2.0f;
 
     auto result1 = x - scalar;
     auto result2 = scalar - x;

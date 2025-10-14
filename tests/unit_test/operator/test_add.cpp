@@ -93,8 +93,8 @@ TEST_F(AddOperatorTest, ForwardOperatorOverload)
 TEST_F(AddOperatorTest, ForwardScalarTensor)
 {
     // 测试标量与张量的加法
-    auto x        = Tensor({1.0, 2.0, 3.0}, Shape{3});
-    data_t scalar = 5.0;
+    auto x        = Tensor({1.0f, 2.0f, 3.0f}, Shape{3});
+    data_t scalar = 5.0f;  // 使用float类型确保类型匹配
 
     auto result1 = x + scalar;
     auto result2 = scalar + x;

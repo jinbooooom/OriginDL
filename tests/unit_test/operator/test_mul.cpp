@@ -90,8 +90,8 @@ TEST_F(MulOperatorTest, ForwardOperatorOverload)
 TEST_F(MulOperatorTest, ForwardScalarTensor)
 {
     // 测试标量与张量的乘法
-    auto x        = Tensor({1.0, 2.0, 3.0}, Shape{3});
-    data_t scalar = 2.0;
+    auto x        = Tensor({1.0f, 2.0f, 3.0f}, Shape{3});
+    data_t scalar = 2.0f;
 
     auto result1 = x * scalar;
     auto result2 = scalar * x;
