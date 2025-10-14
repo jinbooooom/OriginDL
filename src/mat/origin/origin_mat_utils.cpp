@@ -683,24 +683,30 @@ bool is_broadcastable(const std::vector<size_t> &shape1, const std::vector<size_
 
 // === OriginMat工具函数 ===
 
-void validate_shape(const Shape& shape) {
-    if (shape.elements() == 0) {
+void validate_shape(const Shape &shape)
+{
+    if (shape.elements() == 0)
+    {
         throw std::invalid_argument("Shape cannot have zero elements");
     }
 }
 
-std::vector<size_t> compute_strides(const Shape& shape) {
+std::vector<size_t> compute_strides(const Shape &shape)
+{
     std::vector<size_t> strides(shape.ndims());
     size_t stride = 1;
-    for (int i = shape.ndims() - 1; i >= 0; --i) {
+    for (int i = shape.ndims() - 1; i >= 0; --i)
+    {
         strides[i] = stride;
         stride *= shape[i];
     }
     return strides;
 }
 
-size_t get_dtype_size(DataType dtype) {
-    switch (dtype) {
+size_t get_dtype_size(DataType dtype)
+{
+    switch (dtype)
+    {
         case DataType::kFloat32:
             return sizeof(float);
         case DataType::kFloat64:
@@ -715,7 +721,8 @@ size_t get_dtype_size(DataType dtype) {
 }
 
 template <typename T>
-DataType get_data_type_from_template() {
+DataType get_data_type_from_template()
+{
     if (std::is_same_v<T, float>)
         return DataType::kFloat32;
     if (std::is_same_v<T, double>)
@@ -733,18 +740,22 @@ template DataType get_data_type_from_template<double>();
 template DataType get_data_type_from_template<int32_t>();
 template DataType get_data_type_from_template<int8_t>();
 
-bool can_broadcast_to(const Shape& source_shape, const Shape& target_shape) {
+bool can_broadcast_to(const Shape &source_shape, const Shape &target_shape)
+{
     // sum_to 的广播规则：可以求和到更小的形状，但不能广播到更大的形状
-    if (target_shape.elements() > source_shape.elements()) {
+    if (target_shape.elements() > source_shape.elements())
+    {
         return false;
     }
-    
+
     // 检查是否可以广播
     size_t min_dims = std::min(source_shape.size(), target_shape.size());
-    for (size_t i = 0; i < min_dims; ++i) {
+    for (size_t i = 0; i < min_dims; ++i)
+    {
         size_t source_dim = source_shape[source_shape.size() - 1 - i];
         size_t target_dim = target_shape[target_shape.size() - 1 - i];
-        if (source_dim != target_dim && source_dim != 1 && target_dim != 1) {
+        if (source_dim != target_dim && source_dim != 1 && target_dim != 1)
+        {
             return false;
         }
     }

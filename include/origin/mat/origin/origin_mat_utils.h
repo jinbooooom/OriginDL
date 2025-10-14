@@ -124,14 +124,14 @@ bool is_broadcastable(const std::vector<size_t> &shape1, const std::vector<size_
 // === OriginMat工具函数 ===
 // 从OriginMat类中提取的工具函数
 
-void validate_shape(const Shape& shape);
-std::vector<size_t> compute_strides(const Shape& shape);
+void validate_shape(const Shape &shape);
+std::vector<size_t> compute_strides(const Shape &shape);
 size_t get_dtype_size(DataType dtype);
 
 template <typename T>
 DataType get_data_type_from_template();
 
-bool can_broadcast_to(const Shape& source_shape, const Shape& target_shape);
+bool can_broadcast_to(const Shape &source_shape, const Shape &target_shape);
 
 }  // namespace utils
 }  // namespace origin

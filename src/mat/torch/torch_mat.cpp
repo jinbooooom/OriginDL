@@ -112,7 +112,7 @@ std::unique_ptr<Mat> TorchMat::mul_scalar(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator+(data_t scalar) const
 {
-    return operator+ <data_t>(scalar);
+    return operator+<data_t>(scalar);
 }
 
 template <typename U>
@@ -129,7 +129,7 @@ std::unique_ptr<Mat> TorchMat::operator+(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator-(data_t scalar) const
 {
-    return operator- <data_t>(scalar);
+    return operator-<data_t>(scalar);
 }
 
 template <typename U>
@@ -146,7 +146,7 @@ std::unique_ptr<Mat> TorchMat::operator-(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator*(data_t scalar) const
 {
-    return operator* <data_t>(scalar);
+    return operator*<data_t>(scalar);
 }
 
 template <typename U>
@@ -163,7 +163,7 @@ std::unique_ptr<Mat> TorchMat::operator*(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator/(data_t scalar) const
 {
-    return operator/ <data_t>(scalar);
+    return operator/<data_t>(scalar);
 }
 
 template <typename U>
@@ -451,7 +451,7 @@ std::vector<U> TorchMat::tensor_to_vector(const torch::Tensor &tensor)
     // 确保张量是连续的，这样数据会按照逻辑形状重新排列。
     // 考虑到转置的情况，使用视图转置，数据的内存顺序不会改变。所以直接返回tensor.data_ptr<U>()导致看不出转置的效果。
     auto contiguous_tensor = tensor.contiguous();
-    auto data_ptr = contiguous_tensor.data_ptr<U>();
+    auto data_ptr          = contiguous_tensor.data_ptr<U>();
     std::copy(data_ptr, data_ptr + tensor.numel(), result.begin());
     return result;
 }

@@ -1,6 +1,4 @@
 #include "origin/mat/origin/origin_mat.h"
-#include "origin/mat/origin/cpu/cpu_ops.h"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -9,6 +7,8 @@
 #include <random>
 #include <sstream>
 #include <stdexcept>
+#include "origin/mat/origin/cpu/cpu_ops.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 
 namespace origin
 {

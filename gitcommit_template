@@ -24,7 +24,7 @@
 #     tmp：临时保存
 
 # scope（可选）
-# 对于本项目来说可以是 3rd, log, op, tensor, comm, model, layer, test 等
+# 对于本项目来说可以是 3rd, log, op, tensor, mat, comm, model, layer, test 等
 # scope用于说明 commit 影响的范围，根据不同项目有不同层次描述。若没有特殊规定，也可以描述影响的哪些功能等。
 
 # subject（必须）
