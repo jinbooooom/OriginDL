@@ -25,7 +25,9 @@ elseif(MAT_BACKEND STREQUAL "TORCH")
     list(APPEND MY_LIB_SRCS ${TORCH_SRCS})
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
     file(GLOB ORIGIN_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/*.cpp)
+    file(GLOB ORIGIN_CPU_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/cpu/*.cpp)
     list(APPEND MY_LIB_SRCS ${ORIGIN_SRCS})
+    list(APPEND MY_LIB_SRCS ${ORIGIN_CPU_SRCS})
 endif()
 
 # 支持多种后端选择

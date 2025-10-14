@@ -94,8 +94,8 @@ TEST_F(DivOperatorTest, ForwardOperatorOverload)
 TEST_F(DivOperatorTest, ForwardScalarTensor)
 {
     // 测试标量与张量的除法
-    auto x        = Tensor({6.0, 8.0, 10.0}, Shape{3});
-    data_t scalar = 2.0;
+    auto x        = Tensor({6.0f, 8.0f, 10.0f}, Shape{3});
+    data_t scalar = 2.0f;
 
     auto result1 = x / scalar;
     auto result2 = scalar / x;
