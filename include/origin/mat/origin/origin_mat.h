@@ -20,11 +20,13 @@ namespace origin
  */
 class OriginMat : public Mat
 {
-private:
+protected:
     std::shared_ptr<Storage> storage_;
     Shape shape_;
     DataType dtype_;
     std::vector<size_t> strides_;
+
+private:
 
     // Helper to calculate strides
     std::vector<size_t> calculate_strides(const Shape &shape, DataType dtype);
@@ -103,6 +105,7 @@ public:
     std::unique_ptr<Mat> sum(int axis) const override;
     std::unique_ptr<Mat> broadcast_to(const Shape &target_shape) const override;
     std::unique_ptr<Mat> sum_to(const Shape &target_shape) const override;
+    bool can_broadcast_to(const Shape &target_shape) const;
 
     // 形状和维度
     Shape shape() const override;
@@ -157,6 +160,9 @@ public:
     // 调试
     void print(const std::string &desc = "") const override;
     int backend_type() const override;
+    
+    // 访问storage_的公共方法
+    std::shared_ptr<Storage> get_storage() const { return storage_; }
 
     // 工厂方法
     static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options = TensorOptions());
