@@ -29,7 +29,7 @@ std::vector<Tensor> Sub::backward(const std::vector<Tensor> &gys)
     }
 
     auto gx0 = gys[0];
-    // 直接使用 ArrayFire 运算符，避免触发全局 operator-
+    // 使用负号运算符
     auto gx1_result = -mat(gys[0]);
     auto gx1        = convert_mat_to_tensor(std::move(gx1_result));
 

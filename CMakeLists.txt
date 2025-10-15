@@ -17,10 +17,7 @@ file(
 )
 
 # 根据后端添加对应的源文件
-if(MAT_BACKEND STREQUAL "ARRAYFIRE")
-    list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/array_fire_mat.cpp)
-    list(APPEND MY_LIB_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/backend_mat_utils.cpp)
-elseif(MAT_BACKEND STREQUAL "TORCH")
+if(MAT_BACKEND STREQUAL "TORCH")
     file(GLOB TORCH_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/torch/*.cpp)
     list(APPEND MY_LIB_SRCS ${TORCH_SRCS})
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
@@ -31,9 +28,7 @@ elseif(MAT_BACKEND STREQUAL "ORIGIN")
 endif()
 
 # 支持多种后端选择
-if(MAT_BACKEND STREQUAL "ARRAYFIRE")
-    add_definitions(-DMAT_BACKEND=0)  # ARRAYFIRE = 0
-elseif(MAT_BACKEND STREQUAL "TORCH")
+if(MAT_BACKEND STREQUAL "TORCH")
     add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
     add_definitions(-DMAT_BACKEND=2)  # ORIGIN = 2
@@ -50,13 +45,6 @@ endif()
 #     )
 # add_definitions(-DGIT_COMMIT_SHA1="${GIT_COMMIT}")
 
-# 检查环境变量ARRAYFIRE_PATH是否存在，如果存在则使用它，否则使用默认路径
-if(DEFINED ENV{ARRAYFIRE_PATH})
-    set(ARRAYFIRE_PATH $ENV{ARRAYFIRE_PATH})
-else()
-    set(ARRAYFIRE_PATH /opt/arrayfire)
-endif()
-
 # 检查环境变量TORCH_PATH是否存在，如果存在则使用它，否则使用默认路径
 if(DEFINED ENV{TORCH_PATH})
     set(TORCH_PATH $ENV{TORCH_PATH})
@@ -64,10 +52,7 @@ else()
     set(TORCH_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rd/libtorch)
 endif()
 
-message(STATUS "Using ArrayFire path: ${ARRAYFIRE_PATH}")
 message(STATUS "Using LibTorch path: ${TORCH_PATH}")
-
-include_directories(${ARRAYFIRE_PATH}/include)
 include_directories(3rd/)
 include_directories(include)
 
@@ -90,13 +75,10 @@ if(MAT_BACKEND STREQUAL "ORIGIN")
     set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
 elseif(MAT_BACKEND STREQUAL "TORCH")
     set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/lib/)
-elseif(MAT_BACKEND STREQUAL "ARRAYFIRE")
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/arrayfire_build/lib/)
 else()
     set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
 endif()
 link_directories(${PROJECT_SOURCE_DIR}/3rd/lib)
-link_directories(${ARRAYFIRE_PATH}/lib64)
 
 # 根据后端添加相应的库目录
 if(MAT_BACKEND STREQUAL "TORCH")
@@ -136,9 +118,6 @@ add_library(${PROJECT_NAME} SHARED ${MY_LIB_SRCS})
 if(MAT_BACKEND STREQUAL "TORCH")
     target_link_libraries(${PROJECT_NAME} dllog -lpthread "${TORCH_LIBRARIES}")
     message(STATUS "Linking with LibTorch backend")
-elseif(MAT_BACKEND STREQUAL "ARRAYFIRE")
-    target_link_libraries(${PROJECT_NAME} dllog -lpthread -laf)
-    message(STATUS "Linking with ArrayFire backend")
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
     target_link_libraries(${PROJECT_NAME} dllog -lpthread)
     message(STATUS "Linking with OriginMat backend")
@@ -153,8 +132,6 @@ if(MAT_BACKEND STREQUAL "ORIGIN")
     set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
 elseif(MAT_BACKEND STREQUAL "TORCH")
     set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/bin)
-elseif(MAT_BACKEND STREQUAL "ARRAYFIRE")
-    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/arrayfire_build/bin)
 else()
     set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
 endif()

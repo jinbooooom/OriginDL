@@ -55,14 +55,7 @@ protected:
 
 TEST_F(ReshapeOperatorTest, ForwardBasic)
 {
-    // ===== ArrayFire与PyTorch行为差异说明 =====
-    // 此测试可能失败，因为ArrayFire的reshape操作与PyTorch行为不一致
-    // 具体差异：
-    // 1. 维度处理：ArrayFire可能不会保持期望的形状，特别是单维度的情况
-    // 2. 形状压缩：ArrayFire可能自动压缩某些维度，而PyTorch不会
-    // 3. 内存布局：ArrayFire的moddims操作可能返回与期望不同的形状
-    // 注意：此测试期望PyTorch行为，但ArrayFire实现可能不匹配
-    // ===========================================
+    // ===== 测试reshape操作的基本功能 =====
 
     // 测试基本重塑运算
     auto x = Tensor({1.0, 2.0, 3.0, 4.0}, Shape{2, 2});

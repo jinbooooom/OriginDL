@@ -103,14 +103,7 @@ TEST_F(BroadcastToOperatorTest, ForwardToSameShape)
 
 TEST_F(BroadcastToOperatorTest, ForwardToLargerShape)
 {
-    // ===== ArrayFire与PyTorch行为差异说明 =====
-    // 此测试可能失败，因为ArrayFire的broadcast操作与PyTorch行为不一致
-    // 具体差异：
-    // 1. 广播规则：ArrayFire和PyTorch的广播规则可能不同
-    // 2. 数据排列：由于内存布局差异，广播后的数据排列可能不同
-    // 3. 维度处理：ArrayFire可能以不同的方式处理维度扩展
-    // 注意：此测试期望PyTorch行为，但ArrayFire实现可能不匹配
-    // ===========================================
+    // ===== 测试broadcast_to操作的基本功能 =====
 
     // 测试到更大形状
     auto x = Tensor({1.0, 2.0}, Shape{1, 2});
