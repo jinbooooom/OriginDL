@@ -2,6 +2,7 @@
 #define __ORIGIN_DL_TENSOR_H__
 
 #include "../common/inner_types.h"
+#include "../utils/static_assert.h"
 #include "tensor_impl.h"
 #include "tensor_options.h"
 
@@ -51,18 +52,25 @@ public:
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape)
         : Tensor(data, shape, get_data_type_from_template<T>())  // 根据T推断数据类型，然后委托给DataType版本的构造函数
-    {}
+    {
+        // 在编译时做静态检查，避免运行时出现问题
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    }
 
     // 向量构造函数（指定数据类型）
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape, DataType dtype)
         : Tensor(data, shape, TensorOptions(dtype))  // 委托给TensorOptions版本的构造函数
-    {}
+    {
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    }
 
     // 向量构造函数（指定TensorOptions）
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
     {
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+
         // 验证数据大小与形状是否匹配
         size_t expected_elements = shape.elements();
         if (data.size() != expected_elements)
@@ -84,38 +92,47 @@ public:
     template <typename T>
     Tensor(std::initializer_list<T> data, const Shape &shape)
         : Tensor(std::vector<T>(data), shape)  // 委托给vector版本的构造函数
-    {}
+    {
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    }
 
     // 初始化列表构造函数（指定数据类型）
     template <typename T>
     Tensor(std::initializer_list<T> data, const Shape &shape, DataType dtype)
         : Tensor(std::vector<T>(data), shape, dtype)  // 委托给vector版本的构造函数
-    {}
+    {
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    }
 
     // 初始化列表构造函数（指定TensorOptions）
     template <typename T>
     Tensor(std::initializer_list<T> data, const Shape &shape, const TensorOptions &options)
         : Tensor(std::vector<T>(data), shape, options)  // 委托给vector版本的TensorOptions构造函数
-    {}
+    {
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    }
 
     // 标量构造函数（自动推断类型）
     template <typename T>
     Tensor(T scalar, const Shape &shape)
         : Tensor(scalar, shape, get_data_type_from_template<T>())  // 委托给DataType版本的构造函数
-    {}
+    {
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    }
 
     // 标量构造函数（指定数据类型）
     template <typename T>
     Tensor(T scalar, const Shape &shape, DataType dtype)
         : Tensor(scalar, shape, TensorOptions(dtype))  // 委托给TensorOptions版本的构造函数
-    {}
+    {
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    }
 
     // 标量构造函数（指定TensorOptions）
     template <typename T>
     Tensor(T scalar, const Shape &shape, const TensorOptions &options)
     {
-        static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type (int, float, double, etc.)");
-        static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
+        ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
         create_tensor_from_scalar_with_dtype(scalar, shape, options.dtype());
         // 如果设备不是CPU，需要移动到指定设备
         if (options.device().type() != DeviceType::kCPU)

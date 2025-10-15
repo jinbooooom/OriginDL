@@ -141,12 +141,14 @@ size_t Tensor::elements() const
 template <typename T>
 T Tensor::item() const
 {
+    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
     return impl_->item<T>();
 }
 
 template <typename T>
 T *Tensor::data_ptr()
 {
+    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
     return impl_->data_ptr<T>();
 }
 
@@ -225,6 +227,7 @@ void Tensor::print(const std::string &desc) const
 template <typename T>
 std::vector<T> Tensor::to_vector() const
 {
+    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
     return impl_->to_vector<T>();
 }
 
@@ -254,8 +257,7 @@ void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, D
 template <typename T>
 void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, DataType dtype)
 {
-    static_assert(std::is_arithmetic_v<T>, "T must be an arithmetic type (int, float, double, etc.)");
-    static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
+    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
 
     // 验证形状是否有效
     for (size_t i = 0; i < shape.size(); ++i)
@@ -301,6 +303,8 @@ void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, 
 template <typename T>
 void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, const Shape &shape, DataType dtype)
 {
+    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+
     // 验证数据大小
     if (count != shape.elements())
     {
