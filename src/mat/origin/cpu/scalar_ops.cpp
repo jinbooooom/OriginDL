@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -57,7 +58,7 @@ std::unique_ptr<OriginMat> add_scalar(const OriginMat &mat, data_t scalar)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for scalar addition");
+            THROW_INVALID_ARG("Unsupported data type {} for scalar addition", dtype_to_string(mat.dtype()));
     }
 
     return result;
@@ -114,7 +115,7 @@ std::unique_ptr<OriginMat> subtract_scalar(const OriginMat &mat, data_t scalar)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for scalar subtraction");
+            THROW_INVALID_ARG("Unsupported data type {} for scalar subtraction", dtype_to_string(mat.dtype()));
     }
 
     return result;
@@ -171,7 +172,7 @@ std::unique_ptr<OriginMat> multiply_scalar(const OriginMat &mat, data_t scalar)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for scalar multiplication");
+            THROW_INVALID_ARG("Unsupported data type {} for scalar multiplication", dtype_to_string(mat.dtype()));
     }
 
     return result;
@@ -228,7 +229,7 @@ std::unique_ptr<OriginMat> divide_scalar(const OriginMat &mat, data_t scalar)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for scalar division");
+            THROW_INVALID_ARG("Unsupported data type {} for scalar division", dtype_to_string(mat.dtype()));
     }
 
     return result;
@@ -281,7 +282,7 @@ std::unique_ptr<OriginMat> negate(const OriginMat &mat)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for negation");
+            THROW_INVALID_ARG("Unsupported data type {} for negation", dtype_to_string(mat.dtype()));
     }
 
     return result;

@@ -1,6 +1,7 @@
 #include <random>
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -57,7 +58,7 @@ std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &option
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for randn");
+            THROW_INVALID_ARG("Unsupported data type {} for randn operation", dtype_to_string(options.dtype()));
     }
 
     return result;
@@ -106,7 +107,7 @@ std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &option
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for zeros");
+            THROW_INVALID_ARG("Unsupported data type {} for zeros operation", dtype_to_string(options.dtype()));
     }
 
     return result;
@@ -155,7 +156,7 @@ std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for ones");
+            THROW_INVALID_ARG("Unsupported data type {} for ones operation", dtype_to_string(options.dtype()));
     }
 
     return result;
@@ -208,7 +209,7 @@ std::unique_ptr<OriginMat> full(const Shape &shape, data_t value, const TensorOp
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for full");
+            THROW_INVALID_ARG("Unsupported data type {} for full operation", dtype_to_string(options.dtype()));
     }
 
     return result;

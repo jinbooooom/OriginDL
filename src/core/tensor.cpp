@@ -56,7 +56,7 @@ Tensor Tensor::zeros(const Shape &shape, const TensorOptions &options)
             return Tensor(data, shape, options);
         }
         default:
-            throw std::invalid_argument("Unsupported data type for zeros");
+            THROW_INVALID_ARG("Unsupported data type {} for zeros operation", dtype_to_string(options.dtype()));
     }
 }
 
@@ -80,7 +80,7 @@ Tensor Tensor::ones(const Shape &shape, const TensorOptions &options)
             return Tensor(data, shape, options);
         }
         default:
-            throw std::invalid_argument("Unsupported data type for ones");
+            THROW_INVALID_ARG("Unsupported data type {} for ones operation", dtype_to_string(options.dtype()));
     }
 }
 
@@ -103,7 +103,7 @@ Tensor Tensor::full(const Shape &shape, double value, const TensorOptions &optio
         case DataType::kInt8:
             return Tensor(static_cast<int8_t>(value), shape, options);
         default:
-            throw std::invalid_argument("Unsupported data type for full");
+            THROW_INVALID_ARG("Unsupported data type {} for full operation", dtype_to_string(options.dtype()));
     }
 }
 
@@ -242,8 +242,8 @@ void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, D
     {
         if (shape[i] == 0)
         {
-            throw std::invalid_argument("Tensor shape cannot have zero dimensions. Dimension " + std::to_string(i) +
-                                        " is zero in shape " + shape.to_string());
+            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
+                              shape.to_string());
         }
     }
 
@@ -262,8 +262,8 @@ void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, 
     {
         if (shape[i] == 0)
         {
-            throw std::invalid_argument("Tensor shape cannot have zero dimensions. Dimension " + std::to_string(i) +
-                                        " is zero in shape " + shape.to_string());
+            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
+                              shape.to_string());
         }
     }
 
@@ -294,7 +294,7 @@ void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, 
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type");
+            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(dtype));
     }
 }
 
@@ -304,7 +304,7 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
     // 验证数据大小
     if (count != shape.elements())
     {
-        throw std::invalid_argument("Data count does not match shape elements");
+        THROW_INVALID_ARG("Data count {} does not match shape elements {}", count, shape.elements());
     }
 
     // 验证形状是否有效
@@ -312,8 +312,8 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
     {
         if (shape[i] == 0)
         {
-            throw std::invalid_argument("Tensor shape cannot have zero dimensions. Dimension " + std::to_string(i) +
-                                        " is zero in shape " + shape.to_string());
+            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
+                              shape.to_string());
         }
     }
 
@@ -361,7 +361,7 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type");
+            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(dtype));
     }
 }
 

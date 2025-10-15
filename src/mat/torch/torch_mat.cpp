@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include "origin/core/tensor_options.h"
 #include "origin/mat/basic_types.h"
+#include "origin/utils/exception.h"
 #include "origin/utils/log.h"
 
 namespace origin
@@ -112,7 +113,7 @@ std::unique_ptr<Mat> TorchMat::mul_scalar(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator+(data_t scalar) const
 {
-    return operator+<data_t>(scalar);
+    return operator+ <data_t>(scalar);
 }
 
 template <typename U>
@@ -129,7 +130,7 @@ std::unique_ptr<Mat> TorchMat::operator+(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator-(data_t scalar) const
 {
-    return operator-<data_t>(scalar);
+    return operator- <data_t>(scalar);
 }
 
 template <typename U>
@@ -146,7 +147,7 @@ std::unique_ptr<Mat> TorchMat::operator-(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator*(data_t scalar) const
 {
-    return operator*<data_t>(scalar);
+    return operator* <data_t>(scalar);
 }
 
 template <typename U>
@@ -163,7 +164,7 @@ std::unique_ptr<Mat> TorchMat::operator*(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator/(data_t scalar) const
 {
-    return operator/<data_t>(scalar);
+    return operator/ <data_t>(scalar);
 }
 
 template <typename U>
@@ -225,7 +226,7 @@ std::unique_ptr<Mat> TorchMat::sum_to(const Shape &shape) const
     if (target_elements > current_elements)
     {
         // 目标形状更大，libtorch的sum_to不支持广播，抛出异常
-        throw std::runtime_error("sum_to: Target shape cannot have more elements than source tensor");
+        THROW_RUNTIME_ERROR("sum_to: Target shape cannot have more elements than source tensor");
     }
     else
     {
@@ -332,7 +333,7 @@ std::vector<data_t> TorchMat::to_vector() const
     }
     else
     {
-        throw std::runtime_error("Unsupported tensor type for to_vector()");
+        THROW_RUNTIME_ERROR("Unsupported tensor type for to_vector()");
     }
 }
 
@@ -558,7 +559,7 @@ Device TorchMat::device() const
     }
     else
     {
-        throw std::runtime_error("Unsupported device type");
+        THROW_RUNTIME_ERROR("Unsupported device type");
     }
 }
 
@@ -575,7 +576,7 @@ std::unique_ptr<Mat> TorchMat::to_device(Device device) const
     }
     else
     {
-        throw std::invalid_argument("Unsupported device type");
+        THROW_INVALID_ARG("Unsupported device type");
     }
 
     auto moved_tensor = data_.to(torch_device);
@@ -595,7 +596,7 @@ torch::ScalarType TorchMat::get_torch_type(DataType dtype)
         case DataType::kInt8:
             return torch::kInt8;
         default:
-            throw std::invalid_argument("Unsupported data type");
+            THROW_INVALID_ARG("Unsupported data type {} for torch operation", dtype_to_string(dtype));
     }
 }
 
@@ -612,7 +613,7 @@ DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type)
         case torch::kInt8:
             return DataType::kInt8;
         default:
-            throw std::invalid_argument("Unsupported torch scalar type");
+            THROW_INVALID_ARG("Unsupported torch scalar type");
     }
 }
 

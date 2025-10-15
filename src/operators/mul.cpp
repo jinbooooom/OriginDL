@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> Mul::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 2)
     {
-        throw std::runtime_error("Mul requires exactly 2 inputs");
+        THROW_RUNTIME_ERROR("Mul operator requires exactly 2 inputs, but got {}", xs.size());
     }
 
     shape0_ = xs[0].shape();
@@ -26,7 +27,7 @@ std::vector<Tensor> Mul::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("Mul backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("Mul backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
     auto x0 = &mat(this->inputs_[0]);

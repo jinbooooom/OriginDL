@@ -1,7 +1,7 @@
 #include "origin/mat/origin/storage.h"
 #include <cstring>  // For std::memcpy
 #include <stdexcept>
-// #include "origin/utils/exception.h" // Temporarily removed
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -97,7 +97,7 @@ std::shared_ptr<Storage> Storage::to_device(DeviceType target_device_type, int t
     else
     {
         // CUDA not supported yet
-        throw std::runtime_error("CUDA device transfer not supported yet.");
+        THROW_RUNTIME_ERROR("CUDA device transfer not supported yet.");
     }
 }
 

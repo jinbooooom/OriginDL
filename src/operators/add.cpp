@@ -8,7 +8,7 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 2)
     {
-        throw std::runtime_error("Add requires exactly 2 inputs");
+        THROW_RUNTIME_ERROR("Add operator requires exactly 2 inputs, but got {}", xs.size());
     }
 
     shape0_ = xs[0].shape();
@@ -27,7 +27,7 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
 {
     if (1 != gys.size())
     {
-        DL_WARN_THROW("invalid argument size, not equal to 1");
+        THROW_RUNTIME_ERROR("Add backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
     auto gx0 = gys[0];

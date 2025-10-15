@@ -1,80 +1,53 @@
 #ifndef __ORIGIN_DL_EXCEPTION_H__
 #define __ORIGIN_DL_EXCEPTION_H__
 
+#include <filesystem>
 #include <stdexcept>
 #include <string>
-#include "log.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace origin
 {
 
-// 基础异常类
-class DLException : public std::runtime_error
+// 工具函数：获取文件名（去掉路径）
+inline const char *basename(const char *file)
 {
-public:
-    DLException(const std::string &message, const char *file, int line, const char *function)
-        : std::runtime_error(message), mFile(file), mLine(line), mFunction(function)
-    {}
+    const char *last_slash = strrchr(file, '/');
+    return last_slash ? last_slash + 1 : file;
+}
 
-    const char *file() const { return mFile; }
-    int line() const { return mLine; }
-    const char *function() const { return mFunction; }
-
-private:
-    const char *mFile;
-    int mLine;
-    const char *mFunction;
-};
-
-// 警告级别异常（非致命）
-class DLWarningException : public DLException
+// 工具函数：获取文件名（去掉路径）- C++17版本
+inline std::string basename(const std::string &file)
 {
-public:
-    DLWarningException(const std::string &message, const char *file, int line, const char *function)
-        : DLException(message, file, line, function)
-    {}
-};
-
-// 错误级别异常（致命）
-class DLErrorException : public DLException
-{
-public:
-    DLErrorException(const std::string &message, const char *file, int line, const char *function)
-        : DLException(message, file, line, function)
-    {}
-};
-
-// 严重错误异常（系统级）
-class DLCriticalException : public DLException
-{
-public:
-    DLCriticalException(const std::string &message, const char *file, int line, const char *function)
-        : DLException(message, file, line, function)
-    {}
-};
+    return std::filesystem::path(file).filename().string();
+}
 
 }  // namespace origin
 
-// 简化的异常抛出宏：先记录日志，再抛出异常
-#define DL_WARN_THROW(message)                                                       \
-    do                                                                               \
-    {                                                                                \
-        logw("{}", message);                                                         \
-        throw origin::DLWarningException(message, __FILE__, __LINE__, __FUNCTION__); \
+// 通用THROW宏 - 支持格式化字符串，格式：文件名：函数名：行号
+#define THROW(exception_type, format_str, ...)                                                                     \
+    do                                                                                                             \
+    {                                                                                                              \
+        auto formatted_msg = fmt::format("\033[31m[{}:{}:{}] {}\033[0m", origin::basename(__FILE__), __FUNCTION__, \
+                                         __LINE__, fmt::format(format_str, ##__VA_ARGS__));                        \
+        throw exception_type(formatted_msg);                                                                       \
     } while (0)
 
-#define DL_ERROR_THROW(message)                                                    \
-    do                                                                             \
-    {                                                                              \
-        loge("{}", message);                                                       \
-        throw origin::DLErrorException(message, __FILE__, __LINE__, __FUNCTION__); \
+// 带条件的THROW宏
+#define THROW_IF(condition, exception_type, format_str, ...)  \
+    do                                                        \
+    {                                                         \
+        if (condition)                                        \
+        {                                                     \
+            THROW(exception_type, format_str, ##__VA_ARGS__); \
+        }                                                     \
     } while (0)
 
-#define DL_CRITICAL_THROW(message)                                                    \
-    do                                                                                \
-    {                                                                                 \
-        logc("{}", __FUNCTION__, message);                                            \
-        throw origin::DLCriticalException(message, __FILE__, __LINE__, __FUNCTION__); \
-    } while (0)
+// 常用异常类型的简化宏
+#define THROW_INVALID_ARG(format_str, ...) THROW(std::invalid_argument, format_str, ##__VA_ARGS__)
+#define THROW_RUNTIME_ERROR(format_str, ...) THROW(std::runtime_error, format_str, ##__VA_ARGS__)
+#define THROW_LOGIC_ERROR(format_str, ...) THROW(std::logic_error, format_str, ##__VA_ARGS__)
+#define THROW_OUT_OF_RANGE(format_str, ...) THROW(std::out_of_range, format_str, ##__VA_ARGS__)
+#define THROW_BAD_ALLOC(format_str, ...) THROW(std::bad_alloc, format_str, ##__VA_ARGS__)
 
 #endif  // __ORIGIN_DL_EXCEPTION_H__

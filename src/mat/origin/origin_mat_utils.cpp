@@ -5,6 +5,7 @@
 #include <iostream>
 #include <numeric>
 #include <sstream>
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -559,7 +560,7 @@ std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, Dat
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for conversion");
+            THROW_INVALID_ARG("Unsupported data type {} for conversion", dtype_to_string(dtype));
     }
 
     return result;
@@ -606,7 +607,7 @@ void convert_from_vector(const std::vector<data_t> &data_vec, void *data_ptr, Da
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for conversion");
+            THROW_INVALID_ARG("Unsupported data type {} for conversion", dtype_to_string(dtype));
     }
 }
 
@@ -687,7 +688,7 @@ void validate_shape(const Shape &shape)
 {
     if (shape.elements() == 0)
     {
-        throw std::invalid_argument("Shape cannot have zero elements");
+        THROW_INVALID_ARG("Shape cannot have zero elements");
     }
 }
 
@@ -716,7 +717,7 @@ size_t get_dtype_size(DataType dtype)
         case DataType::kInt8:
             return sizeof(int8_t);
         default:
-            throw std::invalid_argument("Unsupported data type");
+            THROW_INVALID_ARG("Unsupported data type {} for operation", dtype_to_string(dtype));
     }
 }
 
@@ -731,7 +732,7 @@ DataType get_data_type_from_template()
         return DataType::kInt32;
     if (std::is_same_v<T, int8_t>)
         return DataType::kInt8;
-    throw std::invalid_argument("Unsupported template type");
+    THROW_INVALID_ARG("Unsupported template type");
 }
 
 // 显式实例化模板

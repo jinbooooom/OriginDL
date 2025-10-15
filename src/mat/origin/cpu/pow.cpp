@@ -1,6 +1,7 @@
 #include <cmath>
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -58,7 +59,7 @@ std::unique_ptr<OriginMat> pow(const OriginMat &mat, data_t exponent)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for power");
+            THROW_INVALID_ARG("Unsupported data type {} for power operation", dtype_to_string(mat.dtype()));
     }
 
     return result;

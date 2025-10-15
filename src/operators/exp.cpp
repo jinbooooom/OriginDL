@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> Exp::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 1)
     {
-        throw std::runtime_error("Exp requires exactly 1 input");
+        THROW_RUNTIME_ERROR("Exp operator requires exactly 1 input, but got {}", xs.size());
     }
 
     // 使用抽象层进行指数运算
@@ -22,7 +23,7 @@ std::vector<Tensor> Exp::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("Exp backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("Exp backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
     // 使用抽象层进行梯度计算

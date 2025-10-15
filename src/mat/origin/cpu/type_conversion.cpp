@@ -1,5 +1,6 @@
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -51,7 +52,8 @@ std::unique_ptr<OriginMat> convert_datatype(const OriginMat &mat, DataType targe
                     break;
                 }
                 default:
-                    throw std::invalid_argument("Unsupported target type for conversion");
+                    THROW_INVALID_ARG("Unsupported target type {} for conversion from {}", dtype_to_string(target_type),
+                                      dtype_to_string(mat.dtype()));
             }
             break;
         }
@@ -88,7 +90,8 @@ std::unique_ptr<OriginMat> convert_datatype(const OriginMat &mat, DataType targe
                     break;
                 }
                 default:
-                    throw std::invalid_argument("Unsupported target type for conversion");
+                    THROW_INVALID_ARG("Unsupported target type {} for conversion from {}", dtype_to_string(target_type),
+                                      dtype_to_string(mat.dtype()));
             }
             break;
         }
@@ -125,7 +128,8 @@ std::unique_ptr<OriginMat> convert_datatype(const OriginMat &mat, DataType targe
                     break;
                 }
                 default:
-                    throw std::invalid_argument("Unsupported target type for conversion");
+                    THROW_INVALID_ARG("Unsupported target type {} for conversion from {}", dtype_to_string(target_type),
+                                      dtype_to_string(mat.dtype()));
             }
             break;
         }
@@ -162,12 +166,13 @@ std::unique_ptr<OriginMat> convert_datatype(const OriginMat &mat, DataType targe
                     break;
                 }
                 default:
-                    throw std::invalid_argument("Unsupported target type for conversion");
+                    THROW_INVALID_ARG("Unsupported target type {} for conversion from {}", dtype_to_string(target_type),
+                                      dtype_to_string(mat.dtype()));
             }
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported source type for conversion");
+            THROW_INVALID_ARG("Unsupported source type {} for conversion", dtype_to_string(mat.dtype()));
     }
 
     return result;
