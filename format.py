@@ -61,15 +61,23 @@ def main():
                             "s",
                             ]
 
+    default_include_dirs = {"./include",
+                            "./src",
+                            "./tests",
+                            }
+
     # 解析命令行参数
     parser = argparse.ArgumentParser(description="格式化指定目录下的文件")
-    parser.add_argument("-d", "--dir", default="./", help="要格式化的目录路径")
+    parser.add_argument("-d", "--dir", default="./src", help="要格式化的目录路径")
     parser.add_argument("-f", "--format", default=".clang-format", help="使用的 clang-format 路径")
     parser.add_argument("-e", "--exclude", nargs='+', default=default_exclude_dirs, help="需要排除的目录")
     args = parser.parse_args()
 
     # 调用格式化函数
-    format_files(args.dir, args.format, args.exclude)
+    include_dirs = default_include_dirs | {args.dir}
+    for dir in include_dirs:
+        print(f"Formatting directory: {dir}")
+        format_files(dir, args.format, args.exclude)
 
 if __name__ == "__main__":
     main()
