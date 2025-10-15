@@ -1,0 +1,48 @@
+#ifndef __ORIGIN_DL_CUDA_UTILS_H__
+#define __ORIGIN_DL_CUDA_UTILS_H__
+
+#include <cuda_runtime.h>
+#include "../../../utils/exception.h"
+#include "../../basic_types.h"
+
+namespace origin
+{
+namespace cuda
+{
+
+// CUDA错误检查宏
+#define CUDA_CHECK(call)                                                                                 \
+    do                                                                                                   \
+    {                                                                                                    \
+        cudaError_t err = call;                                                                          \
+        if (err != cudaSuccess)                                                                          \
+        {                                                                                                \
+            THROW_RUNTIME_ERROR("CUDA error: {} at {}:{}", cudaGetErrorString(err), __FILE__, __LINE__); \
+        }                                                                                                \
+    } while (0)
+
+// 获取最优的线程块大小
+dim3 get_optimal_block_size(size_t n);
+
+// 获取最优的网格大小
+dim3 get_optimal_grid_size(size_t n, dim3 block_size);
+
+// 检查CUDA设备是否可用
+bool is_cuda_available();
+
+// 获取当前CUDA设备信息
+void print_cuda_device_info();
+
+// 获取CUDA设备数量
+int get_cuda_device_count();
+
+// 设置CUDA设备
+void set_cuda_device(int device_id);
+
+// 获取当前CUDA设备ID
+int get_current_cuda_device();
+
+}  // namespace cuda
+}  // namespace origin
+
+#endif

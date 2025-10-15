@@ -12,14 +12,23 @@ namespace origin
 // 工具函数：获取文件名（去掉路径）
 inline const char *basename(const char *file)
 {
-    const char *last_slash = strrchr(file, '/');
-    return last_slash ? last_slash + 1 : file;
+    const char *last_slash     = strrchr(file, '/');
+    const char *last_backslash = strrchr(file, '\\');
+
+    // 找到最后一个路径分隔符
+    const char *last_sep = last_slash;
+    if (last_backslash && (!last_slash || last_backslash > last_slash))
+    {
+        last_sep = last_backslash;
+    }
+
+    return last_sep ? last_sep + 1 : file;
 }
 
-// 工具函数：获取文件名（去掉路径）- C++17版本
+// 工具函数：获取文件名（去掉路径）
 inline std::string basename(const std::string &file)
 {
-    return std::filesystem::path(file).filename().string();
+    return std::string(basename(file.c_str()));
 }
 
 }  // namespace origin

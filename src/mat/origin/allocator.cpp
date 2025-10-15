@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include "origin/utils/exception.h"
 
-// For CUDA (empty implementations for now)
+// For CUDA
 #ifdef WITH_CUDA
 #    include <cuda_runtime.h>
 #endif
@@ -28,18 +28,37 @@ void CPUAllocator::deallocate(void *ptr)
     std::free(ptr);
 }
 
-// CUDAAllocator implementations (empty for now)
+// CUDAAllocator implementations
 void *CUDAAllocator::allocate(size_t size)
 {
-    // DL_CRITICAL_THROW("CUDA is not supported yet."); // Temporarily removed
-    THROW_RUNTIME_ERROR("CUDA is not supported yet");
-    return nullptr;
+#ifdef WITH_CUDA
+    void *ptr       = nullptr;
+    cudaError_t err = cudaMalloc(&ptr, size);
+    if (err != cudaSuccess)
+    {
+        THROW_RUNTIME_ERROR("CUDA memory allocation failed: {} (requested size: {} bytes)", cudaGetErrorString(err),
+                            size);
+    }
+    return ptr;
+#else
+    THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
 }
 
 void CUDAAllocator::deallocate(void *ptr)
 {
-    // DL_CRITICAL_THROW("CUDA is not supported yet."); // Temporarily removed
-    THROW_RUNTIME_ERROR("CUDA is not supported yet");
+#ifdef WITH_CUDA
+    if (ptr != nullptr)
+    {
+        cudaError_t err = cudaFree(ptr);
+        if (err != cudaSuccess)
+        {
+            THROW_RUNTIME_ERROR("CUDA memory deallocation failed: {}", cudaGetErrorString(err));
+        }
+    }
+#else
+    THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
 }
 
 // AllocatorFactory implementation
@@ -51,11 +70,15 @@ std::unique_ptr<Allocator> AllocatorFactory::create_allocator(DeviceType device_
     }
     else if (device_type == DeviceType::kCUDA)
     {
+#ifdef WITH_CUDA
         return std::make_unique<CUDAAllocator>(device_index);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
     }
     else
     {
-        THROW_INVALID_ARG("Unsupported device type for allocator");
+        THROW_INVALID_ARG("Unsupported device type for allocator: {}", static_cast<int>(device_type));
     }
 }
 
