@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> Sub::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 2)
     {
-        throw std::runtime_error("Sub requires exactly 2 inputs");
+        THROW_RUNTIME_ERROR("Sub operator requires exactly 2 inputs, but got {}", xs.size());
     }
 
     shape0_ = xs[0].shape();
@@ -24,7 +25,7 @@ std::vector<Tensor> Sub::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("Sub backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("Sub backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
     auto gx0 = gys[0];

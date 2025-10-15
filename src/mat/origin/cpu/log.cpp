@@ -1,6 +1,7 @@
 #include <cmath>
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -34,7 +35,7 @@ std::unique_ptr<OriginMat> log(const OriginMat &mat)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for log");
+            THROW_INVALID_ARG("Unsupported data type {} for log operation", dtype_to_string(mat.dtype()));
     }
 
     return result;

@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> Square::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 1)
     {
-        throw std::runtime_error("Square requires exactly 1 input");
+        THROW_RUNTIME_ERROR("Square operator requires exactly 1 input, but got {}", xs.size());
     }
     // 使用抽象层进行平方运算
     auto result = mat(xs[0]) * mat(xs[0]);
@@ -22,7 +23,7 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("Square backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("Square backward requires exactly 1 gradient, but got {}", gys.size());
     }
     auto x  = &mat(this->inputs_[0]);
     auto gy = &mat(gys[0]);

@@ -1,6 +1,7 @@
 #include "origin/mat/origin/allocator.h"
 #include <cstdlib>  // For std::aligned_alloc, std::free
 #include <stdexcept>
+#include "origin/utils/exception.h"
 
 // For CUDA (empty implementations for now)
 #ifdef WITH_CUDA
@@ -31,14 +32,14 @@ void CPUAllocator::deallocate(void *ptr)
 void *CUDAAllocator::allocate(size_t size)
 {
     // DL_CRITICAL_THROW("CUDA is not supported yet."); // Temporarily removed
-    throw std::runtime_error("CUDA is not supported yet.");
+    THROW_RUNTIME_ERROR("CUDA is not supported yet");
     return nullptr;
 }
 
 void CUDAAllocator::deallocate(void *ptr)
 {
     // DL_CRITICAL_THROW("CUDA is not supported yet."); // Temporarily removed
-    throw std::runtime_error("CUDA is not supported yet.");
+    THROW_RUNTIME_ERROR("CUDA is not supported yet");
 }
 
 // AllocatorFactory implementation
@@ -54,7 +55,7 @@ std::unique_ptr<Allocator> AllocatorFactory::create_allocator(DeviceType device_
     }
     else
     {
-        throw std::invalid_argument("Unsupported device type for allocator.");
+        THROW_INVALID_ARG("Unsupported device type for allocator");
     }
 }
 

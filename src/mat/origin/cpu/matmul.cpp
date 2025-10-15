@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -11,7 +12,8 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
     // 检查数据类型匹配
     if (a.dtype() != b.dtype())
     {
-        throw std::invalid_argument("Data type mismatch for matrix multiplication");
+        THROW_INVALID_ARG("Data type mismatch for matrix multiplication: expected {} but got {}",
+                          dtype_to_string(a.dtype()), dtype_to_string(b.dtype()));
     }
 
     // 处理不同维度的矩阵乘法
@@ -20,7 +22,8 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
         // 2D x 2D 矩阵乘法
         if (a.shape()[1] != b.shape()[0])
         {
-            throw std::invalid_argument("Matrix dimensions must be compatible for multiplication");
+            THROW_INVALID_ARG("Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}",
+                              a.shape().to_string(), b.shape().to_string());
         }
     }
     else if (a.shape().size() == 3 && b.shape().size() == 2)
@@ -28,12 +31,14 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
         // 3D x 2D 矩阵乘法：对3D张量的最后两个维度进行矩阵乘法
         if (a.shape()[2] != b.shape()[0])
         {
-            throw std::invalid_argument("Matrix dimensions must be compatible for multiplication");
+            THROW_INVALID_ARG("Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}",
+                              a.shape().to_string(), b.shape().to_string());
         }
     }
     else
     {
-        throw std::invalid_argument("Matrix multiplication requires compatible dimensions");
+        THROW_INVALID_ARG("Matrix multiplication requires compatible dimensions. A shape: {}, B shape: {}",
+                          a.shape().to_string(), b.shape().to_string());
     }
 
     // 计算结果形状
@@ -257,7 +262,8 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for matrix multiplication");
+            THROW_INVALID_ARG("Unsupported data type {} for matrix multiplication operation",
+                              dtype_to_string(a.dtype()));
     }
 
     return result;

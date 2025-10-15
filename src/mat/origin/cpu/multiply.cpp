@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -11,7 +12,8 @@ std::unique_ptr<OriginMat> multiply(const OriginMat &a, const OriginMat &b)
     // 检查数据类型是否匹配
     if (a.dtype() != b.dtype())
     {
-        throw std::invalid_argument("Data type mismatch for multiplication");
+        THROW_INVALID_ARG("Data type mismatch for multiplication: expected {} but got {}", dtype_to_string(a.dtype()),
+                          dtype_to_string(b.dtype()));
     }
 
     // 处理形状广播
@@ -34,7 +36,9 @@ std::unique_ptr<OriginMat> multiply(const OriginMat &a, const OriginMat &b)
         }
         else
         {
-            throw std::invalid_argument("Shape mismatch for multiplication - only scalar broadcasting supported");
+            THROW_INVALID_ARG(
+                "Shape mismatch for multiplication - only scalar broadcasting supported. Shape A: {}, Shape B: {}",
+                a.shape().to_string(), b.shape().to_string());
         }
     }
 
@@ -180,7 +184,7 @@ std::unique_ptr<OriginMat> multiply(const OriginMat &a, const OriginMat &b)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for multiplication");
+            THROW_INVALID_ARG("Unsupported data type {} for multiplication operation", dtype_to_string(a.dtype()));
     }
 
     return result;

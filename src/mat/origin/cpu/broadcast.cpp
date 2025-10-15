@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -55,7 +56,7 @@ std::unique_ptr<OriginMat> broadcast_to(const OriginMat &mat, const Shape &targe
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type");
+            THROW_INVALID_ARG("Unsupported data type {} for broadcast operation", dtype_to_string(mat.dtype()));
     }
 
     return result;

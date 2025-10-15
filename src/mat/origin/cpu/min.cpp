@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -52,7 +53,7 @@ data_t min_all(const OriginMat &mat)
             return static_cast<data_t>(min_val);
         }
         default:
-            throw std::invalid_argument("Unsupported data type for min_all");
+            THROW_INVALID_ARG("Unsupported data type {} for min_all operation", dtype_to_string(mat.dtype()));
     }
 }
 

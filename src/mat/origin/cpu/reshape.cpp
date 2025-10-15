@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -12,7 +13,8 @@ std::unique_ptr<OriginMat> reshape(const OriginMat &mat, const Shape &new_shape)
 {
     if (new_shape.elements() != mat.elements())
     {
-        throw std::invalid_argument("Reshape: total elements must match");
+        THROW_INVALID_ARG("Reshape: total elements must match. Original: {}, Target: {}", mat.elements(),
+                          new_shape.elements());
     }
     // 创建一个新的OriginMat，共享存储但使用新的形状
     auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
@@ -32,7 +34,7 @@ std::unique_ptr<OriginMat> reshape(const OriginMat &mat, const Shape &new_shape)
             memcpy(result->data_ptr<int8_t>(), mat.data_ptr<int8_t>(), mat.elements() * sizeof(int8_t));
             break;
         default:
-            throw std::invalid_argument("Unsupported data type for reshape");
+            THROW_INVALID_ARG("Unsupported data type {} for reshape operation", dtype_to_string(mat.dtype()));
     }
     return result;
 }

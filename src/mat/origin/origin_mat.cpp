@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/origin_mat_utils.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -241,13 +242,13 @@ std::unique_ptr<Mat> OriginMat::log() const
 std::unique_ptr<Mat> OriginMat::sin() const
 {
     // TODO: 实现sin函数
-    throw std::runtime_error("sin function not implemented yet");
+    THROW_RUNTIME_ERROR("sin function not implemented yet");
 }
 
 std::unique_ptr<Mat> OriginMat::cos() const
 {
     // TODO: 实现cos函数
-    throw std::runtime_error("cos function not implemented yet");
+    THROW_RUNTIME_ERROR("cos function not implemented yet");
 }
 
 std::unique_ptr<Mat> OriginMat::sqrt() const
@@ -295,7 +296,7 @@ Device OriginMat::device() const
 std::unique_ptr<Mat> OriginMat::to_device(Device device) const
 {
     // TODO: 实现设备转换
-    throw std::runtime_error("device conversion not implemented yet");
+    THROW_RUNTIME_ERROR("device conversion not implemented yet");
 }
 
 // 调试

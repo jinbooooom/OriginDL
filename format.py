@@ -54,11 +54,10 @@ def format_files(directory, clang_format_file, exclude_dirs):
 def main():
     default_exclude_dirs = ["3rd",
                             "assets",
-                            "communication",
-                            "document",
-                            "tests/3rd/flatbuffers/",
+                            "docs",
                             "tools",
                             "build",
+                            "torch_build"
                             "s",
                             ]
 

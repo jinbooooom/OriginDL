@@ -8,3 +8,4 @@
 - [x] 拆分 originMat，当前这个文件太长了
 - [ ] OriginMat支持视图转置
 - [ ] 等到稳定后删除 arrayfire
+- [x] 异常打印行号

@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -23,7 +24,8 @@ std::unique_ptr<OriginMat> sum_to(const OriginMat &mat, const Shape &target_shap
     if (target_elements > current_elements)
     {
         // 目标形状更大，sum_to不支持广播，抛出异常
-        throw std::runtime_error("sum_to: Target shape cannot have more elements than source tensor");
+        THROW_RUNTIME_ERROR("sum_to: Target shape {} cannot have more elements than source tensor {}",
+                            target_shape.elements(), mat.elements());
     }
     else
     {

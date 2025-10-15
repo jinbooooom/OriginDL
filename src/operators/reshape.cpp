@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> Reshape::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 1)
     {
-        throw std::runtime_error("Reshape requires exactly 1 input");
+        THROW_RUNTIME_ERROR("Reshape operator requires exactly 1 input, but got {}", xs.size());
     }
     auto y = xs[0].reshape(this->shape_);
 
@@ -20,7 +21,7 @@ std::vector<Tensor> Reshape::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("Reshape backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("Reshape backward requires exactly 1 gradient, but got {}", gys.size());
     }
     auto x_shape = this->inputs_[0].shape();
     auto result  = mat(gys[0]).reshape(x_shape);

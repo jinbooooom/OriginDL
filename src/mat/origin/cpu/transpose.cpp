@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -94,7 +95,7 @@ std::unique_ptr<OriginMat> transpose(const OriginMat &mat)
                 break;
             }
             default:
-                throw std::invalid_argument("Unsupported data type for transpose");
+                THROW_INVALID_ARG("Unsupported data type {} for transpose operation", dtype_to_string(mat.dtype()));
         }
 
         return result;
@@ -191,14 +192,14 @@ std::unique_ptr<OriginMat> transpose(const OriginMat &mat)
                 break;
             }
             default:
-                throw std::invalid_argument("Unsupported data type for transpose");
+                THROW_INVALID_ARG("Unsupported data type {} for transpose operation", dtype_to_string(mat.dtype()));
         }
 
         return result;
     }
     else
     {
-        throw std::invalid_argument("Transpose not supported for empty tensors");
+        THROW_INVALID_ARG("Transpose not supported for empty tensors. Tensor shape: {}", mat.shape().to_string());
     }
 }
 
@@ -272,7 +273,7 @@ std::unique_ptr<OriginMat> transpose_data(const OriginMat &mat)
                 break;
             }
             default:
-                throw std::invalid_argument("Unsupported data type for transpose");
+                THROW_INVALID_ARG("Unsupported data type {} for transpose operation", dtype_to_string(mat.dtype()));
         }
 
         return result;
@@ -369,14 +370,14 @@ std::unique_ptr<OriginMat> transpose_data(const OriginMat &mat)
                 break;
             }
             default:
-                throw std::invalid_argument("Unsupported data type for transpose");
+                THROW_INVALID_ARG("Unsupported data type {} for transpose operation", dtype_to_string(mat.dtype()));
         }
 
         return result;
     }
     else
     {
-        throw std::invalid_argument("Transpose not supported for empty tensors");
+        THROW_INVALID_ARG("Transpose not supported for empty tensors. Tensor shape: {}", mat.shape().to_string());
     }
 }
 

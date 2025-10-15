@@ -8,7 +8,7 @@ std::vector<Tensor> Div::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 2)
     {
-        throw std::runtime_error("Div requires exactly 2 inputs");
+        THROW_RUNTIME_ERROR("Div operator requires exactly 2 inputs, but got {}", xs.size());
     }
 
     shape0_ = xs[0].shape();
@@ -25,7 +25,7 @@ std::vector<Tensor> Div::backward(const std::vector<Tensor> &gys)
 {
     if (1 != gys.size())
     {
-        DL_WARN_THROW("invalid argument size, not equal to 1");
+        THROW_RUNTIME_ERROR("Div backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
     // 正确的除法导数计算：

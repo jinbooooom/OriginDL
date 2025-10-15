@@ -142,6 +142,12 @@ enum AlternateUrlTableErrors {
 
 ### 采用异常而非错误码
 pytorch 内部使用异常，它的python接口基于pybind11，pybind11会负责将 cpp 异常转换为 python 异常。本仓库将采用类似的方式。
+```cpp
+if (count != shape.elements())
+{
+    THROW_INVALID_ARG("Data count {} does not match shape elements {}", count, shape.elements());
+}
+```
 
 ### 注释规范
 

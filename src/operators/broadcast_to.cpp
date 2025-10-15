@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> BroadcastTo::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 1)
     {
-        throw std::runtime_error("BroadcastTo requires exactly 1 input");
+        THROW_RUNTIME_ERROR("BroadcastTo operator requires exactly 1 input, but got {}", xs.size());
     }
     this->x_shape_ = xs[0].shape();
     auto result    = mat(xs[0]).broadcast_to(this->shape_);
@@ -22,7 +23,7 @@ std::vector<Tensor> BroadcastTo::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("BroadcastTo backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("BroadcastTo backward requires exactly 1 gradient, but got {}", gys.size());
     }
     auto result = mat(gys[0]).sum_to(this->x_shape_);
     auto gx     = convert_mat_to_tensor(std::move(result));

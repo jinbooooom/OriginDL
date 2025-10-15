@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 2)
     {
-        throw std::runtime_error("MatMul requires exactly 2 inputs");
+        THROW_RUNTIME_ERROR("MatMul operator requires exactly 2 inputs, but got {}", xs.size());
     }
 
     // 使用抽象层进行矩阵乘法运算
@@ -23,7 +24,7 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("MatMul backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("MatMul backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
     auto x  = &mat(this->inputs_[0]);

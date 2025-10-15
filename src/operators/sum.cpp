@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> Sum::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 1)
     {
-        throw std::runtime_error("Sum requires exactly 1 input");
+        THROW_RUNTIME_ERROR("Sum operator requires exactly 1 input, but got {}", xs.size());
     }
     // 使用抽象层进行求和运算
     auto result = mat(xs[0]).sum(this->axis_);
@@ -22,7 +23,7 @@ std::vector<Tensor> Sum::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("Sum backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("Sum backward requires exactly 1 gradient, but got {}", gys.size());
     }
     auto gy = &mat(gys[0]);
     auto x  = &mat(this->inputs_[0]);

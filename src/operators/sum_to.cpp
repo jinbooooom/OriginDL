@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> SumTo::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 1)
     {
-        throw std::runtime_error("SumTo requires exactly 1 input");
+        THROW_RUNTIME_ERROR("SumTo operator requires exactly 1 input, but got {}", xs.size());
     }
     auto result = mat(xs[0]).sum_to(this->shape_);
     auto y      = convert_mat_to_tensor(std::move(result));
@@ -21,7 +22,7 @@ std::vector<Tensor> SumTo::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("SumTo backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("SumTo backward requires exactly 1 gradient, but got {}", gys.size());
     }
     auto x_shape = this->inputs_[0].shape();
     auto result  = mat(gys[0]).broadcast_to(x_shape);

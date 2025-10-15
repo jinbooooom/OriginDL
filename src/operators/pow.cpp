@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -7,7 +8,7 @@ std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
 {
     if (xs.size() != 1)
     {
-        throw std::runtime_error("Pow requires exactly 1 input");
+        THROW_RUNTIME_ERROR("Pow operator requires exactly 1 input, but got {}", xs.size());
     }
     auto x      = &mat(xs[0]);
     auto result = x->pow(exponent_);
@@ -18,7 +19,7 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
-        throw std::runtime_error("Pow backward requires exactly 1 gradient");
+        THROW_RUNTIME_ERROR("Pow backward requires exactly 1 gradient, but got {}", gys.size());
     }
     auto x  = &mat(this->inputs_[0]);
     auto gy = &mat(gys[0]);

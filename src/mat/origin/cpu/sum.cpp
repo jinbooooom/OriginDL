@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -22,7 +23,7 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
     // 验证轴的有效性
     if (axis < 0 || axis >= static_cast<int>(mat.shape().size()))
     {
-        throw std::invalid_argument("Invalid axis for sum operation");
+        THROW_INVALID_ARG("Invalid axis {} for sum operation. Tensor has {} dimensions", axis, mat.shape().size());
     }
 
     // 计算结果形状：移除指定轴
@@ -266,7 +267,7 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
             break;
         }
         default:
-            throw std::invalid_argument("Unsupported data type for sum operation");
+            THROW_INVALID_ARG("Unsupported data type {} for sum operation", dtype_to_string(mat.dtype()));
     }
 
     return result;
@@ -317,7 +318,7 @@ data_t sum_all(const OriginMat &mat)
             return static_cast<data_t>(sum);
         }
         default:
-            throw std::invalid_argument("Unsupported data type for sum_all");
+            THROW_INVALID_ARG("Unsupported data type {} for sum_all operation", dtype_to_string(mat.dtype()));
     }
 }
 
