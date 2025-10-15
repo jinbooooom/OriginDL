@@ -114,14 +114,7 @@ TEST_F(SumOperatorTest, ForwardSingleElement)
 
 TEST_F(SumOperatorTest, ForwardWithAxis)
 {
-    // ===== ArrayFire与PyTorch行为差异说明 =====
-    // 此测试可能失败，因为ArrayFire的sum操作与PyTorch行为不一致
-    // 具体差异：
-    // 1. 维度压缩：PyTorch会自动压缩求和轴，ArrayFire不会
-    // 2. 计算结果：在某些情况下，ArrayFire的sum操作可能返回不同的数值结果
-    // 3. 形状处理：ArrayFire保持4维结构，PyTorch会压缩到实际维度
-    // 注意：此测试期望PyTorch行为，但ArrayFire实现可能不匹配
-    // ===========================================
+    // ===== 测试sum操作的基本功能 =====
 
     // 测试指定轴的求和
     auto x = Tensor({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, Shape{2, 3});

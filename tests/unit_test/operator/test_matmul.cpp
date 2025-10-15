@@ -55,14 +55,7 @@ protected:
 
 TEST_F(MatMulOperatorTest, ForwardBasic)
 {
-    // ===== ArrayFire与PyTorch行为差异说明 =====
-    // 此测试可能失败，因为ArrayFire的matmul操作与PyTorch行为不一致
-    // 具体差异：
-    // 1. 内存布局：ArrayFire使用column-major，PyTorch使用row-major
-    // 2. 矩阵乘法结果：由于内存布局差异，计算结果可能不同
-    // 3. 数值精度：ArrayFire和PyTorch的数值计算可能有微小差异
-    // 注意：此测试期望PyTorch行为，但ArrayFire实现可能不匹配
-    // ===========================================
+    // ===== 测试matmul操作的基本功能 =====
 
     // 测试基本矩阵乘法运算
     auto x = Tensor({1.0, 2.0, 3.0, 4.0}, Shape{2, 2});

@@ -7,5 +7,5 @@
 - [ ] Tensor 增加静态检查
 - [x] 拆分 originMat，当前这个文件太长了
 - [ ] OriginMat支持视图转置
-- [ ] 等到稳定后删除 arrayfire
+- [x] 删除 arrayfire 相关代码
 - [x] 异常打印行号

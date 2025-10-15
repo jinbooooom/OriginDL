@@ -1,16 +1,19 @@
 #!/bin/bash
 
 # OriginDL Build Script
-# Usage: ./build.sh [ORIGIN|TORCH]
+# Usage: ./build.sh [ORIGIN|origin|TORCH|torch]
 
 set -e
 
 BACKEND=${1:-ORIGIN}
 
+# Convert backend to uppercase for consistency
+BACKEND=$(echo "$BACKEND" | tr '[:lower:]' '[:upper:]')
+
 # Check backend parameter
 if [ "$BACKEND" != "TORCH" ] && [ "$BACKEND" != "ORIGIN" ]; then
-    echo "Error: Invalid backend parameter '$BACKEND'"
-    echo "Usage: $0 [ORIGIN|TORCH]"
+    echo "Error: Invalid backend parameter '$1'"
+    echo "Usage: $0 [ORIGIN|origin|TORCH|torch]"
     exit 1
 fi
 

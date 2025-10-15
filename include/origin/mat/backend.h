@@ -9,10 +9,7 @@
 
 // 支持多种后端选择
 #ifdef MAT_BACKEND
-#    if MAT_BACKEND == 0  // ARRAYFIRE
-#        include <arrayfire.h>
-#        include "array_fire_mat.h"
-#    elif MAT_BACKEND == 1  // TORCH
+#    if MAT_BACKEND == 1  // TORCH
 #        include <torch/torch.h>
 #        include "torch/torch_mat.h"
 #    elif MAT_BACKEND == 2  // ORIGIN
@@ -33,9 +30,7 @@ namespace origin
 
 // 根据后端选择对应的Mat类型
 #ifdef MAT_BACKEND
-#    if MAT_BACKEND == 0  // ARRAYFIRE
-using Mat_t = ArrayFireMat;
-#    elif MAT_BACKEND == 1  // TORCH
+#    if MAT_BACKEND == 1  // TORCH
 using Mat_t = TorchMat;
 #    elif MAT_BACKEND == 2  // ORIGIN
 using Mat_t = OriginMat;

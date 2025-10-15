@@ -55,14 +55,7 @@ protected:
 
 TEST_F(SumToOperatorTest, ForwardBasic)
 {
-    // ===== ArrayFire与PyTorch行为差异说明 =====
-    // 此测试可能失败，因为ArrayFire的sum_to操作与PyTorch行为不一致
-    // 具体差异：
-    // 1. 形状处理：ArrayFire可能不会保持期望的目标形状
-    // 2. 维度压缩：ArrayFire可能自动压缩某些维度，导致形状不匹配
-    // 3. 求和结果：ArrayFire的求和操作可能返回不同的形状
-    // 注意：此测试期望PyTorch行为，但ArrayFire实现可能不匹配
-    // ===========================================
+    // ===== 测试sum_to操作的基本功能 =====
 
     // 测试基本sum_to运算
     auto x = Tensor({1.0, 2.0, 3.0, 4.0}, Shape{2, 2});
