@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include "origin/mat/origin/cpu/operation_templates.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
 
@@ -39,276 +40,44 @@ std::unique_ptr<OriginMat> transpose(const OriginMat &mat)
         Shape new_shape({mat.shape()[1], mat.shape()[0]});
         auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
 
-        // 重新排列数据
-        switch (mat.dtype())
-        {
-            case DataType::kFloat32:
-            {
-                const float *src = mat.data_ptr<float>();
-                float *dst       = result->data_ptr<float>();
-                for (size_t i = 0; i < mat.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < mat.shape()[1]; ++j)
-                    {
-                        dst[j * mat.shape()[0] + i] = src[i * mat.shape()[1] + j];
-                    }
-                }
-                break;
-            }
-            case DataType::kFloat64:
-            {
-                const double *src = mat.data_ptr<double>();
-                double *dst       = result->data_ptr<double>();
-                for (size_t i = 0; i < mat.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < mat.shape()[1]; ++j)
-                    {
-                        dst[j * mat.shape()[0] + i] = src[i * mat.shape()[1] + j];
-                    }
-                }
-                break;
-            }
-            case DataType::kInt32:
-            {
-                const int32_t *src = mat.data_ptr<int32_t>();
-                int32_t *dst       = result->data_ptr<int32_t>();
-                for (size_t i = 0; i < mat.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < mat.shape()[1]; ++j)
-                    {
-                        dst[j * mat.shape()[0] + i] = src[i * mat.shape()[1] + j];
-                    }
-                }
-                break;
-            }
-            case DataType::kInt8:
-            {
-                const int8_t *src = mat.data_ptr<int8_t>();
-                int8_t *dst       = result->data_ptr<int8_t>();
-                for (size_t i = 0; i < mat.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < mat.shape()[1]; ++j)
-                    {
-                        dst[j * mat.shape()[0] + i] = src[i * mat.shape()[1] + j];
-                    }
-                }
-                break;
-            }
-            default:
-                THROW_INVALID_ARG("Unsupported data type {} for transpose operation", dtype_to_string(mat.dtype()));
-        }
-
-        return result;
-    }
-    else if (mat.shape().size() >= 3)
-    {
-        // 三维或更高维张量：只转置最后两个维度（数据转置，重新排列数据）
-        std::vector<size_t> new_dims = mat.shape().dims();
-        std::swap(new_dims[new_dims.size() - 1], new_dims[new_dims.size() - 2]);
-        Shape new_shape(new_dims);
-        auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
-
-        // 重新排列数据：只交换最后两个维度
-        size_t last_dim        = mat.shape()[mat.shape().size() - 1];
-        size_t second_last_dim = mat.shape()[mat.shape().size() - 2];
-        size_t batch_size      = 1;
-        for (size_t i = 0; i < mat.shape().size() - 2; ++i)
-        {
-            batch_size *= mat.shape()[i];
-        }
-
-        switch (mat.dtype())
-        {
-            case DataType::kFloat32:
-            {
-                const float *src = mat.data_ptr<float>();
-                float *dst       = result->data_ptr<float>();
-                for (size_t batch = 0; batch < batch_size; ++batch)
-                {
-                    for (size_t i = 0; i < second_last_dim; ++i)
-                    {
-                        for (size_t j = 0; j < last_dim; ++j)
-                        {
-                            size_t src_idx = batch * second_last_dim * last_dim + i * last_dim + j;
-                            size_t dst_idx = batch * last_dim * second_last_dim + j * second_last_dim + i;
-                            dst[dst_idx]   = src[src_idx];
-                        }
-                    }
-                }
-                break;
-            }
-            case DataType::kFloat64:
-            {
-                const double *src = mat.data_ptr<double>();
-                double *dst       = result->data_ptr<double>();
-                for (size_t batch = 0; batch < batch_size; ++batch)
-                {
-                    for (size_t i = 0; i < second_last_dim; ++i)
-                    {
-                        for (size_t j = 0; j < last_dim; ++j)
-                        {
-                            size_t src_idx = batch * second_last_dim * last_dim + i * last_dim + j;
-                            size_t dst_idx = batch * last_dim * second_last_dim + j * second_last_dim + i;
-                            dst[dst_idx]   = src[src_idx];
-                        }
-                    }
-                }
-                break;
-            }
-            case DataType::kInt32:
-            {
-                const int32_t *src = mat.data_ptr<int32_t>();
-                int32_t *dst       = result->data_ptr<int32_t>();
-                for (size_t batch = 0; batch < batch_size; ++batch)
-                {
-                    for (size_t i = 0; i < second_last_dim; ++i)
-                    {
-                        for (size_t j = 0; j < last_dim; ++j)
-                        {
-                            size_t src_idx = batch * second_last_dim * last_dim + i * last_dim + j;
-                            size_t dst_idx = batch * last_dim * second_last_dim + j * second_last_dim + i;
-                            dst[dst_idx]   = src[src_idx];
-                        }
-                    }
-                }
-                break;
-            }
-            case DataType::kInt8:
-            {
-                const int8_t *src = mat.data_ptr<int8_t>();
-                int8_t *dst       = result->data_ptr<int8_t>();
-                for (size_t batch = 0; batch < batch_size; ++batch)
-                {
-                    for (size_t i = 0; i < second_last_dim; ++i)
-                    {
-                        for (size_t j = 0; j < last_dim; ++j)
-                        {
-                            size_t src_idx = batch * second_last_dim * last_dim + i * last_dim + j;
-                            size_t dst_idx = batch * last_dim * second_last_dim + j * second_last_dim + i;
-                            dst[dst_idx]   = src[src_idx];
-                        }
-                    }
-                }
-                break;
-            }
-            default:
-                THROW_INVALID_ARG("Unsupported data type {} for transpose operation", dtype_to_string(mat.dtype()));
-        }
+        // 使用类型分发器执行转置操作
+        TypeDispatcher::dispatch_void(mat.dtype(),
+                                      [&]<typename T>() { TransposeCompute::transpose_2d<T>(mat, *result); });
 
         return result;
     }
     else
     {
-        THROW_INVALID_ARG("Transpose not supported for empty tensors. Tensor shape: {}", mat.shape().to_string());
-    }
-}
-
-// 真正的转置函数，用于矩阵乘法等需要重新排列数据的操作
-std::unique_ptr<OriginMat> transpose_data(const OriginMat &mat)
-{
-    if (mat.shape().size() == 1)
-    {
-        // 一维张量：转置后保持不变
-        return std::make_unique<OriginMat>(mat);
-    }
-    else if (mat.shape().size() == 2)
-    {
-        // 二维张量：转置最后两个维度，需要重新排列数据
-        Shape new_shape({mat.shape()[1], mat.shape()[0]});
-        auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
-
-        // 重新排列数据
-        switch (mat.dtype())
-        {
-            case DataType::kFloat32:
-            {
-                const float *src = mat.data_ptr<float>();
-                float *dst       = result->data_ptr<float>();
-                for (size_t i = 0; i < mat.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < mat.shape()[1]; ++j)
-                    {
-                        dst[j * mat.shape()[0] + i] = src[i * mat.shape()[1] + j];
-                    }
-                }
-                break;
-            }
-            case DataType::kFloat64:
-            {
-                const double *src = mat.data_ptr<double>();
-                double *dst       = result->data_ptr<double>();
-                for (size_t i = 0; i < mat.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < mat.shape()[1]; ++j)
-                    {
-                        dst[j * mat.shape()[0] + i] = src[i * mat.shape()[1] + j];
-                    }
-                }
-                break;
-            }
-            case DataType::kInt32:
-            {
-                const int32_t *src = mat.data_ptr<int32_t>();
-                int32_t *dst       = result->data_ptr<int32_t>();
-                for (size_t i = 0; i < mat.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < mat.shape()[1]; ++j)
-                    {
-                        dst[j * mat.shape()[0] + i] = src[i * mat.shape()[1] + j];
-                    }
-                }
-                break;
-            }
-            case DataType::kInt8:
-            {
-                const int8_t *src = mat.data_ptr<int8_t>();
-                int8_t *dst       = result->data_ptr<int8_t>();
-                for (size_t i = 0; i < mat.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < mat.shape()[1]; ++j)
-                    {
-                        dst[j * mat.shape()[0] + i] = src[i * mat.shape()[1] + j];
-                    }
-                }
-                break;
-            }
-            default:
-                THROW_INVALID_ARG("Unsupported data type {} for transpose operation", dtype_to_string(mat.dtype()));
-        }
-
-        return result;
-    }
-    else if (mat.shape().size() >= 3)
-    {
-        // 三维或更高维张量：只转置最后两个维度
+        // 高维张量：转置最后两个维度
+        // 计算新的形状
         std::vector<size_t> new_dims = mat.shape().dims();
-        std::swap(new_dims[new_dims.size() - 1], new_dims[new_dims.size() - 2]);
+        std::swap(new_dims[new_dims.size() - 2], new_dims[new_dims.size() - 1]);
         Shape new_shape(new_dims);
+
         auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
 
-        // 重新排列数据：只交换最后两个维度
-        size_t last_dim        = mat.shape()[mat.shape().size() - 1];
-        size_t second_last_dim = mat.shape()[mat.shape().size() - 2];
-        size_t batch_size      = 1;
-        for (size_t i = 0; i < mat.shape().size() - 2; ++i)
-        {
-            batch_size *= mat.shape()[i];
-        }
-
+        // 对于高维张量，需要更复杂的转置逻辑
+        // 这里暂时使用简单的逐元素复制，保持原有逻辑
         switch (mat.dtype())
         {
             case DataType::kFloat32:
             {
                 const float *src = mat.data_ptr<float>();
                 float *dst       = result->data_ptr<float>();
-                for (size_t batch = 0; batch < batch_size; ++batch)
+
+                // 高维转置：转置最后两个维度
+                const size_t last_dim        = mat.shape()[mat.shape().size() - 1];
+                const size_t second_last_dim = mat.shape()[mat.shape().size() - 2];
+                const size_t outer_elements  = mat.elements() / (last_dim * second_last_dim);
+
+                for (size_t outer = 0; outer < outer_elements; ++outer)
                 {
                     for (size_t i = 0; i < second_last_dim; ++i)
                     {
                         for (size_t j = 0; j < last_dim; ++j)
                         {
-                            size_t src_idx = batch * second_last_dim * last_dim + i * last_dim + j;
-                            size_t dst_idx = batch * last_dim * second_last_dim + j * second_last_dim + i;
+                            size_t src_idx = outer * (last_dim * second_last_dim) + i * last_dim + j;
+                            size_t dst_idx = outer * (last_dim * second_last_dim) + j * second_last_dim + i;
                             dst[dst_idx]   = src[src_idx];
                         }
                     }
@@ -319,14 +88,19 @@ std::unique_ptr<OriginMat> transpose_data(const OriginMat &mat)
             {
                 const double *src = mat.data_ptr<double>();
                 double *dst       = result->data_ptr<double>();
-                for (size_t batch = 0; batch < batch_size; ++batch)
+
+                const size_t last_dim        = mat.shape()[mat.shape().size() - 1];
+                const size_t second_last_dim = mat.shape()[mat.shape().size() - 2];
+                const size_t outer_elements  = mat.elements() / (last_dim * second_last_dim);
+
+                for (size_t outer = 0; outer < outer_elements; ++outer)
                 {
                     for (size_t i = 0; i < second_last_dim; ++i)
                     {
                         for (size_t j = 0; j < last_dim; ++j)
                         {
-                            size_t src_idx = batch * second_last_dim * last_dim + i * last_dim + j;
-                            size_t dst_idx = batch * last_dim * second_last_dim + j * second_last_dim + i;
+                            size_t src_idx = outer * (last_dim * second_last_dim) + i * last_dim + j;
+                            size_t dst_idx = outer * (last_dim * second_last_dim) + j * second_last_dim + i;
                             dst[dst_idx]   = src[src_idx];
                         }
                     }
@@ -337,14 +111,19 @@ std::unique_ptr<OriginMat> transpose_data(const OriginMat &mat)
             {
                 const int32_t *src = mat.data_ptr<int32_t>();
                 int32_t *dst       = result->data_ptr<int32_t>();
-                for (size_t batch = 0; batch < batch_size; ++batch)
+
+                const size_t last_dim        = mat.shape()[mat.shape().size() - 1];
+                const size_t second_last_dim = mat.shape()[mat.shape().size() - 2];
+                const size_t outer_elements  = mat.elements() / (last_dim * second_last_dim);
+
+                for (size_t outer = 0; outer < outer_elements; ++outer)
                 {
                     for (size_t i = 0; i < second_last_dim; ++i)
                     {
                         for (size_t j = 0; j < last_dim; ++j)
                         {
-                            size_t src_idx = batch * second_last_dim * last_dim + i * last_dim + j;
-                            size_t dst_idx = batch * last_dim * second_last_dim + j * second_last_dim + i;
+                            size_t src_idx = outer * (last_dim * second_last_dim) + i * last_dim + j;
+                            size_t dst_idx = outer * (last_dim * second_last_dim) + j * second_last_dim + i;
                             dst[dst_idx]   = src[src_idx];
                         }
                     }
@@ -355,14 +134,19 @@ std::unique_ptr<OriginMat> transpose_data(const OriginMat &mat)
             {
                 const int8_t *src = mat.data_ptr<int8_t>();
                 int8_t *dst       = result->data_ptr<int8_t>();
-                for (size_t batch = 0; batch < batch_size; ++batch)
+
+                const size_t last_dim        = mat.shape()[mat.shape().size() - 1];
+                const size_t second_last_dim = mat.shape()[mat.shape().size() - 2];
+                const size_t outer_elements  = mat.elements() / (last_dim * second_last_dim);
+
+                for (size_t outer = 0; outer < outer_elements; ++outer)
                 {
                     for (size_t i = 0; i < second_last_dim; ++i)
                     {
                         for (size_t j = 0; j < last_dim; ++j)
                         {
-                            size_t src_idx = batch * second_last_dim * last_dim + i * last_dim + j;
-                            size_t dst_idx = batch * last_dim * second_last_dim + j * second_last_dim + i;
+                            size_t src_idx = outer * (last_dim * second_last_dim) + i * last_dim + j;
+                            size_t dst_idx = outer * (last_dim * second_last_dim) + j * second_last_dim + i;
                             dst[dst_idx]   = src[src_idx];
                         }
                     }
@@ -374,10 +158,6 @@ std::unique_ptr<OriginMat> transpose_data(const OriginMat &mat)
         }
 
         return result;
-    }
-    else
-    {
-        THROW_INVALID_ARG("Transpose not supported for empty tensors. Tensor shape: {}", mat.shape().to_string());
     }
 }
 
