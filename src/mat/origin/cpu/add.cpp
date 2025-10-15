@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include "origin/mat/origin/cpu/operation_templates.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
 
@@ -16,176 +17,34 @@ std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b)
                           dtype_to_string(b.dtype()));
     }
 
-    // 处理形状广播
-    Shape result_shape;
-    if (a.shape() == b.shape())
-    {
-        // 形状相同，直接相加
-        result_shape = a.shape();
-    }
-    else
-    {
-        // 尝试广播 - 简化实现，只支持标量广播
-        if (a.elements() == 1)
-        {
-            result_shape = b.shape();
-        }
-        else if (b.elements() == 1)
-        {
-            result_shape = a.shape();
-        }
-        else
-        {
-            THROW_INVALID_ARG(
-                "Shape mismatch for addition - only scalar broadcasting supported. Shape A: {}, Shape B: {}",
-                a.shape().to_string(), b.shape().to_string());
-        }
-    }
+    // 计算广播形状
+    Shape result_shape = compute_broadcast_shape(a, b);
+    auto result        = std::make_unique<OriginMat>(result_shape, a.dtype());
 
-    auto result = std::make_unique<OriginMat>(result_shape, a.dtype());
-
-    // 执行广播加法
-    switch (a.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            const float *a_data = a.data_ptr<float>();
-            const float *b_data = b.data_ptr<float>();
-            float *c_data       = result->data_ptr<float>();
-
-            if (a.shape() == b.shape())
-            {
-                // 形状相同，直接相加
-                for (size_t i = 0; i < a.elements(); ++i)
-                {
-                    c_data[i] = a_data[i] + b_data[i];
-                }
-            }
-            else if (a.elements() == 1)
-            {
-                // a是标量，广播到b的形状
-                float scalar = a_data[0];
-                for (size_t i = 0; i < b.elements(); ++i)
-                {
-                    c_data[i] = scalar + b_data[i];
-                }
-            }
-            else if (b.elements() == 1)
-            {
-                // b是标量，广播到a的形状
-                float scalar = b_data[0];
-                for (size_t i = 0; i < a.elements(); ++i)
-                {
-                    c_data[i] = a_data[i] + scalar;
-                }
-            }
-            break;
-        }
-        case DataType::kFloat64:
-        {
-            const double *a_data = a.data_ptr<double>();
-            const double *b_data = b.data_ptr<double>();
-            double *c_data       = result->data_ptr<double>();
-
-            if (a.shape() == b.shape())
-            {
-                // 形状相同，直接相加
-                for (size_t i = 0; i < a.elements(); ++i)
-                {
-                    c_data[i] = a_data[i] + b_data[i];
-                }
-            }
-            else if (a.elements() == 1)
-            {
-                // a是标量，广播到b的形状
-                double scalar = a_data[0];
-                for (size_t i = 0; i < b.elements(); ++i)
-                {
-                    c_data[i] = scalar + b_data[i];
-                }
-            }
-            else if (b.elements() == 1)
-            {
-                // b是标量，广播到a的形状
-                double scalar = b_data[0];
-                for (size_t i = 0; i < a.elements(); ++i)
-                {
-                    c_data[i] = a_data[i] + scalar;
-                }
-            }
-            break;
-        }
-        case DataType::kInt32:
-        {
-            const int32_t *a_data = a.data_ptr<int32_t>();
-            const int32_t *b_data = b.data_ptr<int32_t>();
-            int32_t *c_data       = result->data_ptr<int32_t>();
-
-            if (a.shape() == b.shape())
-            {
-                // 形状相同，直接相加
-                for (size_t i = 0; i < a.elements(); ++i)
-                {
-                    c_data[i] = a_data[i] + b_data[i];
-                }
-            }
-            else if (a.elements() == 1)
-            {
-                // a是标量，广播到b的形状
-                int32_t scalar = a_data[0];
-                for (size_t i = 0; i < b.elements(); ++i)
-                {
-                    c_data[i] = scalar + b_data[i];
-                }
-            }
-            else if (b.elements() == 1)
-            {
-                // b是标量，广播到a的形状
-                int32_t scalar = b_data[0];
-                for (size_t i = 0; i < a.elements(); ++i)
-                {
-                    c_data[i] = a_data[i] + scalar;
-                }
-            }
-            break;
-        }
-        case DataType::kInt8:
-        {
-            const int8_t *a_data = a.data_ptr<int8_t>();
-            const int8_t *b_data = b.data_ptr<int8_t>();
-            int8_t *c_data       = result->data_ptr<int8_t>();
-
-            if (a.shape() == b.shape())
-            {
-                // 形状相同，直接相加
-                for (size_t i = 0; i < a.elements(); ++i)
-                {
-                    c_data[i] = a_data[i] + b_data[i];
-                }
-            }
-            else if (a.elements() == 1)
-            {
-                // a是标量，广播到b的形状
-                int8_t scalar = a_data[0];
-                for (size_t i = 0; i < b.elements(); ++i)
-                {
-                    c_data[i] = scalar + b_data[i];
-                }
-            }
-            else if (b.elements() == 1)
-            {
-                // b是标量，广播到a的形状
-                int8_t scalar = b_data[0];
-                for (size_t i = 0; i < a.elements(); ++i)
-                {
-                    c_data[i] = a_data[i] + scalar;
-                }
-            }
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for addition operation", dtype_to_string(a.dtype()));
-    }
+    // 使用类型分发器执行加法操作
+    /*
+    1. TypeDispatcher::dispatch_void
+    这是一个类型分发器，它的作用是：
+    根据 a.dtype() 返回的数据类型（如 kFloat32、kFloat64 等）
+    自动选择对应的C++类型（如 float、double 等）
+    调用传入的lambda函数，并传递正确的类型参数
+    2. Lambda表达式 [&]<typename T>()
+    这是C++20的模板lambda语法：
+    [&]：捕获所有外部变量 by reference
+    <typename T>()：模板参数，T会被TypeDispatcher自动推断
+    当TypeDispatcher检测到数据类型是kFloat32时，T就是float
+    当检测到kFloat64时，T就是double
+    3. BroadcastCompute::binary_broadcast<T>
+    这是广播计算模板：
+    <T>：使用TypeDispatcher推断出的具体类型
+    处理两个矩阵的广播运算（形状匹配、标量广播等）
+    支持三种情况：
+    相同形状：直接元素级运算
+    a是标量：广播到b的形状
+    b是标量：广播到a的形状
+    */
+    TypeDispatcher::dispatch_void(a.dtype(),
+                                  [&]<typename T>() { BroadcastCompute::binary_broadcast<T>(a, b, *result, AddOp{}); });
 
     return result;
 }
