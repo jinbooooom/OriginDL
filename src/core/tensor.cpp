@@ -159,9 +159,20 @@ DataType Tensor::dtype() const
     return impl_->data_->dtype();
 }
 
+Device Tensor::device() const
+{
+    return impl_->data_->device();
+}
+
 Tensor Tensor::to(DataType target_type) const
 {
     auto converted_mat = impl_->data_->to(target_type);
+    return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
+}
+
+Tensor Tensor::to(Device device) const
+{
+    auto converted_mat = impl_->data_->to_device(device);
     return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
 }
 

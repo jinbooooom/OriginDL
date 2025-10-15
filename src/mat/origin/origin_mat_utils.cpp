@@ -54,7 +54,7 @@ void print_origin_mat(const std::string &desc,
     print_libtorch_style(data_vec, shape);
     std::cout << std::endl;
 
-    // 基本信息最后打印
+    // 基本信息最后打印，这样长矩阵也能看到基本信息了
     std::cout << " OriginMat(shape=" << format_shape(shape) << ", dtype=" << format_dtype(dtype)
               << ", device=" << format_device(device_str) << ")" << std::endl;
 }

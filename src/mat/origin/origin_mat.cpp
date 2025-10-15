@@ -11,6 +11,10 @@
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
 
+#ifdef WITH_CUDA
+#    include "origin/mat/origin/cuda/cuda_ops.h"
+#endif
+
 namespace origin
 {
 
@@ -22,6 +26,7 @@ OriginMat::OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, DataT
     strides_ = utils::compute_strides(shape);
 }
 
+// TODO：与下面的函数相似，可以抽象出一个函数
 OriginMat::OriginMat(const Shape &shape, DataType dtype) : shape_(shape), dtype_(dtype)
 {
     utils::validate_shape(shape);
@@ -30,6 +35,16 @@ OriginMat::OriginMat(const Shape &shape, DataType dtype) : shape_(shape), dtype_
     // 创建存储
     size_t size = shape_.elements() * utils::get_dtype_size(dtype_);
     storage_    = Storage::create(size, DeviceType::kCPU);
+}
+
+OriginMat::OriginMat(const Shape &shape, DataType dtype, Device device) : shape_(shape), dtype_(dtype)
+{
+    utils::validate_shape(shape);
+    strides_ = utils::compute_strides(shape);
+
+    // 创建存储
+    size_t size = shape_.elements() * utils::get_dtype_size(dtype_);
+    storage_    = Storage::create(size, device.type(), device.index());
 }
 
 template <typename T>
@@ -119,7 +134,24 @@ std::unique_ptr<Mat> OriginMat::transpose() const
 std::unique_ptr<Mat> OriginMat::operator+(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    return cpu::add(*this, other_mat);
+
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::add(*this, other_mat);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::add(*this, other_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for addition: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::operator-(const Mat &other) const
@@ -225,7 +257,16 @@ size_t OriginMat::elements() const
 // 数据访问
 std::vector<data_t> OriginMat::to_vector() const
 {
-    return utils::compute::convert_to_vector(storage_->data(), shape_.elements(), dtype_);
+    // 如果数据在CUDA上，需要先复制到CPU
+    if (storage_->device_type() == DeviceType::kCUDA)
+    {
+        auto cpu_storage = storage_->to_device(DeviceType::kCPU, 0);
+        return utils::compute::convert_to_vector(cpu_storage->data(), shape_.elements(), dtype_);
+    }
+    else
+    {
+        return utils::compute::convert_to_vector(storage_->data(), shape_.elements(), dtype_);
+    }
 }
 
 // 数学函数
@@ -295,15 +336,16 @@ Device OriginMat::device() const
 
 std::unique_ptr<Mat> OriginMat::to_device(Device device) const
 {
-    // TODO: 实现设备转换
-    THROW_RUNTIME_ERROR("device conversion not implemented yet");
+    auto new_storage = storage_->to_device(device.type(), device.index());
+    return std::make_unique<OriginMat>(new_storage, shape_, dtype_);
 }
 
 // 调试
 void OriginMat::print(const std::string &desc) const
 {
-    auto data_vec = to_vector();
-    utils::visualize::print_origin_mat(desc, data_vec, shape_.dims(), dtype_, "cpu");
+    auto data_vec          = to_vector();
+    std::string device_str = device().to_string();
+    utils::visualize::print_origin_mat(desc, data_vec, shape_.dims(), dtype_, device_str);
 }
 
 int OriginMat::backend_type() const

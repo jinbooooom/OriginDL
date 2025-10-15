@@ -158,10 +158,10 @@ public:
     }
 
     // 迭代器支持
-    auto begin() const { return dims_.begin(); }
-    auto end() const { return dims_.end(); }
-    auto begin() { return dims_.begin(); }
-    auto end() { return dims_.end(); }
+    std::vector<size_t>::const_iterator begin() const { return dims_.begin(); }
+    std::vector<size_t>::const_iterator end() const { return dims_.end(); }
+    std::vector<size_t>::iterator begin() { return dims_.begin(); }
+    std::vector<size_t>::iterator end() { return dims_.end(); }
 };
 
 }  // namespace origin

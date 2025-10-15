@@ -162,7 +162,9 @@ public:
 
     // === 类型查询和转换 ===
     DataType dtype() const;
+    Device device() const;
     Tensor to(DataType target_type) const;
+    Tensor to(Device device) const;
     Tensor to(const TensorOptions &options) const;
 
     // === 梯度相关 ===

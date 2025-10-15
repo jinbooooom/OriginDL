@@ -14,7 +14,7 @@ def format_files(directory, clang_format_file, exclude_dirs):
         return
     
     # 设置要格式化的文件扩展名
-    file_extensions = ['.c', '.cpp', '.h', '.hpp']
+    file_extensions = ['.c', '.cpp', '.h', '.hpp', '.cu', '.cuh']
 
     # 存储要格式化的文件路径
     files_to_format = []

@@ -59,6 +59,14 @@ public:
     OriginMat(const Shape &shape, DataType dtype);
 
     /**
+     * @brief 支持设备选择的构造函数
+     * @param shape 张量形状
+     * @param dtype 数据类型
+     * @param device 设备类型
+     */
+    OriginMat(const Shape &shape, DataType dtype, Device device);
+
+    /**
      * @brief 通用构造函数：从不同数据类型创建
      * @param data 数据向量
      * @param shape 矩阵形状
@@ -155,6 +163,9 @@ public:
     {
         return static_cast<const T *>(storage_->data());
     }
+
+    // 访问storage（用于CUDA运算）
+    std::shared_ptr<Storage> storage() const { return storage_; }
 
     // 调试
     void print(const std::string &desc = "") const override;
