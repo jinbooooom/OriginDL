@@ -26,7 +26,7 @@ protected:
         console_sink->set_level(spdlog::level::trace);
         console_sink->set_pattern("%^%W %Y-%m-%d %H:%M:%S.%e %^%L %t %P [%s:%!:%#] %v%$");
 
-        static auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("dllog/dl.txt", true);
+        static auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("originlog/origin.txt", true);
         file_sink->set_level(spdlog::level::trace);
         file_sink->set_pattern("%^%W %Y-%m-%d %H:%M:%S.%e %^%L %t %P [%s:%!:%#] %v%$");
 
