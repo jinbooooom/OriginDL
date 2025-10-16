@@ -118,23 +118,23 @@ set(GTEST_INCLUDE_DIRS
 
 message(STATUS "GoogleTest libraries will be built and available for all tests")
 
-# 创建spdlog静态库dllog
+# 创建日志库 originlog
 file(
     GLOB LOG_LIB_SRCS
         ${PROJECT_SOURCE_DIR}/3rd/spdlog/src/*.cpp
 )
-add_library(dllog SHARED ${LOG_LIB_SRCS})
-target_include_directories(dllog PUBLIC 3rd/)
-target_compile_definitions(dllog PUBLIC SPDLOG_COMPILED_LIB)
+add_library(originlog SHARED ${LOG_LIB_SRCS})
+target_include_directories(originlog PUBLIC 3rd/)
+target_compile_definitions(originlog PUBLIC SPDLOG_COMPILED_LIB)
 
 add_library(${PROJECT_NAME} SHARED ${MY_LIB_SRCS})
 
 # 根据后端选择相应的链接库
 if(MAT_BACKEND STREQUAL "TORCH")
-    target_link_libraries(${PROJECT_NAME} dllog -lpthread "${TORCH_LIBRARIES}")
+    target_link_libraries(${PROJECT_NAME} originlog -lpthread "${TORCH_LIBRARIES}")
     message(STATUS "Linking with LibTorch backend")
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
-    target_link_libraries(${PROJECT_NAME} dllog -lpthread)
+    target_link_libraries(${PROJECT_NAME} originlog -lpthread)
     message(STATUS "Linking with OriginMat backend")
     
     # 如果启用CUDA，链接CUDA库
@@ -143,7 +143,7 @@ elseif(MAT_BACKEND STREQUAL "ORIGIN")
         message(STATUS "Linking with CUDA library")
     endif()
 else()
-    target_link_libraries(${PROJECT_NAME} dllog -lpthread)
+    target_link_libraries(${PROJECT_NAME} originlog -lpthread)
     message(STATUS "Linking with default backend")
 endif()
 
