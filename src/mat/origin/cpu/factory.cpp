@@ -1,6 +1,7 @@
 #include <random>
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -68,47 +69,14 @@ std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &option
 {
     auto result = std::make_unique<OriginMat>(shape, options.dtype());
 
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
+    // 使用类型分发器替代重复的switch语句
+    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
+        T *data = result->data_ptr<T>();
+        for (size_t i = 0; i < shape.elements(); ++i)
         {
-            float *data = result->data_ptr<float>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = 0.0f;
-            }
-            break;
+            data[i] = static_cast<T>(0);
         }
-        case DataType::kFloat64:
-        {
-            double *data = result->data_ptr<double>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = 0.0;
-            }
-            break;
-        }
-        case DataType::kInt32:
-        {
-            int32_t *data = result->data_ptr<int32_t>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = 0;
-            }
-            break;
-        }
-        case DataType::kInt8:
-        {
-            int8_t *data = result->data_ptr<int8_t>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = 0;
-            }
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for zeros operation", dtype_to_string(options.dtype()));
-    }
+    });
 
     return result;
 }
@@ -117,47 +85,14 @@ std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options
 {
     auto result = std::make_unique<OriginMat>(shape, options.dtype());
 
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
+    // 使用类型分发器替代重复的switch语句
+    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
+        T *data = result->data_ptr<T>();
+        for (size_t i = 0; i < shape.elements(); ++i)
         {
-            float *data = result->data_ptr<float>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = 1.0f;
-            }
-            break;
+            data[i] = static_cast<T>(1);
         }
-        case DataType::kFloat64:
-        {
-            double *data = result->data_ptr<double>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = 1.0;
-            }
-            break;
-        }
-        case DataType::kInt32:
-        {
-            int32_t *data = result->data_ptr<int32_t>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = 1;
-            }
-            break;
-        }
-        case DataType::kInt8:
-        {
-            int8_t *data = result->data_ptr<int8_t>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = 1;
-            }
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for ones operation", dtype_to_string(options.dtype()));
-    }
+    });
 
     return result;
 }
@@ -166,51 +101,15 @@ std::unique_ptr<OriginMat> full(const Shape &shape, data_t value, const TensorOp
 {
     auto result = std::make_unique<OriginMat>(shape, options.dtype());
 
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
+    // 使用类型分发器替代重复的switch语句
+    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
+        T *data = result->data_ptr<T>();
+        T v = static_cast<T>(value);
+        for (size_t i = 0; i < shape.elements(); ++i)
         {
-            float *data = result->data_ptr<float>();
-            float v     = static_cast<float>(value);
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = v;
-            }
-            break;
+            data[i] = v;
         }
-        case DataType::kFloat64:
-        {
-            double *data = result->data_ptr<double>();
-            double v     = static_cast<double>(value);
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = v;
-            }
-            break;
-        }
-        case DataType::kInt32:
-        {
-            int32_t *data = result->data_ptr<int32_t>();
-            int32_t v     = static_cast<int32_t>(value);
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = v;
-            }
-            break;
-        }
-        case DataType::kInt8:
-        {
-            int8_t *data = result->data_ptr<int8_t>();
-            int8_t v     = static_cast<int8_t>(value);
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = v;
-            }
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for full operation", dtype_to_string(options.dtype()));
-    }
+    });
 
     return result;
 }

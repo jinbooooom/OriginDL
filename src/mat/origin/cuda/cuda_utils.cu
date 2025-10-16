@@ -1,6 +1,7 @@
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include <iostream>
 #include "origin/utils/exception.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 
 namespace origin
 {
@@ -93,19 +94,9 @@ int get_current_cuda_device()
 
 size_t get_type_size(DataType dtype)
 {
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            return sizeof(float);
-        case DataType::kFloat64:
-            return sizeof(double);
-        case DataType::kInt32:
-            return sizeof(int32_t);
-        case DataType::kInt8:
-            return sizeof(int8_t);
-        default:
-            THROW_INVALID_ARG("Unsupported data type: {}", dtype_to_string(dtype));
-    }
+    return device_common::TypeDispatcher::dispatch(dtype, [&]<typename T>() -> size_t {
+        return sizeof(T);
+    });
 }
 
 }  // namespace cuda

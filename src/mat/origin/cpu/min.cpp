@@ -12,7 +12,7 @@ namespace cpu
 data_t min_all(const OriginMat &mat)
 {
     // 使用类型分发器执行最小值计算
-    return TypeDispatcher::dispatch(mat.dtype(), [&]<typename T>() -> data_t {
+    return device_common::TypeDispatcher::dispatch(mat.dtype(), [&]<typename T>() -> data_t {
         T min_val = ReductionCompute::min_all<T>(mat);
         return static_cast<data_t>(min_val);
     });

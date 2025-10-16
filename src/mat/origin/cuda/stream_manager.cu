@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/utils/exception.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 
 namespace origin
 {

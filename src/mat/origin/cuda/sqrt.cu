@@ -3,6 +3,7 @@
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/utils/exception.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 
 namespace origin
 {
@@ -74,8 +75,6 @@ void dispatch_sqrt(DataType dtype, const void *a, void *c, size_t n, cudaStream_
             launch_sqrt_kernel<double>(static_cast<const double *>(a), static_cast<double *>(c), n, stream);
             break;
         case DataType::kInt32:
-            // 整数类型不支持平方根运算，需要转换为浮点数
-            THROW_INVALID_ARG("Square root operation not supported for integer types, use float or double");
         case DataType::kInt8:
             THROW_INVALID_ARG("Square root operation not supported for integer types, use float or double");
         default:

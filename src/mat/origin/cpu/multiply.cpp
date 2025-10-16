@@ -22,7 +22,7 @@ std::unique_ptr<OriginMat> multiply(const OriginMat &a, const OriginMat &b)
     auto result        = std::make_unique<OriginMat>(result_shape, a.dtype());
 
     // 使用类型分发器执行乘法操作
-    TypeDispatcher::dispatch_void(
+    device_common::TypeDispatcher::dispatch_void(
         a.dtype(), [&]<typename T>() { BroadcastCompute::binary_broadcast<T>(a, b, *result, MultiplyOp{}); });
 
     return result;

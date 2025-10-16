@@ -23,7 +23,7 @@ std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b)
 
     // 使用类型分发器执行加法操作
     /*
-    1. TypeDispatcher::dispatch_void
+    1. device_common::TypeDispatcher::dispatch_void
     这是一个类型分发器，它的作用是：
     根据 a.dtype() 返回的数据类型（如 kFloat32、kFloat64 等）
     自动选择对应的C++类型（如 float、double 等）
@@ -43,7 +43,7 @@ std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b)
     a是标量：广播到b的形状
     b是标量：广播到a的形状
     */
-    TypeDispatcher::dispatch_void(a.dtype(),
+    device_common::TypeDispatcher::dispatch_void(a.dtype(),
                                   [&]<typename T>() { BroadcastCompute::binary_broadcast<T>(a, b, *result, AddOp{}); });
 
     return result;
