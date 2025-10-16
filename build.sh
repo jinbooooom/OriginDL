@@ -7,7 +7,8 @@ set -e
 
 BACKEND=${1:-ORIGIN}
 ENABLE_CUDA=false
-NVCC_PATH="/usr/local/cuda-12.8/bin/nvcc"  # 默认CUDA路径
+NVCC_PATH="nvcc"
+# NVCC_PATH="/usr/local/cuda/bin/nvcc"  # 默认CUDA路径
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do

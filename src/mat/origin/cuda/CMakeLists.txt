@@ -91,10 +91,15 @@ set_target_properties(originmat_cuda PROPERTIES
 )
 
 # 设置CUDA编译选项
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -rdc=true")
 
 # 添加编译定义
 target_compile_definitions(originmat_cuda PRIVATE WITH_CUDA)
+
+# 启用CUDA可重定位设备代码
+set_target_properties(originmat_cuda PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+)
 
 # 链接CUDA库
 target_link_libraries(originmat_cuda CUDA::cudart)
