@@ -3,127 +3,133 @@
 #include "origin/utils/exception.h"
 #include <random>
 #include <curand.h>
+#include <vector>
+#include <type_traits>
+#include <memory>
+#include <utility>
 
 namespace origin
 {
 namespace cuda
 {
+    // 引入需要的类型
+    using origin::OriginMat;
+    using std::unique_ptr;
 
 /**
- * @brief CUDA随机数生成器初始化
+ * @brief CUDA kernel 设置所有元素为1 (模板版本)
+ * @tparam T 数据类型
  */
-void init_curand_generator(curandGenerator_t *gen)
+template<typename T>
+__global__ void ones_kernel(T* data, size_t n)
 {
-    curandStatus_t status = curandCreateGenerator(gen, CURAND_RNG_PSEUDO_DEFAULT);
-    if (status != CURAND_STATUS_SUCCESS)
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n)
     {
-        THROW_RUNTIME_ERROR("Failed to create CURAND generator: {}", static_cast<int>(status));
+        data[idx] = static_cast<T>(1);
     }
-    
-    // 使用当前时间作为种子
-    status = curandSetPseudoRandomGeneratorSeed(*gen, time(nullptr));
-    if (status != CURAND_STATUS_SUCCESS)
+}
+
+template<typename T>
+__global__ void zeros_kernel(T* data, size_t n)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n)
     {
-        curandDestroyGenerator(*gen);
-        THROW_RUNTIME_ERROR("Failed to set CURAND seed: {}", static_cast<int>(status));
+        data[idx] = static_cast<T>(0);
+    }
+}
+
+template<typename T>
+__global__ void full_kernel(T* data, size_t n, T value)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n)
+    {
+        data[idx] = value;
+    }
+}
+
+
+// 显式实例化模板 kernel
+template __global__ void ones_kernel<float>(float* data, size_t n);
+template __global__ void ones_kernel<double>(double* data, size_t n);
+template __global__ void ones_kernel<int32_t>(int32_t* data, size_t n);
+template __global__ void ones_kernel<int8_t>(int8_t* data, size_t n);
+
+template __global__ void zeros_kernel<float>(float* data, size_t n);
+template __global__ void zeros_kernel<double>(double* data, size_t n);
+template __global__ void zeros_kernel<int32_t>(int32_t* data, size_t n);
+template __global__ void zeros_kernel<int8_t>(int8_t* data, size_t n);
+
+template __global__ void full_kernel<float>(float* data, size_t n, float value);
+template __global__ void full_kernel<double>(double* data, size_t n, double value);
+template __global__ void full_kernel<int32_t>(int32_t* data, size_t n, int32_t value);
+template __global__ void full_kernel<int8_t>(int8_t* data, size_t n, int8_t value);
+
+/**
+ * @brief 启动ones kernel的通用模板函数
+ * @tparam T 数据类型
+ */
+template<typename T>
+void launch_ones_kernel(T* data, size_t n)
+{
+    const size_t block_size = 256;
+    const size_t grid_size = (n + block_size - 1) / block_size;
+    ones_kernel<T><<<grid_size, block_size>>>(data, n);
+    
+    // 检查kernel启动是否成功
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess)
+    {
+        THROW_RUNTIME_ERROR("Failed to launch ones kernel: {}", cudaGetErrorString(err));
     }
 }
 
 /**
- * @brief 在CUDA设备上创建随机张量
+ * @brief 启动zeros kernel的通用模板函数
+ * @tparam T 数据类型
  */
-std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &options)
+template<typename T>
+void launch_zeros_kernel(T* data, size_t n)
 {
-    // 验证设备
-    if (options.device().type() != DeviceType::kCUDA)
+    const size_t block_size = 256;
+    const size_t grid_size = (n + block_size - 1) / block_size;
+    zeros_kernel<T><<<grid_size, block_size>>>(data, n);
+    
+    // 检查kernel启动是否成功
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess)
     {
-        THROW_INVALID_ARG("CUDA randn requires CUDA device, got: {}", options.device().to_string());
+        THROW_RUNTIME_ERROR("Failed to launch zeros kernel: {}", cudaGetErrorString(err));
     }
-    
-    // 设置CUDA设备
-    set_cuda_device(options.device().index());
-    
-    auto result = std::unique_ptr<OriginMat>(new OriginMat(shape, options.dtype(), options.device()));
-    
-    // 获取数据指针
-    void *data = result->storage()->data();
-    size_t n = shape.elements();
-    
-    // 创建CURAND生成器
-    curandGenerator_t gen;
-    init_curand_generator(&gen);
-    
-    // 根据数据类型生成随机数
-    curandStatus_t status;
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            status = curandGenerateNormal(gen, static_cast<float*>(data), n, 0.0f, 1.0f);
-            break;
-        }
-        case DataType::kFloat64:
-        {
-            status = curandGenerateNormalDouble(gen, static_cast<double*>(data), n, 0.0, 1.0);
-            break;
-        }
-        case DataType::kInt32:
-        {
-            // 对于整数类型，先生成浮点数，然后转换
-            std::vector<float> temp_data(n);
-            status = curandGenerateNormal(gen, temp_data.data(), n, 0.0f, 1.0f);
-            if (status == CURAND_STATUS_SUCCESS)
-            {
-                // 将浮点数转换为整数并复制到设备
-                std::vector<int32_t> int_data(n);
-                for (size_t i = 0; i < n; ++i)
-                {
-                    int_data[i] = static_cast<int32_t>(temp_data[i]);
-                }
-                cudaMemcpy(data, int_data.data(), n * sizeof(int32_t), cudaMemcpyHostToDevice);
-            }
-            break;
-        }
-        case DataType::kInt8:
-        {
-            // 对于整数类型，先生成浮点数，然后转换
-            std::vector<float> temp_data(n);
-            status = curandGenerateNormal(gen, temp_data.data(), n, 0.0f, 1.0f);
-            if (status == CURAND_STATUS_SUCCESS)
-            {
-                // 将浮点数转换为整数并复制到设备
-                std::vector<int8_t> int_data(n);
-                for (size_t i = 0; i < n; ++i)
-                {
-                    int_data[i] = static_cast<int8_t>(temp_data[i]);
-                }
-                cudaMemcpy(data, int_data.data(), n * sizeof(int8_t), cudaMemcpyHostToDevice);
-            }
-            break;
-        }
-        default:
-            curandDestroyGenerator(gen);
-            THROW_INVALID_ARG("Unsupported data type {} for CUDA randn operation", dtype_to_string(options.dtype()));
-    }
-    
-    // 清理生成器
-    curandDestroyGenerator(gen);
-    
-    if (status != CURAND_STATUS_SUCCESS)
-    {
-        THROW_RUNTIME_ERROR("CURAND generation failed: {}", static_cast<int>(status));
-    }
-    
-    // 同步等待完成
-    cudaDeviceSynchronize();
-    
-    return result;
 }
+
+/**
+ * @brief 启动full kernel的通用模板函数
+ * @tparam T 数据类型
+ */
+template<typename T>
+void launch_full_kernel(T* data, size_t n, T value)
+{
+    const size_t block_size = 256;
+    const size_t grid_size = (n + block_size - 1) / block_size;
+    full_kernel<T><<<grid_size, block_size>>>(data, n, value);
+    
+    // 检查kernel启动是否成功
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess)
+    {
+        THROW_RUNTIME_ERROR("Failed to launch full kernel: {}", cudaGetErrorString(err));
+    }
+}
+
+
 
 /**
  * @brief 在CUDA设备上创建零张量
  */
-std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &options)
+std::unique_ptr<origin::OriginMat> zeros(const Shape &shape, const TensorOptions &options)
 {
     // 验证设备
     if (options.device().type() != DeviceType::kCUDA)
@@ -134,17 +140,37 @@ std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &option
     // 设置CUDA设备
     set_cuda_device(options.device().index());
     
-    auto result = std::unique_ptr<OriginMat>(new OriginMat(shape, options.dtype(), options.device()));
+    unique_ptr<OriginMat> result(new OriginMat(shape, options.dtype(), options.device()));
     
     // 获取数据指针
     void *data = result->storage()->data();
     size_t n = shape.elements();
     
-    // 使用cudaMemset清零
-    cudaError_t err = cudaMemset(data, 0, n * get_type_size(options.dtype()));
-    if (err != cudaSuccess)
+    // 根据数据类型使用CUDA kernel设置值
+    switch (options.dtype())
     {
-        THROW_RUNTIME_ERROR("CUDA memset failed: {}", cudaGetErrorString(err));
+        case DataType::kFloat32:
+        {
+            launch_zeros_kernel(static_cast<float*>(data), n);
+            break;
+        }
+        case DataType::kFloat64:
+        {
+            launch_zeros_kernel(static_cast<double*>(data), n);
+            break;
+        }
+        case DataType::kInt32:
+        {
+            launch_zeros_kernel(static_cast<int32_t*>(data), n);
+            break;
+        }
+        case DataType::kInt8:
+        {
+            launch_zeros_kernel(static_cast<int8_t*>(data), n);
+            break;
+        }
+        default:
+            THROW_INVALID_ARG("Unsupported data type {} for CUDA zeros operation", dtype_to_string(options.dtype()));
     }
     
     // 同步等待完成
@@ -156,7 +182,7 @@ std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &option
 /**
  * @brief 在CUDA设备上创建全1张量
  */
-std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options)
+std::unique_ptr<origin::OriginMat> ones(const Shape &shape, const TensorOptions &options)
 {
     // 验证设备
     if (options.device().type() != DeviceType::kCUDA)
@@ -167,43 +193,33 @@ std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options
     // 设置CUDA设备
     set_cuda_device(options.device().index());
     
-    auto result = std::unique_ptr<OriginMat>(new OriginMat(shape, options.dtype(), options.device()));
+    unique_ptr<OriginMat> result(new OriginMat(shape, options.dtype(), options.device()));
     
     // 获取数据指针
     void *data = result->storage()->data();
     size_t n = shape.elements();
     
-    // 根据数据类型设置值
+    // 根据数据类型使用CUDA kernel设置值
     switch (options.dtype())
     {
         case DataType::kFloat32:
         {
-            cudaError_t err = cudaMemset(data, 0, n * sizeof(float));
-            if (err == cudaSuccess)
-            {
-                // 使用CUDA kernel设置所有元素为1
-                // 这里简化处理，实际应该使用kernel
-                std::vector<float> ones_data(n, 1.0f);
-                cudaMemcpy(data, ones_data.data(), n * sizeof(float), cudaMemcpyHostToDevice);
-            }
+            launch_ones_kernel(static_cast<float*>(data), n);
             break;
         }
         case DataType::kFloat64:
         {
-            std::vector<double> ones_data(n, 1.0);
-            cudaMemcpy(data, ones_data.data(), n * sizeof(double), cudaMemcpyHostToDevice);
+            launch_ones_kernel(static_cast<double*>(data), n);
             break;
         }
         case DataType::kInt32:
         {
-            std::vector<int32_t> ones_data(n, 1);
-            cudaMemcpy(data, ones_data.data(), n * sizeof(int32_t), cudaMemcpyHostToDevice);
+            launch_ones_kernel(static_cast<int32_t*>(data), n);
             break;
         }
         case DataType::kInt8:
         {
-            std::vector<int8_t> ones_data(n, 1);
-            cudaMemcpy(data, ones_data.data(), n * sizeof(int8_t), cudaMemcpyHostToDevice);
+            launch_ones_kernel(static_cast<int8_t*>(data), n);
             break;
         }
         default:
@@ -219,7 +235,7 @@ std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options
 /**
  * @brief 在CUDA设备上创建填充指定值的张量
  */
-std::unique_ptr<OriginMat> full(const Shape &shape, double value, const TensorOptions &options)
+std::unique_ptr<origin::OriginMat> full(const Shape &shape, double value, const TensorOptions &options)
 {
     // 验证设备
     if (options.device().type() != DeviceType::kCUDA)
@@ -230,37 +246,33 @@ std::unique_ptr<OriginMat> full(const Shape &shape, double value, const TensorOp
     // 设置CUDA设备
     set_cuda_device(options.device().index());
     
-    auto result = std::unique_ptr<OriginMat>(new OriginMat(shape, options.dtype(), options.device()));
+    unique_ptr<OriginMat> result(new OriginMat(shape, options.dtype(), options.device()));
     
     // 获取数据指针
     void *data = result->storage()->data();
     size_t n = shape.elements();
     
-    // 根据数据类型设置值
+    // 根据数据类型使用CUDA kernel设置值
     switch (options.dtype())
     {
         case DataType::kFloat32:
         {
-            std::vector<float> fill_data(n, static_cast<float>(value));
-            cudaMemcpy(data, fill_data.data(), n * sizeof(float), cudaMemcpyHostToDevice);
+            launch_full_kernel(static_cast<float*>(data), n, static_cast<float>(value));
             break;
         }
         case DataType::kFloat64:
         {
-            std::vector<double> fill_data(n, value);
-            cudaMemcpy(data, fill_data.data(), n * sizeof(double), cudaMemcpyHostToDevice);
+            launch_full_kernel(static_cast<double*>(data), n, static_cast<double>(value));
             break;
         }
         case DataType::kInt32:
         {
-            std::vector<int32_t> fill_data(n, static_cast<int32_t>(value));
-            cudaMemcpy(data, fill_data.data(), n * sizeof(int32_t), cudaMemcpyHostToDevice);
+            launch_full_kernel(static_cast<int32_t*>(data), n, static_cast<int32_t>(value));
             break;
         }
         case DataType::kInt8:
         {
-            std::vector<int8_t> fill_data(n, static_cast<int8_t>(value));
-            cudaMemcpy(data, fill_data.data(), n * sizeof(int8_t), cudaMemcpyHostToDevice);
+            launch_full_kernel(static_cast<int8_t*>(data), n, static_cast<int8_t>(value));
             break;
         }
         default:

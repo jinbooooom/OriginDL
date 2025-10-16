@@ -484,7 +484,7 @@ std::unique_ptr<Mat> OriginMat::randn(const Shape &shape, const TensorOptions &o
     if (options.device().type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // 先在CPU上创建，然后移动到CUDA
+        // 先在CPU上创建随机张量，然后移动到CUDA
         auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
         auto cpu_tensor = cpu::randn(shape, cpu_options);
         return cpu_tensor->to_device(options.device());
@@ -503,10 +503,7 @@ std::unique_ptr<Mat> OriginMat::zeros(const Shape &shape, const TensorOptions &o
     if (options.device().type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // 先在CPU上创建，然后移动到CUDA
-        auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
-        auto cpu_tensor = cpu::zeros(shape, cpu_options);
-        return cpu_tensor->to_device(options.device());
+        return cuda::zeros(shape, options);
 #else
         THROW_RUNTIME_ERROR("CUDA support not enabled, cannot create CUDA tensor");
 #endif
@@ -522,10 +519,7 @@ std::unique_ptr<Mat> OriginMat::ones(const Shape &shape, const TensorOptions &op
     if (options.device().type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // 先在CPU上创建，然后移动到CUDA
-        auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
-        auto cpu_tensor = cpu::ones(shape, cpu_options);
-        return cpu_tensor->to_device(options.device());
+        return cuda::ones(shape, options);
 #else
         THROW_RUNTIME_ERROR("CUDA support not enabled, cannot create CUDA tensor");
 #endif
@@ -541,10 +535,7 @@ std::unique_ptr<Mat> OriginMat::full(const Shape &shape, data_t value, const Ten
     if (options.device().type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // 先在CPU上创建，然后移动到CUDA
-        auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
-        auto cpu_tensor = cpu::full(shape, value, cpu_options);
-        return cpu_tensor->to_device(options.device());
+        return cuda::full(shape, value, options);
 #else
         THROW_RUNTIME_ERROR("CUDA support not enabled, cannot create CUDA tensor");
 #endif
