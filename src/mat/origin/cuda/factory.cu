@@ -178,7 +178,6 @@ std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options
     {
         case DataType::kFloat32:
         {
-            float value = 1.0f;
             cudaError_t err = cudaMemset(data, 0, n * sizeof(float));
             if (err == cudaSuccess)
             {
