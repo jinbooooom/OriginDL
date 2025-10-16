@@ -7,7 +7,7 @@
 
 // 如果启用了CUDA，暴露CUDA命名空间
 #ifdef WITH_CUDA
-#    include "origin/mat/origin/cuda/cuda_utils.h"
+#    include "origin/mat/origin/cuda/cuda_utils.cuh"
 #endif
 
 #endif  // __ORIGIN_DL_H__

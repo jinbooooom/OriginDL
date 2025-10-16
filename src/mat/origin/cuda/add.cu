@@ -1,7 +1,9 @@
 #include <cuda_runtime.h>
 #include "origin/mat/basic_types.h"
-#include "origin/mat/origin/cuda/cuda_utils.h"
+#include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/cuda/cuda_broadcast.cuh"
+#include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -65,11 +67,8 @@ void dispatch_add(DataType dtype, const void *a, const void *b, void *c, size_t 
 // add算子实现
 std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
 {
-    // 验证输入
-    if (a.shape() != b.shape())
-    {
-        THROW_INVALID_ARG("Shape mismatch in CUDA add: {} vs {}", a.shape().to_string(), b.shape().to_string());
-    }
+    // 验证输入 - 支持广播
+    Shape result_shape = compute_broadcast_shape(a, b);
 
     if (a.dtype() != b.dtype())
     {
@@ -77,13 +76,11 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
                           dtype_to_string(b.dtype()));
     }
 
-    if (a.device().type() != DeviceType::kCUDA || b.device().type() != DeviceType::kCUDA)
-    {
-        THROW_INVALID_ARG("Both operands must be on CUDA device for CUDA add operation");
-    }
+    // 使用高效的组合设备检查
+    validation::validate_same_cuda_device(a, b, "add");
 
     // 创建结果张量
-    std::unique_ptr<OriginMat> result(new OriginMat(a.shape(), a.dtype(), a.device()));
+    std::unique_ptr<OriginMat> result(new OriginMat(result_shape, a.dtype(), a.device()));
 
     // 获取数据指针
     const void *a_data = a.storage()->data();

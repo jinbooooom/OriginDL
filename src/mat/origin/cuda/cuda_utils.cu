@@ -1,4 +1,4 @@
-#include "origin/mat/origin/cuda/cuda_utils.h"
+#include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include <iostream>
 #include "origin/utils/exception.h"
 

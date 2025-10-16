@@ -9,6 +9,7 @@ set -e  # 遇到错误时退出
 # 解析命令行参数
 BACKEND="ORIGIN"  # 默认后端
 QUIET_MODE=false
+CUDA_TESTS=false
 
 # 解析参数
 while [[ $# -gt 0 ]]; do
@@ -21,6 +22,7 @@ while [[ $# -gt 0 ]]; do
             echo "Other options:"
             echo "  -h, --help     Show this help message"
             echo "  -q, --quiet    Quiet mode (no verbose output)"
+            echo "  --cuda         Run CUDA unit tests (requires CUDA support)"
             echo ""
             echo "Examples:"
             echo "  $0             # Run tests with ORIGIN backend (default)"
@@ -30,10 +32,16 @@ while [[ $# -gt 0 ]]; do
             echo "  $0 torch       # Run tests with TORCH backend (case insensitive)"
             echo "  $0 TORCH -q    # Run tests with TORCH backend in quiet mode"
             echo "  $0 torch -q    # Run tests with TORCH backend in quiet mode"
+            echo "  $0 --cuda      # Run CUDA unit tests"
+            echo "  $0 ORIGIN --cuda # Run tests with ORIGIN backend and CUDA tests"
             exit 0
             ;;
         -q|--quiet)
             QUIET_MODE=true
+            shift
+            ;;
+        --cuda)
+            CUDA_TESTS=true
             shift
             ;;
         ORIGIN|origin|TORCH|torch)
@@ -110,31 +118,97 @@ check_ctest() {
     fi
 }
 
+# 检查CUDA测试目录是否存在
+check_cuda_tests() {
+    BUILD_DIR=$(get_build_directory)
+    CUDA_TEST_DIR="$BUILD_DIR/tests/unit_test_cuda"
+    
+    if [ ! -d "$CUDA_TEST_DIR" ]; then
+        print_error "CUDA test directory does not exist: $CUDA_TEST_DIR"
+        print_error "Please ensure the project was built with CUDA support: bash build.sh $BACKEND --cuda"
+        exit 1
+    fi
+    
+    # 检查是否有CUDA测试可执行文件
+    if [ ! -d "$BUILD_DIR/bin/unit_test_cuda" ]; then
+        print_error "CUDA test executables not found in $BUILD_DIR/bin/unit_test_cuda"
+        print_error "Please ensure CUDA tests were compiled successfully"
+        exit 1
+    fi
+}
+
 # 运行单元测试
 run_tests() {
     BUILD_DIR=$(get_build_directory)
+    TEST_FAILED=false
     
-    if [ "$QUIET_MODE" = true ]; then
-        # 静默模式
-        cd $BUILD_DIR/tests/unit_test
-        ctest --quiet
-        exit $?
-    else
-        # 详细模式
-        print_info "Starting unit tests for $BACKEND backend..."
-        print_info "Using build directory: $BUILD_DIR"
-        print_info "Running all tests with ctest --verbose"
-        echo "----------------------------------------"
-        
-        # 进入单元测试目录
-        cd $BUILD_DIR/tests/unit_test
-        
-        # 运行ctest
-        if ctest --verbose; then
-            print_success "All tests completed successfully"
+        # 运行CPU单元测试
+        if [ "$QUIET_MODE" = true ]; then
+            # 静默模式
+            print_info "Running CPU unit tests..."
+            cd $BUILD_DIR/tests/unit_test
+            if ! ctest --quiet; then
+                TEST_FAILED=true
+            fi
+            cd - > /dev/null  # 返回原目录
         else
-            print_warning "Some tests failed, please check the output above"
-            exit 1
+            # 详细模式
+            print_info "Starting CPU unit tests for $BACKEND backend..."
+            print_info "Using build directory: $BUILD_DIR"
+            print_info "Running CPU tests with ctest --verbose"
+            echo "----------------------------------------"
+
+            # 进入单元测试目录
+            cd $BUILD_DIR/tests/unit_test
+
+            # 运行ctest
+            if ! ctest --verbose; then
+                print_warning "Some CPU tests failed"
+                TEST_FAILED=true
+            else
+                print_success "All CPU tests completed successfully"
+            fi
+            cd - > /dev/null  # 返回原目录
+        fi
+    
+    # 运行CUDA单元测试（如果请求）
+    if [ "$CUDA_TESTS" = true ]; then
+        echo ""
+        print_info "Starting CUDA unit tests..."
+        
+        if [ "$QUIET_MODE" = true ]; then
+            # 静默模式
+            cd $BUILD_DIR/tests/unit_test_cuda
+            if ! ctest --quiet; then
+                TEST_FAILED=true
+            fi
+        else
+            # 详细模式
+            print_info "Running CUDA tests with ctest --verbose"
+            echo "----------------------------------------"
+            
+            # 进入CUDA单元测试目录
+            cd $BUILD_DIR/tests/unit_test_cuda
+            
+            # 运行CUDA ctest
+            if ! ctest --verbose; then
+                print_warning "Some CUDA tests failed"
+                TEST_FAILED=true
+            else
+                print_success "All CUDA tests completed successfully"
+            fi
+        fi
+    fi
+    
+    # 检查总体结果
+    if [ "$TEST_FAILED" = true ]; then
+        print_warning "Some tests failed, please check the output above"
+        exit 1
+    else
+        if [ "$CUDA_TESTS" = true ]; then
+            print_success "All CPU and CUDA tests completed successfully"
+        else
+            print_success "All CPU tests completed successfully"
         fi
     fi
 }
@@ -143,12 +217,22 @@ run_tests() {
 main() {
     print_info "OriginDL Unit Test Runner Script"
     print_info "Backend: $BACKEND"
+    if [ "$CUDA_TESTS" = true ]; then
+        print_info "CUDA Tests: Enabled"
+    else
+        print_info "CUDA Tests: Disabled"
+    fi
     echo "========================================"
     
     # 检查环境
     check_directory
     check_build_directory
     check_ctest
+    
+    # 如果请求CUDA测试，检查CUDA测试环境
+    if [ "$CUDA_TESTS" = true ]; then
+        check_cuda_tests
+    fi
     
     # 运行测试
     run_tests

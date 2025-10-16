@@ -12,7 +12,7 @@
 #include "origin/utils/exception.h"
 
 #ifdef WITH_CUDA
-#    include "origin/mat/origin/cuda/cuda_ops.h"
+#    include "origin/mat/origin/cuda/cuda_ops.cuh"
 #endif
 
 namespace origin
@@ -131,6 +131,7 @@ std::unique_ptr<Mat> OriginMat::transpose() const
     return cpu::transpose(*this);
 }
 
+// TODO：
 std::unique_ptr<Mat> OriginMat::operator+(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
@@ -157,24 +158,87 @@ std::unique_ptr<Mat> OriginMat::operator+(const Mat &other) const
 std::unique_ptr<Mat> OriginMat::operator-(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    return cpu::subtract(*this, other_mat);
+    
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::subtract(*this, other_mat);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::subtract(*this, other_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for subtraction: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::operator*(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    return cpu::multiply(*this, other_mat);
+    
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::multiply(*this, other_mat);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::multiply(*this, other_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for multiplication: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::operator/(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    return cpu::divide(*this, other_mat);
+    
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::divide(*this, other_mat);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::divide(*this, other_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for division: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::operator+(data_t scalar) const
 {
-    return cpu::add_scalar(*this, scalar);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::add_scalar(*this, scalar);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::add_scalar(*this, scalar);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for scalar addition: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::operator-(data_t scalar) const
@@ -199,17 +263,62 @@ std::unique_ptr<Mat> OriginMat::add_scalar(data_t scalar) const
 
 std::unique_ptr<Mat> OriginMat::mul_scalar(data_t scalar) const
 {
-    return cpu::multiply_scalar(*this, scalar);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::multiply_scalar(*this, scalar);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::multiply_scalar(*this, scalar);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for scalar multiplication: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::operator-() const
 {
-    return cpu::negate(*this);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::negate(*this);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::negate(*this);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for negate: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::square() const
 {
-    return cpu::square(*this);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::square(*this);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::square(*this);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for square: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::pow(data_t exponent) const
@@ -272,7 +381,22 @@ std::vector<data_t> OriginMat::to_vector() const
 // 数学函数
 std::unique_ptr<Mat> OriginMat::exp() const
 {
-    return cpu::exp(*this);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::exp(*this);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::exp(*this);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for exp: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::log() const
