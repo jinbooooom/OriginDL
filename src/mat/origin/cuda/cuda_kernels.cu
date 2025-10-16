@@ -932,17 +932,12 @@ template __global__ void shared_memory_kernel<int8_t, DivideOp>(const int8_t *,
                                                                 DivideOp);
 
 // 标量广播内核的显式实例化
-template __global__ void
-scalar_broadcast_kernel<float, AddOp>(const float *, const float *, float *, size_t, size_t, size_t, AddOp);
-template __global__ void
-scalar_broadcast_kernel<double, AddOp>(const double *, const double *, double *, size_t, size_t, size_t, AddOp);
-template __global__ void
-scalar_broadcast_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, AddOp);
-template __global__ void
-scalar_broadcast_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, AddOp);
+template __global__ void scalar_broadcast_kernel<float, AddOp>(const float *, const float *, float *, size_t, size_t, size_t, AddOp);
+template __global__ void scalar_broadcast_kernel<double, AddOp>(const double *, const double *, double *, size_t, size_t, size_t, AddOp);
+template __global__ void scalar_broadcast_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, AddOp);
+template __global__ void scalar_broadcast_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, AddOp);
 
-template __global__ void
-scalar_broadcast_kernel<float, SubtractOp>(const float *, const float *, float *, size_t, size_t, size_t, SubtractOp);
+template __global__ void scalar_broadcast_kernel<float, SubtractOp>(const float *, const float *, float *, size_t, size_t, size_t, SubtractOp);
 template __global__ void scalar_broadcast_kernel<double, SubtractOp>(const double *,
                                                                      const double *,
                                                                      double *,
@@ -965,8 +960,7 @@ template __global__ void scalar_broadcast_kernel<int8_t, SubtractOp>(const int8_
                                                                      size_t,
                                                                      SubtractOp);
 
-template __global__ void
-scalar_broadcast_kernel<float, MultiplyOp>(const float *, const float *, float *, size_t, size_t, size_t, MultiplyOp);
+template __global__ void scalar_broadcast_kernel<float, MultiplyOp>(const float *, const float *, float *, size_t, size_t, size_t, MultiplyOp);
 template __global__ void scalar_broadcast_kernel<double, MultiplyOp>(const double *,
                                                                      const double *,
                                                                      double *,
@@ -989,10 +983,8 @@ template __global__ void scalar_broadcast_kernel<int8_t, MultiplyOp>(const int8_
                                                                      size_t,
                                                                      MultiplyOp);
 
-template __global__ void
-scalar_broadcast_kernel<float, DivideOp>(const float *, const float *, float *, size_t, size_t, size_t, DivideOp);
-template __global__ void
-scalar_broadcast_kernel<double, DivideOp>(const double *, const double *, double *, size_t, size_t, size_t, DivideOp);
+template __global__ void scalar_broadcast_kernel<float, DivideOp>(const float *, const float *, float *, size_t, size_t, size_t, DivideOp);
+template __global__ void scalar_broadcast_kernel<double, DivideOp>(const double *, const double *, double *, size_t, size_t, size_t, DivideOp);
 template __global__ void scalar_broadcast_kernel<int32_t, DivideOp>(const int32_t *,
                                                                     const int32_t *,
                                                                     int32_t *,
@@ -1000,8 +992,8 @@ template __global__ void scalar_broadcast_kernel<int32_t, DivideOp>(const int32_
                                                                     size_t,
                                                                     size_t,
                                                                     DivideOp);
-template __global__ void
-scalar_broadcast_kernel<int8_t, DivideOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, DivideOp);
+template __global__ void scalar_broadcast_kernel<int8_t, DivideOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, DivideOp);
+
 
 }  // namespace cuda
 }  // namespace origin
