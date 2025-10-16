@@ -13,13 +13,6 @@ namespace cuda
 // 前向声明
 class OriginMat;
 
-/**
- * @brief 在CUDA设备上创建随机张量
- * @param shape 张量形状
- * @param options 张量选项（必须指定CUDA设备）
- * @return 随机张量
- */
-std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &options);
 
 /**
  * @brief 在CUDA设备上创建零张量
@@ -27,7 +20,7 @@ std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &option
  * @param options 张量选项（必须指定CUDA设备）
  * @return 零张量
  */
-std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &options);
+std::unique_ptr<origin::OriginMat> zeros(const Shape &shape, const TensorOptions &options);
 
 /**
  * @brief 在CUDA设备上创建全1张量
@@ -35,7 +28,7 @@ std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &option
  * @param options 张量选项（必须指定CUDA设备）
  * @return 全1张量
  */
-std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options);
+std::unique_ptr<origin::OriginMat> ones(const Shape &shape, const TensorOptions &options);
 
 /**
  * @brief 在CUDA设备上创建填充指定值的张量
@@ -44,7 +37,7 @@ std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options
  * @param options 张量选项（必须指定CUDA设备）
  * @return 填充张量
  */
-std::unique_ptr<OriginMat> full(const Shape &shape, double value, const TensorOptions &options);
+std::unique_ptr<origin::OriginMat> full(const Shape &shape, double value, const TensorOptions &options);
 
 }  // namespace cuda
 }  // namespace origin

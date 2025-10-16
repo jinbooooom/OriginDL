@@ -16,7 +16,7 @@ namespace origin
  * @brief OriginMat后端的矩阵实现
  *
  * 这是OriginDL的自定义矩阵计算后端，使用Storage进行内存管理，
- * 支持CPU计算，为未来的CUDA支持预留接口
+ * 支持CPU/GPU计算
  */
 class OriginMat : public Mat
 {
@@ -170,9 +170,6 @@ public:
     // 调试
     void print(const std::string &desc = "") const override;
     int backend_type() const override;
-
-    // 访问storage_的公共方法
-    std::shared_ptr<Storage> get_storage() const { return storage_; }
 
     // 工厂方法
     static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options = TensorOptions());

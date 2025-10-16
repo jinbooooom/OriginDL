@@ -2,13 +2,13 @@ cmake_minimum_required(VERSION 3.18)
 project(originmat_cuda)
 
 # originmat_cuda.so 依赖的 cpp 源文件使用 C++11 标准
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 启用CUDA语言，originmat_cuda.so 依赖的 cu 源文件使用 CUDA C++11 标准
 # 因为不同环境的 cuda 版本不同，支持的 C++ 标准不同，因此显式指定 C++ 标准
 enable_language(CUDA)
-set(CMAKE_CUDA_STANDARD 11)
+set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # 查找CUDA（使用现代方式）
