@@ -1,4 +1,5 @@
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
 #include <random>
@@ -146,32 +147,10 @@ std::unique_ptr<origin::OriginMat> zeros(const Shape &shape, const TensorOptions
     void *data = result->storage()->data();
     size_t n = shape.elements();
     
-    // 根据数据类型使用CUDA kernel设置值
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            launch_zeros_kernel(static_cast<float*>(data), n);
-            break;
-        }
-        case DataType::kFloat64:
-        {
-            launch_zeros_kernel(static_cast<double*>(data), n);
-            break;
-        }
-        case DataType::kInt32:
-        {
-            launch_zeros_kernel(static_cast<int32_t*>(data), n);
-            break;
-        }
-        case DataType::kInt8:
-        {
-            launch_zeros_kernel(static_cast<int8_t*>(data), n);
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for CUDA zeros operation", dtype_to_string(options.dtype()));
-    }
+    // 使用类型分发器替代重复的switch语句
+    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
+        launch_zeros_kernel(static_cast<T*>(data), n);
+    });
     
     // 同步等待完成
     cudaDeviceSynchronize();
@@ -199,32 +178,10 @@ std::unique_ptr<origin::OriginMat> ones(const Shape &shape, const TensorOptions 
     void *data = result->storage()->data();
     size_t n = shape.elements();
     
-    // 根据数据类型使用CUDA kernel设置值
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            launch_ones_kernel(static_cast<float*>(data), n);
-            break;
-        }
-        case DataType::kFloat64:
-        {
-            launch_ones_kernel(static_cast<double*>(data), n);
-            break;
-        }
-        case DataType::kInt32:
-        {
-            launch_ones_kernel(static_cast<int32_t*>(data), n);
-            break;
-        }
-        case DataType::kInt8:
-        {
-            launch_ones_kernel(static_cast<int8_t*>(data), n);
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for CUDA ones operation", dtype_to_string(options.dtype()));
-    }
+    // 使用类型分发器替代重复的switch语句
+    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
+        launch_ones_kernel(static_cast<T*>(data), n);
+    });
     
     // 同步等待完成
     cudaDeviceSynchronize();
@@ -252,32 +209,10 @@ std::unique_ptr<origin::OriginMat> full(const Shape &shape, double value, const 
     void *data = result->storage()->data();
     size_t n = shape.elements();
     
-    // 根据数据类型使用CUDA kernel设置值
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            launch_full_kernel(static_cast<float*>(data), n, static_cast<float>(value));
-            break;
-        }
-        case DataType::kFloat64:
-        {
-            launch_full_kernel(static_cast<double*>(data), n, static_cast<double>(value));
-            break;
-        }
-        case DataType::kInt32:
-        {
-            launch_full_kernel(static_cast<int32_t*>(data), n, static_cast<int32_t>(value));
-            break;
-        }
-        case DataType::kInt8:
-        {
-            launch_full_kernel(static_cast<int8_t*>(data), n, static_cast<int8_t>(value));
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for CUDA full operation", dtype_to_string(options.dtype()));
-    }
+    // 使用类型分发器替代重复的switch语句
+    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
+        launch_full_kernel(static_cast<T*>(data), n, static_cast<T>(value));
+    });
     
     // 同步等待完成
     cudaDeviceSynchronize();

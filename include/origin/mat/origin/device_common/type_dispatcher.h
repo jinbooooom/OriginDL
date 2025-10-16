@@ -1,17 +1,17 @@
-#ifndef __ORIGIN_DL_TYPE_DISPATCHER_H__
-#define __ORIGIN_DL_TYPE_DISPATCHER_H__
+#ifndef __ORIGIN_DL_DEVICE_COMMON_TYPE_DISPATCHER_H__
+#define __ORIGIN_DL_DEVICE_COMMON_TYPE_DISPATCHER_H__
 
 #include "origin/mat/basic_types.h"
 #include "origin/utils/exception.h"
 
 namespace origin
 {
-namespace cpu
+namespace device_common
 {
 
 /**
- * @brief 类型分发器，用于替代重复的switch语句
- * @details 提供统一的类型分发机制，支持编译时类型安全
+ * @brief 设备通用类型分发器，用于替代重复的switch语句
+ * @details 提供统一的类型分发机制，支持编译时类型安全，CPU、GPU等所有设备通用
  */
 class TypeDispatcher
 {
@@ -78,7 +78,7 @@ public:
     }
 };
 
-}  // namespace cpu
+}  // namespace device_common
 }  // namespace origin
 
-#endif  // __ORIGIN_DL_TYPE_DISPATCHER_H__
+#endif  // __ORIGIN_DL_DEVICE_COMMON_TYPE_DISPATCHER_H__

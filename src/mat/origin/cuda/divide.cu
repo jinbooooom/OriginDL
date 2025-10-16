@@ -4,6 +4,7 @@
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/utils/exception.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 
 namespace origin
 {
@@ -48,27 +49,10 @@ void launch_divide_kernel(const T *a, const T *b, T *c, size_t n, cudaStream_t s
  */
 void dispatch_divide(DataType dtype, const void *a, const void *b, void *c, size_t n, cudaStream_t stream = 0)
 {
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            launch_divide_kernel<float>(static_cast<const float *>(a), static_cast<const float *>(b),
-                                        static_cast<float *>(c), n, stream);
-            break;
-        case DataType::kFloat64:
-            launch_divide_kernel<double>(static_cast<const double *>(a), static_cast<const double *>(b),
-                                         static_cast<double *>(c), n, stream);
-            break;
-        case DataType::kInt32:
-            launch_divide_kernel<int32_t>(static_cast<const int32_t *>(a), static_cast<const int32_t *>(b),
-                                          static_cast<int32_t *>(c), n, stream);
-            break;
-        case DataType::kInt8:
-            launch_divide_kernel<int8_t>(static_cast<const int8_t *>(a), static_cast<const int8_t *>(b),
-                                         static_cast<int8_t *>(c), n, stream);
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type for CUDA divide operation: {}", dtype_to_string(dtype));
-    }
+    device_common::TypeDispatcher::dispatch_void(dtype, [&]<typename T>() {
+        launch_divide_kernel<T>(static_cast<const T *>(a), static_cast<const T *>(b),
+                                static_cast<T *>(c), n, stream);
+    });
 }
 
 /**
@@ -94,32 +78,11 @@ void dispatch_scalar_broadcast_divide(DataType dtype,
     dim3 block = get_optimal_block_size(c_elements);
     dim3 grid  = get_optimal_grid_size(c_elements, block);
 
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            scalar_broadcast_kernel<float, DivideOp>
-                <<<grid, block, 0, stream>>>(static_cast<const float *>(a), static_cast<const float *>(b),
-                                             static_cast<float *>(c), a_elements, b_elements, c_elements, DivideOp{});
-            break;
-        case DataType::kFloat64:
-            scalar_broadcast_kernel<double, DivideOp>
-                <<<grid, block, 0, stream>>>(static_cast<const double *>(a), static_cast<const double *>(b),
-                                             static_cast<double *>(c), a_elements, b_elements, c_elements, DivideOp{});
-            break;
-        case DataType::kInt32:
-            scalar_broadcast_kernel<int32_t, DivideOp>
-                <<<grid, block, 0, stream>>>(static_cast<const int32_t *>(a), static_cast<const int32_t *>(b),
-                                             static_cast<int32_t *>(c), a_elements, b_elements, c_elements, DivideOp{});
-            break;
-        case DataType::kInt8:
-            scalar_broadcast_kernel<int8_t, DivideOp>
-                <<<grid, block, 0, stream>>>(static_cast<const int8_t *>(a), static_cast<const int8_t *>(b),
-                                             static_cast<int8_t *>(c), a_elements, b_elements, c_elements, DivideOp{});
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type for CUDA scalar broadcast divide operation: {}",
-                              dtype_to_string(dtype));
-    }
+    device_common::TypeDispatcher::dispatch_void(dtype, [&]<typename T>() {
+        scalar_broadcast_kernel<T, DivideOp><<<grid, block, 0, stream>>>(
+            static_cast<const T *>(a), static_cast<const T *>(b), static_cast<T *>(c), 
+            a_elements, b_elements, c_elements, DivideOp{});
+    });
 
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess)

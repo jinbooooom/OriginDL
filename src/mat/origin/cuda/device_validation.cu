@@ -2,6 +2,7 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/mat.h"
 #include "origin/utils/exception.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 
 namespace origin
 {

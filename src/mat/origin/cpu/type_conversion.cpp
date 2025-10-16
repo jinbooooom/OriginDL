@@ -18,8 +18,8 @@ std::unique_ptr<OriginMat> convert_datatype(const OriginMat &mat, DataType targe
     auto result = std::make_unique<OriginMat>(mat.shape(), target_type);
 
     // 使用双重类型分发执行类型转换，因为有两层对 dtype 做 switch case，所以需要两次分发
-    TypeDispatcher::dispatch_void(/*一次分发*/ mat.dtype(), [&]<typename SrcT>() {
-        TypeDispatcher::dispatch_void(/*二次分发*/ target_type, [&]<typename DstT>() {
+    device_common::TypeDispatcher::dispatch_void(/*一次分发*/ mat.dtype(), [&]<typename SrcT>() {
+        device_common::TypeDispatcher::dispatch_void(/*二次分发*/ target_type, [&]<typename DstT>() {
             TypeConversionCompute::convert<SrcT, DstT>(mat, *result);
         });
     });

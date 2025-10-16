@@ -3,6 +3,7 @@
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/utils/exception.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 
 namespace origin
 {
@@ -48,27 +49,10 @@ void launch_multiply_scalar_kernel(const T *a, T scalar, T *c, size_t n, cudaStr
  */
 void dispatch_multiply_scalar(DataType dtype, const void *a, data_t scalar, void *c, size_t n, cudaStream_t stream = 0)
 {
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            launch_multiply_scalar_kernel<float>(static_cast<const float *>(a), static_cast<float>(scalar),
-                                                 static_cast<float *>(c), n, stream);
-            break;
-        case DataType::kFloat64:
-            launch_multiply_scalar_kernel<double>(static_cast<const double *>(a), static_cast<double>(scalar),
-                                                  static_cast<double *>(c), n, stream);
-            break;
-        case DataType::kInt32:
-            launch_multiply_scalar_kernel<int32_t>(static_cast<const int32_t *>(a), static_cast<int32_t>(scalar),
-                                                   static_cast<int32_t *>(c), n, stream);
-            break;
-        case DataType::kInt8:
-            launch_multiply_scalar_kernel<int8_t>(static_cast<const int8_t *>(a), static_cast<int8_t>(scalar),
-                                                  static_cast<int8_t *>(c), n, stream);
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type for CUDA multiply_scalar operation: {}", dtype_to_string(dtype));
-    }
+    device_common::TypeDispatcher::dispatch_void(dtype, [&]<typename T>() {
+        launch_multiply_scalar_kernel<T>(static_cast<const T *>(a), static_cast<T>(scalar),
+                                         static_cast<T *>(c), n, stream);
+    });
 }
 
 /**
