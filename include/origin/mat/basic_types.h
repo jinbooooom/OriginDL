@@ -4,9 +4,16 @@
 #include <cstdint>
 #include <stdexcept>
 #include <type_traits>
+#include <string>
+#include <vector>
+#include <climits>
 
 namespace origin
 {
+
+// 矩阵计算后端的类型
+constexpr int ORIGIN_BACKEND_TYPE = 0;
+constexpr int TORCH_BACKEND_TYPE  = 1;
 
 // 数据类型枚举
 enum class DataType
@@ -17,6 +24,16 @@ enum class DataType
     kInt32   = 2,  // int32_t
     kInt8    = 3   // int8_t
 };
+
+// 基础数据类型定义（保持向后兼容）
+using data_t = float;  // TODO: 未来去掉这个类型
+
+// 数据类型别名，提供更简洁的命名，这样用户可以通过 origin::Float32 去创建 origin::DataType::kFloat32 类型的张量
+constexpr auto Float32 = DataType::kFloat32;
+constexpr auto Float64 = DataType::kDouble;
+constexpr auto Double  = DataType::kDouble;
+constexpr auto Int32   = DataType::kInt32;
+constexpr auto Int8    = DataType::kInt8;
 
 inline std::string dtype_to_string(DataType dtype)
 {
@@ -34,16 +51,6 @@ inline std::string dtype_to_string(DataType dtype)
             return "unknown data type";
     }
 }
-
-// 基础数据类型定义（保持向后兼容）
-using data_t = float;  // TODO: 未来去掉这个类型
-
-// 数据类型别名，提供更简洁的命名，这样用户可以通过 origin::Float32 去创建 origin::DataType::kFloat32 类型的张量
-constexpr auto Float32 = DataType::kFloat32;
-constexpr auto Float64 = DataType::kDouble;
-constexpr auto Double  = DataType::kDouble;
-constexpr auto Int32   = DataType::kInt32;
-constexpr auto Int8    = DataType::kInt8;
 
 // 类型特征模板，用于在编译时确定数据类型
 template <typename T>
@@ -127,7 +134,7 @@ inline DataType get_data_type_from_template()
     }
     else if (std::is_same<T, unsigned long>::value || std::is_same<T, size_t>::value)
     {
-        // 将unsigned long/size_t映射到int32，因为通常用于索引和计数
+        // 暂时还不支持unsigned long/size_t，先将其映射到int32
         return DataType::kInt32;
     }
     else
@@ -175,13 +182,25 @@ private:
 };
 
 // 设备常量
-const Device kCPU  = Device(DeviceType::kCPU);
-const Device kCUDA = Device(DeviceType::kCUDA);
+const DeviceType kCPU  = DeviceType::kCPU;
+const DeviceType kCUDA = DeviceType::kCUDA;
 
-// 矩阵计算后端的类型
-constexpr int ORIGIN_BACKEND_TYPE = 0;
-constexpr int TORCH_BACKEND_TYPE  = 1;
+// 前向声明
+namespace utils {
+    Device parse_device_string(const std::string& device_str);
+    DataType parse_dtype_string(const std::string& dtype_str);
+}
+
+// 字符串解析函数 - 委托给utils实现
+inline Device parse_device_string(const std::string& device_str) {
+    return utils::parse_device_string(device_str);
+}
+
+inline DataType parse_dtype_string(const std::string& dtype_str) {
+    return utils::parse_dtype_string(dtype_str);
+}
 
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_BASIC_TYPES_H__
+

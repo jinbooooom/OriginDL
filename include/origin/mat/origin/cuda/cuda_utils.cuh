@@ -42,6 +42,9 @@ void set_cuda_device(int device_id);
 // 获取当前CUDA设备ID
 int get_current_cuda_device();
 
+// 获取数据类型大小
+size_t get_type_size(DataType dtype);
+
 }  // namespace cuda
 }  // namespace origin
 

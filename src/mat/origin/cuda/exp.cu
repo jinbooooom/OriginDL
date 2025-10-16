@@ -42,10 +42,8 @@ void launch_exp_kernel(const T *a, T *c, size_t n, cudaStream_t stream = 0)
     }
     else
     {
-        // 大数据量：使用共享内存优化内核
-        dim3 block             = get_optimal_block_size(n);
-        dim3 grid              = get_optimal_grid_size(n, block);
-        size_t shared_mem_size = block.x * sizeof(T);
+        dim3 block = get_optimal_block_size(n);
+        dim3 grid  = get_optimal_grid_size(n, block);
         // 注意：一元运算不需要共享内存优化，直接使用简单内核
         unary_kernel<T, ExpOp><<<grid, block, 0, stream>>>(a, c, n, ExpOp{});
     }

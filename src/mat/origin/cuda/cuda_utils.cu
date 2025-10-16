@@ -91,5 +91,22 @@ int get_current_cuda_device()
     return device_id;
 }
 
+size_t get_type_size(DataType dtype)
+{
+    switch (dtype)
+    {
+        case DataType::kFloat32:
+            return sizeof(float);
+        case DataType::kFloat64:
+            return sizeof(double);
+        case DataType::kInt32:
+            return sizeof(int32_t);
+        case DataType::kInt8:
+            return sizeof(int8_t);
+        default:
+            THROW_INVALID_ARG("Unsupported data type: {}", dtype_to_string(dtype));
+    }
+}
+
 }  // namespace cuda
 }  // namespace origin
