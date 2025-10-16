@@ -24,7 +24,7 @@ namespace cuda
  * @param b 输入矩阵B
  * @return 加法结果矩阵
  */
-std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b);
+std::unique_ptr<Mat> add(const origin::OriginMat &a, const origin::OriginMat &b);
 
 /**
  * @brief CUDA减法算子
@@ -32,7 +32,7 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b);
  * @param b 输入矩阵B
  * @return 减法结果矩阵
  */
-std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b);
+std::unique_ptr<Mat> subtract(const origin::OriginMat &a, const origin::OriginMat &b);
 
 /**
  * @brief CUDA乘法算子
@@ -40,7 +40,7 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b);
  * @param b 输入矩阵B
  * @return 乘法结果矩阵
  */
-std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b);
+std::unique_ptr<Mat> multiply(const origin::OriginMat &a, const origin::OriginMat &b);
 
 /**
  * @brief CUDA除法算子
@@ -48,7 +48,7 @@ std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b);
  * @param b 输入矩阵B
  * @return 除法结果矩阵
  */
-std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b);
+std::unique_ptr<Mat> divide(const origin::OriginMat &a, const origin::OriginMat &b);
 
 // ============================================================================
 // 一元运算算子
@@ -59,35 +59,35 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b);
  * @param mat 输入矩阵
  * @return 指数运算结果矩阵
  */
-std::unique_ptr<Mat> exp(const OriginMat &mat);
+std::unique_ptr<Mat> exp(const origin::OriginMat &mat);
 
 /**
  * @brief CUDA对数算子
  * @param mat 输入矩阵
  * @return 对数运算结果矩阵
  */
-std::unique_ptr<Mat> log(const OriginMat &mat);
+std::unique_ptr<Mat> log(const origin::OriginMat &mat);
 
 /**
  * @brief CUDA平方根算子
  * @param mat 输入矩阵
  * @return 平方根运算结果矩阵
  */
-std::unique_ptr<Mat> sqrt(const OriginMat &mat);
+std::unique_ptr<Mat> sqrt(const origin::OriginMat &mat);
 
 /**
  * @brief CUDA平方算子
  * @param mat 输入矩阵
  * @return 平方运算结果矩阵
  */
-std::unique_ptr<Mat> square(const OriginMat &mat);
+std::unique_ptr<Mat> square(const origin::OriginMat &mat);
 
 /**
  * @brief CUDA取负算子
  * @param mat 输入矩阵
  * @return 取负运算结果矩阵
  */
-std::unique_ptr<Mat> negate(const OriginMat &mat);
+std::unique_ptr<Mat> negate(const origin::OriginMat &mat);
 
 // ============================================================================
 // 标量运算算子
@@ -99,7 +99,7 @@ std::unique_ptr<Mat> negate(const OriginMat &mat);
  * @param scalar 标量值
  * @return 标量加法结果矩阵
  */
-std::unique_ptr<Mat> add_scalar(const OriginMat &mat, data_t scalar);
+std::unique_ptr<Mat> add_scalar(const origin::OriginMat &mat, data_t scalar);
 
 /**
  * @brief CUDA标量乘法算子
@@ -107,7 +107,7 @@ std::unique_ptr<Mat> add_scalar(const OriginMat &mat, data_t scalar);
  * @param scalar 标量值
  * @return 标量乘法结果矩阵
  */
-std::unique_ptr<Mat> multiply_scalar(const OriginMat &mat, data_t scalar);
+std::unique_ptr<Mat> multiply_scalar(const origin::OriginMat &mat, data_t scalar);
 
 // ============================================================================
 // 高级运算算子（待实现）

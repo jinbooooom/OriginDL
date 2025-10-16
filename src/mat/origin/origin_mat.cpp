@@ -13,6 +13,7 @@
 
 #ifdef WITH_CUDA
 #    include "origin/mat/origin/cuda/cuda_ops.cuh"
+#    include "origin/mat/origin/cuda/factory.cuh"
 #endif
 
 namespace origin
@@ -480,22 +481,78 @@ int OriginMat::backend_type() const
 // 工厂方法
 std::unique_ptr<Mat> OriginMat::randn(const Shape &shape, const TensorOptions &options)
 {
-    return cpu::randn(shape, options);
+    if (options.device().type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // 先在CPU上创建，然后移动到CUDA
+        auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
+        auto cpu_tensor = cpu::randn(shape, cpu_options);
+        return cpu_tensor->to_device(options.device());
+#else
+        THROW_RUNTIME_ERROR("CUDA support not enabled, cannot create CUDA tensor");
+#endif
+    }
+    else
+    {
+        return cpu::randn(shape, options);
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::zeros(const Shape &shape, const TensorOptions &options)
 {
-    return cpu::zeros(shape, options);
+    if (options.device().type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // 先在CPU上创建，然后移动到CUDA
+        auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
+        auto cpu_tensor = cpu::zeros(shape, cpu_options);
+        return cpu_tensor->to_device(options.device());
+#else
+        THROW_RUNTIME_ERROR("CUDA support not enabled, cannot create CUDA tensor");
+#endif
+    }
+    else
+    {
+        return cpu::zeros(shape, options);
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::ones(const Shape &shape, const TensorOptions &options)
 {
-    return cpu::ones(shape, options);
+    if (options.device().type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // 先在CPU上创建，然后移动到CUDA
+        auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
+        auto cpu_tensor = cpu::ones(shape, cpu_options);
+        return cpu_tensor->to_device(options.device());
+#else
+        THROW_RUNTIME_ERROR("CUDA support not enabled, cannot create CUDA tensor");
+#endif
+    }
+    else
+    {
+        return cpu::ones(shape, options);
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::full(const Shape &shape, data_t value, const TensorOptions &options)
 {
-    return cpu::full(shape, value, options);
+    if (options.device().type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // 先在CPU上创建，然后移动到CUDA
+        auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
+        auto cpu_tensor = cpu::full(shape, value, cpu_options);
+        return cpu_tensor->to_device(options.device());
+#else
+        THROW_RUNTIME_ERROR("CUDA support not enabled, cannot create CUDA tensor");
+#endif
+    }
+    else
+    {
+        return cpu::full(shape, value, options);
+    }
 }
 
 // 模板实例化

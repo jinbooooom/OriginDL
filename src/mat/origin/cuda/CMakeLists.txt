@@ -67,6 +67,7 @@ set(CUDA_OTHER_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/cuda_utils.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/device_validation.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/stream_manager.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/factory.cu
 )
 
 # 合并所有源文件
@@ -102,7 +103,7 @@ set_target_properties(originmat_cuda PROPERTIES
 )
 
 # 链接CUDA库
-target_link_libraries(originmat_cuda CUDA::cudart)
+target_link_libraries(originmat_cuda CUDA::cudart CUDA::curand)
 
 # 设置输出目录
 set_target_properties(originmat_cuda PROPERTIES
