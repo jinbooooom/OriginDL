@@ -45,8 +45,36 @@ detect_cuda_architecture()
 file(GLOB CUDA_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cu)
 file(GLOB CUDA_CPP_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
+# 确保包含所有新实现的算子文件
+set(CUDA_OPERATOR_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/add.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/subtract.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/multiply.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/divide.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/exp.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/log.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/sqrt.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/square.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/negate.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/add_scalar.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/multiply_scalar.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/cuda_kernels.cu
+)
+
+# 添加其他CUDA源文件
+set(CUDA_OTHER_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/cuda_broadcast.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/cuda_utils.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/device_validation.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/stream_manager.cu
+)
+
+# 合并所有源文件
+list(APPEND CUDA_SRCS ${CUDA_OPERATOR_SRCS})
+list(APPEND CUDA_SRCS ${CUDA_OTHER_SRCS})
+
 # 创建CUDA库
-add_library(originmat_cuda SHARED ${CUDA_SRCS} ${CUDA_CPP_SRCS})
+add_library(originmat_cuda SHARED ${CUDA_SRCS})
 
 # 设置包含目录
 target_include_directories(originmat_cuda PUBLIC 

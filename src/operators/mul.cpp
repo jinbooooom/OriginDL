@@ -80,7 +80,7 @@ template <typename T>
 Tensor operator*(const Tensor &lhs, T rhs)
 {
     auto shape = lhs.shape();
-    auto x     = Tensor(rhs, shape);
+    auto x     = Tensor(rhs, shape, TensorOptions().dtype(lhs.dtype()).device(lhs.device()));
     return mul(lhs, x);
 }
 
