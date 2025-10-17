@@ -14,8 +14,7 @@ class CudaMatmulTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        // 跳过所有测试：matmul目前只有CPU实现，没有CUDA实现
-        GTEST_SKIP() << "matmul CUDA implementation not available yet";
+        // CUDA matmul算子已实现，可以进行测试
     }
 
     void TearDown() override

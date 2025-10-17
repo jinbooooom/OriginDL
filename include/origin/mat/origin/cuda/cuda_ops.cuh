@@ -129,7 +129,7 @@ std::unique_ptr<Mat> reshape(const origin::OriginMat &mat, const Shape &new_shap
 std::unique_ptr<Mat> transpose(const origin::OriginMat &mat);
 
 // ============================================================================
-// 高级运算算子（待实现）
+// 高级运算算子
 // ============================================================================
 
 /**
@@ -137,26 +137,48 @@ std::unique_ptr<Mat> transpose(const origin::OriginMat &mat);
  * @param a 输入矩阵A
  * @param b 输入矩阵B
  * @return 矩阵乘法结果矩阵
- * @note 待实现
  */
-// std::unique_ptr<Mat> matmul(const OriginMat& a, const OriginMat& b);
+std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
 
 /**
  * @brief CUDA求和算子
  * @param mat 输入矩阵
  * @param axis 求和轴，-1表示所有元素求和
  * @return 求和结果矩阵
- * @note 待实现
  */
-// std::unique_ptr<Mat> sum(const OriginMat& mat, int axis = -1);
+std::unique_ptr<Mat> sum(const OriginMat &mat, int axis = -1);
 
 /**
- * @brief CUDA转置算子
+ * @brief CUDA幂运算算子（标量）
  * @param mat 输入矩阵
- * @return 转置结果矩阵
- * @note 待实现
+ * @param exponent 指数
+ * @return 幂运算结果矩阵
  */
-// std::unique_ptr<Mat> transpose(const OriginMat& mat);
+std::unique_ptr<Mat> pow(const OriginMat &mat, data_t exponent);
+
+/**
+ * @brief CUDA幂运算算子（张量）
+ * @param base 底数矩阵
+ * @param exponent 指数矩阵
+ * @return 幂运算结果矩阵
+ */
+std::unique_ptr<Mat> pow(const OriginMat &base, const OriginMat &exponent);
+
+/**
+ * @brief CUDA广播算子
+ * @param mat 输入矩阵
+ * @param target_shape 目标形状
+ * @return 广播后的矩阵
+ */
+std::unique_ptr<Mat> broadcast_to(const OriginMat &mat, const Shape &target_shape);
+
+/**
+ * @brief CUDA sum_to算子
+ * @param mat 输入矩阵
+ * @param target_shape 目标形状
+ * @return sum_to结果矩阵
+ */
+std::unique_ptr<Mat> sum_to(const OriginMat &mat, const Shape &target_shape);
 
 }  // namespace cuda
 }  // namespace origin

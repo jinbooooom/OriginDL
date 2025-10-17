@@ -15,7 +15,7 @@ protected:
     void SetUp() override
     {
         // 跳过所有测试：pow目前只有CPU实现，没有CUDA实现
-        GTEST_SKIP() << "pow CUDA implementation not available yet";
+        // CUDA pow算子已实现，可以进行测试
     }
 
     void TearDown() override { cudaDeviceSynchronize(); }

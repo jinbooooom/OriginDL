@@ -140,9 +140,3 @@ TEST_F(CudaTransposeTest, DoubleTranspose)
         EXPECT_NEAR(result_data[i], original_data[i], kFloatTolerance);
     }
 }
-
-TEST_F(CudaTransposeTest, TransposeWithMatrixMultiplication)
-{
-    // 跳过此测试：CUDA矩阵乘法尚未实现
-    GTEST_SKIP() << "CUDA matmul not implemented yet, skipping matrix multiplication test";
-}

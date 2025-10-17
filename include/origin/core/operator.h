@@ -173,6 +173,7 @@ public:
     int exponent_;  // 幂函数的指数
 };
 Tensor pow(const Tensor &base, int exponent);
+Tensor pow(const Tensor &base, float exponent);  // 支持float指数
 Tensor operator^(const Tensor &base, int exponent);
 
 class Exp : public Operator
