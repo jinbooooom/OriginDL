@@ -2,8 +2,8 @@
 #define __ORIGIN_DL_CUDA_OPS_H__
 
 #include <memory>
-#include "../origin_mat.h"
 #include "../../scalar.h"
+#include "../origin_mat.h"
 
 namespace origin
 {

@@ -51,7 +51,7 @@ std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b) {
 
 ### 2. 易于扩展新数据类型
 
-添加新数据类型（如`kFloat16`）只需要：
+添加新数据类型只需要：
 
 1. 在`DataType`枚举中添加新类型
 2. 在`TypeDispatcher`中添加一个case
@@ -161,23 +161,23 @@ enum class DataType {
     kFloat64 = 1,
     kInt32 = 2,
     kInt8 = 3,
-    kFloat16 = 4  // 新类型
+    kInt16 = 4  // 新类型
 };
 ```
 
 2. 在`TypeDispatcher`中添加case：
 ```cpp
-case DataType::kFloat16:
-    func.template operator()<float16_t>();
+case DataType::kInt16:
+    func.template operator()<int16_t>();
     break;
 ```
 
 3. 在类型特征模板中添加特化：
 ```cpp
 template <>
-struct DataTypeTraits<float16_t> {
-    static constexpr DataType type = DataType::kFloat16;
-    static constexpr const char *name = "float16";
+struct DataTypeTraits<int16_t> {
+    static constexpr DataType type = DataType::kInt16;
+    static constexpr const char *name = "int16";
 };
 ```
 

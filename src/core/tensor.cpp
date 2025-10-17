@@ -131,9 +131,27 @@ size_t Tensor::ndim() const
     return impl_->ndim();
 }
 
+// 元素的个数，未来考虑去掉 elements，保留 numel
 size_t Tensor::elements() const
 {
     return impl_->elements();
+}
+
+size_t Tensor::numel() const
+{
+    return elements();  // numel()和elements()功能相同
+}
+
+// === 张量属性方法实现 ===
+// 返回tensor中单个元素的字节大小
+size_t Tensor::element_size() const
+{
+    return origin::element_size(dtype());
+}
+
+size_t Tensor::nbytes() const
+{
+    return element_size() * numel();
 }
 
 // === 数据访问：类型安全实现 ===

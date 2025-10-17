@@ -1,6 +1,6 @@
 #include "origin/core/operator.h"
-#include "origin/utils/exception.h"
 #include "origin/mat/scalar.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -26,7 +26,7 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
     auto gy = &mat(gys[0]);
 
     // ∂y/∂x = exponent * x^(exponent-1) * gy
-    auto x_pow_minus_1 = x->pow((exponent_ - Scalar(1)).toDataT());
+    auto x_pow_minus_1 = x->pow(exponent_.toDataT() - 1.0f);
     auto temp_mult     = *x_pow_minus_1 * *gy;
     auto gx_result     = *temp_mult * exponent_.toDataT();
     auto gx            = convert_mat_to_tensor(std::move(gx_result));
