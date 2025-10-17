@@ -1,8 +1,8 @@
 #ifndef __ORIGIN_DL_OPERATOR_H__
 #define __ORIGIN_DL_OPERATOR_H__
 
-#include "tensor.h"
 #include "origin/mat/scalar.h"
+#include "tensor.h"
 
 namespace origin
 {
@@ -166,7 +166,7 @@ class Pow : public Operator
 {
 public:
     // 支持多种类型的指数构造函数
-    Pow(Scalar n) : exponent_(n) {};
+    Pow(Scalar n) : exponent_(n){};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
@@ -219,8 +219,8 @@ public:
     int axis_;  // 对那个轴求和
 
     Shape x_shape_;  // 输入的形状
-    Sum() : axis_(-1) {};
-    Sum(const int axis) : axis_(axis) {};
+    Sum() : axis_(-1){};
+    Sum(const int axis) : axis_(axis){};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
@@ -235,7 +235,7 @@ public:
 
     Shape x_shape_;  // 输入的形状
 
-    BroadcastTo(const Shape &shape) : shape_(shape) {};
+    BroadcastTo(const Shape &shape) : shape_(shape){};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
@@ -250,7 +250,7 @@ public:
 
     Shape x_shape_;  // 输入的形状
 
-    SumTo(const Shape &shape) : shape_(shape) {};
+    SumTo(const Shape &shape) : shape_(shape){};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 

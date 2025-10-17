@@ -153,6 +153,11 @@ public:
     size_t ndim() const;
     size_t elements() const;
 
+    // === 张量属性方法（对应PyTorch的tensor.element_size()等） ===
+    size_t element_size() const;  // 对应tensor.element_size()
+    size_t numel() const;         // 对应tensor.numel()
+    size_t nbytes() const;        // 对应tensor.nbytes
+
     // === 数据访问：类型安全 ===
     template <typename T>
     T item() const;
