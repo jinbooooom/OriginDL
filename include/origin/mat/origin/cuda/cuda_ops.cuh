@@ -121,6 +121,13 @@ std::unique_ptr<Mat> multiply_scalar(const origin::OriginMat &mat, data_t scalar
  */
 std::unique_ptr<Mat> reshape(const origin::OriginMat &mat, const Shape &new_shape);
 
+/**
+ * @brief CUDA转置算子
+ * @param mat 输入矩阵
+ * @return 转置后的矩阵
+ */
+std::unique_ptr<Mat> transpose(const origin::OriginMat &mat);
+
 // ============================================================================
 // 高级运算算子（待实现）
 // ============================================================================

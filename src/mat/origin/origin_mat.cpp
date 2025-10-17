@@ -144,7 +144,22 @@ std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const
 
 std::unique_ptr<Mat> OriginMat::transpose() const
 {
-    return cpu::transpose(*this);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::transpose(*this);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::transpose(*this);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for transpose: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 // TODO：
