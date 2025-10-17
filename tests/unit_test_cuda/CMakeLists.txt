@@ -135,20 +135,250 @@ set_target_properties(test_cuda_mul PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
 )
 
-# 其他算子测试可以在这里添加
-# add_executable(test_cuda_div operator/test_cuda_div.cpp)
-# add_executable(test_cuda_exp operator/test_cuda_exp.cpp)
-# add_executable(test_cuda_log operator/test_cuda_log.cpp)
-# add_executable(test_cuda_sqrt operator/test_cuda_sqrt.cpp)
-# add_executable(test_cuda_square operator/test_cuda_square.cpp)
-# add_executable(test_cuda_negate operator/test_cuda_negate.cpp)
+# CUDA除法算子测试
+add_executable(test_cuda_div operator/test_cuda_div.cpp)
+add_dependencies(test_cuda_div gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_div 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_div PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_div PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA指数算子测试
+add_executable(test_cuda_exp operator/test_cuda_exp.cpp)
+add_dependencies(test_cuda_exp gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_exp 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_exp PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_exp PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+
+# CUDA平方算子测试
+add_executable(test_cuda_square operator/test_cuda_square.cpp)
+add_dependencies(test_cuda_square gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_square 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_square PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_square PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA取反算子测试
+add_executable(test_cuda_neg operator/test_cuda_neg.cpp)
+add_dependencies(test_cuda_neg gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_neg 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_neg PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_neg PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA矩阵乘法算子测试
+add_executable(test_cuda_matmul operator/test_cuda_matmul.cpp)
+add_dependencies(test_cuda_matmul gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_matmul 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_matmul PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_matmul PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA重塑算子测试
+add_executable(test_cuda_reshape operator/test_cuda_reshape.cpp)
+add_dependencies(test_cuda_reshape gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_reshape 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_reshape PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_reshape PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA转置算子测试
+add_executable(test_cuda_transpose operator/test_cuda_transpose.cpp)
+add_dependencies(test_cuda_transpose gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_transpose 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_transpose PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_transpose PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA求和算子测试
+add_executable(test_cuda_sum operator/test_cuda_sum.cpp)
+add_dependencies(test_cuda_sum gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_sum 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_sum PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_sum PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA幂运算算子测试
+add_executable(test_cuda_pow operator/test_cuda_pow.cpp)
+add_dependencies(test_cuda_pow gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_pow 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_pow PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_pow PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA广播算子测试
+add_executable(test_cuda_broadcast_to operator/test_cuda_broadcast_to.cpp)
+add_dependencies(test_cuda_broadcast_to gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_broadcast_to 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_broadcast_to PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_broadcast_to PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
+
+# CUDA求和到指定形状算子测试
+add_executable(test_cuda_sum_to operator/test_cuda_sum_to.cpp)
+add_dependencies(test_cuda_sum_to gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_sum_to 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_sum_to PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_sum_to PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
 
 # ============================================================================
-# CUDA自动微分测试 - 为未来自动微分功能预留
+# CUDA自动微分测试
 # ============================================================================
 
-# 暂时没有自动微分测试，等实现后再添加
-# add_executable(test_cuda_autograd autograd/test_cuda_autograd.cpp)
+# CUDA线性回归自动微分测试
+add_executable(test_cuda_linear_regression autograd/test_cuda_linear_regression.cpp)
+add_dependencies(test_cuda_linear_regression gtest gtest_main origindl originmat_cuda)
+target_link_libraries(test_cuda_linear_regression 
+    ${GTEST_LIBRARIES}
+    origindl
+    originmat_cuda
+    CUDA::cudart
+    pthread
+)
+target_include_directories(test_cuda_linear_regression PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${GTEST_INCLUDE_DIRS}
+)
+set_target_properties(test_cuda_linear_regression PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CUDA_UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CUDA_UNIT_TEST_OUTPUT_DIR}
+)
 
 # ============================================================================
 # 启用测试
@@ -161,12 +391,36 @@ add_test(NAME cuda_tensor_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_te
 add_test(NAME cuda_add_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_add)
 add_test(NAME cuda_sub_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_sub)
 add_test(NAME cuda_mul_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_mul)
+add_test(NAME cuda_div_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_div)
+add_test(NAME cuda_exp_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_exp)
+add_test(NAME cuda_square_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_square)
+add_test(NAME cuda_neg_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_neg)
+add_test(NAME cuda_broadcast_to_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_broadcast_to)
+add_test(NAME cuda_sum_to_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_sum_to)
+add_test(NAME cuda_matmul_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_matmul)
+add_test(NAME cuda_reshape_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_reshape)
+add_test(NAME cuda_transpose_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_transpose)
+add_test(NAME cuda_sum_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_sum)
+add_test(NAME cuda_pow_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_pow)
+add_test(NAME cuda_linear_regression_test COMMAND ${CUDA_UNIT_TEST_OUTPUT_DIR}/test_cuda_linear_regression)
 
 # 设置测试属性
 set_tests_properties(cuda_tensor_test PROPERTIES TIMEOUT 60)
 set_tests_properties(cuda_add_test PROPERTIES TIMEOUT 60)
 set_tests_properties(cuda_sub_test PROPERTIES TIMEOUT 60)
 set_tests_properties(cuda_mul_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_div_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_exp_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_square_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_neg_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_broadcast_to_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_sum_to_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_matmul_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_reshape_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_transpose_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_sum_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_pow_test PROPERTIES TIMEOUT 60)
+set_tests_properties(cuda_linear_regression_test PROPERTIES TIMEOUT 120)
 
 # 打印配置信息
 message(STATUS "CUDA unit tests configuration completed")
@@ -177,14 +431,14 @@ message(STATUS "GoogleTest include directories: ${GTEST_INCLUDE_DIRS}")
 # 添加自定义目标来运行所有CUDA测试
 add_custom_target(run_cuda_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_cuda_tensor test_cuda_add test_cuda_sub test_cuda_mul
+    DEPENDS test_cuda_tensor test_cuda_add test_cuda_sub test_cuda_mul test_cuda_div test_cuda_exp test_cuda_square test_cuda_neg test_cuda_matmul test_cuda_reshape test_cuda_transpose test_cuda_sum test_cuda_pow test_cuda_broadcast_to test_cuda_sum_to test_cuda_linear_regression
     COMMENT "Run all CUDA unit tests"
 )
 
 # 添加自定义目标来编译和运行CUDA测试
 add_custom_target(test_cuda_all
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_cuda_tensor test_cuda_add test_cuda_sub test_cuda_mul
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_cuda_tensor test_cuda_add test_cuda_sub test_cuda_mul test_cuda_div test_cuda_exp test_cuda_square test_cuda_neg test_cuda_matmul test_cuda_reshape test_cuda_transpose test_cuda_sum test_cuda_pow test_cuda_broadcast_to test_cuda_sum_to test_cuda_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_cuda_tensor test_cuda_add test_cuda_sub test_cuda_mul
+    DEPENDS test_cuda_tensor test_cuda_add test_cuda_sub test_cuda_mul test_cuda_div test_cuda_exp test_cuda_square test_cuda_neg test_cuda_matmul test_cuda_reshape test_cuda_transpose test_cuda_sum test_cuda_pow test_cuda_broadcast_to test_cuda_sum_to test_cuda_linear_regression
     COMMENT "Compile and run all CUDA unit tests"
 )
