@@ -3,14 +3,14 @@
 
 #include <cmath>
 #include "origin/mat/basic_types.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/mat/origin/origin_mat.h"
 
 namespace origin
 {
 namespace cpu
 {
-    // 使用设备通用的TypeDispatcher（使用完整命名空间）
+// 使用设备通用的TypeDispatcher（使用完整命名空间）
 
 /**
  * @brief 一元操作函数对象基类

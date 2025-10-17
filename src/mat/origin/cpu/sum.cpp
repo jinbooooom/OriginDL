@@ -41,7 +41,8 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
     auto result = std::make_unique<OriginMat>(result_shape, mat.dtype());
 
     // 使用类型分发器执行轴求和操作
-    device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() { AxisSumCompute::axis_sum<T>(mat, *result, axis); });
+    device_common::TypeDispatcher::dispatch_void(
+        mat.dtype(), [&]<typename T>() { AxisSumCompute::axis_sum<T>(mat, *result, axis); });
 
     return result;
 }

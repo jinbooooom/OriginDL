@@ -41,8 +41,8 @@ std::unique_ptr<OriginMat> transpose(const OriginMat &mat)
         auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
 
         // 使用类型分发器执行转置操作
-        device_common::TypeDispatcher::dispatch_void(mat.dtype(),
-                                      [&]<typename T>() { TransposeCompute::transpose_2d<T>(mat, *result); });
+        device_common::TypeDispatcher::dispatch_void(
+            mat.dtype(), [&]<typename T>() { TransposeCompute::transpose_2d<T>(mat, *result); });
 
         return result;
     }

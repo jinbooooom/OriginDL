@@ -1,9 +1,9 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/cuda/device_validation.cuh"
-#include "origin/utils/exception.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -50,8 +50,7 @@ void launch_add_scalar_kernel(const T *a, T scalar, T *c, size_t n, cudaStream_t
 void dispatch_add_scalar(DataType dtype, const void *a, data_t scalar, void *c, size_t n, cudaStream_t stream = 0)
 {
     device_common::TypeDispatcher::dispatch_void(dtype, [&]<typename T>() {
-        launch_add_scalar_kernel<T>(static_cast<const T *>(a), static_cast<T>(scalar),
-                                    static_cast<T *>(c), n, stream);
+        launch_add_scalar_kernel<T>(static_cast<const T *>(a), static_cast<T>(scalar), static_cast<T *>(c), n, stream);
     });
 }
 

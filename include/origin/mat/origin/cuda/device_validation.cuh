@@ -69,7 +69,9 @@ void validate_same_cpu_device(const Mat &a, const Mat &b, const std::string &ope
  * @param operation_name 操作名称
  * @return 格式化的错误信息
  */
-std::string format_device_mismatch_error(const Device &device1, const Device &device2, const std::string &operation_name);
+std::string format_device_mismatch_error(const Device &device1,
+                                         const Device &device2,
+                                         const std::string &operation_name);
 
 /**
  * @brief 生成设备类型不匹配的错误信息
@@ -78,7 +80,9 @@ std::string format_device_mismatch_error(const Device &device1, const Device &de
  * @param operation_name 操作名称
  * @return 格式化的错误信息
  */
-std::string format_device_type_mismatch_error(const Device &actual_device, DeviceType expected_device, const std::string &operation_name);
+std::string format_device_type_mismatch_error(const Device &actual_device,
+                                              DeviceType expected_device,
+                                              const std::string &operation_name);
 
 }  // namespace validation
 }  // namespace origin

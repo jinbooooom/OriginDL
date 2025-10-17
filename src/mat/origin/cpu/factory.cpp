@@ -1,9 +1,9 @@
 #include <random>
 #include <stdexcept>
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
-#include "origin/utils/exception.h"
+#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -105,7 +105,7 @@ std::unique_ptr<OriginMat> full(const Shape &shape, data_t value, const TensorOp
     // 使用类型分发器替代重复的switch语句
     device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
         T *data = result->data_ptr<T>();
-        T v = static_cast<T>(value);
+        T v     = static_cast<T>(value);
         for (size_t i = 0; i < shape.elements(); ++i)
         {
             data[i] = v;

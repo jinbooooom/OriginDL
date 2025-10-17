@@ -14,8 +14,8 @@ std::unique_ptr<OriginMat> broadcast_to(const OriginMat &mat, const Shape &targe
     auto result = std::make_unique<OriginMat>(target_shape, mat.dtype());
 
     // 使用类型分发器执行广播操作
-    device_common::TypeDispatcher::dispatch_void(mat.dtype(),
-                                  [&]<typename T>() { BroadcastToCompute::broadcast_to<T>(mat, *result); });
+    device_common::TypeDispatcher::dispatch_void(
+        mat.dtype(), [&]<typename T>() { BroadcastToCompute::broadcast_to<T>(mat, *result); });
 
     return result;
 }

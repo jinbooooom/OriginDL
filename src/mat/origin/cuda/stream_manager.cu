@@ -1,9 +1,9 @@
-#include "origin/mat/origin/cuda/stream_manager.cuh"
 #include <algorithm>
 #include <stdexcept>
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/utils/exception.h"
+#include "origin/mat/origin/cuda/stream_manager.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {

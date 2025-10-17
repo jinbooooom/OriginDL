@@ -1,8 +1,8 @@
-#include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/mat/basic_types.h"
 #include "origin/mat/mat.h"
-#include "origin/utils/exception.h"
+#include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -13,7 +13,7 @@ void validate_same_device(const Mat &a, const Mat &b, const std::string &operati
 {
     Device device_a = a.device();
     Device device_b = b.device();
-    
+
     if (device_a != device_b)
     {
         std::string error_msg = format_device_mismatch_error(device_a, device_b, operation_name);
@@ -24,7 +24,7 @@ void validate_same_device(const Mat &a, const Mat &b, const std::string &operati
 void validate_device(const Mat &tensor, DeviceType expected_device, const std::string &operation_name)
 {
     Device actual_device = tensor.device();
-    
+
     if (actual_device.type() != expected_device)
     {
         std::string error_msg = format_device_type_mismatch_error(actual_device, expected_device, operation_name);
@@ -46,20 +46,20 @@ void validate_same_cuda_device(const Mat &a, const Mat &b, const std::string &op
 {
     Device device_a = a.device();
     Device device_b = b.device();
-    
+
     // 首先检查设备类型
     if (device_a.type() != DeviceType::kCUDA)
     {
         std::string error_msg = format_device_type_mismatch_error(device_a, DeviceType::kCUDA, operation_name);
         THROW_INVALID_ARG(error_msg);
     }
-    
+
     if (device_b.type() != DeviceType::kCUDA)
     {
         std::string error_msg = format_device_type_mismatch_error(device_b, DeviceType::kCUDA, operation_name);
         THROW_INVALID_ARG(error_msg);
     }
-    
+
     // 然后检查设备是否相同
     if (device_a != device_b)
     {
@@ -72,20 +72,20 @@ void validate_same_cpu_device(const Mat &a, const Mat &b, const std::string &ope
 {
     Device device_a = a.device();
     Device device_b = b.device();
-    
+
     // 首先检查设备类型
     if (device_a.type() != DeviceType::kCPU)
     {
         std::string error_msg = format_device_type_mismatch_error(device_a, DeviceType::kCPU, operation_name);
         THROW_INVALID_ARG(error_msg);
     }
-    
+
     if (device_b.type() != DeviceType::kCPU)
     {
         std::string error_msg = format_device_type_mismatch_error(device_b, DeviceType::kCPU, operation_name);
         THROW_INVALID_ARG(error_msg);
     }
-    
+
     // CPU设备通常不需要检查设备索引，但为了完整性还是检查
     if (device_a != device_b)
     {
@@ -94,13 +94,17 @@ void validate_same_cpu_device(const Mat &a, const Mat &b, const std::string &ope
     }
 }
 
-std::string format_device_mismatch_error(const Device &device1, const Device &device2, const std::string &operation_name)
+std::string format_device_mismatch_error(const Device &device1,
+                                         const Device &device2,
+                                         const std::string &operation_name)
 {
-    return "Expected all tensors to be on the same device, but found at least two devices, " + 
-           device1.to_string() + " and " + device2.to_string() + "! (when computing " + operation_name + ")";
+    return "Expected all tensors to be on the same device, but found at least two devices, " + device1.to_string() +
+           " and " + device2.to_string() + "! (when computing " + operation_name + ")";
 }
 
-std::string format_device_type_mismatch_error(const Device &actual_device, DeviceType expected_device, const std::string &operation_name)
+std::string format_device_type_mismatch_error(const Device &actual_device,
+                                              DeviceType expected_device,
+                                              const std::string &operation_name)
 {
     std::string expected_device_str;
     switch (expected_device)
@@ -115,9 +119,9 @@ std::string format_device_type_mismatch_error(const Device &actual_device, Devic
             expected_device_str = "unknown device type";
             break;
     }
-    
-    return "Expected tensor to be on " + expected_device_str + " device, but got " + 
-           actual_device.to_string() + "! (when computing " + operation_name + ")";
+
+    return "Expected tensor to be on " + expected_device_str + " device, but got " + actual_device.to_string() +
+           "! (when computing " + operation_name + ")";
 }
 
 }  // namespace validation
