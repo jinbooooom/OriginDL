@@ -113,7 +113,7 @@ std::unique_ptr<Mat> TorchMat::mul_scalar(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator+(data_t scalar) const
 {
-    return operator+ <data_t>(scalar);
+    return operator+<data_t>(scalar);
 }
 
 template <typename U>
@@ -130,7 +130,7 @@ std::unique_ptr<Mat> TorchMat::operator+(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator-(data_t scalar) const
 {
-    return operator- <data_t>(scalar);
+    return operator-<data_t>(scalar);
 }
 
 template <typename U>
@@ -147,7 +147,7 @@ std::unique_ptr<Mat> TorchMat::operator-(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator*(data_t scalar) const
 {
-    return operator* <data_t>(scalar);
+    return operator*<data_t>(scalar);
 }
 
 template <typename U>
@@ -164,7 +164,7 @@ std::unique_ptr<Mat> TorchMat::operator*(U scalar) const
 
 std::unique_ptr<Mat> TorchMat::operator/(data_t scalar) const
 {
-    return operator/ <data_t>(scalar);
+    return operator/<data_t>(scalar);
 }
 
 template <typename U>

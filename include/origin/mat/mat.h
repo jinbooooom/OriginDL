@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include "basic_types.h"
+#include "scalar.h"
 #include "shape.h"
 
 namespace origin
@@ -243,7 +244,7 @@ public:
      * @param exponent 指数
      * @return 幂运算结果
      */
-    virtual std::unique_ptr<Mat> pow(data_t exponent) const = 0;
+    virtual std::unique_ptr<Mat> pow(const Scalar &exponent) const = 0;
 
     /**
      * @brief 求和 - 返回标量值

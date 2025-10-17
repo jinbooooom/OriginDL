@@ -29,7 +29,7 @@ std::unique_ptr<OriginMat> exp(const OriginMat &mat);
 std::unique_ptr<OriginMat> log(const OriginMat &mat);
 std::unique_ptr<OriginMat> sqrt(const OriginMat &mat);
 std::unique_ptr<OriginMat> square(const OriginMat &mat);
-std::unique_ptr<OriginMat> pow(const OriginMat &mat, data_t exponent);
+std::unique_ptr<OriginMat> pow(const OriginMat &mat, const Scalar &exponent);
 
 // === 统计函数 ===
 std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis);

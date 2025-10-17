@@ -1,5 +1,6 @@
 #include "origin/core/operator.h"
 #include "origin/utils/exception.h"
+#include "origin/mat/scalar.h"
 
 namespace origin
 {
@@ -25,9 +26,9 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
     auto gy = &mat(gys[0]);
 
     // ∂y/∂x = exponent * x^(exponent-1) * gy
-    auto x_pow_minus_1 = x->pow(exponent_ - 1);
+    auto x_pow_minus_1 = x->pow((exponent_ - Scalar(1)).toDataT());
     auto temp_mult     = *x_pow_minus_1 * *gy;
-    auto gx_result     = *temp_mult * exponent_;
+    auto gx_result     = *temp_mult * exponent_.toDataT();
     auto gx            = convert_mat_to_tensor(std::move(gx_result));
 
     return std::vector<Tensor>{gx};
@@ -36,6 +37,13 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
 Tensor pow(const std::vector<Tensor> &xs, data_t exponent)
 {
     auto op = std::make_shared<Pow>(exponent);
+    return (*op)(xs)[0];
+}
+
+// 支持Scalar类型的pow函数
+Tensor pow(const std::vector<Tensor> &xs, const Scalar &exponent)
+{
+    auto op = std::make_shared<Pow>(exponent.toDataT());
     return (*op)(xs)[0];
 }
 

@@ -3,6 +3,7 @@
 
 #include <memory>
 #include "../origin_mat.h"
+#include "../../scalar.h"
 
 namespace origin
 {
@@ -154,7 +155,7 @@ std::unique_ptr<Mat> sum(const OriginMat &mat, int axis = -1);
  * @param exponent 指数
  * @return 幂运算结果矩阵
  */
-std::unique_ptr<Mat> pow(const OriginMat &mat, data_t exponent);
+std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
 
 /**
  * @brief CUDA幂运算算子（张量）
