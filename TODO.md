@@ -9,3 +9,4 @@
 - [ ] OriginMat支持视图转置
 - [x] 删除 arrayfire 相关代码
 - [x] 异常打印行号
+- [ ] 统一cpu/cuda的单元测试
