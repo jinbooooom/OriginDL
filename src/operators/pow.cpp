@@ -46,6 +46,26 @@ Tensor pow(const Tensor &base, int exponent)
     return pow(xs, exponent);
 }
 
+// 支持float指数的pow函数（使用辅助类来访问protected方法）
+class PowFloatHelper : public Operator
+{
+public:
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override { return {}; }
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override { return {}; }
+
+    static Tensor compute(const Tensor &base, float exponent)
+    {
+        PowFloatHelper helper;
+        auto result = helper.mat(const_cast<Tensor &>(base)).pow(static_cast<data_t>(exponent));
+        return helper.convert_mat_to_tensor(std::move(result));
+    }
+};
+
+Tensor pow(const Tensor &base, float exponent)
+{
+    return PowFloatHelper::compute(base, exponent);
+}
+
 Tensor operator^(const Tensor &base, int exponent)
 {
     return pow(base, exponent);

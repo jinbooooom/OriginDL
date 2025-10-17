@@ -13,7 +13,7 @@ protected:
     void SetUp() override
     {
         // 跳过所有测试：broadcast_to目前只有CPU实现，没有CUDA实现
-        GTEST_SKIP() << "broadcast_to CUDA implementation not available yet";
+        // CUDA broadcast_to算子已实现，可以进行测试
     }
 
     void TearDown() override

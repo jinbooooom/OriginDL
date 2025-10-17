@@ -357,28 +357,104 @@ std::unique_ptr<Mat> OriginMat::square() const
 
 std::unique_ptr<Mat> OriginMat::pow(data_t exponent) const
 {
-    return cpu::pow(*this, exponent);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::pow(*this, exponent);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::pow(*this, exponent);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for pow: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::matmul(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    return cpu::matmul(*this, other_mat);
+
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::matmul(*this, other_mat);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::matmul(*this, other_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for matmul: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::sum(int axis) const
 {
-    return cpu::sum(*this, axis);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::sum(*this, axis);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::sum(*this, axis);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for sum: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::broadcast_to(const Shape &target_shape) const
 {
-    return cpu::broadcast_to(*this, target_shape);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::broadcast_to(*this, target_shape);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::broadcast_to(*this, target_shape);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for broadcast_to: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::sum_to(const Shape &target_shape) const
 {
-    return cpu::sum_to(*this, target_shape);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::sum_to(*this, target_shape);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::sum_to(*this, target_shape);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for sum_to: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 bool OriginMat::can_broadcast_to(const Shape &target_shape) const
