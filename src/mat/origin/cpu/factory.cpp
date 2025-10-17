@@ -3,6 +3,7 @@
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/utils/exception.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {

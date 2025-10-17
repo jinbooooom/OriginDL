@@ -1,6 +1,7 @@
 #include "origin/mat/origin/cpu/operation_templates.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {

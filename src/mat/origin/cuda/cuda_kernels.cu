@@ -3,6 +3,7 @@
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/utils/exception.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -97,7 +98,7 @@ __global__ void vectorized_kernel(const T *__restrict__ a, const T *__restrict__
     else
     {
         // 处理剩余的元素（不足4个）
-        for (size_t i = idx; i < n; ++i)
+        for (size_t i = idx; likely(i < n); ++i)
         {
             c[i] = op(a[i], b[i]);
         }
@@ -130,7 +131,7 @@ __global__ void vectorized_unary_kernel(const T *__restrict__ a, T *__restrict__
     }
     else
     {
-        for (size_t i = idx; i < n; ++i)
+        for (size_t i = idx; likely(i < n); ++i)
         {
             c[i] = op(a[i]);
         }
@@ -266,11 +267,11 @@ __global__ void matmul_kernel(const T *__restrict__ a, const T *__restrict__ b, 
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (row < M && col < N)
+    if (likely(row < M && col < N))
     {
         T sum = 0;
         // 计算矩阵乘法的内积
-        for (int k = 0; k < K; ++k)
+        for (int k = 0; likely(k < K); ++k)
         {
             sum += a[row * K + k] * b[k * N + col];
         }

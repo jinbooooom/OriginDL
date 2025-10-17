@@ -184,6 +184,20 @@ private:
 };
 ```
 
+### 分支预测
+在关键的代码中，当分支概率非常倾斜时，尽量使用头文件 include/origin/utils/branch_prediction.h 中的 likely/unlikely 进行分支预测。如果分支出现的概率差不多，就不要用分支预测了。
+```cpp
+if (likely(x > 0)) {
+    // 这个分支很可能被执行，编译器会优化代码布局，如果不是很可能被执行，就不要加 likely
+    process_positive(x);
+}
+
+if (unlikely(error_condition)) {
+     // 这个分支很少被执行，编译器会优化代码布局
+    handle_error();
+}
+```
+
 ### 参考
 
 本项目的编程风格部分参考 google style 以及 pytorch C++ 代码风格

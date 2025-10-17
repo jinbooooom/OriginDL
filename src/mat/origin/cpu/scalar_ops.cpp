@@ -2,6 +2,7 @@
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/utils/exception.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -18,7 +19,7 @@ std::unique_ptr<OriginMat> scalar_operation(const OriginMat &mat, data_t scalar,
         const T *a_data = mat.data_ptr<T>();
         T *c_data = result->data_ptr<T>();
         T s = static_cast<T>(scalar);
-        for (size_t i = 0; i < mat.elements(); ++i)
+        for (size_t i = 0; likely(i < mat.elements()); ++i)
         {
             c_data[i] = op(a_data[i], s);
         }

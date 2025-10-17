@@ -4,6 +4,7 @@
 #include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/utils/exception.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -50,7 +51,7 @@ void launch_square_kernel(const T *a, T *c, size_t n, cudaStream_t stream = 0)
     }
 
     cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
+    if (unlikely(err != cudaSuccess))
     {
         THROW_RUNTIME_ERROR("CUDA square kernel launch failed: {}", cudaGetErrorString(err));
     }

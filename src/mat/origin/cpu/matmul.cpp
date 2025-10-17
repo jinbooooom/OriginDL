@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -9,8 +10,8 @@ namespace cpu
 
 std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
 {
-    // 检查数据类型匹配
-    if (a.dtype() != b.dtype())
+    // 检查数据类型匹配 - 使用分支预测优化
+    if (unlikely(a.dtype() != b.dtype()))
     {
         THROW_INVALID_ARG("Data type mismatch for matrix multiplication: expected {} but got {}",
                           dtype_to_string(a.dtype()), dtype_to_string(b.dtype()));
@@ -20,7 +21,7 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
     if (a.shape().size() == 2 && b.shape().size() == 2)
     {
         // 2D x 2D 矩阵乘法
-        if (a.shape()[1] != b.shape()[0])
+        if (unlikely(a.shape()[1] != b.shape()[0]))
         {
             THROW_INVALID_ARG("Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}",
                               a.shape().to_string(), b.shape().to_string());
