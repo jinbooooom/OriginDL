@@ -6,6 +6,7 @@
 #include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/utils/exception.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -33,7 +34,7 @@ void launch_add_kernel(const T *a, const T *b, T *c, size_t n, cudaStream_t stre
     add_kernel<T><<<grid, block, 0, stream>>>(a, b, c, n);
 
     cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
+    if (unlikely(err != cudaSuccess))
     {
         THROW_RUNTIME_ERROR("CUDA add kernel launch failed: {}", cudaGetErrorString(err));
     }
@@ -54,7 +55,7 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
     // 验证输入 - 支持广播
     Shape result_shape = compute_broadcast_shape(a, b);
 
-    if (a.dtype() != b.dtype())
+    if (unlikely(a.dtype() != b.dtype()))
     {
         THROW_INVALID_ARG("Data type mismatch in CUDA add: {} vs {}", dtype_to_string(a.dtype()),
                           dtype_to_string(b.dtype()));

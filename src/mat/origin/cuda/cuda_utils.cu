@@ -2,6 +2,7 @@
 #include <iostream>
 #include "origin/utils/exception.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -39,7 +40,7 @@ bool is_cuda_available()
 
 void print_cuda_device_info()
 {
-    if (!is_cuda_available())
+    if (unlikely(!is_cuda_available()))
     {
         std::cout << "CUDA is not available" << std::endl;
         return;
@@ -65,7 +66,7 @@ int get_cuda_device_count()
 {
     int device_count;
     cudaError_t err = cudaGetDeviceCount(&device_count);
-    if (err != cudaSuccess)
+    if (unlikely(err != cudaSuccess))
     {
         return 0;
     }
@@ -75,7 +76,7 @@ int get_cuda_device_count()
 void set_cuda_device(int device_id)
 {
     cudaError_t err = cudaSetDevice(device_id);
-    if (err != cudaSuccess)
+    if (unlikely(err != cudaSuccess))
     {
         THROW_RUNTIME_ERROR("Failed to set CUDA device {}: {}", device_id, cudaGetErrorString(err));
     }
@@ -85,7 +86,7 @@ int get_current_cuda_device()
 {
     int device_id;
     cudaError_t err = cudaGetDevice(&device_id);
-    if (err != cudaSuccess)
+    if (unlikely(err != cudaSuccess))
     {
         THROW_RUNTIME_ERROR("Failed to get current CUDA device: {}", cudaGetErrorString(err));
     }

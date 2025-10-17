@@ -4,6 +4,7 @@
 #include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/utils/exception.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -50,7 +51,7 @@ void launch_exp_kernel(const T *a, T *c, size_t n, cudaStream_t stream = 0)
     }
 
     cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
+    if (unlikely(err != cudaSuccess))
     {
         THROW_RUNTIME_ERROR("CUDA exp kernel launch failed: {}", cudaGetErrorString(err));
     }
@@ -92,8 +93,8 @@ std::unique_ptr<Mat> exp(const OriginMat &mat)
     // 使用统一的设备检查
     validation::validate_cuda_device(mat, "exp");
 
-    // 检查数据类型是否支持指数运算
-    if (mat.dtype() != DataType::kFloat32 && mat.dtype() != DataType::kFloat64)
+    // 检查数据类型是否支持指数运算 - 使用分支预测优化
+    if (unlikely(mat.dtype() != DataType::kFloat32 && mat.dtype() != DataType::kFloat64))
     {
         THROW_INVALID_ARG("Exponential operation only supported for float32 and float64 types");
     }

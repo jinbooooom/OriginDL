@@ -2,6 +2,7 @@
 #include "origin/mat/origin/cpu/operation_templates.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -10,8 +11,8 @@ namespace cpu
 
 std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b)
 {
-    // 检查数据类型是否匹配
-    if (a.dtype() != b.dtype())
+    // 检查数据类型是否匹配 - 使用分支预测优化
+    if (unlikely(a.dtype() != b.dtype()))
     {
         THROW_INVALID_ARG("Data type mismatch for addition: expected {} but got {}", dtype_to_string(a.dtype()),
                           dtype_to_string(b.dtype()));
