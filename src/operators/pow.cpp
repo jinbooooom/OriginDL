@@ -33,42 +33,42 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
     return std::vector<Tensor>{gx};
 }
 
-Tensor pow(const std::vector<Tensor> &xs, int exponent)
+Tensor pow(const std::vector<Tensor> &xs, data_t exponent)
 {
     auto op = std::make_shared<Pow>(exponent);
     return (*op)(xs)[0];
 }
 
-Tensor pow(const Tensor &base, int exponent)
+// 支持标量指数的pow函数（使用模板，参考add.cpp的实现）
+template <typename T>
+Tensor pow(const Tensor &base, T exponent)
 {
+    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+
+    // 直接使用现有的pow函数，避免重复的PowHelper
     auto xs = std::vector<Tensor>();
     xs.emplace_back(base);
-    return pow(xs, exponent);
+    return pow(xs, static_cast<data_t>(exponent));
 }
 
-// 支持float指数的pow函数（使用辅助类来访问protected方法）
-class PowFloatHelper : public Operator
+template <typename T>
+Tensor operator^(const Tensor &base, T exponent)
 {
-public:
-    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override { return {}; }
-    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override { return {}; }
-
-    static Tensor compute(const Tensor &base, float exponent)
-    {
-        PowFloatHelper helper;
-        auto result = helper.mat(const_cast<Tensor &>(base)).pow(static_cast<data_t>(exponent));
-        return helper.convert_mat_to_tensor(std::move(result));
-    }
-};
-
-Tensor pow(const Tensor &base, float exponent)
-{
-    return PowFloatHelper::compute(base, exponent);
-}
-
-Tensor operator^(const Tensor &base, int exponent)
-{
+    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
     return pow(base, exponent);
 }
+
+// 模板实例化
+template Tensor pow(const Tensor &base, float exponent);
+template Tensor pow(const Tensor &base, double exponent);
+template Tensor pow(const Tensor &base, int32_t exponent);
+template Tensor pow(const Tensor &base, int8_t exponent);
+template Tensor pow(const Tensor &base, unsigned long exponent);
+
+template Tensor operator^(const Tensor &base, float exponent);
+template Tensor operator^(const Tensor &base, double exponent);
+template Tensor operator^(const Tensor &base, int32_t exponent);
+template Tensor operator^(const Tensor &base, int8_t exponent);
+template Tensor operator^(const Tensor &base, unsigned long exponent);
 
 }  // namespace origin

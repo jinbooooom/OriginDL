@@ -164,17 +164,18 @@ extern Tensor square(const Tensor &x);
 class Pow : public Operator
 {
 public:
-    Pow(int n) : exponent_(n) {};
+    Pow(data_t n) : exponent_(n) {};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 
-    int exponent_;  // 幂函数的指数
+    data_t exponent_;  // 幂函数的指数
 };
-Tensor pow(const Tensor &base, int exponent);
-Tensor pow(const Tensor &base, float exponent);  // 支持float指数
-Tensor operator^(const Tensor &base, int exponent);
+template <typename T>
+Tensor pow(const Tensor &base, T exponent);  // 支持标量指数（模板）
+template <typename T>
+Tensor operator^(const Tensor &base, T exponent);  // 支持标量指数（模板）
 
 class Exp : public Operator
 {
