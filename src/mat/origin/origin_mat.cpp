@@ -159,7 +159,7 @@ std::unique_ptr<Mat> OriginMat::operator+(const Mat &other) const
 std::unique_ptr<Mat> OriginMat::operator-(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    
+
     if (storage_->device_type() == DeviceType::kCPU)
     {
         return cpu::subtract(*this, other_mat);
@@ -181,7 +181,7 @@ std::unique_ptr<Mat> OriginMat::operator-(const Mat &other) const
 std::unique_ptr<Mat> OriginMat::operator*(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    
+
     if (storage_->device_type() == DeviceType::kCPU)
     {
         return cpu::multiply(*this, other_mat);
@@ -196,14 +196,15 @@ std::unique_ptr<Mat> OriginMat::operator*(const Mat &other) const
     }
     else
     {
-        THROW_RUNTIME_ERROR("Unsupported device type for multiplication: {}", static_cast<int>(storage_->device_type()));
+        THROW_RUNTIME_ERROR("Unsupported device type for multiplication: {}",
+                            static_cast<int>(storage_->device_type()));
     }
 }
 
 std::unique_ptr<Mat> OriginMat::operator/(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    
+
     if (storage_->device_type() == DeviceType::kCPU)
     {
         return cpu::divide(*this, other_mat);
@@ -238,7 +239,8 @@ std::unique_ptr<Mat> OriginMat::operator+(data_t scalar) const
     }
     else
     {
-        THROW_RUNTIME_ERROR("Unsupported device type for scalar addition: {}", static_cast<int>(storage_->device_type()));
+        THROW_RUNTIME_ERROR("Unsupported device type for scalar addition: {}",
+                            static_cast<int>(storage_->device_type()));
     }
 }
 
@@ -278,7 +280,8 @@ std::unique_ptr<Mat> OriginMat::mul_scalar(data_t scalar) const
     }
     else
     {
-        THROW_RUNTIME_ERROR("Unsupported device type for scalar multiplication: {}", static_cast<int>(storage_->device_type()));
+        THROW_RUNTIME_ERROR("Unsupported device type for scalar multiplication: {}",
+                            static_cast<int>(storage_->device_type()));
     }
 }
 
@@ -486,7 +489,7 @@ std::unique_ptr<Mat> OriginMat::randn(const Shape &shape, const TensorOptions &o
 #ifdef WITH_CUDA
         // 先在CPU上创建随机张量，然后移动到CUDA
         auto cpu_options = TensorOptions(options.dtype()).device(DeviceType::kCPU);
-        auto cpu_tensor = cpu::randn(shape, cpu_options);
+        auto cpu_tensor  = cpu::randn(shape, cpu_options);
         return cpu_tensor->to_device(options.device());
 #else
         THROW_RUNTIME_ERROR("CUDA support not enabled, cannot create CUDA tensor");

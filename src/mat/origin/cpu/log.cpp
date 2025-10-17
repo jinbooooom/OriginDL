@@ -14,8 +14,8 @@ std::unique_ptr<OriginMat> log(const OriginMat &mat)
     auto result = std::make_unique<OriginMat>(mat.shape(), mat.dtype());
 
     // 使用类型分发器执行对数操作
-    device_common::TypeDispatcher::dispatch_void(mat.dtype(),
-                                  [&]<typename T>() { BroadcastCompute::unary<T>(mat, *result, LogOp{}); });
+    device_common::TypeDispatcher::dispatch_void(
+        mat.dtype(), [&]<typename T>() { BroadcastCompute::unary<T>(mat, *result, LogOp{}); });
 
     return result;
 }

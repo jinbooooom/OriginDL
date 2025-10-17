@@ -1,12 +1,12 @@
 #include <cuda_runtime.h>
 #include "origin/mat/basic_types.h"
-#include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/cuda/cuda_broadcast.cuh"
+#include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/mat/origin/cuda/device_validation.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
-#include "origin/utils/exception.h"
+#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -44,8 +44,7 @@ void launch_add_kernel(const T *a, const T *b, T *c, size_t n, cudaStream_t stre
 void dispatch_add(DataType dtype, const void *a, const void *b, void *c, size_t n, cudaStream_t stream = 0)
 {
     device_common::TypeDispatcher::dispatch_void(dtype, [&]<typename T>() {
-        launch_add_kernel<T>(static_cast<const T *>(a), static_cast<const T *>(b),
-                             static_cast<T *>(c), n, stream);
+        launch_add_kernel<T>(static_cast<const T *>(a), static_cast<const T *>(b), static_cast<T *>(c), n, stream);
     });
 }
 

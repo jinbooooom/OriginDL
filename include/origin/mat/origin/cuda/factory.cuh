@@ -1,8 +1,8 @@
 #ifndef __ORIGIN_DL_CUDA_FACTORY_H__
 #define __ORIGIN_DL_CUDA_FACTORY_H__
 
-#include "../../basic_types.h"
 #include "../../../core/tensor_options.h"
+#include "../../basic_types.h"
 #include "../../shape.h"
 
 namespace origin
@@ -12,7 +12,6 @@ namespace cuda
 
 // 前向声明
 class OriginMat;
-
 
 /**
  * @brief 在CUDA设备上创建零张量

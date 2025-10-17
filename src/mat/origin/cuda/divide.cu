@@ -1,10 +1,10 @@
 #include "origin/mat/origin/cuda/cuda_broadcast.cuh"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/cuda/device_validation.cuh"
-#include "origin/utils/exception.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -50,8 +50,7 @@ void launch_divide_kernel(const T *a, const T *b, T *c, size_t n, cudaStream_t s
 void dispatch_divide(DataType dtype, const void *a, const void *b, void *c, size_t n, cudaStream_t stream = 0)
 {
     device_common::TypeDispatcher::dispatch_void(dtype, [&]<typename T>() {
-        launch_divide_kernel<T>(static_cast<const T *>(a), static_cast<const T *>(b),
-                                static_cast<T *>(c), n, stream);
+        launch_divide_kernel<T>(static_cast<const T *>(a), static_cast<const T *>(b), static_cast<T *>(c), n, stream);
     });
 }
 
@@ -79,9 +78,9 @@ void dispatch_scalar_broadcast_divide(DataType dtype,
     dim3 grid  = get_optimal_grid_size(c_elements, block);
 
     device_common::TypeDispatcher::dispatch_void(dtype, [&]<typename T>() {
-        scalar_broadcast_kernel<T, DivideOp><<<grid, block, 0, stream>>>(
-            static_cast<const T *>(a), static_cast<const T *>(b), static_cast<T *>(c), 
-            a_elements, b_elements, c_elements, DivideOp{});
+        scalar_broadcast_kernel<T, DivideOp>
+            <<<grid, block, 0, stream>>>(static_cast<const T *>(a), static_cast<const T *>(b), static_cast<T *>(c),
+                                         a_elements, b_elements, c_elements, DivideOp{});
     });
 
     cudaError_t err = cudaGetLastError();

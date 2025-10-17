@@ -1,8 +1,8 @@
 #include <cstring>
 #include <stdexcept>
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
-#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/utils/exception.h"
 
 namespace origin

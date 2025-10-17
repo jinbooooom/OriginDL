@@ -1,12 +1,12 @@
 #ifndef __ORIGIN_DL_BASIC_TYPES_H__
 #define __ORIGIN_DL_BASIC_TYPES_H__
 
+#include <climits>
 #include <cstdint>
 #include <stdexcept>
-#include <type_traits>
 #include <string>
+#include <type_traits>
 #include <vector>
-#include <climits>
 
 namespace origin
 {
@@ -186,21 +186,23 @@ const DeviceType kCPU  = DeviceType::kCPU;
 const DeviceType kCUDA = DeviceType::kCUDA;
 
 // 前向声明
-namespace utils {
-    Device parse_device_string(const std::string& device_str);
-    DataType parse_dtype_string(const std::string& dtype_str);
-}
+namespace utils
+{
+Device parse_device_string(const std::string &device_str);
+DataType parse_dtype_string(const std::string &dtype_str);
+}  // namespace utils
 
 // 字符串解析函数 - 委托给utils实现
-inline Device parse_device_string(const std::string& device_str) {
+inline Device parse_device_string(const std::string &device_str)
+{
     return utils::parse_device_string(device_str);
 }
 
-inline DataType parse_dtype_string(const std::string& dtype_str) {
+inline DataType parse_dtype_string(const std::string &dtype_str)
+{
     return utils::parse_dtype_string(dtype_str);
 }
 
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_BASIC_TYPES_H__
-

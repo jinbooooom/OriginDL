@@ -1,8 +1,8 @@
 #include <stdexcept>
 #include "origin/mat/origin/cpu/operation_templates.h"
 #include "origin/mat/origin/origin_mat.h"
-#include "origin/utils/exception.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -44,8 +44,8 @@ std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b)
     a是标量：广播到b的形状
     b是标量：广播到a的形状
     */
-    device_common::TypeDispatcher::dispatch_void(a.dtype(),
-                                  [&]<typename T>() { BroadcastCompute::binary_broadcast<T>(a, b, *result, AddOp{}); });
+    device_common::TypeDispatcher::dispatch_void(
+        a.dtype(), [&]<typename T>() { BroadcastCompute::binary_broadcast<T>(a, b, *result, AddOp{}); });
 
     return result;
 }

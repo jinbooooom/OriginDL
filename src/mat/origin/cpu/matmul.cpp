@@ -1,7 +1,7 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
-#include "origin/utils/exception.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {

@@ -1,8 +1,8 @@
-#include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include <iostream>
-#include "origin/utils/exception.h"
+#include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -95,9 +95,7 @@ int get_current_cuda_device()
 
 size_t get_type_size(DataType dtype)
 {
-    return device_common::TypeDispatcher::dispatch(dtype, [&]<typename T>() -> size_t {
-        return sizeof(T);
-    });
+    return device_common::TypeDispatcher::dispatch(dtype, [&]<typename T>() -> size_t { return sizeof(T); });
 }
 
 }  // namespace cuda
