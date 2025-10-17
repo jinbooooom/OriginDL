@@ -10,3 +10,5 @@
 - [x] 删除 arrayfire 相关代码
 - [x] 异常打印行号
 - [ ] 统一cpu/cuda的单元测试
+- [ ] 实现cuda算子 reshape, transpose, sum, pow, broadcast_to, sum_to, matmul, 
+- [] 整理用户文档，与 pytorch 对齐

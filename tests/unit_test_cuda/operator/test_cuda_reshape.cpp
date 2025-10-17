@@ -14,8 +14,6 @@ class CudaReshapeTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        // 跳过所有测试：reshape目前只有CPU实现，没有CUDA实现
-        GTEST_SKIP() << "reshape CUDA implementation not available yet";
     }
 
     void TearDown() override { cudaDeviceSynchronize(); }
