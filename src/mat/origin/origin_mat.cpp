@@ -355,7 +355,7 @@ std::unique_ptr<Mat> OriginMat::square() const
     }
 }
 
-std::unique_ptr<Mat> OriginMat::pow(data_t exponent) const
+std::unique_ptr<Mat> OriginMat::pow(const Scalar &exponent) const
 {
     if (storage_->device_type() == DeviceType::kCPU)
     {

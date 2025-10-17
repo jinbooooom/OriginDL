@@ -107,7 +107,7 @@ public:
     std::unique_ptr<Mat> mul_scalar(data_t scalar) const override;
     std::unique_ptr<Mat> operator-() const override;
     std::unique_ptr<Mat> square() const override;
-    std::unique_ptr<Mat> pow(data_t exponent) const override;
+    std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> sum(int axis) const override;
     std::unique_ptr<Mat> broadcast_to(const Shape &target_shape) const override;

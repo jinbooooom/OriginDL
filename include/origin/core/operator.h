@@ -2,6 +2,7 @@
 #define __ORIGIN_DL_OPERATOR_H__
 
 #include "tensor.h"
+#include "origin/mat/scalar.h"
 
 namespace origin
 {
@@ -164,13 +165,14 @@ extern Tensor square(const Tensor &x);
 class Pow : public Operator
 {
 public:
-    Pow(data_t n) : exponent_(n) {};
+    // 支持多种类型的指数构造函数
+    Pow(Scalar n) : exponent_(n) {};
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 
-    data_t exponent_;  // 幂函数的指数
+    Scalar exponent_;  // 幂函数的指数，支持多种数值类型
 };
 template <typename T>
 Tensor pow(const Tensor &base, T exponent);  // 支持标量指数（模板）

@@ -37,7 +37,7 @@ protected:
     };
     OriginLog(const OriginLog &)            = delete;
     OriginLog &operator=(const OriginLog &) = delete;
-    virtual ~OriginLog() {};
+    virtual ~OriginLog(){};
 
 public:
     static OriginLog *GetInstance()
