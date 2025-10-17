@@ -124,7 +124,22 @@ std::unique_ptr<Mat> OriginMat::clone() const
 
 std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const
 {
-    return cpu::reshape(*this, new_shape);
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::reshape(*this, new_shape);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::reshape(*this, new_shape);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for reshape: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::transpose() const

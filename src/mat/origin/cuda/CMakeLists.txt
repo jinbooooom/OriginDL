@@ -58,6 +58,7 @@ set(CUDA_OPERATOR_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/negate.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/add_scalar.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/multiply_scalar.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/reshape.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/cuda_kernels.cu
 )
 
