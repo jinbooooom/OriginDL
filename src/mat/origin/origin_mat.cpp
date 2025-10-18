@@ -473,6 +473,40 @@ size_t OriginMat::elements() const
     return shape_.elements();
 }
 
+// 0维张量支持
+bool OriginMat::is_scalar() const
+{
+    return shape_.is_scalar();
+}
+
+Scalar OriginMat::scalar_value() const
+{
+    if (!is_scalar())
+    {
+        THROW_INVALID_ARG("scalar_value() can only be called on scalar tensors (0-dimensional tensors)");
+    }
+    
+    // 从存储中读取标量值
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return utils::compute::get_scalar_value(storage_->data(), dtype_);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // 对于CUDA数据，需要先复制到CPU
+        auto cpu_storage = storage_->to_device(DeviceType::kCPU, 0);
+        return utils::compute::get_scalar_value(cpu_storage->data(), dtype_);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for scalar_value: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
 // 数据访问
 std::vector<data_t> OriginMat::to_vector() const
 {
