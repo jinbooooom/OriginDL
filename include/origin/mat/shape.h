@@ -55,6 +55,12 @@ public:
     size_t ndims() const { return dims_.size(); }
 
     /**
+     * @brief 判断是否为0维张量（标量张量）
+     * @return 如果是0维张量返回true，否则返回false
+     */
+    bool is_scalar() const { return dims_.empty(); }
+
+    /**
      * @brief 访问指定维度的值
      * @param i 维度索引
      * @return 维度值
@@ -88,11 +94,17 @@ public:
 
     /**
      * @brief 计算总元素数量
-     * @return 所有维度的乘积
+     * @return 所有维度的乘积，0维张量返回1
      * @throws std::overflow_error 如果计算结果溢出
      */
     size_t elements() const
     {
+        // 0维张量（标量张量）有1个元素
+        if (dims_.empty())
+        {
+            return 1;
+        }
+
         size_t result = 1;
         for (size_t dim : dims_)
         {
@@ -127,14 +139,19 @@ public:
      */
     std::string to_string() const
     {
-        std::string result = "[";
+        if (dims_.empty())
+        {
+            return "{}";  // 0维张量显示为空方括号
+        }
+
+        std::string result = "{";
         for (size_t i = 0; i < dims_.size(); ++i)
         {
             if (i > 0)
                 result += ", ";
             result += std::to_string(dims_[i]);
         }
-        result += "]";
+        result += "}";
         return result;
     }
 
@@ -146,14 +163,20 @@ public:
      */
     friend std::ostream &operator<<(std::ostream &os, const Shape &shape)
     {
-        os << "[";
+        if (shape.dims_.empty())
+        {
+            os << "{}";  // 0维张量显示为空方括号
+            return os;
+        }
+
+        os << "{";
         for (size_t i = 0; i < shape.dims_.size(); ++i)
         {
             if (i > 0)
                 os << ", ";
             os << shape.dims_[i];
         }
-        os << "]";
+        os << "}";
         return os;
     }
 

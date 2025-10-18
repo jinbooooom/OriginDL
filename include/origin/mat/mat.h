@@ -184,6 +184,18 @@ public:
     template <typename T>
     T scalar() const;
 
+    /**
+     * @brief 判断是否为0维张量（标量张量）
+     * @return 如果是0维张量返回true，否则返回false
+     */
+    virtual bool is_scalar() const = 0;
+
+    /**
+     * @brief 获取标量值（仅适用于0维张量）
+     * @return 标量值
+     */
+    virtual Scalar scalar_value() const = 0;
+
     template <typename T>
     T *data_ptr();
 

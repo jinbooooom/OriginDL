@@ -104,6 +104,9 @@ data_t calculate_std(const std::vector<data_t> &data_vec);
 std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, DataType dtype);
 
 void convert_from_vector(const std::vector<data_t> &data_vec, void *data_ptr, DataType dtype);
+
+// 标量值提取函数
+Scalar get_scalar_value(const void *data_ptr, DataType dtype);
 }  // namespace compute
 
 namespace validate

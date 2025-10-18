@@ -145,6 +145,10 @@ public:
     data_t min_all() const override;
     data_t mean_all() const override;
 
+    // 0维张量支持
+    bool is_scalar() const override;
+    Scalar scalar_value() const override;
+
     // 类型和设备
     DataType dtype() const override;
     std::unique_ptr<Mat> to(DataType target_type) const override;

@@ -45,14 +45,15 @@ void print_origin_mat(const std::string &desc,
 
     if (shape.empty())
     {
-        // 标量
-        std::cout << "(" << format_element(data_vec[0], dtype) << ")" << std::endl;
-        return;
+        // 标量, 0维向量
+        std::cout << format_element(data_vec[0], dtype) << std::endl;
     }
-
-    // 使用LibTorch风格的打印
-    print_libtorch_style(data_vec, shape);
-    std::cout << std::endl;
+    else
+    {
+        // 使用LibTorch风格的打印
+        print_libtorch_style(data_vec, shape);
+        std::cout << std::endl;
+    }
 
     // 基本信息最后打印，这样长矩阵也能看到基本信息了
     std::cout << " OriginMat(shape=" << format_shape(shape) << ", dtype=" << format_dtype(dtype)
@@ -337,14 +338,14 @@ std::string format_element(data_t value, DataType dtype)
 std::string format_shape(const std::vector<size_t> &shape)
 {
     std::ostringstream oss;
-    oss << "[";
+    oss << "{";
     for (size_t i = 0; i < shape.size(); ++i)
     {
         if (i > 0)
             oss << ", ";
         oss << shape[i];
     }
-    oss << "]";
+    oss << "}";
     return oss.str();
 }
 
@@ -564,6 +565,70 @@ std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, Dat
     }
 
     return result;
+}
+
+Scalar get_scalar_value(const void *data_ptr, DataType dtype)
+{
+    switch (dtype)
+    {
+        case DataType::kFloat32:
+        {
+            const float *data = static_cast<const float *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kFloat64:
+        {
+            const double *data = static_cast<const double *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kInt32:
+        {
+            const int32_t *data = static_cast<const int32_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kInt8:
+        {
+            const int8_t *data = static_cast<const int8_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kInt16:
+        {
+            const int16_t *data = static_cast<const int16_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kInt64:
+        {
+            const int64_t *data = static_cast<const int64_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kUInt8:
+        {
+            const uint8_t *data = static_cast<const uint8_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kUInt16:
+        {
+            const uint16_t *data = static_cast<const uint16_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kUInt32:
+        {
+            const uint32_t *data = static_cast<const uint32_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kUInt64:
+        {
+            const uint64_t *data = static_cast<const uint64_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kBool:
+        {
+            const bool *data = static_cast<const bool *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        default:
+            THROW_INVALID_ARG("Unsupported data type {} for scalar value extraction", dtype_to_string(dtype));
+    }
 }
 
 void convert_from_vector(const std::vector<data_t> &data_vec, void *data_ptr, DataType dtype)

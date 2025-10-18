@@ -131,22 +131,21 @@ size_t Tensor::ndim() const
     return impl_->ndim();
 }
 
-// 元素的个数，未来考虑去掉 elements，保留 numel
 size_t Tensor::elements() const
 {
     return impl_->elements();
 }
 
-size_t Tensor::numel() const
-{
-    return elements();  // numel()和elements()功能相同
-}
-
 // === 张量属性方法实现 ===
-// 返回tensor中单个元素的字节大小
+
 size_t Tensor::element_size() const
 {
     return origin::element_size(dtype());
+}
+
+size_t Tensor::numel() const
+{
+    return elements();  // numel()和elements()功能相同
 }
 
 size_t Tensor::nbytes() const
@@ -269,13 +268,17 @@ int Tensor::backend_type() const
 
 void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype)
 {
-    // 验证形状是否有效（不能有0维度）
-    for (size_t i = 0; i < shape.size(); ++i)
+    // 验证形状是否有效
+    // 0维张量（标量张量）是合法的，但其他维度不能为0
+    if (!shape.is_scalar())
     {
-        if (shape[i] == 0)
+        for (size_t i = 0; i < shape.size(); ++i)
         {
-            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
-                              shape.to_string());
+            if (shape[i] == 0)
+            {
+                THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
+                                  shape.to_string());
+            }
         }
     }
 
@@ -289,12 +292,16 @@ void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, 
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
 
     // 验证形状是否有效
-    for (size_t i = 0; i < shape.size(); ++i)
+    // 0维张量（标量张量）是合法的，但其他维度不能为0
+    if (!shape.is_scalar())
     {
-        if (shape[i] == 0)
+        for (size_t i = 0; i < shape.size(); ++i)
         {
-            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
-                              shape.to_string());
+            if (shape[i] == 0)
+            {
+                THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
+                                  shape.to_string());
+            }
         }
     }
 
@@ -341,12 +348,16 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
     }
 
     // 验证形状是否有效
-    for (size_t i = 0; i < shape.size(); ++i)
+    // 0维张量（标量张量）是合法的，但其他维度不能为0
+    if (!shape.is_scalar())
     {
-        if (shape[i] == 0)
+        for (size_t i = 0; i < shape.size(); ++i)
         {
-            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
-                              shape.to_string());
+            if (shape[i] == 0)
+            {
+                THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
+                                  shape.to_string());
+            }
         }
     }
 
