@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/core/tensor.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -29,7 +30,7 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
         std::vector<Tensor> outputs;
         outputs.push_back(y);
         return outputs;
-    }
+    } 
 
     // 类型匹配，直接运算
     auto result = mat(xs[0]) + mat(xs[1]);
@@ -82,33 +83,37 @@ Tensor operator+(const Tensor &lhs, const Tensor &rhs)
     return add(lhs, rhs);
 }
 
+Tensor operator+(const Tensor &lhs, const Scalar &rhs)
+{
+    auto x     = create_tensor_from_scalar(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
+    return add(lhs, x);
+}
+
+Tensor operator+(const Scalar &lhs, const Tensor &rhs)
+{
+    return rhs + lhs;
+}
+
+// 模板版本的operator+函数
 template <typename T>
 Tensor operator+(const Tensor &lhs, T rhs)
 {
-    auto shape = lhs.shape();
-    auto x     = Tensor(rhs, shape, TensorOptions().dtype(lhs.dtype()).device(lhs.device()));
+    auto x = Tensor(rhs, Shape({}), dtype(get_data_type_from_template<T>()).device(lhs.device()));
     return add(lhs, x);
 }
 
 template <typename T>
 Tensor operator+(T lhs, const Tensor &rhs)
 {
-    auto shape = rhs.shape();
-    auto x     = Tensor(lhs, shape);
-    return add(x, rhs);
+    return rhs + lhs;
 }
 
-// 模板实例化
-template Tensor operator+(const Tensor &lhs, float rhs);
-template Tensor operator+(const Tensor &lhs, double rhs);
-template Tensor operator+(const Tensor &lhs, int32_t rhs);
-template Tensor operator+(const Tensor &lhs, int8_t rhs);
-template Tensor operator+(const Tensor &lhs, unsigned long rhs);
-
-template Tensor operator+(float lhs, const Tensor &rhs);
-template Tensor operator+(double lhs, const Tensor &rhs);
-template Tensor operator+(int32_t lhs, const Tensor &rhs);
-template Tensor operator+(int8_t lhs, const Tensor &rhs);
-template Tensor operator+(unsigned long lhs, const Tensor &rhs);
+// 显式实例化
+template Tensor operator+<float>(const Tensor &lhs, float rhs);
+template Tensor operator+<float>(float lhs, const Tensor &rhs);
+template Tensor operator+<double>(const Tensor &lhs, double rhs);
+template Tensor operator+<double>(double lhs, const Tensor &rhs);
+template Tensor operator+<int32_t>(const Tensor &lhs, int32_t rhs);
+template Tensor operator+<int32_t>(int32_t lhs, const Tensor &rhs);
 
 }  // namespace origin

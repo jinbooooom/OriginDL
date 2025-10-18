@@ -413,7 +413,10 @@ public:
             {
                 c_data[i] = op(a_data[i], b_data[i]);
             }
-        }
+        } 
+        // TODO:项目的元素为1的情况看是否可以去掉，经过优化后，到达这里的矩阵a,b会具有相同的dtype、shape、device。
+        // 下面dOperator已经验证，其它的还需要再验证下
+        // Add
         else if (a_elements == 1)
         {
             // a是标量，广播到b的形状

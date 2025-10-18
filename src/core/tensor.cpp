@@ -458,4 +458,62 @@ template void Tensor::create_tensor_from_scalar_with_dtype<int32_t>(int32_t scal
 template void Tensor::create_tensor_from_scalar_with_dtype<int8_t>(int8_t scalar, const Shape &shape, DataType dtype);
 template void Tensor::create_tensor_from_scalar_with_dtype<size_t>(size_t scalar, const Shape &shape, DataType dtype);
 
+
+// === 私有Scalar构造函数实现 ===
+Tensor::Tensor(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
+{
+    // 根据scalar的dtype创建对应的tensor
+    switch (scalar.dtype())
+    {
+        // TODO: options要传下去，impl 需要优化。矩阵创建的过程是需要优化的。
+        case DataType::kFloat32:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_float32(), shape);
+            break;
+        case DataType::kFloat64:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_float64(), shape);
+            break;
+        case DataType::kInt8:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_int8(), shape);
+            break;
+        case DataType::kInt16:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_int16(), shape);
+            break;
+        case DataType::kInt32:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_int32(), shape);
+            break;
+        case DataType::kInt64:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_int64(), shape);
+            break;
+        case DataType::kUInt8:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_uint8(), shape);
+            break;
+        case DataType::kUInt16:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_uint16(), shape);
+            break;
+        case DataType::kUInt32:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_uint32(), shape);
+            break;
+        case DataType::kUInt64:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_uint64(), shape);
+            break;
+        case DataType::kBool:
+            impl_ = std::make_unique<TensorImpl>(scalar.to_bool(), shape);
+            break;
+        default:
+            THROW_INVALID_ARG("Unsupported Scalar dtype: {}", dtype_to_string(scalar.dtype()));
+    }
+    
+    // 如果设备不是CPU，需要移动到指定设备
+    if (options.device().type() != DeviceType::kCPU)
+    {
+        impl_ = std::make_shared<TensorImpl>(impl_->to(options));
+    }
+}
+
+// === 友元函数实现 ===
+Tensor create_tensor_from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
+{
+    return Tensor(scalar, shape, options);
+}
+
 }  // namespace origin
