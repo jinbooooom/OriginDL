@@ -160,27 +160,7 @@ public:
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
-    // 虚函数重写（保持与基类兼容）
-    std::unique_ptr<Mat> add_scalar(data_t scalar) const override;
-    std::unique_ptr<Mat> mul_scalar(data_t scalar) const override;
-    std::unique_ptr<Mat> operator+(data_t scalar) const override;
-    std::unique_ptr<Mat> operator-(data_t scalar) const override;
-    std::unique_ptr<Mat> operator*(data_t scalar) const override;
-    std::unique_ptr<Mat> operator/(data_t scalar) const override;
 
-    // 模板版本（提供泛型支持）
-    template <typename U>
-    std::unique_ptr<Mat> add_scalar(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> mul_scalar(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> operator+(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> operator-(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> operator*(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> operator/(U scalar) const;
     std::unique_ptr<Mat> operator-() const override;
     std::unique_ptr<Mat> broadcast_to(const Shape &shape) const override;
     std::unique_ptr<Mat> sum_to(const Shape &shape) const override;

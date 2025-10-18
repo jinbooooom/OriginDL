@@ -76,19 +76,6 @@ public:
      */
     virtual std::unique_ptr<Mat> operator/(const Mat &other) const = 0;
 
-    /**
-     * @brief 标量加法
-     * @param scalar 标量值
-     * @return 加法结果
-     */
-    virtual std::unique_ptr<Mat> add_scalar(data_t scalar) const = 0;
-
-    /**
-     * @brief 标量乘法
-     * @param scalar 标量值
-     * @return 乘法结果
-     */
-    virtual std::unique_ptr<Mat> mul_scalar(data_t scalar) const = 0;
 
     // === 泛型标量操作 ===
     template <typename T>
@@ -97,33 +84,6 @@ public:
     template <typename T>
     std::unique_ptr<Mat> mul_scalar(T scalar) const;
 
-    /**
-     * @brief 标量加法运算符
-     * @param scalar 标量值
-     * @return 加法结果
-     */
-    virtual std::unique_ptr<Mat> operator+(data_t scalar) const = 0;
-
-    /**
-     * @brief 标量减法运算符
-     * @param scalar 标量值
-     * @return 减法结果
-     */
-    virtual std::unique_ptr<Mat> operator-(data_t scalar) const = 0;
-
-    /**
-     * @brief 标量乘法运算符
-     * @param scalar 标量值
-     * @return 乘法结果
-     */
-    virtual std::unique_ptr<Mat> operator*(data_t scalar) const = 0;
-
-    /**
-     * @brief 标量除法运算符
-     * @param scalar 标量值
-     * @return 除法结果
-     */
-    virtual std::unique_ptr<Mat> operator/(data_t scalar) const = 0;
 
     // === 泛型标量运算符 ===
     template <typename T>
