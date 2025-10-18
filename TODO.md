@@ -13,5 +13,5 @@
 - [ ] 实现cuda算子 reshape, transpose, sum, pow, broadcast_to, sum_to, matmul, 
 - [ ] 整理用户文档，与 pytorch 对齐
 - [ ] libtorch C++ 中的 scalar 类型的变量，对pow运算可以存入指数，对 add 运算可以存入加数。可以借鉴
-- [] 支持0维度张量（标量），这样就统一了标量某些算子与标量的运算。
+- [x] 支持0维度张量（标量），这样就统一了标量某些算子与标量的运算。
         
