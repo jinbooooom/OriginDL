@@ -22,7 +22,7 @@ public:
     /**
      * @brief 默认构造函数
      */
-    Shape() = default;
+    Shape() : dims_({}) {}
 
     /**
      * @brief 从维度向量构造

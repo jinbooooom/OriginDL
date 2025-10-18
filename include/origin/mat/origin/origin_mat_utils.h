@@ -5,6 +5,7 @@
 #include <vector>
 #include "origin/mat/origin/../basic_types.h"
 #include "origin/mat/origin/../shape.h"
+#include "origin/mat/scalar.h"
 
 namespace origin
 {

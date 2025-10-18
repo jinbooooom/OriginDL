@@ -6,6 +6,7 @@
 #include <numeric>
 #include <sstream>
 #include "origin/utils/exception.h"
+#include "origin/mat/scalar.h"
 
 namespace origin
 {

@@ -199,6 +199,12 @@ private:
     // 从Mat创建Tensor的构造函数 - 仅限友元类使用
     Tensor(std::unique_ptr<Mat> mat);
 
+    // 私有Scalar构造函数，仅供内部使用
+    Tensor(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
+
+    // 友元函数，供内部使用
+    friend Tensor create_tensor_from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
+
     // === 内部辅助方法 ===
     template <typename T>
     DataType get_data_type()
@@ -237,6 +243,9 @@ private:
     template <typename T>
     void create_tensor_from_data_with_dtype(const T *data, size_t count, const Shape &shape, DataType dtype);
 };
+
+// 友元函数声明，供内部使用
+Tensor create_tensor_from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
 
 }  // namespace origin
 

@@ -6,6 +6,7 @@ namespace origin
 namespace cpu
 {
 
+// TODO: 未来需要考虑高维矩阵的广播形状计算
 Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b)
 {
     if (a.shape() == b.shape())
