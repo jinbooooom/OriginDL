@@ -28,31 +28,9 @@ std::unique_ptr<OriginMat> scalar_operation(const OriginMat &mat, data_t scalar,
     return result;
 }
 
-std::unique_ptr<OriginMat> add_scalar(const OriginMat &mat, data_t scalar)
-{
-    return scalar_operation(mat, scalar, [](auto a, auto s) { return a + s; });
-}
-
-std::unique_ptr<OriginMat> subtract_scalar(const OriginMat &mat, data_t scalar)
-{
-    return scalar_operation(mat, scalar, [](auto a, auto s) { return a - s; });
-}
-
 std::unique_ptr<OriginMat> multiply_scalar(const OriginMat &mat, data_t scalar)
 {
     return scalar_operation(mat, scalar, [](auto a, auto s) { return a * s; });
-}
-
-std::unique_ptr<OriginMat> divide_scalar(const OriginMat &mat, data_t scalar)
-{
-    return scalar_operation(mat, scalar, [](auto a, auto s) { return a / s; });
-}
-
-std::unique_ptr<OriginMat> power_scalar(const OriginMat &mat, data_t scalar)
-{
-    return scalar_operation(mat, scalar, [](auto a, auto s) {
-        return static_cast<decltype(a)>(std::pow(static_cast<double>(a), static_cast<double>(s)));
-    });
 }
 
 }  // namespace cpu

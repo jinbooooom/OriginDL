@@ -10,6 +10,10 @@
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
+#include "origin/core/tensor.h"
+#include "origin/core/tensor_impl.h"
+#include "origin/core/operator.h"
+#include "origin/core/tensor_impl.h"
 
 #ifdef WITH_CUDA
 #    include "origin/mat/origin/cuda/cuda_ops.cuh"
@@ -253,65 +257,23 @@ std::unique_ptr<Mat> OriginMat::operator/(const Mat &other) const
     }
 }
 
-std::unique_ptr<Mat> OriginMat::operator+(data_t scalar) const
-{
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::add_scalar(*this, scalar);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::add_scalar(*this, scalar);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for scalar addition: {}",
-                            static_cast<int>(storage_->device_type()));
-    }
-}
 
-std::unique_ptr<Mat> OriginMat::operator-(data_t scalar) const
-{
-    return cpu::subtract_scalar(*this, scalar);
-}
 
-std::unique_ptr<Mat> OriginMat::operator*(data_t scalar) const
-{
-    return cpu::multiply_scalar(*this, scalar);
-}
 
-std::unique_ptr<Mat> OriginMat::operator/(data_t scalar) const
-{
-    return cpu::divide_scalar(*this, scalar);
-}
 
-std::unique_ptr<Mat> OriginMat::add_scalar(data_t scalar) const
-{
-    return cpu::add_scalar(*this, scalar);
-}
 
-std::unique_ptr<Mat> OriginMat::mul_scalar(data_t scalar) const
+
+// 标量乘法函数（非虚函数，仅供内部使用）
+std::unique_ptr<Mat> OriginMat::multiply_scalar(data_t scalar) const
 {
+    // 标量乘法：暂时只支持CPU
     if (storage_->device_type() == DeviceType::kCPU)
     {
         return cpu::multiply_scalar(*this, scalar);
     }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::multiply_scalar(*this, scalar);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
     else
     {
-        THROW_RUNTIME_ERROR("Unsupported device type for scalar multiplication: {}",
-                            static_cast<int>(storage_->device_type()));
+        THROW_RUNTIME_ERROR("Scalar multiplication only supported on CPU for now");
     }
 }
 

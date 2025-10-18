@@ -17,12 +17,10 @@ std::unique_ptr<OriginMat> multiply(const OriginMat &a, const OriginMat &b);
 std::unique_ptr<OriginMat> divide(const OriginMat &a, const OriginMat &b);
 std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b);
 
-// === 标量运算 ===
-std::unique_ptr<OriginMat> add_scalar(const OriginMat &mat, data_t scalar);
-std::unique_ptr<OriginMat> subtract_scalar(const OriginMat &mat, data_t scalar);
-std::unique_ptr<OriginMat> multiply_scalar(const OriginMat &mat, data_t scalar);
-std::unique_ptr<OriginMat> divide_scalar(const OriginMat &mat, data_t scalar);
 std::unique_ptr<OriginMat> negate(const OriginMat &mat);
+
+// === 标量运算 ===
+std::unique_ptr<OriginMat> multiply_scalar(const OriginMat &mat, data_t scalar);
 
 // === 数学函数 ===
 std::unique_ptr<OriginMat> exp(const OriginMat &mat);
