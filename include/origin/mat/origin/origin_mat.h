@@ -46,46 +46,20 @@ public:
     OriginMat() = default;
 
     /**
-     * @brief 从Storage构造
+     * @brief 核心构造函数
      * @param storage 存储对象
      * @param shape 张量形状
      * @param dtype 数据类型
      */
     OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, DataType dtype);
-    OriginMat(const Shape &shape, DataType dtype);
 
-    /**
-     * @brief 支持设备选择的构造函数
-     * @param shape 张量形状
-     * @param dtype 数据类型
-     * @param device 设备类型
-     */
+    // 为了向后兼容，保留一些构造函数
+    OriginMat(const Shape &shape, DataType dtype);
     OriginMat(const Shape &shape, DataType dtype, Device device);
 
-    /**
-     * @brief 通用构造函数：从不同数据类型创建
-     * @param data 数据向量
-     * @param shape 矩阵形状
-     */
-    template <typename T>
-    OriginMat(const std::vector<T> &data, const Shape &shape);
-
-    /**
-     * @brief 标量构造函数
-     * @param value 标量值
-     * @param shape 矩阵形状
-     */
-    template <typename T>
-    OriginMat(T value, const Shape &shape);
-
-    /**
-     * @brief 带TensorOptions的构造函数
-     */
-    template <typename T>
-    OriginMat(const std::vector<T> &data, const Shape &shape, const TensorOptions &options);
-
-    template <typename T>
-    OriginMat(T value, const Shape &shape, const TensorOptions &options);
+    // 两个核心工厂方法
+    static std::unique_ptr<Mat> from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
+    static std::unique_ptr<Mat> from_memory(const void *data, const Shape &shape, const TensorOptions &options);
 
     // Mat interface implementations
     std::unique_ptr<Mat> clone() const override;
