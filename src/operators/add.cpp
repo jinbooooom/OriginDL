@@ -30,7 +30,7 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
         std::vector<Tensor> outputs;
         outputs.push_back(y);
         return outputs;
-    } 
+    }
 
     // 类型匹配，直接运算
     auto result = mat(xs[0]) + mat(xs[1]);
@@ -85,7 +85,7 @@ Tensor operator+(const Tensor &lhs, const Tensor &rhs)
 
 Tensor operator+(const Tensor &lhs, const Scalar &rhs)
 {
-    auto x     = create_tensor_from_scalar(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
+    auto x = create_tensor_from_scalar(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
     return add(lhs, x);
 }
 
@@ -98,7 +98,7 @@ Tensor operator+(const Scalar &lhs, const Tensor &rhs)
 template <typename T>
 Tensor operator+(const Tensor &lhs, T rhs)
 {
-    auto x = Tensor(rhs, Shape({}), dtype(get_data_type_from_template<T>()).device(lhs.device()));
+    auto x = Tensor(rhs, Shape({}), dtype(DataTypeTraits<T>::type).device(lhs.device()));
     return add(lhs, x);
 }
 

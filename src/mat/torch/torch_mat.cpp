@@ -76,8 +76,6 @@ std::unique_ptr<Mat> TorchMat::operator/(const Mat &other) const
     return std::make_unique<TorchMat>(data_ / other_torch.data_);
 }
 
-
-
 std::unique_ptr<Mat> TorchMat::operator-() const
 {
     return std::make_unique<TorchMat>(-data_);
@@ -282,7 +280,7 @@ template <typename U>
 std::unique_ptr<Mat> TorchMat::pow(U exponent) const
 {
     // 根据输入类型动态转换
-    auto data_type  = get_data_type_from_template<U>();
+    auto data_type  = DataTypeTraits<U>::type;
     auto torch_type = get_torch_type(data_type);
 
     // 创建标量tensor
@@ -360,7 +358,7 @@ template <typename U>
 torch::Tensor TorchMat::vector_to_tensor(const std::vector<U> &data, const Shape &shape)
 {
     auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
-    auto data_type  = get_data_type_from_template<U>();
+    auto data_type  = DataTypeTraits<U>::type;
     auto torch_type = get_torch_type(data_type);
     return torch::from_blob(const_cast<U *>(data.data()), sizes, torch_type).clone();
 }

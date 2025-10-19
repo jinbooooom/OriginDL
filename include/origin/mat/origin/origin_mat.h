@@ -39,10 +39,6 @@ private:
     // Helper to compute strides
     std::vector<size_t> compute_strides(const Shape &shape);
 
-    // Helper to get data type from template
-    template <typename T>
-    DataType get_data_type_from_template() const;
-
 public:
     /**
      * @brief 默认构造函数
@@ -100,7 +96,7 @@ public:
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
     std::unique_ptr<Mat> operator-() const override;
-    
+
     // 标量乘法函数（非虚函数，仅供内部使用）
     std::unique_ptr<Mat> multiply_scalar(data_t scalar) const;
     std::unique_ptr<Mat> square() const override;

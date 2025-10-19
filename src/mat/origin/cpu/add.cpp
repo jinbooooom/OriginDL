@@ -19,7 +19,7 @@ std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b)
     }
 
     // 计算广播形状
-    Shape result_shape = compute_broadcast_shape(a, b); // TODO: 未来需要考虑高维矩阵的广播形状计算
+    Shape result_shape = compute_broadcast_shape(a, b);  // TODO: 未来需要考虑高维矩阵的广播形状计算
     auto result        = std::make_unique<OriginMat>(result_shape, a.dtype());
 
     // 使用类型分发器执行加法操作

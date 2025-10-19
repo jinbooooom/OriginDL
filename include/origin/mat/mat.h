@@ -76,14 +76,12 @@ public:
      */
     virtual std::unique_ptr<Mat> operator/(const Mat &other) const = 0;
 
-
     // === 泛型标量操作 ===
     template <typename T>
     std::unique_ptr<Mat> add_scalar(T scalar) const;
 
     template <typename T>
     std::unique_ptr<Mat> mul_scalar(T scalar) const;
-
 
     // === 泛型标量运算符 ===
     template <typename T>

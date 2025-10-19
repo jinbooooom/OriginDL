@@ -51,7 +51,7 @@ public:
     // 向量构造函数（自动推断类型）
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape)
-        : Tensor(data, shape, get_data_type_from_template<T>())  // 根据T推断数据类型，然后委托给DataType版本的构造函数
+        : Tensor(data, shape, DataTypeTraits<T>::type)  // 根据T推断数据类型，然后委托给DataType版本的构造函数
     {
         // 在编译时做静态检查，避免运行时出现问题
         ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
@@ -115,7 +115,7 @@ public:
     // 标量构造函数（自动推断类型）
     template <typename T>
     Tensor(T scalar, const Shape &shape)
-        : Tensor(scalar, shape, get_data_type_from_template<T>())  // 委托给DataType版本的构造函数
+        : Tensor(scalar, shape, DataTypeTraits<T>::type)  // 委托给DataType版本的构造函数
     {
         ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
     }
@@ -204,13 +204,6 @@ private:
 
     // 友元函数，供内部使用
     friend Tensor create_tensor_from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
-
-    // === 内部辅助方法 ===
-    template <typename T>
-    DataType get_data_type()
-    {
-        return get_data_type_from_template<T>();
-    }
 
     // === 用于显式类型指定的方法 ===
     /**
