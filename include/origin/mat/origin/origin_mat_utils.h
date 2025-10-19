@@ -132,9 +132,6 @@ void validate_shape(const Shape &shape);
 std::vector<size_t> compute_strides(const Shape &shape);
 size_t get_dtype_size(DataType dtype);
 
-template <typename T>
-DataType get_data_type_from_template();
-
 bool can_broadcast_to(const Shape &source_shape, const Shape &target_shape);
 
 }  // namespace utils

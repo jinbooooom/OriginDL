@@ -39,15 +39,13 @@ public:
     template <typename T>
     TensorImpl(const std::vector<T> &data, const Shape &shape)
     {
-        auto inferred_type = get_data_type_from_template<T>();
-        create_impl_from_data(data.data(), shape, inferred_type);
+        create_impl_from_data(data.data(), shape, DataTypeTraits<T>::type);
     }
 
     template <typename T>
     TensorImpl(T scalar, const Shape &shape)
     {
-        auto inferred_type = get_data_type_from_template<T>();
-        create_impl_from_scalar(scalar, shape, inferred_type);
+        create_impl_from_scalar(scalar, shape, DataTypeTraits<T>::type);
     }
 
     // 从void*数据构造，需要指定数据类型
@@ -133,13 +131,6 @@ public:
     TensorImpl to(const TensorOptions &options) const;
 
 private:
-    // 类型推断辅助函数
-    template <typename T>
-    DataType get_data_type()
-    {
-        return get_data_type_from_template<T>();
-    }
-
     // 张量创建辅助函数
     void create_impl_from_data(const void *data, const Shape &shape, DataType dtype);
     void create_impl_from_scalar(double data, const Shape &shape, DataType dtype);

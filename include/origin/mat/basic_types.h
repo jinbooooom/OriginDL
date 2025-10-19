@@ -21,9 +21,9 @@ enum class DataType
     kFloat32 = 0,   // float
     kFloat64 = 1,   // double
     kDouble  = 1,   // double
-    kInt32   = 2,   // int32_t
-    kInt8    = 3,   // int8_t
-    kInt16   = 4,   // int16_t
+    kInt8    = 2,   // int8_t
+    kInt16   = 3,   // int16_t
+    kInt32   = 4,   // int32_t
     kInt64   = 5,   // int64_t
     kUInt8   = 6,   // uint8_t
     kUInt16  = 7,   // uint16_t
@@ -39,17 +39,96 @@ using data_t = float;  // TODO: 未来去掉这个类型
 constexpr auto Float32 = DataType::kFloat32;
 constexpr auto Float64 = DataType::kDouble;
 constexpr auto Double  = DataType::kDouble;
-constexpr auto Int32   = DataType::kInt32;
 constexpr auto Int8    = DataType::kInt8;
+constexpr auto Int16   = DataType::kInt16;
+constexpr auto Int32   = DataType::kInt32;
+constexpr auto Int64   = DataType::kInt64;
+constexpr auto UInt8   = DataType::kUInt8;
+constexpr auto UInt16  = DataType::kUInt16;
+constexpr auto UInt32  = DataType::kUInt32;
+constexpr auto UInt64  = DataType::kUInt64;
+constexpr auto Bool    = DataType::kBool;
 
-// 新增类型别名
-constexpr auto Int16  = DataType::kInt16;
-constexpr auto Int64  = DataType::kInt64;
-constexpr auto UInt8  = DataType::kUInt8;
-constexpr auto UInt16 = DataType::kUInt16;
-constexpr auto UInt32 = DataType::kUInt32;
-constexpr auto UInt64 = DataType::kUInt64;
-constexpr auto Bool   = DataType::kBool;
+// 类型特征模板，用于在编译时确定数据类型
+template <typename T>
+struct DataTypeTraits;
+
+template <>
+struct DataTypeTraits<float>
+{
+    static constexpr DataType type    = DataType::kFloat32;
+    static constexpr const char *name = "float32";
+};
+
+template <>
+struct DataTypeTraits<double>
+{
+    static constexpr DataType type    = DataType::kDouble;
+    static constexpr const char *name = "double";
+};
+
+template <>
+struct DataTypeTraits<int8_t>
+{
+    static constexpr DataType type    = DataType::kInt8;
+    static constexpr const char *name = "int8";
+};
+
+template <>
+struct DataTypeTraits<int16_t>
+{
+    static constexpr DataType type    = DataType::kInt16;
+    static constexpr const char *name = "int16";
+};
+
+template <>
+struct DataTypeTraits<int32_t>
+{
+    static constexpr DataType type    = DataType::kInt32;
+    static constexpr const char *name = "int32";
+};
+
+template <>
+struct DataTypeTraits<int64_t>
+{
+    static constexpr DataType type    = DataType::kInt64;
+    static constexpr const char *name = "int64";
+};
+
+template <>
+struct DataTypeTraits<uint8_t>
+{
+    static constexpr DataType type    = DataType::kUInt8;
+    static constexpr const char *name = "uint8";
+};
+
+template <>
+struct DataTypeTraits<uint16_t>
+{
+    static constexpr DataType type    = DataType::kUInt16;
+    static constexpr const char *name = "uint16";
+};
+
+template <>
+struct DataTypeTraits<uint32_t>
+{
+    static constexpr DataType type    = DataType::kUInt32;
+    static constexpr const char *name = "uint32";
+};
+
+template <>
+struct DataTypeTraits<uint64_t>
+{
+    static constexpr DataType type    = DataType::kUInt64;
+    static constexpr const char *name = "uint64";
+};
+
+template <>
+struct DataTypeTraits<bool>
+{
+    static constexpr DataType type    = DataType::kBool;
+    static constexpr const char *name = "bool";
+};
 
 /**
  * @brief 获取数据类型的字节大小
@@ -64,12 +143,12 @@ inline size_t element_size(DataType dtype)
             return sizeof(float);
         case DataType::kFloat64:
             return sizeof(double);
-        case DataType::kInt32:
-            return sizeof(int32_t);
         case DataType::kInt8:
             return sizeof(int8_t);
         case DataType::kInt16:
             return sizeof(int16_t);
+        case DataType::kInt32:
+            return sizeof(int32_t);
         case DataType::kInt64:
             return sizeof(int64_t);
         case DataType::kUInt8:
@@ -134,97 +213,42 @@ inline DataType promote_types(DataType a, DataType b)
     return a;
 }
 
+// 编译时字符串获取（推荐使用）
+template <typename T>
+inline constexpr const char *dtype_to_string()
+{
+    return DataTypeTraits<T>::name;
+}
+
+// 运行时字符串获取（用于错误消息等）
 inline std::string dtype_to_string(DataType dtype)
 {
     switch (dtype)
     {
         case DataType::kFloat32:
-            return "float32";
+            return DataTypeTraits<float>::name;
         case DataType::kFloat64:
-            return "float64";
-        case DataType::kInt32:
-            return "int32";
+            return DataTypeTraits<double>::name;
         case DataType::kInt8:
-            return "int8";
+            return DataTypeTraits<int8_t>::name;
         case DataType::kInt16:
-            return "int16";
+            return DataTypeTraits<int16_t>::name;
+        case DataType::kInt32:
+            return DataTypeTraits<int32_t>::name;
         case DataType::kInt64:
-            return "int64";
+            return DataTypeTraits<int64_t>::name;
         case DataType::kUInt8:
-            return "uint8";
+            return DataTypeTraits<uint8_t>::name;
         case DataType::kUInt16:
-            return "uint16";
+            return DataTypeTraits<uint16_t>::name;
         case DataType::kUInt32:
-            return "uint32";
+            return DataTypeTraits<uint32_t>::name;
         case DataType::kUInt64:
-            return "uint64";
+            return DataTypeTraits<uint64_t>::name;
         case DataType::kBool:
-            return "bool";
+            return DataTypeTraits<bool>::name;
         default:
             return "unknown data type";
-    }
-}
-
-// 类型特征模板，用于在编译时确定数据类型
-template <typename T>
-struct DataTypeTraits;
-
-template <>
-struct DataTypeTraits<float>
-{
-    static constexpr DataType type    = DataType::kFloat32;
-    static constexpr const char *name = "float32";
-};
-
-template <>
-struct DataTypeTraits<double>
-{
-    static constexpr DataType type    = DataType::kDouble;
-    static constexpr const char *name = "double";
-};
-
-template <>
-struct DataTypeTraits<int32_t>
-{
-    static constexpr DataType type    = DataType::kInt32;
-    static constexpr const char *name = "int32";
-};
-
-template <>
-struct DataTypeTraits<int8_t>
-{
-    static constexpr DataType type    = DataType::kInt8;
-    static constexpr const char *name = "int8";
-};
-
-// 类型推断内联函数
-template <typename T>
-inline DataType get_data_type_from_template()
-{
-    if (std::is_same<T, float>::value)
-    {
-        return DataType::kFloat32;
-    }
-    else if (std::is_same<T, double>::value)
-    {
-        return DataType::kDouble;
-    }
-    else if (std::is_same<T, int32_t>::value)
-    {
-        return DataType::kInt32;
-    }
-    else if (std::is_same<T, int8_t>::value)
-    {
-        return DataType::kInt8;
-    }
-    else if (std::is_same<T, unsigned long>::value || std::is_same<T, size_t>::value)
-    {
-        // 暂时还不支持unsigned long/size_t，先将其映射到int32
-        return DataType::kInt32;
-    }
-    else
-    {
-        throw std::invalid_argument("Unsupported data type");
     }
 }
 

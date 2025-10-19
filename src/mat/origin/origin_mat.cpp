@@ -7,13 +7,12 @@
 #include <random>
 #include <sstream>
 #include <stdexcept>
+#include "origin/core/operator.h"
+#include "origin/core/tensor.h"
+#include "origin/core/tensor_impl.h"
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
-#include "origin/core/tensor.h"
-#include "origin/core/tensor_impl.h"
-#include "origin/core/operator.h"
-#include "origin/core/tensor_impl.h"
 
 #ifdef WITH_CUDA
 #    include "origin/mat/origin/cuda/cuda_ops.cuh"
@@ -53,8 +52,7 @@ OriginMat::OriginMat(const Shape &shape, DataType dtype, Device device) : shape_
 }
 
 template <typename T>
-OriginMat::OriginMat(const std::vector<T> &data, const Shape &shape)
-    : shape_(shape), dtype_(utils::get_data_type_from_template<T>())
+OriginMat::OriginMat(const std::vector<T> &data, const Shape &shape) : shape_(shape), dtype_(DataTypeTraits<T>::type)
 {
     utils::validate_shape(shape);
     strides_ = utils::compute_strides(shape);
@@ -69,7 +67,7 @@ OriginMat::OriginMat(const std::vector<T> &data, const Shape &shape)
 }
 
 template <typename T>
-OriginMat::OriginMat(T value, const Shape &shape) : shape_(shape), dtype_(utils::get_data_type_from_template<T>())
+OriginMat::OriginMat(T value, const Shape &shape) : shape_(shape), dtype_(DataTypeTraits<T>::type)
 {
     utils::validate_shape(shape);
     strides_ = utils::compute_strides(shape);
@@ -257,12 +255,6 @@ std::unique_ptr<Mat> OriginMat::operator/(const Mat &other) const
     }
 }
 
-
-
-
-
-
-
 // 标量乘法函数（非虚函数，仅供内部使用）
 std::unique_ptr<Mat> OriginMat::multiply_scalar(data_t scalar) const
 {
@@ -447,7 +439,7 @@ Scalar OriginMat::scalar_value() const
     {
         THROW_INVALID_ARG("scalar_value() can only be called on scalar tensors (0-dimensional tensors)");
     }
-    
+
     // 从存储中读取标量值
     if (storage_->device_type() == DeviceType::kCPU)
     {

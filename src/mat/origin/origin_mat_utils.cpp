@@ -5,8 +5,8 @@
 #include <iostream>
 #include <numeric>
 #include <sstream>
-#include "origin/utils/exception.h"
 #include "origin/mat/scalar.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -786,26 +786,6 @@ size_t get_dtype_size(DataType dtype)
             THROW_INVALID_ARG("Unsupported data type {} for operation", dtype_to_string(dtype));
     }
 }
-
-template <typename T>
-DataType get_data_type_from_template()
-{
-    if (std::is_same_v<T, float>)
-        return DataType::kFloat32;
-    if (std::is_same_v<T, double>)
-        return DataType::kFloat64;
-    if (std::is_same_v<T, int32_t>)
-        return DataType::kInt32;
-    if (std::is_same_v<T, int8_t>)
-        return DataType::kInt8;
-    THROW_INVALID_ARG("Unsupported template type");
-}
-
-// 显式实例化模板
-template DataType get_data_type_from_template<float>();
-template DataType get_data_type_from_template<double>();
-template DataType get_data_type_from_template<int32_t>();
-template DataType get_data_type_from_template<int8_t>();
 
 bool can_broadcast_to(const Shape &source_shape, const Shape &target_shape)
 {

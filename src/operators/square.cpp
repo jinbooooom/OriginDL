@@ -1,6 +1,6 @@
 #include "origin/core/operator.h"
-#include "origin/utils/exception.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -32,15 +32,18 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
     // 使用抽象层进行梯度计算
     auto temp_mult = *x * *gy;
     // 使用OriginMat的标量乘法函数
-    auto origin_mat = dynamic_cast<const OriginMat*>(temp_mult.get());
+    auto origin_mat = dynamic_cast<const OriginMat *>(temp_mult.get());
     Tensor gx;
-    if (origin_mat) {
+    if (origin_mat)
+    {
         auto gx_result = origin_mat->multiply_scalar(2.0);
-        gx = convert_mat_to_tensor(std::move(gx_result));
-    } else {
+        gx             = convert_mat_to_tensor(std::move(gx_result));
+    }
+    else
+    {
         // 如果不是OriginMat，使用通用方法
         auto gx_result = *temp_mult * 2.0;
-        gx = convert_mat_to_tensor(std::move(gx_result));
+        gx             = convert_mat_to_tensor(std::move(gx_result));
     }
 
     std::vector<Tensor> outputs;

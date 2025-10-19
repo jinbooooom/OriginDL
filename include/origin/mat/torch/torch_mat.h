@@ -65,7 +65,7 @@ public:
         }
 
         auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
-        auto data_type  = get_data_type_from_template<T>();
+        auto data_type  = DataTypeTraits<T>::type;
         auto torch_type = get_torch_type(data_type);
         data_           = torch::from_blob(const_cast<T *>(data.data()), sizes, torch_type).clone();
     }
@@ -89,7 +89,7 @@ public:
         }
 
         auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
-        auto data_type  = get_data_type_from_template<T>();
+        auto data_type  = DataTypeTraits<T>::type;
         auto torch_type = get_torch_type(data_type);
         data_           = torch::full(sizes, static_cast<T>(value), torch_type);
     }
@@ -259,16 +259,6 @@ public:
     static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options);
 
 private:
-    /**
-     * @brief 类型推断辅助函数
-     * @return 对应的DataType
-     */
-    template <typename T>
-    DataType get_data_type() const
-    {
-        return get_data_type_from_template<T>();
-    }
-
     /**
      * @brief 将DataType转换为torch::ScalarType
      * @param dtype DataType枚举
