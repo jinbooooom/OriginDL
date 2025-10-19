@@ -32,11 +32,11 @@ std::unique_ptr<origin::OriginMat> ones(const Shape &shape, const TensorOptions 
 /**
  * @brief 在CUDA设备上创建填充指定值的张量
  * @param shape 张量形状
- * @param value 填充值
+ * @param scalar 填充值
  * @param options 张量选项（必须指定CUDA设备）
  * @return 填充张量
  */
-std::unique_ptr<origin::OriginMat> full(const Shape &shape, double value, const TensorOptions &options);
+std::unique_ptr<origin::OriginMat> full(const Shape &shape, const Scalar &scalar, const TensorOptions &options);
 
 }  // namespace cuda
 }  // namespace origin

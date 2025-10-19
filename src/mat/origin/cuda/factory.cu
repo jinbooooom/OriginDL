@@ -187,7 +187,7 @@ std::unique_ptr<origin::OriginMat> ones(const Shape &shape, const TensorOptions 
 /**
  * @brief 在CUDA设备上创建填充指定值的张量
  */
-std::unique_ptr<origin::OriginMat> full(const Shape &shape, double value, const TensorOptions &options)
+std::unique_ptr<origin::OriginMat> full(const Shape &shape, const Scalar &scalar, const TensorOptions &options)
 {
     // 验证设备
     if (options.device().type() != DeviceType::kCUDA)
@@ -205,8 +205,9 @@ std::unique_ptr<origin::OriginMat> full(const Shape &shape, double value, const 
     size_t n   = shape.elements();
 
     // 使用类型分发器替代重复的switch语句
-    device_common::TypeDispatcher::dispatch_void(
-        options.dtype(), [&]<typename T>() { launch_full_kernel(static_cast<T *>(data), n, static_cast<T>(value)); });
+    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
+        launch_full_kernel(static_cast<T *>(data), n, static_cast<T>(scalar.to_float64()));
+    });
 
     // 同步等待完成
     cudaDeviceSynchronize();

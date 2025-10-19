@@ -98,14 +98,14 @@ std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options
     return result;
 }
 
-std::unique_ptr<OriginMat> full(const Shape &shape, data_t value, const TensorOptions &options)
+std::unique_ptr<OriginMat> full(const Shape &shape, const Scalar &scalar, const TensorOptions &options)
 {
     auto result = std::make_unique<OriginMat>(shape, options.dtype());
 
     // 使用类型分发器替代重复的switch语句
     device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
         T *data = result->data_ptr<T>();
-        T v     = static_cast<T>(value);
+        T v     = static_cast<T>(scalar.to_float64());  // 从Scalar获取值
         for (size_t i = 0; i < shape.elements(); ++i)
         {
             data[i] = v;
