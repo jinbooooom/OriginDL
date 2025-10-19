@@ -38,50 +38,12 @@ Tensor::Tensor(std::unique_ptr<Mat> mat) : impl_(std::make_shared<TensorImpl>(st
 
 Tensor Tensor::zeros(const Shape &shape, const TensorOptions &options)
 {
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            std::vector<float> data(shape.elements(), 0.0f);
-            return Tensor(data, shape, options);
-        }
-        case DataType::kInt32:
-        {
-            std::vector<int32_t> data(shape.elements(), 0);
-            return Tensor(data, shape, options);
-        }
-        case DataType::kInt8:
-        {
-            std::vector<int8_t> data(shape.elements(), 0);
-            return Tensor(data, shape, options);
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for zeros operation", dtype_to_string(options.dtype()));
-    }
+    return Tensor(0, shape, options);
 }
 
 Tensor Tensor::ones(const Shape &shape, const TensorOptions &options)
 {
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            std::vector<float> data(shape.elements(), 1.0f);
-            return Tensor(data, shape, options);
-        }
-        case DataType::kInt32:
-        {
-            std::vector<int32_t> data(shape.elements(), 1);
-            return Tensor(data, shape, options);
-        }
-        case DataType::kInt8:
-        {
-            std::vector<int8_t> data(shape.elements(), 1);
-            return Tensor(data, shape, options);
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for ones operation", dtype_to_string(options.dtype()));
-    }
+    return Tensor(1, shape, options);
 }
 
 Tensor Tensor::randn(const Shape &shape, const TensorOptions &options)
@@ -92,19 +54,7 @@ Tensor Tensor::randn(const Shape &shape, const TensorOptions &options)
 
 Tensor Tensor::full(const Shape &shape, double value, const TensorOptions &options)
 {
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-            return Tensor(static_cast<float>(value), shape, options);
-        case DataType::kDouble:
-            return Tensor(value, shape, options);
-        case DataType::kInt32:
-            return Tensor(static_cast<int32_t>(value), shape, options);
-        case DataType::kInt8:
-            return Tensor(static_cast<int8_t>(value), shape, options);
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for full operation", dtype_to_string(options.dtype()));
-    }
+    return Tensor(value, shape, options);
 }
 
 Tensor Tensor::from_blob(void *data, const Shape &shape, const TensorOptions &options)
