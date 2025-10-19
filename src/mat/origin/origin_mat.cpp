@@ -53,82 +53,49 @@ OriginMat::OriginMat(const Shape &shape, DataType dtype, Device device) : shape_
 }
 
 // 两个核心工厂方法实现
-std::unique_ptr<Mat> OriginMat::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options) {
+std::unique_ptr<Mat> OriginMat::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
+{
     utils::validate_shape(shape);
-    
+
     // 根据设备类型选择不同的实现方式
-    if (options.device().type() == DeviceType::kCUDA) {
+    if (options.device().type() == DeviceType::kCUDA)
+    {
 #ifdef WITH_CUDA
         // 对于CUDA设备，使用CUDA工厂方法
-        return cuda::full(shape, scalar.to_float64(), options);
+        return cuda::full(shape, scalar, options);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
-    } else {
-        // 对于CPU设备，直接操作内存
-        size_t size = shape.elements() * utils::get_dtype_size(options.dtype());
-        auto storage = Storage::create(size, options.device().type(), options.device().index());
-        
-        // 根据options的dtype进行填充，这是用户期望的类型
-        switch (options.dtype()) {
-            case DataType::kFloat32: {
-                float val = scalar.to_float32();
-                float* data_ptr = static_cast<float*>(storage->data());
-                for (size_t i = 0; i < shape.elements(); ++i) {
-                    data_ptr[i] = val;
-                }
-                break;
-            }
-            case DataType::kDouble: {
-                double val = scalar.to_float64();
-                double* data_ptr = static_cast<double*>(storage->data());
-                for (size_t i = 0; i < shape.elements(); ++i) {
-                    data_ptr[i] = val;
-                }
-                break;
-            }
-            case DataType::kInt32: {
-                int32_t val = scalar.to_int32();
-                int32_t* data_ptr = static_cast<int32_t*>(storage->data());
-                for (size_t i = 0; i < shape.elements(); ++i) {
-                    data_ptr[i] = val;
-                }
-                break;
-            }
-            case DataType::kInt8: {
-                int8_t val = scalar.to_int8();
-                int8_t* data_ptr = static_cast<int8_t*>(storage->data());
-                for (size_t i = 0; i < shape.elements(); ++i) {
-                    data_ptr[i] = val;
-                }
-                break;
-            }
-            default:
-                THROW_INVALID_ARG("Unsupported options dtype: {}", dtype_to_string(options.dtype()));
-        }
-        
-        return std::make_unique<OriginMat>(storage, shape, options.dtype());
+    }
+    else
+    {
+        // 对于CPU设备，使用CPU工厂方法
+        return cpu::full(shape, scalar, options);
     }
 }
 
-std::unique_ptr<Mat> OriginMat::from_memory(const void* data, const Shape &shape, const TensorOptions &options) {
+std::unique_ptr<Mat> OriginMat::from_memory(const void *data, const Shape &shape, const TensorOptions &options)
+{
     utils::validate_shape(shape);
-    
+
     // 创建存储
-    size_t size = shape.elements() * utils::get_dtype_size(options.dtype());
+    size_t size  = shape.elements() * utils::get_dtype_size(options.dtype());
     auto storage = Storage::create(size, options.device().type(), options.device().index());
-    
+
     // 根据设备类型选择正确的内存复制方法
-    if (options.device().type() == DeviceType::kCUDA) {
+    if (options.device().type() == DeviceType::kCUDA)
+    {
 #ifdef WITH_CUDA
         cudaMemcpy(storage->data(), data, size, cudaMemcpyHostToDevice);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
-    } else {
+    }
+    else
+    {
         memcpy(storage->data(), data, size);
     }
-    
+
     return std::make_unique<OriginMat>(storage, shape, options.dtype());
 }
 

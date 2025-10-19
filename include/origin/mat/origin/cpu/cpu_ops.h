@@ -49,7 +49,7 @@ std::unique_ptr<OriginMat> convert_datatype(const OriginMat &mat, DataType targe
 std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &options);
 std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &options);
 std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options);
-std::unique_ptr<OriginMat> full(const Shape &shape, data_t value, const TensorOptions &options);
+std::unique_ptr<OriginMat> full(const Shape &shape, const Scalar &scalar, const TensorOptions &options);
 
 }  // namespace cpu
 }  // namespace origin
