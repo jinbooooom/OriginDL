@@ -18,7 +18,11 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
         // 对所有元素求和，返回标量
         data_t sum_value   = sum_all(mat);
         Shape result_shape = {1};  // 标量结果
-        return std::make_unique<OriginMat>(sum_value, result_shape);
+        // 创建标量张量
+        Scalar scalar_val(sum_value);
+        TensorOptions options(mat.dtype());
+        auto mat_result = OriginMat::from_scalar(scalar_val, result_shape, options);
+        return std::unique_ptr<OriginMat>(static_cast<OriginMat *>(mat_result.release()));
     }
 
     // 验证轴的有效性

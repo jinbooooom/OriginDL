@@ -85,7 +85,7 @@ Tensor operator+(const Tensor &lhs, const Tensor &rhs)
 
 Tensor operator+(const Tensor &lhs, const Scalar &rhs)
 {
-    auto x = create_tensor_from_scalar(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
+    auto x = create_tensor_from_scalar(rhs, Shape({}), TensorOptions(rhs.dtype()).device(lhs.device()));
     return add(lhs, x);
 }
 

@@ -15,6 +15,7 @@
 #include "origin/utils/exception.h"
 
 #ifdef WITH_CUDA
+#    include <cuda_runtime.h>
 #    include "origin/mat/origin/cuda/cuda_ops.cuh"
 #    include "origin/mat/origin/cuda/factory.cuh"
 #endif
@@ -30,7 +31,7 @@ OriginMat::OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, DataT
     strides_ = utils::compute_strides(shape);
 }
 
-// TODO：与下面的函数相似，可以抽象出一个函数
+// 为了向后兼容，保留一些构造函数
 OriginMat::OriginMat(const Shape &shape, DataType dtype) : shape_(shape), dtype_(dtype)
 {
     utils::validate_shape(shape);
@@ -51,71 +52,84 @@ OriginMat::OriginMat(const Shape &shape, DataType dtype, Device device) : shape_
     storage_    = Storage::create(size, device.type(), device.index());
 }
 
-template <typename T>
-OriginMat::OriginMat(const std::vector<T> &data, const Shape &shape) : shape_(shape), dtype_(DataTypeTraits<T>::type)
-{
+// 两个核心工厂方法实现
+std::unique_ptr<Mat> OriginMat::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options) {
     utils::validate_shape(shape);
-    strides_ = utils::compute_strides(shape);
-
-    // 创建存储
-    size_t size = shape_.elements() * utils::get_dtype_size(dtype_);
-    storage_    = Storage::create(size, DeviceType::kCPU);
-
-    // 复制数据
-    size_t data_size = data.size() * sizeof(T);
-    memcpy(storage_->data(), data.data(), data_size);
-}
-
-template <typename T>
-OriginMat::OriginMat(T value, const Shape &shape) : shape_(shape), dtype_(DataTypeTraits<T>::type)
-{
-    utils::validate_shape(shape);
-    strides_ = utils::compute_strides(shape);
-
-    // 创建存储
-    size_t size = shape_.elements() * utils::get_dtype_size(dtype_);
-    storage_    = Storage::create(size, DeviceType::kCPU);
-
-    // 填充数据
-    T *data_ptr = static_cast<T *>(storage_->data());
-    for (size_t i = 0; i < shape_.elements(); ++i)
-    {
-        data_ptr[i] = value;
+    
+    // 根据设备类型选择不同的实现方式
+    if (options.device().type() == DeviceType::kCUDA) {
+#ifdef WITH_CUDA
+        // 对于CUDA设备，使用CUDA工厂方法
+        return cuda::full(shape, scalar.to_float64(), options);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    } else {
+        // 对于CPU设备，直接操作内存
+        size_t size = shape.elements() * utils::get_dtype_size(options.dtype());
+        auto storage = Storage::create(size, options.device().type(), options.device().index());
+        
+        // 根据options的dtype进行填充，这是用户期望的类型
+        switch (options.dtype()) {
+            case DataType::kFloat32: {
+                float val = scalar.to_float32();
+                float* data_ptr = static_cast<float*>(storage->data());
+                for (size_t i = 0; i < shape.elements(); ++i) {
+                    data_ptr[i] = val;
+                }
+                break;
+            }
+            case DataType::kDouble: {
+                double val = scalar.to_float64();
+                double* data_ptr = static_cast<double*>(storage->data());
+                for (size_t i = 0; i < shape.elements(); ++i) {
+                    data_ptr[i] = val;
+                }
+                break;
+            }
+            case DataType::kInt32: {
+                int32_t val = scalar.to_int32();
+                int32_t* data_ptr = static_cast<int32_t*>(storage->data());
+                for (size_t i = 0; i < shape.elements(); ++i) {
+                    data_ptr[i] = val;
+                }
+                break;
+            }
+            case DataType::kInt8: {
+                int8_t val = scalar.to_int8();
+                int8_t* data_ptr = static_cast<int8_t*>(storage->data());
+                for (size_t i = 0; i < shape.elements(); ++i) {
+                    data_ptr[i] = val;
+                }
+                break;
+            }
+            default:
+                THROW_INVALID_ARG("Unsupported options dtype: {}", dtype_to_string(options.dtype()));
+        }
+        
+        return std::make_unique<OriginMat>(storage, shape, options.dtype());
     }
 }
 
-template <typename T>
-OriginMat::OriginMat(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
-    : shape_(shape), dtype_(options.dtype())
-{
+std::unique_ptr<Mat> OriginMat::from_memory(const void* data, const Shape &shape, const TensorOptions &options) {
     utils::validate_shape(shape);
-    strides_ = utils::compute_strides(shape);
-
+    
     // 创建存储
-    size_t size = shape_.elements() * utils::get_dtype_size(dtype_);
-    storage_    = Storage::create(size, DeviceType::kCPU);
-
-    // 复制数据
-    size_t data_size = data.size() * sizeof(T);
-    memcpy(storage_->data(), data.data(), data_size);
-}
-
-template <typename T>
-OriginMat::OriginMat(T value, const Shape &shape, const TensorOptions &options) : shape_(shape), dtype_(options.dtype())
-{
-    utils::validate_shape(shape);
-    strides_ = utils::compute_strides(shape);
-
-    // 创建存储
-    size_t size = shape_.elements() * utils::get_dtype_size(dtype_);
-    storage_    = Storage::create(size, DeviceType::kCPU);
-
-    // 填充数据
-    T *data_ptr = static_cast<T *>(storage_->data());
-    for (size_t i = 0; i < shape_.elements(); ++i)
-    {
-        data_ptr[i] = value;
+    size_t size = shape.elements() * utils::get_dtype_size(options.dtype());
+    auto storage = Storage::create(size, options.device().type(), options.device().index());
+    
+    // 根据设备类型选择正确的内存复制方法
+    if (options.device().type() == DeviceType::kCUDA) {
+#ifdef WITH_CUDA
+        cudaMemcpy(storage->data(), data, size, cudaMemcpyHostToDevice);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    } else {
+        memcpy(storage->data(), data, size);
     }
+    
+    return std::make_unique<OriginMat>(storage, shape, options.dtype());
 }
 
 // Mat interface implementations - 委托给CPU模块
@@ -643,25 +657,6 @@ std::unique_ptr<Mat> OriginMat::full(const Shape &shape, data_t value, const Ten
     }
 }
 
-// 模板实例化
-template OriginMat::OriginMat(const std::vector<float> &, const Shape &);
-template OriginMat::OriginMat(const std::vector<double> &, const Shape &);
-template OriginMat::OriginMat(const std::vector<int32_t> &, const Shape &);
-template OriginMat::OriginMat(const std::vector<int8_t> &, const Shape &);
-
-template OriginMat::OriginMat(float, const Shape &);
-template OriginMat::OriginMat(double, const Shape &);
-template OriginMat::OriginMat(int32_t, const Shape &);
-template OriginMat::OriginMat(int8_t, const Shape &);
-
-template OriginMat::OriginMat(const std::vector<float> &, const Shape &, const TensorOptions &);
-template OriginMat::OriginMat(const std::vector<double> &, const Shape &, const TensorOptions &);
-template OriginMat::OriginMat(const std::vector<int32_t> &, const Shape &, const TensorOptions &);
-template OriginMat::OriginMat(const std::vector<int8_t> &, const Shape &, const TensorOptions &);
-
-template OriginMat::OriginMat(float, const Shape &, const TensorOptions &);
-template OriginMat::OriginMat(double, const Shape &, const TensorOptions &);
-template OriginMat::OriginMat(int32_t, const Shape &, const TensorOptions &);
-template OriginMat::OriginMat(int8_t, const Shape &, const TensorOptions &);
+// 移除模板实例化，使用工厂方法替代
 
 }  // namespace origin

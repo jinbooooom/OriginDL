@@ -60,7 +60,7 @@ Tensor Tensor::full(const Shape &shape, double value, const TensorOptions &optio
 Tensor Tensor::from_blob(void *data, const Shape &shape, const TensorOptions &options)
 {
     Tensor result;
-    result.create_tensor_from_raw_data(data, shape, options.dtype());
+    result.from_memory(data, shape, options);
     // 如果设备不是CPU，需要移动到指定设备
     if (options.device().type() != DeviceType::kCPU)
     {
@@ -216,7 +216,7 @@ int Tensor::backend_type() const
 
 // === 私有方法实现 ===
 
-void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype)
+void Tensor::from_memory(const void *data, const Shape &shape, const TensorOptions &options)
 {
     // 验证形状是否有效
     // 0维张量（标量张量）是合法的，但其他维度不能为0
@@ -232,12 +232,12 @@ void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, D
         }
     }
 
-    // 最底层方法：直接通过TensorImpl创建，避免任何中间拷贝
-    impl_ = std::make_unique<TensorImpl>(data, shape, dtype);
+    // 直接调用TensorImpl工厂方法
+    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(data, shape, options));
 }
 
 template <typename T>
-void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, DataType dtype)
+void Tensor::from_scalar(T scalar, const Shape &shape, const TensorOptions &options)
 {
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
 
@@ -255,39 +255,32 @@ void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, 
         }
     }
 
-    switch (dtype)
+    // 创建Scalar对象
+    Scalar scalar_obj;
+    switch (options.dtype())
     {
         case DataType::kFloat32:
-        {
-            float val = static_cast<float>(scalar);
-            impl_     = std::make_unique<TensorImpl>(val, shape);
+            scalar_obj = Scalar(static_cast<float>(scalar));
             break;
-        }
         case DataType::kDouble:
-        {
-            double val = static_cast<double>(scalar);
-            impl_      = std::make_unique<TensorImpl>(val, shape);
+            scalar_obj = Scalar(static_cast<double>(scalar));
             break;
-        }
         case DataType::kInt32:
-        {
-            int32_t val = static_cast<int32_t>(scalar);
-            impl_       = std::make_unique<TensorImpl>(val, shape);
+            scalar_obj = Scalar(static_cast<int32_t>(scalar));
             break;
-        }
         case DataType::kInt8:
-        {
-            int8_t val = static_cast<int8_t>(scalar);
-            impl_      = std::make_unique<TensorImpl>(val, shape);
+            scalar_obj = Scalar(static_cast<int8_t>(scalar));
             break;
-        }
         default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(dtype));
+            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(options.dtype()));
     }
+
+    // 直接调用TensorImpl工厂方法并设置impl_
+    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar_obj, shape, options));
 }
 
 template <typename T>
-void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, const Shape &shape, DataType dtype)
+void Tensor::from_memory(const T *data, size_t count, const Shape &shape, const TensorOptions &options)
 {
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
 
@@ -312,7 +305,7 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
     }
 
     // 根据目标类型进行转换
-    switch (dtype)
+    switch (options.dtype())
     {
         case DataType::kFloat32:
         {
@@ -321,7 +314,7 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
             {
                 converted_data[i] = static_cast<float>(data[i]);
             }
-            impl_ = std::make_unique<TensorImpl>(converted_data, shape);
+            impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(converted_data.data(), shape, options));
             break;
         }
         case DataType::kDouble:
@@ -331,7 +324,7 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
             {
                 converted_data[i] = static_cast<double>(data[i]);
             }
-            impl_ = std::make_unique<TensorImpl>(converted_data, shape);
+            impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(converted_data.data(), shape, options));
             break;
         }
         case DataType::kInt32:
@@ -341,7 +334,7 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
             {
                 converted_data[i] = static_cast<int32_t>(data[i]);
             }
-            impl_ = std::make_unique<TensorImpl>(converted_data, shape);
+            impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(converted_data.data(), shape, options));
             break;
         }
         case DataType::kInt8:
@@ -351,11 +344,11 @@ void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, con
             {
                 converted_data[i] = static_cast<int8_t>(data[i]);
             }
-            impl_ = std::make_unique<TensorImpl>(converted_data, shape);
+            impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(converted_data.data(), shape, options));
             break;
         }
         default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(dtype));
+            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(options.dtype()));
     }
 }
 
@@ -384,79 +377,35 @@ template std::vector<unsigned long> Tensor::to_vector<unsigned long>() const;
 // 成员操作符模板实例化已移除，使用全局操作符重载
 
 // 内部辅助方法
-template void Tensor::create_tensor_from_data_with_dtype<float>(const float *data,
-                                                                size_t count,
-                                                                const Shape &shape,
-                                                                DataType dtype);
-template void Tensor::create_tensor_from_data_with_dtype<double>(const double *data,
-                                                                 size_t count,
-                                                                 const Shape &shape,
-                                                                 DataType dtype);
-template void Tensor::create_tensor_from_data_with_dtype<int32_t>(const int32_t *data,
-                                                                  size_t count,
-                                                                  const Shape &shape,
-                                                                  DataType dtype);
-template void Tensor::create_tensor_from_data_with_dtype<int8_t>(const int8_t *data,
-                                                                 size_t count,
-                                                                 const Shape &shape,
-                                                                 DataType dtype);
+template void Tensor::from_memory<float>(const float *data,
+                                         size_t count,
+                                         const Shape &shape,
+                                         const TensorOptions &options);
+template void Tensor::from_memory<double>(const double *data,
+                                          size_t count,
+                                          const Shape &shape,
+                                          const TensorOptions &options);
+template void Tensor::from_memory<int32_t>(const int32_t *data,
+                                           size_t count,
+                                           const Shape &shape,
+                                           const TensorOptions &options);
+template void Tensor::from_memory<int8_t>(const int8_t *data,
+                                          size_t count,
+                                          const Shape &shape,
+                                          const TensorOptions &options);
 
-// 模板实例化 - create_tensor_from_scalar_with_dtype
-template void Tensor::create_tensor_from_scalar_with_dtype<float>(float scalar, const Shape &shape, DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<double>(double scalar, const Shape &shape, DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<int32_t>(int32_t scalar, const Shape &shape, DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<int8_t>(int8_t scalar, const Shape &shape, DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<size_t>(size_t scalar, const Shape &shape, DataType dtype);
+// 模板实例化 - from_scalar
+template void Tensor::from_scalar<float>(float scalar, const Shape &shape, const TensorOptions &options);
+template void Tensor::from_scalar<double>(double scalar, const Shape &shape, const TensorOptions &options);
+template void Tensor::from_scalar<int32_t>(int32_t scalar, const Shape &shape, const TensorOptions &options);
+template void Tensor::from_scalar<int8_t>(int8_t scalar, const Shape &shape, const TensorOptions &options);
+template void Tensor::from_scalar<size_t>(size_t scalar, const Shape &shape, const TensorOptions &options);
 
 // === 私有Scalar构造函数实现 ===
 Tensor::Tensor(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
 {
-    // 根据scalar的dtype创建对应的tensor
-    switch (scalar.dtype())
-    {
-        // TODO: options要传下去，impl 需要优化。矩阵创建的过程是需要优化的。
-        case DataType::kFloat32:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_float32(), shape);
-            break;
-        case DataType::kFloat64:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_float64(), shape);
-            break;
-        case DataType::kInt8:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_int8(), shape);
-            break;
-        case DataType::kInt16:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_int16(), shape);
-            break;
-        case DataType::kInt32:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_int32(), shape);
-            break;
-        case DataType::kInt64:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_int64(), shape);
-            break;
-        case DataType::kUInt8:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_uint8(), shape);
-            break;
-        case DataType::kUInt16:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_uint16(), shape);
-            break;
-        case DataType::kUInt32:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_uint32(), shape);
-            break;
-        case DataType::kUInt64:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_uint64(), shape);
-            break;
-        case DataType::kBool:
-            impl_ = std::make_unique<TensorImpl>(scalar.to_bool(), shape);
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported Scalar dtype: {}", dtype_to_string(scalar.dtype()));
-    }
-
-    // 如果设备不是CPU，需要移动到指定设备
-    if (options.device().type() != DeviceType::kCPU)
-    {
-        impl_ = std::make_shared<TensorImpl>(impl_->to(options));
-    }
+    // 直接使用TensorImpl工厂方法
+    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar, shape, options));
 }
 
 // === 友元函数实现 ===

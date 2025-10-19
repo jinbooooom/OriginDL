@@ -79,7 +79,7 @@ public:
                                         ") does not match shape elements (" + std::to_string(expected_elements) + ")");
         }
 
-        create_tensor_from_data_with_dtype(data.data(), data.size(), shape, options.dtype());
+        from_memory(data.data(), data.size(), shape, options);
         // 如果设备不是CPU，需要移动到指定设备
         if (options.device().type() != DeviceType::kCPU)
         {
@@ -133,7 +133,7 @@ public:
     Tensor(T scalar, const Shape &shape, const TensorOptions &options)
     {
         ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-        create_tensor_from_scalar_with_dtype(scalar, shape, options.dtype());
+        from_scalar(scalar, shape, options);
         // 如果设备不是CPU，需要移动到指定设备
         if (options.device().type() != DeviceType::kCPU)
         {
@@ -207,23 +207,21 @@ private:
 
     // === 用于显式类型指定的方法 ===
     /**
-     * @brief 从标量数据创建张量（显式指定类型）
-     * @details 用于工厂方法如full()，标量数据是单个值，用void*传递，类型信息由dtype参数提供
-     * @param data 标量数据的指针
+     * @brief 从标量数据创建张量
+     * @param scalar 标量值
      * @param shape 张量形状
-     * @param dtype 目标数据类型
+     * @param options 张量选项
      */
     template <typename T>
-    void create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, DataType dtype);
+    void from_scalar(T scalar, const Shape &shape, const TensorOptions &options);
 
     /**
-     * @brief 从原始数据创建张量（显式指定类型）
-     * @details 用于from_blob()方法，原始数据是void*指针，直接传递，类型信息由dtype参数提供
+     * @brief 从原始数据创建张量
      * @param data 原始数据的指针
      * @param shape 张量形状
-     * @param dtype 目标数据类型
+     * @param options 张量选项
      */
-    void create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype);
+    void from_memory(const void *data, const Shape &shape, const TensorOptions &options);
 
     /**
      * @brief 从带类型的数据创建张量（显式指定类型）
@@ -234,7 +232,7 @@ private:
      * @param dtype 目标数据类型
      */
     template <typename T>
-    void create_tensor_from_data_with_dtype(const T *data, size_t count, const Shape &shape, DataType dtype);
+    void from_memory(const T *data, size_t count, const Shape &shape, const TensorOptions &options);
 };
 
 // 友元函数声明，供内部使用

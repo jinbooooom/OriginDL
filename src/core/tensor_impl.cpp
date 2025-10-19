@@ -12,23 +12,19 @@
 namespace origin
 {
 
-// 从void*数据构造的实现
-TensorImpl::TensorImpl(const void *data, const Shape &shape, DataType dtype)
-    : grad_(nullptr), creator_(nullptr), generation_(0)
+// 两个核心工厂方法实现
+TensorImpl TensorImpl::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
 {
-    create_impl_from_data(data, shape, dtype);
+    // 直接调用OriginMat工厂方法
+    auto mat = OriginMat::from_scalar(scalar, shape, options);
+    return TensorImpl(std::move(mat));
 }
 
-// 从void*数据构造的实现（支持TensorOptions）
-TensorImpl::TensorImpl(const void *data, const Shape &shape, const TensorOptions &options)
-    : grad_(nullptr), creator_(nullptr), generation_(0)
+TensorImpl TensorImpl::from_memory(const void *data, const Shape &shape, const TensorOptions &options)
 {
-    create_impl_from_data(data, shape, options.dtype());
-    // 如果设备不是CPU，需要移动到指定设备
-    if (options.device().type() != DeviceType::kCPU)
-    {
-        data_ = data_->to_device(options.device());
-    }
+    // 直接调用OriginMat工厂方法
+    auto mat = OriginMat::from_memory(data, shape, options);
+    return TensorImpl(std::move(mat));
 }
 
 // 静态工厂方法实现
@@ -87,17 +83,33 @@ void TensorImpl::backward()
         switch (data_type)
         {
             case DataType::kFloat32:
-                grad_ = std::make_unique<Mat_t>(1.0f, data_->shape());
+            {
+                Scalar scalar_val(1.0f);
+                TensorOptions options(DataType::kFloat32);
+                grad_ = OriginMat::from_scalar(scalar_val, data_->shape(), options);
                 break;
+            }
             case DataType::kDouble:
-                grad_ = std::make_unique<Mat_t>(1.0, data_->shape());
+            {
+                Scalar scalar_val(1.0);
+                TensorOptions options(DataType::kDouble);
+                grad_ = OriginMat::from_scalar(scalar_val, data_->shape(), options);
                 break;
+            }
             case DataType::kInt32:
-                grad_ = std::make_unique<Mat_t>(1, data_->shape());
+            {
+                Scalar scalar_val(1);
+                TensorOptions options(DataType::kInt32);
+                grad_ = OriginMat::from_scalar(scalar_val, data_->shape(), options);
                 break;
+            }
             case DataType::kInt8:
-                grad_ = std::make_unique<Mat_t>(static_cast<int8_t>(1), data_->shape());
+            {
+                Scalar scalar_val(static_cast<int8_t>(1));
+                TensorOptions options(DataType::kInt8);
+                grad_ = OriginMat::from_scalar(scalar_val, data_->shape(), options);
                 break;
+            }
             default:
                 THROW_INVALID_ARG("Unsupported data type {} for gradient initialization",
                                   dtype_to_string(data_->dtype()));
@@ -318,79 +330,7 @@ TensorImpl TensorImpl::to(const TensorOptions &options) const
     return TensorImpl(std::move(converted_mat));
 }
 
-// 私有辅助方法实现
-void TensorImpl::create_impl_from_data(const void *data, const Shape &shape, DataType dtype)
-{
-    size_t count = shape.elements();
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            create_impl_impl<float>(static_cast<const float *>(data), count, shape);
-            break;
-        case DataType::kDouble:
-            create_impl_impl<double>(static_cast<const double *>(data), count, shape);
-            break;
-        case DataType::kInt32:
-            create_impl_impl<int32_t>(static_cast<const int32_t *>(data), count, shape);
-            break;
-        case DataType::kInt8:
-            create_impl_impl<int8_t>(static_cast<const int8_t *>(data), count, shape);
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor implementation", dtype_to_string(dtype));
-    }
-}
-
-void TensorImpl::create_impl_from_scalar(double data, const Shape &shape, DataType dtype)
-{
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            create_impl_impl<float>(static_cast<float>(data), shape);
-            break;
-        case DataType::kDouble:
-            create_impl_impl<double>(data, shape);
-            break;
-        case DataType::kInt32:
-            create_impl_impl<int32_t>(static_cast<int32_t>(data), shape);
-            break;
-        case DataType::kInt8:
-            create_impl_impl<int8_t>(static_cast<int8_t>(data), shape);
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor implementation", dtype_to_string(dtype));
-    }
-}
-
-// 模板函数实现
-template <typename T>
-void TensorImpl::create_impl_impl(const T *data, size_t count, const Shape &shape)
-{
-    std::vector<T> vec_data(data, data + count);
-    data_       = std::make_unique<Mat_t>(vec_data, shape);
-    grad_       = nullptr;
-    creator_    = nullptr;
-    generation_ = 0;
-}
-
-template <typename T>
-void TensorImpl::create_impl_impl(T scalar, const Shape &shape)
-{
-    data_       = std::make_unique<Mat_t>(scalar, shape);
-    grad_       = nullptr;
-    creator_    = nullptr;
-    generation_ = 0;
-}
-
-// 显式实例化常用类型
-template void TensorImpl::create_impl_impl<float>(const float *data, size_t count, const Shape &shape);
-template void TensorImpl::create_impl_impl<double>(const double *data, size_t count, const Shape &shape);
-template void TensorImpl::create_impl_impl<int32_t>(const int32_t *data, size_t count, const Shape &shape);
-template void TensorImpl::create_impl_impl<int8_t>(const int8_t *data, size_t count, const Shape &shape);
-template void TensorImpl::create_impl_impl<float>(float scalar, const Shape &shape);
-template void TensorImpl::create_impl_impl<double>(double scalar, const Shape &shape);
-template void TensorImpl::create_impl_impl<int32_t>(int32_t scalar, const Shape &shape);
-template void TensorImpl::create_impl_impl<int8_t>(int8_t scalar, const Shape &shape);
+// 移除所有私有辅助方法，直接实现核心逻辑
 
 // === 泛型方法实例化 ===
 // 数据访问方法
