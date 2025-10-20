@@ -134,11 +134,6 @@ public:
     {
         ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
         from_scalar(scalar, shape, options);
-        // 如果设备不是CPU，需要移动到指定设备
-        if (options.device().type() != DeviceType::kCPU)
-        {
-            impl_ = std::make_shared<TensorImpl>(impl_->to(options));
-        }
     }
 
     // === 工厂方法（只保留TensorOptions版本）===

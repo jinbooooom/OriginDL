@@ -14,7 +14,7 @@ data/*
 **/*.out
 *.h.gch
 compile_commands.json
-dllog/*
+originlog/*
 3rd/libtorch/*
 
 r
