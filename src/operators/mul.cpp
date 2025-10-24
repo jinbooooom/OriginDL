@@ -1,6 +1,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/utils/exception.h"
+#include "origin/mat/type_promotion.h"
 
 namespace origin
 {
@@ -19,7 +20,7 @@ std::vector<Tensor> Mul::forward(const std::vector<Tensor> &xs)
     if (xs[0].dtype() != xs[1].dtype())
     {
         // 自动类型提升
-        DataType promoted_type = promote_types(xs[0].dtype(), xs[1].dtype());
+        DataType promoted_type = promote_types_rule(xs[0].dtype(), xs[1].dtype());
         Tensor x0              = xs[0].dtype() == promoted_type ? xs[0] : xs[0].to(promoted_type);
         Tensor x1              = xs[1].dtype() == promoted_type ? xs[1] : xs[1].to(promoted_type);
 
