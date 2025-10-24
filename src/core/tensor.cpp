@@ -52,7 +52,7 @@ Tensor Tensor::randn(const Shape &shape, const TensorOptions &options)
     return Tensor(std::make_shared<TensorImpl>(std::move(impl)));
 }
 
-Tensor Tensor::full(const Shape &shape, double value, const TensorOptions &options)
+Tensor Tensor::full(const Shape &shape, const Scalar &value, const TensorOptions &options)
 {
     return Tensor(value, shape, options);
 }
