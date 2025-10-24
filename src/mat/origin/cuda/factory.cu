@@ -115,13 +115,6 @@ void launch_full_kernel(T *data, size_t n, T value)
     const size_t block_size = 256;
     const size_t grid_size  = (n + block_size - 1) / block_size;
     full_kernel<T><<<grid_size, block_size>>>(data, n, value);
-
-    // 检查kernel启动是否成功
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("Failed to launch full kernel: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

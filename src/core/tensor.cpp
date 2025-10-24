@@ -236,11 +236,8 @@ void Tensor::from_memory(const void *data, const Shape &shape, const TensorOptio
     impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(data, shape, options));
 }
 
-template <typename T>
-void Tensor::from_scalar(T scalar, const Shape &shape, const TensorOptions &options)
+void Tensor::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
 {
-    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-
     // 验证形状是否有效
     // 0维张量（标量张量）是合法的，但其他维度不能为0
     if (!shape.is_scalar())
@@ -255,28 +252,8 @@ void Tensor::from_scalar(T scalar, const Shape &shape, const TensorOptions &opti
         }
     }
 
-    // 创建Scalar对象
-    Scalar scalar_obj;
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-            scalar_obj = Scalar(static_cast<float>(scalar));
-            break;
-        case DataType::kDouble:
-            scalar_obj = Scalar(static_cast<double>(scalar));
-            break;
-        case DataType::kInt32:
-            scalar_obj = Scalar(static_cast<int32_t>(scalar));
-            break;
-        case DataType::kInt8:
-            scalar_obj = Scalar(static_cast<int8_t>(scalar));
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(options.dtype()));
-    }
-
     // 直接调用TensorImpl工厂方法并设置impl_
-    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar_obj, shape, options));
+    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar, shape, options));
 }
 
 template <typename T>
@@ -394,24 +371,5 @@ template void Tensor::from_memory<int8_t>(const int8_t *data,
                                           const Shape &shape,
                                           const TensorOptions &options);
 
-// 模板实例化 - from_scalar
-template void Tensor::from_scalar<float>(float scalar, const Shape &shape, const TensorOptions &options);
-template void Tensor::from_scalar<double>(double scalar, const Shape &shape, const TensorOptions &options);
-template void Tensor::from_scalar<int32_t>(int32_t scalar, const Shape &shape, const TensorOptions &options);
-template void Tensor::from_scalar<int8_t>(int8_t scalar, const Shape &shape, const TensorOptions &options);
-template void Tensor::from_scalar<size_t>(size_t scalar, const Shape &shape, const TensorOptions &options);
-
-// === 私有Scalar构造函数实现 ===
-Tensor::Tensor(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
-{
-    // 直接使用TensorImpl工厂方法
-    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar, shape, options));
-}
-
-// === 友元函数实现 ===
-Tensor create_tensor_from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
-{
-    return Tensor(scalar, shape, options);
-}
 
 }  // namespace origin
