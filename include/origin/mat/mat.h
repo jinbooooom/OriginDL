@@ -77,24 +77,10 @@ public:
     virtual std::unique_ptr<Mat> operator/(const Mat &other) const = 0;
 
     // === 泛型标量操作 ===
-    template <typename T>
-    std::unique_ptr<Mat> add_scalar(T scalar) const;
 
-    template <typename T>
-    std::unique_ptr<Mat> mul_scalar(T scalar) const;
 
     // === 泛型标量运算符 ===
-    template <typename T>
-    std::unique_ptr<Mat> operator+(T scalar) const;
-
-    template <typename T>
-    std::unique_ptr<Mat> operator-(T scalar) const;
-
-    template <typename T>
-    std::unique_ptr<Mat> operator*(T scalar) const;
-
-    template <typename T>
-    std::unique_ptr<Mat> operator/(T scalar) const;
+    // 标量运算符已移除，统一通过算子层处理
 
     /**
      * @brief 一元负号运算符
@@ -307,44 +293,9 @@ std::unique_ptr<Mat> create_mat(const std::vector<data_t> &data, const Shape &sh
  */
 std::unique_ptr<Mat> create_mat(data_t value, const Shape &shape);
 
-// === Mat模板方法实现 ===
-template <typename T>
-std::unique_ptr<Mat> Mat::add_scalar(T scalar) const
-{
-    // 将泛型标量转换为data_t，然后调用现有的虚函数
-    return add_scalar(static_cast<data_t>(scalar));
-}
 
-template <typename T>
-std::unique_ptr<Mat> Mat::mul_scalar(T scalar) const
-{
-    // 将泛型标量转换为data_t，然后调用现有的虚函数
-    return mul_scalar(static_cast<data_t>(scalar));
-}
 
-template <typename T>
-std::unique_ptr<Mat> Mat::operator+(T scalar) const
-{
-    return add_scalar<T>(scalar);
-}
 
-template <typename T>
-std::unique_ptr<Mat> Mat::operator-(T scalar) const
-{
-    return operator+(-scalar);
-}
-
-template <typename T>
-std::unique_ptr<Mat> Mat::operator*(T scalar) const
-{
-    return mul_scalar<T>(scalar);
-}
-
-template <typename T>
-std::unique_ptr<Mat> Mat::operator/(T scalar) const
-{
-    return mul_scalar<T>(1.0 / scalar);
-}
 
 template <typename T>
 T Mat::sum_as() const

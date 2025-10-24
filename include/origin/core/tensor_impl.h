@@ -74,16 +74,7 @@ public:
     TensorImpl reshape(const Shape &shape) const;
     TensorImpl transpose() const;
 
-    // 运算符重载
-    TensorImpl operator+(const TensorImpl &other) const;
-    template <typename T>
-    TensorImpl operator+(T scalar) const;
-    TensorImpl operator-(const TensorImpl &other) const;
-    TensorImpl operator*(const TensorImpl &other) const;
-    TensorImpl operator/(const TensorImpl &other) const;
-
-    // 一元负号运算符
-    TensorImpl operator-() const;
+    // 运算符重载 - 一元负号运算符已移除，通过算子层实现
 
     // 访问器方法
     Shape shape() const;
@@ -98,15 +89,6 @@ public:
     // === 泛型数据访问方法 ===
     template <typename T>
     T *data_ptr();
-
-    template <typename T>
-    TensorImpl operator-(T scalar) const;
-
-    template <typename T>
-    TensorImpl operator*(T scalar) const;
-
-    template <typename T>
-    TensorImpl operator/(T scalar) const;
 
     // 调试
     void print(const std::string &desc = "") const;

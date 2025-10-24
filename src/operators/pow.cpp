@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/core/tensor.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/scalar.h"
 #include "origin/utils/exception.h"
@@ -12,8 +13,26 @@ std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
     {
         THROW_RUNTIME_ERROR("Pow operator requires exactly 1 input, but got {}", xs.size());
     }
-    auto x      = &mat(xs[0]);
-    auto result = x->pow(exponent_);
+
+    // 检查base张量与exponent标量的类型是否匹配，如果不匹配则进行类型提升
+    DataType base_dtype = xs[0].dtype();
+    DataType exponent_dtype = exponent_.dtype();
+    
+    if (base_dtype != exponent_dtype)
+    {
+        // 自动类型提升
+        DataType promoted_dtype = promote_types(base_dtype, exponent_dtype);
+        Tensor promoted_base = xs[0].dtype() == promoted_dtype ? xs[0] : xs[0].to(promoted_dtype);
+        
+        // 使用提升后的base进行运算
+        auto &x = mat(promoted_base);
+        auto result = x.pow(exponent_);
+        return std::vector<Tensor>{convert_mat_to_tensor(std::move(result))};
+    }
+
+    // 类型匹配，直接运算
+    auto &x = mat(xs[0]);
+    auto result = x.pow(exponent_);
     return std::vector<Tensor>{convert_mat_to_tensor(std::move(result))};
 }
 
@@ -23,26 +42,19 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
     {
         THROW_RUNTIME_ERROR("Pow backward requires exactly 1 gradient, but got {}", gys.size());
     }
+
+    // TODO: 未来需要在backward中也实现类型提升逻辑
     auto x  = &mat(this->inputs_[0]);
     auto gy = &mat(gys[0]);
 
     // ∂y/∂x = exponent * x^(exponent-1) * gy
-    auto x_pow_minus_1 = x->pow(exponent_.toDataT() - 1.0f);
+    Scalar exponent_minus_1 = Scalar(exponent_.to_float32() - 1.0f);
+    auto x_pow_minus_1 = x->pow(exponent_minus_1);
     auto temp_mult     = *x_pow_minus_1 * *gy;
-    // 使用OriginMat的标量乘法函数
-    auto origin_mat = dynamic_cast<const OriginMat *>(temp_mult.get());
-    Tensor gx;
-    if (origin_mat)
-    {
-        auto gx_result = origin_mat->multiply_scalar(exponent_.toDataT());
-        gx             = convert_mat_to_tensor(std::move(gx_result));
-    }
-    else
-    {
-        // 如果不是OriginMat，使用通用方法
-        auto gx_result = *temp_mult * exponent_.toDataT();
-        gx             = convert_mat_to_tensor(std::move(gx_result));
-    }
+    // 创建值为exponent的维度为0的张量
+    auto scalar_exponent = Tensor(exponent_, Shape({}), dtype(x->dtype()).device(x->device()));
+    auto gx_result  = mat(scalar_exponent) * *temp_mult;
+    auto gx         = convert_mat_to_tensor(std::move(gx_result));
 
     return std::vector<Tensor>{gx};
 }
@@ -56,7 +68,7 @@ Tensor pow(const std::vector<Tensor> &xs, data_t exponent)
 // 支持Scalar类型的pow函数
 Tensor pow(const std::vector<Tensor> &xs, const Scalar &exponent)
 {
-    auto op = std::make_shared<Pow>(exponent.toDataT());
+    auto op = std::make_shared<Pow>(exponent.to_float32());
     return (*op)(xs)[0];
 }
 

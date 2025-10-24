@@ -191,7 +191,6 @@ void TensorImpl::clear_grad()
     grad_ = nullptr;
 }
 
-// 张量操作实现
 TensorImpl TensorImpl::reshape(const Shape &shape) const
 {
     auto new_mat = data_->reshape(shape);
@@ -204,43 +203,7 @@ TensorImpl TensorImpl::transpose() const
     return TensorImpl(std::move(new_mat));
 }
 
-// 运算符重载实现
-TensorImpl TensorImpl::operator+(const TensorImpl &other) const
-{
-    auto result = *data_ + *other.data_;
-    return TensorImpl(std::move(result));
-}
 
-template <typename T>
-TensorImpl TensorImpl::operator+(T scalar) const
-{
-    auto result = data_->add_scalar<T>(scalar);
-    return TensorImpl(std::move(result));
-}
-
-TensorImpl TensorImpl::operator-(const TensorImpl &other) const
-{
-    auto result = *data_ - *other.data_;
-    return TensorImpl(std::move(result));
-}
-
-TensorImpl TensorImpl::operator*(const TensorImpl &other) const
-{
-    auto result = *data_ * *other.data_;
-    return TensorImpl(std::move(result));
-}
-
-TensorImpl TensorImpl::operator/(const TensorImpl &other) const
-{
-    auto result = *data_ / *other.data_;
-    return TensorImpl(std::move(result));
-}
-
-TensorImpl TensorImpl::operator-() const
-{
-    auto result = -*data_;
-    return TensorImpl(std::move(result));
-}
 
 // 访问器方法实现
 Shape TensorImpl::shape() const
@@ -283,27 +246,7 @@ T *TensorImpl::data_ptr()
 }
 
 // === 泛型标量操作实现 ===
-
-template <typename T>
-TensorImpl TensorImpl::operator-(T scalar) const
-{
-    auto result = data_->operator-(scalar);
-    return TensorImpl(std::move(result));
-}
-
-template <typename T>
-TensorImpl TensorImpl::operator*(T scalar) const
-{
-    auto result = data_->mul_scalar<T>(scalar);
-    return TensorImpl(std::move(result));
-}
-
-template <typename T>
-TensorImpl TensorImpl::operator/(T scalar) const
-{
-    auto result = data_->operator/(scalar);
-    return TensorImpl(std::move(result));
-}
+// 标量运算符已移除，统一通过算子层处理
 
 int TensorImpl::backend_type() const
 {
@@ -349,29 +292,9 @@ template std::vector<double> TensorImpl::to_vector<double>() const;
 template std::vector<int32_t> TensorImpl::to_vector<int32_t>() const;
 template std::vector<int8_t> TensorImpl::to_vector<int8_t>() const;
 
-// 泛型标量操作
-template TensorImpl TensorImpl::operator+<float>(float scalar) const;
-template TensorImpl TensorImpl::operator+<double>(double scalar) const;
-template TensorImpl TensorImpl::operator+<int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator+<int8_t>(int8_t scalar) const;
-
-template TensorImpl TensorImpl::operator-<float>(float scalar) const;
-template TensorImpl TensorImpl::operator-<double>(double scalar) const;
-template TensorImpl TensorImpl::operator-<int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator-<int8_t>(int8_t scalar) const;
-
-template TensorImpl TensorImpl::operator*<float>(float scalar) const;
-template TensorImpl TensorImpl::operator*<double>(double scalar) const;
-template TensorImpl TensorImpl::operator*<int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator*<int8_t>(int8_t scalar) const;
-
-template TensorImpl TensorImpl::operator/<float>(float scalar) const;
-template TensorImpl TensorImpl::operator/<double>(double scalar) const;
-template TensorImpl TensorImpl::operator/<int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator/<int8_t>(int8_t scalar) const;
+// 泛型标量操作已移除，统一通过算子层处理
 
 // 额外的模板实例化（只添加新的类型）
-template TensorImpl TensorImpl::operator+<unsigned long>(unsigned long scalar) const;
 template unsigned long TensorImpl::item<unsigned long>() const;
 template unsigned long *TensorImpl::data_ptr<unsigned long>();
 template std::vector<unsigned long> TensorImpl::to_vector<unsigned long>() const;

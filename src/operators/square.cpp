@@ -26,25 +26,15 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
     {
         THROW_RUNTIME_ERROR("Square backward requires exactly 1 gradient, but got {}", gys.size());
     }
-    auto x  = &mat(this->inputs_[0]);
-    auto gy = &mat(gys[0]);
+    auto &x  = mat(this->inputs_[0]);
+    auto &gy = mat(gys[0]);
 
     // 使用抽象层进行梯度计算
-    auto temp_mult = *x * *gy;
-    // 使用OriginMat的标量乘法函数
-    auto origin_mat = dynamic_cast<const OriginMat *>(temp_mult.get());
-    Tensor gx;
-    if (origin_mat)
-    {
-        auto gx_result = origin_mat->multiply_scalar(2.0);
-        gx             = convert_mat_to_tensor(std::move(gx_result));
-    }
-    else
-    {
-        // 如果不是OriginMat，使用通用方法
-        auto gx_result = *temp_mult * 2.0;
-        gx             = convert_mat_to_tensor(std::move(gx_result));
-    }
+    auto temp_mult = x * gy;
+    // 创建标量2.0的张量
+    auto scalar_2 = Tensor(2, Shape({}), dtype(x.dtype()).device(x.device()));
+    auto gx_result = *temp_mult * mat(scalar_2);
+    auto gx        = convert_mat_to_tensor(std::move(gx_result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(gx);
