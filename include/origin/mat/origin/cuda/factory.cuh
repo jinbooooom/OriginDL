@@ -38,6 +38,16 @@ std::unique_ptr<origin::OriginMat> ones(const Shape &shape, const TensorOptions 
  */
 std::unique_ptr<origin::OriginMat> full(const Shape &shape, const Scalar &scalar, const TensorOptions &options);
 
+/**
+ * @brief 从内存数据创建CUDA张量
+ * @param data 原始数据指针
+ * @param user_dtype 用户数据类型
+ * @param shape 张量形状
+ * @param options 张量选项（必须指定CUDA设备）
+ * @return 创建的张量
+ */
+std::unique_ptr<origin::OriginMat> from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
+
 }  // namespace cuda
 }  // namespace origin
 
