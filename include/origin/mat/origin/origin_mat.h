@@ -59,7 +59,7 @@ public:
 
     // 两个核心工厂方法
     static std::unique_ptr<Mat> from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
-    static std::unique_ptr<Mat> from_memory(const void *data, const Shape &shape, const TensorOptions &options);
+    static std::unique_ptr<Mat> from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
 
     // Mat interface implementations
     std::unique_ptr<Mat> clone() const override;

@@ -20,10 +20,10 @@ TensorImpl TensorImpl::from_scalar(const Scalar &scalar, const Shape &shape, con
     return TensorImpl(std::move(mat));
 }
 
-TensorImpl TensorImpl::from_memory(const void *data, const Shape &shape, const TensorOptions &options)
+TensorImpl TensorImpl::from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options)
 {
     // 直接调用OriginMat工厂方法
-    auto mat = OriginMat::from_memory(data, shape, options);
+    auto mat = OriginMat::from_memory(data, user_dtype, shape, options);
     return TensorImpl(std::move(mat));
 }
 

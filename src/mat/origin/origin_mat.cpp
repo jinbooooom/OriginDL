@@ -74,29 +74,25 @@ std::unique_ptr<Mat> OriginMat::from_scalar(const Scalar &scalar, const Shape &s
     }
 }
 
-std::unique_ptr<Mat> OriginMat::from_memory(const void *data, const Shape &shape, const TensorOptions &options)
+std::unique_ptr<Mat> OriginMat::from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options)
 {
     utils::validate_shape(shape);
 
-    // 创建存储
-    size_t size  = shape.elements() * utils::get_dtype_size(options.dtype());
-    auto storage = Storage::create(size, options.device().type(), options.device().index());
-
-    // 根据设备类型选择正确的内存复制方法
+    // 根据设备类型选择不同的实现方式
     if (options.device().type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        cudaMemcpy(storage->data(), data, size, cudaMemcpyHostToDevice);
+        // 对于CUDA设备，使用CUDA工厂方法
+        return cuda::from_memory(data, user_dtype, shape, options);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
     }
     else
     {
-        memcpy(storage->data(), data, size);
+        // 对于CPU设备，使用CPU工厂方法
+        return cpu::from_memory(data, user_dtype, shape, options);
     }
-
-    return std::make_unique<OriginMat>(storage, shape, options.dtype());
 }
 
 // Mat interface implementations - 委托给CPU模块

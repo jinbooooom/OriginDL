@@ -50,6 +50,7 @@ std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &option
 std::unique_ptr<OriginMat> zeros(const Shape &shape, const TensorOptions &options);
 std::unique_ptr<OriginMat> ones(const Shape &shape, const TensorOptions &options);
 std::unique_ptr<OriginMat> full(const Shape &shape, const Scalar &scalar, const TensorOptions &options);
+std::unique_ptr<OriginMat> from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
 
 }  // namespace cpu
 }  // namespace origin

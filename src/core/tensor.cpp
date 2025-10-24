@@ -60,12 +60,8 @@ Tensor Tensor::full(const Shape &shape, const Scalar &value, const TensorOptions
 Tensor Tensor::from_blob(void *data, const Shape &shape, const TensorOptions &options)
 {
     Tensor result;
-    result.from_memory(data, shape, options);
-    // 如果设备不是CPU，需要移动到指定设备
-    if (options.device().type() != DeviceType::kCPU)
-    {
-        result = result.to(options);
-    }
+    result.from_memory(data, options.dtype(), shape, options);
+
     return result;
 }
 
@@ -216,7 +212,7 @@ int Tensor::backend_type() const
 
 // === 私有方法实现 ===
 
-void Tensor::from_memory(const void *data, const Shape &shape, const TensorOptions &options)
+void Tensor::from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options)
 {
     // 验证形状是否有效
     // 0维张量（标量张量）是合法的，但其他维度不能为0
@@ -233,7 +229,7 @@ void Tensor::from_memory(const void *data, const Shape &shape, const TensorOptio
     }
 
     // 直接调用TensorImpl工厂方法
-    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(data, shape, options));
+    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(data, user_dtype, shape, options));
 }
 
 void Tensor::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
@@ -256,78 +252,8 @@ void Tensor::from_scalar(const Scalar &scalar, const Shape &shape, const TensorO
     impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar, shape, options));
 }
 
-template <typename T>
-void Tensor::from_memory(const T *data, size_t count, const Shape &shape, const TensorOptions &options)
-{
-    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
 
-    // 验证数据大小
-    if (count != shape.elements())
-    {
-        THROW_INVALID_ARG("Data count {} does not match shape elements {}", count, shape.elements());
-    }
 
-    // 验证形状是否有效
-    // 0维张量（标量张量）是合法的，但其他维度不能为0
-    if (!shape.is_scalar())
-    {
-        for (size_t i = 0; i < shape.size(); ++i)
-        {
-            if (shape[i] == 0)
-            {
-                THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
-                                  shape.to_string());
-            }
-        }
-    }
-
-    // 根据目标类型进行转换
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            std::vector<float> converted_data(count);
-            for (size_t i = 0; i < count; ++i)
-            {
-                converted_data[i] = static_cast<float>(data[i]);
-            }
-            impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(converted_data.data(), shape, options));
-            break;
-        }
-        case DataType::kDouble:
-        {
-            std::vector<double> converted_data(count);
-            for (size_t i = 0; i < count; ++i)
-            {
-                converted_data[i] = static_cast<double>(data[i]);
-            }
-            impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(converted_data.data(), shape, options));
-            break;
-        }
-        case DataType::kInt32:
-        {
-            std::vector<int32_t> converted_data(count);
-            for (size_t i = 0; i < count; ++i)
-            {
-                converted_data[i] = static_cast<int32_t>(data[i]);
-            }
-            impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(converted_data.data(), shape, options));
-            break;
-        }
-        case DataType::kInt8:
-        {
-            std::vector<int8_t> converted_data(count);
-            for (size_t i = 0; i < count; ++i)
-            {
-                converted_data[i] = static_cast<int8_t>(data[i]);
-            }
-            impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(converted_data.data(), shape, options));
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(options.dtype()));
-    }
-}
 
 // === 模板实例化 ===
 
@@ -350,26 +276,7 @@ template std::vector<int32_t> Tensor::to_vector<int32_t>() const;
 template std::vector<int8_t> Tensor::to_vector<int8_t>() const;
 template std::vector<unsigned long> Tensor::to_vector<unsigned long>() const;
 
-// 泛型标量操作
-// 成员操作符模板实例化已移除，使用全局操作符重载
 
-// 内部辅助方法
-template void Tensor::from_memory<float>(const float *data,
-                                         size_t count,
-                                         const Shape &shape,
-                                         const TensorOptions &options);
-template void Tensor::from_memory<double>(const double *data,
-                                          size_t count,
-                                          const Shape &shape,
-                                          const TensorOptions &options);
-template void Tensor::from_memory<int32_t>(const int32_t *data,
-                                           size_t count,
-                                           const Shape &shape,
-                                           const TensorOptions &options);
-template void Tensor::from_memory<int8_t>(const int8_t *data,
-                                          size_t count,
-                                          const Shape &shape,
-                                          const TensorOptions &options);
 
 
 }  // namespace origin

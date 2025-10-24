@@ -10,8 +10,8 @@ int main()
     t1.print("t1");
 
     // 创建一维数组
-    std::vector<origin::data_t> d2 = {1.01, 2.01, 3.01};
-    origin::Tensor t2(d2, origin::Shape{3});
+    std::vector<double> d2 = {1.01, 2.01, 3.01};
+    origin::Tensor t2(d2, origin::Shape{3}, origin::dtype("int32"));
     t2.print("t2");
 
     // 创建二维数组

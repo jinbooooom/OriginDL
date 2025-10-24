@@ -79,12 +79,7 @@ public:
                                         ") does not match shape elements (" + std::to_string(expected_elements) + ")");
         }
 
-        from_memory(data.data(), data.size(), shape, options);
-        // 如果设备不是CPU，需要移动到指定设备
-        if (options.device().type() != DeviceType::kCPU)
-        {
-            impl_ = std::make_shared<TensorImpl>(impl_->to(options));
-        }
+        from_memory(data.data(), DataTypeTraits<T>::type, shape, options);
     }
 
     // TODO: 初始化列表的方式到vector的方式有性能问题，未来需要优化
@@ -146,6 +141,7 @@ public:
     static Tensor ones(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor randn(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor full(const Shape &shape, const Scalar &value, const TensorOptions &options = TensorOptions());
+    // data 的类型一定要与 options.dtypa()一致，不然在解引用指针data的时候可能会出现问题。
     static Tensor from_blob(void *data, const Shape &shape, const TensorOptions &options = TensorOptions());
 
     // === 形状和维度 ===
@@ -214,21 +210,11 @@ private:
     /**
      * @brief 从原始数据创建张量
      * @param data 原始数据的指针
+     * @param user_dtype 原始数据类型
      * @param shape 张量形状
      * @param options 张量选项
      */
-    void from_memory(const void *data, const Shape &shape, const TensorOptions &options);
-
-    /**
-     * @brief 从带类型的数据创建张量（显式指定类型）
-     * @details 用于带DataType的构造函数，带类型的数据保持原始类型信息，可以进行类型转换和验证
-     * @param data 带类型数据的指针
-     * @param count 数据元素数量
-     * @param shape 张量形状
-     * @param dtype 目标数据类型
-     */
-    template <typename T>
-    void from_memory(const T *data, size_t count, const Shape &shape, const TensorOptions &options);
+    void from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
 };
 
 
