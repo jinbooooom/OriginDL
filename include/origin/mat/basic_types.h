@@ -166,52 +166,6 @@ inline size_t element_size(DataType dtype)
     }
 }
 
-/**
- * @brief 类型提升规则
- * @param a 第一个数据类型
- * @param b 第二个数据类型
- * @return 提升后的数据类型
- * @note 优先级：double > float > int64 > int32 > int16 > int8
- */
-inline DataType promote_types(DataType a, DataType b)
-{
-    // 如果类型相同，直接返回
-    if (a == b)
-        return a;
-
-    // 浮点数优先级最高
-    if (a == DataType::kFloat64 || b == DataType::kFloat64)
-        return DataType::kFloat64;
-    if (a == DataType::kFloat32 || b == DataType::kFloat32)
-        return DataType::kFloat32;
-
-    // 整数类型按精度排序
-    if (a == DataType::kInt64 || b == DataType::kInt64)
-        return DataType::kInt64;
-    if (a == DataType::kInt32 || b == DataType::kInt32)
-        return DataType::kInt32;
-    if (a == DataType::kInt16 || b == DataType::kInt16)
-        return DataType::kInt16;
-    if (a == DataType::kInt8 || b == DataType::kInt8)
-        return DataType::kInt8;
-
-    // 无符号整数
-    if (a == DataType::kUInt64 || b == DataType::kUInt64)
-        return DataType::kUInt64;
-    if (a == DataType::kUInt32 || b == DataType::kUInt32)
-        return DataType::kUInt32;
-    if (a == DataType::kUInt16 || b == DataType::kUInt16)
-        return DataType::kUInt16;
-    if (a == DataType::kUInt8 || b == DataType::kUInt8)
-        return DataType::kUInt8;
-
-    // 布尔类型
-    if (a == DataType::kBool || b == DataType::kBool)
-        return DataType::kBool;
-
-    // 默认返回第一个类型
-    return a;
-}
 
 // 编译时字符串获取（推荐使用）
 template <typename T>

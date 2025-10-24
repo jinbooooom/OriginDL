@@ -1,6 +1,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/utils/exception.h"
+#include "origin/mat/type_promotion.h"
 
 namespace origin
 {
@@ -15,30 +16,19 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
     shape0_ = xs[0].shape();
     shape1_ = xs[1].shape();
 
-    // 检查类型是否匹配，如果不匹配则进行类型提升
-    if (xs[0].dtype() != xs[1].dtype())
+    // 使用统一的类型提升工具
+    if (TypePromotion::needs_promotion(xs))
     {
-        // 自动类型提升
-        DataType promoted_type = promote_types(xs[0].dtype(), xs[1].dtype());
-        Tensor x0              = xs[0].dtype() == promoted_type ? xs[0] : xs[0].to(promoted_type);
-        Tensor x1              = xs[1].dtype() == promoted_type ? xs[1] : xs[1].to(promoted_type);
-
-        // 使用提升后的张量进行运算
-        auto result = mat(x0) + mat(x1);
-        auto y      = convert_mat_to_tensor(std::move(result));
-
-        std::vector<Tensor> outputs;
-        outputs.push_back(y);
-        return outputs;
+        auto promoted_tensors = TypePromotion::promote_tensors(xs);
+        auto result = mat(promoted_tensors[0]) + mat(promoted_tensors[1]);
+        auto y = convert_mat_to_tensor(std::move(result));
+        return std::vector<Tensor>{y};
     }
 
     // 类型匹配，直接运算
     auto result = mat(xs[0]) + mat(xs[1]);
-    auto y      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    auto y = convert_mat_to_tensor(std::move(result));
+    return std::vector<Tensor>{y};
 }
 
 std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
@@ -48,6 +38,29 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
         THROW_RUNTIME_ERROR("Add backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
+    // 使用统一的类型提升工具
+    if (TypePromotion::needs_promotion(this->inputs_))
+    {
+        auto promoted_inputs = TypePromotion::promote_tensors(this->inputs_);
+        // 使用提升后的输入进行梯度计算
+        auto gx0 = gys[0];
+        auto gx1 = gys[0];
+        if (shape0_ != shape1_)
+        {
+            // 实现 sum_to 功能：将梯度广播回原始形状
+            if (gx0.shape() != shape0_)
+            {
+                gx0 = sum_to(gx0, shape0_);
+            }
+            if (gx1.shape() != shape1_)
+            {
+                gx1 = sum_to(gx1, shape1_);
+            }
+        }
+        return std::vector<Tensor>{gx0, gx1};
+    }
+
+    // 类型匹配，直接处理
     auto gx0 = gys[0];
     auto gx1 = gys[0];
     if (shape0_ != shape1_)
@@ -62,10 +75,7 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
             gx1 = sum_to(gx1, shape1_);
         }
     }
-    std::vector<Tensor> gxs;
-    gxs.push_back(gx0);
-    gxs.push_back(gx1);
-    return gxs;
+    return std::vector<Tensor>{gx0, gx1};
 }
 
 Tensor add(const std::vector<Tensor> &xs)
