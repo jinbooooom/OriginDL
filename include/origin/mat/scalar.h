@@ -82,9 +82,6 @@ public:
     [[nodiscard]] auto to_uint64() const -> uint64_t;
     [[nodiscard]] auto to_bool() const -> bool;
 
-    // 转换为data_t（保持向后兼容）
-    [[nodiscard]] auto toDataT() const -> data_t { return to_float32(); }  // data_t是float的别名
-
     // 类型查询
     [[nodiscard]] auto dtype() const -> DataType { return type_; }
 

@@ -32,12 +32,6 @@ void launch_add_kernel(const T *a, const T *b, T *c, size_t n, cudaStream_t stre
     dim3 grid  = get_optimal_grid_size(n, block);
 
     add_kernel<T><<<grid, block, 0, stream>>>(a, b, c, n);
-
-    cudaError_t err = cudaGetLastError();
-    if (unlikely(err != cudaSuccess))
-    {
-        THROW_RUNTIME_ERROR("CUDA add kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 // 运行时类型分发

@@ -90,10 +90,8 @@ public:
 extern Tensor add(const std::vector<Tensor> &xs);
 extern Tensor add(const Tensor &lhs, const Tensor &rhs);
 Tensor operator+(const Tensor &lhs, const Tensor &rhs);
-template <typename T>
-Tensor operator+(const Tensor &lhs, T rhs);
-template <typename T>
-Tensor operator+(T lhs, const Tensor &rhs);
+Tensor operator+(const Tensor &lhs, const Scalar &rhs);
+Tensor operator+(const Scalar &lhs, const Tensor &rhs);
 
 class Sub : public Operator
 {
@@ -109,10 +107,8 @@ public:
 extern Tensor sub(const std::vector<Tensor> &xs);
 extern Tensor sub(const Tensor &lhs, const Tensor &rhs);
 Tensor operator-(const Tensor &lhs, const Tensor &rhs);
-template <typename T>
-Tensor operator-(const Tensor &lhs, T rhs);
-template <typename T>
-Tensor operator-(T lhs, const Tensor &rhs);
+Tensor operator-(const Tensor &lhs, const Scalar &rhs);
+Tensor operator-(const Scalar &lhs, const Tensor &rhs);
 
 class Mul : public Operator
 {
@@ -128,10 +124,8 @@ public:
 extern Tensor mul(const std::vector<Tensor> &xs);
 extern Tensor mul(const Tensor &lhs, const Tensor &rhs);
 Tensor operator*(const Tensor &lhs, const Tensor &rhs);
-template <typename T>
-Tensor operator*(const Tensor &lhs, T rhs);
-template <typename T>
-Tensor operator*(T lhs, const Tensor &rhs);
+Tensor operator*(const Tensor &lhs, const Scalar &rhs);
+Tensor operator*(const Scalar &lhs, const Tensor &rhs);
 
 class Div : public Operator
 {
@@ -147,10 +141,8 @@ public:
 extern Tensor div(const std::vector<Tensor> &xs);
 extern Tensor div(const Tensor &lhs, const Tensor &rhs);
 Tensor operator/(const Tensor &lhs, const Tensor &rhs);
-template <typename T>
-Tensor operator/(const Tensor &lhs, T rhs);
-template <typename T>
-Tensor operator/(T lhs, const Tensor &rhs);
+Tensor operator/(const Tensor &lhs, const Scalar &rhs);
+Tensor operator/(const Scalar &lhs, const Tensor &rhs);
 
 class Square : public Operator
 {

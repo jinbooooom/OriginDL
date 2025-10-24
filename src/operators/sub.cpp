@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/core/tensor.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -13,7 +14,25 @@ std::vector<Tensor> Sub::forward(const std::vector<Tensor> &xs)
 
     shape0_ = xs[0].shape();
     shape1_ = xs[1].shape();
-    // 使用抽象层进行减法运算
+
+    // 检查类型是否匹配，如果不匹配则进行类型提升
+    if (xs[0].dtype() != xs[1].dtype())
+    {
+        // 自动类型提升
+        DataType promoted_type = promote_types(xs[0].dtype(), xs[1].dtype());
+        Tensor x0              = xs[0].dtype() == promoted_type ? xs[0] : xs[0].to(promoted_type);
+        Tensor x1              = xs[1].dtype() == promoted_type ? xs[1] : xs[1].to(promoted_type);
+
+        // 使用提升后的张量进行运算
+        auto result = mat(x0) - mat(x1);
+        auto y      = convert_mat_to_tensor(std::move(result));
+
+        std::vector<Tensor> outputs;
+        outputs.push_back(y);
+        return outputs;
+    }
+
+    // 类型匹配，直接运算
     auto result = mat(xs[0]) - mat(xs[1]);
     auto y      = convert_mat_to_tensor(std::move(result));
     std::vector<Tensor> outputs;
@@ -27,6 +46,8 @@ std::vector<Tensor> Sub::backward(const std::vector<Tensor> &gys)
     {
         THROW_RUNTIME_ERROR("Sub backward requires exactly 1 gradient, but got {}", gys.size());
     }
+
+    // TODO: 未来需要在backward中也实现类型提升逻辑
 
     auto gx0 = gys[0];
     // 使用负号运算符
@@ -68,33 +89,16 @@ Tensor operator-(const Tensor &lhs, const Tensor &rhs)
     return sub(lhs, rhs);
 }
 
-template <typename T>
-Tensor operator-(const Tensor &lhs, T rhs)
+Tensor operator-(const Tensor &lhs, const Scalar &rhs)
 {
-    auto dims = lhs.shape();
-    auto x    = Tensor(rhs, dims);
+    auto x = Tensor(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
     return sub(lhs, x);
 }
 
-template <typename T>
-Tensor operator-(T lhs, const Tensor &rhs)
+Tensor operator-(const Scalar &lhs, const Tensor &rhs)
 {
-    auto dims = rhs.shape();
-    auto x    = Tensor(lhs, dims);
+    auto x = Tensor(lhs, Shape({}), dtype(lhs.dtype()).device(rhs.device()));
     return sub(x, rhs);
 }
-
-// 模板实例化
-template Tensor operator-(const Tensor &lhs, float rhs);
-template Tensor operator-(const Tensor &lhs, double rhs);
-template Tensor operator-(const Tensor &lhs, int32_t rhs);
-template Tensor operator-(const Tensor &lhs, int8_t rhs);
-template Tensor operator-(const Tensor &lhs, unsigned long rhs);
-
-template Tensor operator-(float lhs, const Tensor &rhs);
-template Tensor operator-(double lhs, const Tensor &rhs);
-template Tensor operator-(int32_t lhs, const Tensor &rhs);
-template Tensor operator-(int8_t lhs, const Tensor &rhs);
-template Tensor operator-(unsigned long lhs, const Tensor &rhs);
 
 }  // namespace origin

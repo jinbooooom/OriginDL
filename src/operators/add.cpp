@@ -85,7 +85,7 @@ Tensor operator+(const Tensor &lhs, const Tensor &rhs)
 
 Tensor operator+(const Tensor &lhs, const Scalar &rhs)
 {
-    auto x = Tensor(rhs, Shape({}), TensorOptions(rhs.dtype()).device(lhs.device()));
+    auto x = Tensor(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
     return add(lhs, x);
 }
 
@@ -93,27 +93,5 @@ Tensor operator+(const Scalar &lhs, const Tensor &rhs)
 {
     return rhs + lhs;
 }
-
-// 模板版本的operator+函数
-template <typename T>
-Tensor operator+(const Tensor &lhs, T rhs)
-{
-    auto x = Tensor(rhs, Shape({}), dtype(DataTypeTraits<T>::type).device(lhs.device()));
-    return add(lhs, x);
-}
-
-template <typename T>
-Tensor operator+(T lhs, const Tensor &rhs)
-{
-    return rhs + lhs;
-}
-
-// 显式实例化
-template Tensor operator+<float>(const Tensor &lhs, float rhs);
-template Tensor operator+<float>(float lhs, const Tensor &rhs);
-template Tensor operator+<double>(const Tensor &lhs, double rhs);
-template Tensor operator+<double>(double lhs, const Tensor &rhs);
-template Tensor operator+<int32_t>(const Tensor &lhs, int32_t rhs);
-template Tensor operator+<int32_t>(int32_t lhs, const Tensor &rhs);
 
 }  // namespace origin
