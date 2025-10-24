@@ -145,7 +145,7 @@ public:
     static Tensor zeros(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor ones(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor randn(const Shape &shape, const TensorOptions &options = TensorOptions());
-    static Tensor full(const Shape &shape, double value, const TensorOptions &options = TensorOptions());
+    static Tensor full(const Shape &shape, const Scalar &value, const TensorOptions &options = TensorOptions());
     static Tensor from_blob(void *data, const Shape &shape, const TensorOptions &options = TensorOptions());
 
     // === 形状和维度 ===
