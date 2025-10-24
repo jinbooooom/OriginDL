@@ -136,6 +136,11 @@ public:
         from_scalar(scalar, shape, options);
     }
 
+    Tensor(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
+    {
+        impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar, shape, options));
+    }
+
     // === 工厂方法（只保留TensorOptions版本）===
     static Tensor zeros(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor ones(const Shape &shape, const TensorOptions &options = TensorOptions());
@@ -194,9 +199,6 @@ private:
     // 从Mat创建Tensor的构造函数 - 仅限友元类使用
     Tensor(std::unique_ptr<Mat> mat);
 
-    // 私有Scalar构造函数，仅供内部使用
-    Tensor(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
-
     // 友元函数，供内部使用
     friend Tensor create_tensor_from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
 
@@ -207,8 +209,7 @@ private:
      * @param shape 张量形状
      * @param options 张量选项
      */
-    template <typename T>
-    void from_scalar(T scalar, const Shape &shape, const TensorOptions &options);
+    void from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
 
     /**
      * @brief 从原始数据创建张量
@@ -230,8 +231,6 @@ private:
     void from_memory(const T *data, size_t count, const Shape &shape, const TensorOptions &options);
 };
 
-// 友元函数声明，供内部使用
-Tensor create_tensor_from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
 
 }  // namespace origin
 

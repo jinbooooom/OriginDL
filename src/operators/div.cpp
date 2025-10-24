@@ -93,7 +93,7 @@ template <typename T>
 Tensor operator/(T lhs, const Tensor &rhs)
 {
     auto dims = rhs.shape();
-    auto x    = Tensor(lhs, dims);
+    auto x    = Tensor(lhs, dims, device(DeviceType::kCPU));
     return div(x, rhs);
 }
 
