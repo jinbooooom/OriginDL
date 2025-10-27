@@ -140,12 +140,12 @@ void launch_pow_scalar_kernel(const T *input, T *output, U exponent, size_t n)
     if constexpr (std::is_same<T, double>::value || std::is_same<U, double>::value)
     {
         // 有double类型，使用double版本（pow函数，高精度）
-        pow_scalar_kernel_double<<<grid_size, block_size>>>((const double *)input, (double *)output, exponent, n);
+        pow_scalar_kernel_double<<<grid_size, block_size>>>((const double *)input, (double *)output, (double)exponent, n);
     }
     else
     {
         // 都是float或更小类型，使用float版本（powf函数，高性能）
-        pow_scalar_kernel_float<<<grid_size, block_size>>>((const float *)input, (float *)output, exponent, n);
+        pow_scalar_kernel_float<<<grid_size, block_size>>>((const float *)input, (float *)output, (float)exponent, n);
     }
 }
 
@@ -164,9 +164,13 @@ auto pow(const OriginMat &base, const Scalar &exponent) -> std::unique_ptr<Mat>
     auto result = std::make_unique<OriginMat>(base.shape(), base.dtype(), base.device());
 
     device_common::TypeDispatcher::dispatch_void(base.dtype(), [&]<typename T>() {
-        launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(),
-                                 exponent.dtype() == DataType::kFloat64 ? exponent.to_float64() : exponent.to_float32(),
-                                 base.elements());
+        if (exponent.dtype() == DataType::kFloat64) {
+            launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(),
+                                     exponent.to_float64(), base.elements());
+        } else {
+            launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(),
+                                     exponent.to_float32(), base.elements());
+        }
     });
 
     cudaDeviceSynchronize();
