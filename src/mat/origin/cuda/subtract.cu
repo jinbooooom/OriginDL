@@ -30,12 +30,6 @@ void launch_subtract_kernel(const T *a, const T *b, T *c, size_t n, cudaStream_t
 {
     // 使用通用的内核启动器
     launch_elementwise_kernel<T, SubtractOp>(a, b, c, n, SubtractOp{}, stream);
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA subtract kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -82,12 +76,6 @@ void dispatch_scalar_broadcast_subtract(DataType dtype,
             <<<grid, block, 0, stream>>>(static_cast<const T *>(a), static_cast<const T *>(b), static_cast<T *>(c),
                                          a_elements, b_elements, c_elements, SubtractOp{});
     });
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA scalar broadcast subtract kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

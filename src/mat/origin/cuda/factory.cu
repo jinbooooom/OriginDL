@@ -78,13 +78,6 @@ void launch_ones_kernel(T *data, size_t n)
     const size_t block_size = 256;
     const size_t grid_size  = (n + block_size - 1) / block_size;
     ones_kernel<T><<<grid_size, block_size>>>(data, n);
-
-    // 检查kernel启动是否成功
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("Failed to launch ones kernel: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -97,13 +90,6 @@ void launch_zeros_kernel(T *data, size_t n)
     const size_t block_size = 256;
     const size_t grid_size  = (n + block_size - 1) / block_size;
     zeros_kernel<T><<<grid_size, block_size>>>(data, n);
-
-    // 检查kernel启动是否成功
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("Failed to launch zeros kernel: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

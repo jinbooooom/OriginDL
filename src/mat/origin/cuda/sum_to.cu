@@ -218,13 +218,6 @@ void launch_sum_to_kernel(const T *input,
 
     sum_to_kernel<T>
         <<<grid_size, block_size>>>(input, output, input_shape, output_shape, input_strides, output_strides, n, ndim);
-
-    // 检查错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA sum_to kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

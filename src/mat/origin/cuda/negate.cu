@@ -49,11 +49,6 @@ void launch_negate_kernel(const T *a, T *c, size_t n, cudaStream_t stream = 0)
         unary_kernel<T, NegOp><<<grid, block, 0, stream>>>(a, c, n, NegOp{});
     }
 
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA negate kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

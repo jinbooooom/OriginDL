@@ -212,13 +212,6 @@ void launch_matmul_2d_kernel(const T *a, const T *b, T *c, int M, int N, int K)
 
         matmul_2d_kernel<T><<<grid, block>>>(a, b, c, M, N, K);
     }
-
-    // 检查错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA matmul kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

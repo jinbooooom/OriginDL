@@ -180,13 +180,6 @@ void launch_sum_reduce_kernel(const T *input, T *output, size_t n)
             remaining = new_grid_size;
         }
     }
-
-    // 检查错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA sum reduce kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -206,12 +199,6 @@ void launch_sum_axis_kernel(const T *input, T *output, size_t outer_size, size_t
 
     sum_axis_kernel<T><<<grid, block>>>(input, output, outer_size, inner_size, axis_size);
 
-    // 检查错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA sum axis kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

@@ -49,12 +49,6 @@ void launch_exp_kernel(const T *a, T *c, size_t n, cudaStream_t stream = 0)
         // 注意：一元运算不需要共享内存优化，直接使用简单内核
         unary_kernel<T, ExpOp><<<grid, block, 0, stream>>>(a, c, n, ExpOp{});
     }
-
-    cudaError_t err = cudaGetLastError();
-    if (unlikely(err != cudaSuccess))
-    {
-        THROW_RUNTIME_ERROR("CUDA exp kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

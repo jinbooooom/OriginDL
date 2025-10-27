@@ -49,12 +49,6 @@ void launch_square_kernel(const T *a, T *c, size_t n, cudaStream_t stream = 0)
         dim3 grid  = get_optimal_grid_size(n, block);
         unary_kernel<T, SquareOp><<<grid, block, 0, stream>>>(a, c, n, SquareOp{});
     }
-
-    cudaError_t err = cudaGetLastError();
-    if (unlikely(err != cudaSuccess))
-    {
-        THROW_RUNTIME_ERROR("CUDA square kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

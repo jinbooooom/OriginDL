@@ -30,12 +30,6 @@ void launch_divide_kernel(const T *a, const T *b, T *c, size_t n, cudaStream_t s
 {
     // 使用通用的内核启动器
     launch_elementwise_kernel<T, DivideOp>(a, b, c, n, DivideOp{}, stream);
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA divide kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -82,12 +76,6 @@ void dispatch_scalar_broadcast_divide(DataType dtype,
             <<<grid, block, 0, stream>>>(static_cast<const T *>(a), static_cast<const T *>(b), static_cast<T *>(c),
                                          a_elements, b_elements, c_elements, DivideOp{});
     });
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA scalar broadcast divide kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
