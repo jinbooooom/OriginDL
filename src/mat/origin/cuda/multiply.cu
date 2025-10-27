@@ -30,12 +30,6 @@ void launch_multiply_kernel(const T *a, const T *b, T *c, size_t n, cudaStream_t
 {
     // 使用通用的内核启动器
     launch_elementwise_kernel<T, MultiplyOp>(a, b, c, n, MultiplyOp{}, stream);
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA multiply kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -83,11 +77,6 @@ void dispatch_scalar_broadcast_multiply(DataType dtype,
                                          a_elements, b_elements, c_elements, MultiplyOp{});
     });
 
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA scalar broadcast multiply kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

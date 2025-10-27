@@ -50,11 +50,6 @@ void launch_sqrt_kernel(const T *a, T *c, size_t n, cudaStream_t stream = 0)
         unary_kernel<T, SqrtOp><<<grid, block, 0, stream>>>(a, c, n, SqrtOp{});
     }
 
-    cudaError_t err = cudaGetLastError();
-    if (unlikely(err != cudaSuccess))
-    {
-        THROW_RUNTIME_ERROR("CUDA sqrt kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

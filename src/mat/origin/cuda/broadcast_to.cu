@@ -118,13 +118,6 @@ void launch_broadcast_kernel(const T *input, T *output, size_t src_elements, siz
     const int grid_size  = (dst_elements + block_size - 1) / block_size;
 
     broadcast_kernel<T><<<grid_size, block_size>>>(input, output, src_elements, dst_elements);
-
-    // 检查错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA broadcast kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

@@ -464,12 +464,6 @@ void launch_elementwise_kernel(const T *a, const T *b, T *c, size_t n, Op op, cu
     // 启动内核
     elementwise_kernel<T, Op><<<grid, block, 0, stream>>>(a, b, c, n, op);
 
-    // 检查错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA elementwise kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -482,12 +476,6 @@ void launch_unary_kernel(const T *a, T *c, size_t n, Op op, cudaStream_t stream)
     dim3 grid  = get_optimal_grid_size(n, block);
 
     unary_kernel<T, Op><<<grid, block, 0, stream>>>(a, c, n, op);
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA unary kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -500,12 +488,6 @@ void launch_scalar_kernel(const T *a, T scalar, T *c, size_t n, Op op, cudaStrea
     dim3 grid  = get_optimal_grid_size(n, block);
 
     scalar_kernel<T, Op><<<grid, block, 0, stream>>>(a, scalar, c, n, op);
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA scalar kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -528,12 +510,6 @@ void launch_matmul_kernel(const T *a, const T *b, T *c, int M, int N, int K, cud
     {
         // 小矩阵使用基础内核
         matmul_kernel<T><<<grid, block, 0, stream>>>(a, b, c, M, N, K);
-    }
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA matmul kernel launch failed: {}", cudaGetErrorString(err));
     }
 }
 

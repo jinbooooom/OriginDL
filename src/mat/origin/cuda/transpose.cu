@@ -149,12 +149,6 @@ void launch_transpose_2d_kernel(const T *input, T *output, int rows, int cols)
     // 启动内核
     transpose_2d_kernel<T><<<grid, block>>>(input, output, rows, cols);
 
-    // 检查错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA transpose 2D kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
@@ -177,13 +171,6 @@ void launch_transpose_nd_kernel(const T *input, T *output, int last_dim, int sec
 
     // 启动内核
     transpose_nd_kernel<T><<<grid, block>>>(input, output, last_dim, second_last_dim, outer_elements);
-
-    // 检查错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        THROW_RUNTIME_ERROR("CUDA transpose ND kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**

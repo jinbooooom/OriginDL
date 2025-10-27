@@ -49,12 +49,6 @@ void launch_log_kernel(const T *a, T *c, size_t n, cudaStream_t stream = 0)
         dim3 grid  = get_optimal_grid_size(n, block);
         unary_kernel<T, LogOp><<<grid, block, 0, stream>>>(a, c, n, LogOp{});
     }
-
-    cudaError_t err = cudaGetLastError();
-    if (unlikely(err != cudaSuccess))
-    {
-        THROW_RUNTIME_ERROR("CUDA log kernel launch failed: {}", cudaGetErrorString(err));
-    }
 }
 
 /**
