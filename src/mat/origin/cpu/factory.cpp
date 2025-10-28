@@ -10,7 +10,7 @@ namespace origin
 {
 namespace cpu
 {
-
+// TODO:未来删除 switch case 语句，使用 TypeDispatcher 进行类型分发。
 std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &options)
 {
     auto result = std::make_unique<OriginMat>(shape, options.dtype());

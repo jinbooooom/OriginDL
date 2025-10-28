@@ -20,8 +20,6 @@ protected:
 
     void SetUp() override
     {
-        // 跳过所有测试：线性回归依赖多个没有CUDA实现的操作
-        GTEST_SKIP() << "Linear regression CUDA implementation not available yet (depends on sum, matmul, etc.)";
     }
 
     void TearDown() override
@@ -43,7 +41,8 @@ protected:
         auto diff       = x0 - x1;
         auto sum_result = origin::sum(origin::pow(diff, 2.0f));
         // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-        auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(), Float32);
+        auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(), 
+                              dtype(Float32).device(sum_result.device()));
         auto result   = sum_result / elements;
         return result;
     }
