@@ -84,6 +84,20 @@ auto Scalar::to_bool() const -> bool
 }
 
 // 字符串表示
+// 类型后缀说明：
+// - float:    使用 "f" 后缀 (如 3.14f)
+// - double:   无后缀，默认浮点类型 (如 3.14)
+// - int8_t:   无后缀，C++标准中无对应字面量后缀 (如 42)
+// - int16_t:  无后缀，C++标准中无对应字面量后缀 (如 42)
+// - int32_t:  无后缀，C++标准中无对应字面量后缀 (如 42)
+// - int64_t:  使用 "LL" 后缀，对应 long long (如 42LL)
+// - uint8_t:  使用 "U" 后缀，转换为 unsigned 显示 (如 42U)
+// - uint16_t: 使用 "U" 后缀，对应 unsigned (如 42U)
+// - uint32_t: 使用 "U" 后缀，对应 unsigned (如 42U)
+// - uint64_t: 使用 "ULL" 后缀，对应 unsigned long long (如 42ULL)
+// - bool:     使用 "true"/"false" 字面量 (如 true)
+// 注意：int8_t/int16_t/int32_t 在C++标准中没有对应的字面量后缀，
+//       因此直接显示数值，必要时进行类型转换以避免符号扩展问题
 auto Scalar::to_string() const -> std::string
 {
     std::ostringstream oss;
@@ -93,7 +107,7 @@ auto Scalar::to_string() const -> std::string
             oss << v.f32 << "f";
             break;
         case DataType::kFloat64:
-            oss << v.f64;
+            oss << v.f64;  // double 默认无后缀
             break;
         case DataType::kInt8:
             oss << static_cast<int>(v.i8);
@@ -105,7 +119,7 @@ auto Scalar::to_string() const -> std::string
             oss << v.i32;
             break;
         case DataType::kInt64:
-            oss << v.i64 << "L";
+            oss << v.i64 << "LL";
             break;
         case DataType::kUInt8:
             oss << static_cast<unsigned>(v.u8) << "U";
@@ -117,7 +131,7 @@ auto Scalar::to_string() const -> std::string
             oss << v.u32 << "U";
             break;
         case DataType::kUInt64:
-            oss << v.u64 << "UL";
+            oss << v.u64 << "ULL";
             break;
         case DataType::kBool:
             oss << (v.b ? "true" : "false");
