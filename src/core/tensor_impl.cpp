@@ -76,44 +76,12 @@ void TensorImpl::set_creator(const FunctionPtr &func)
 void TensorImpl::backward()
 {
     // 如果梯度为空，初始化为全1（输出张量的梯度）
-    // 梯度类型应与数据类型一致
+    // 梯度类型应与数据类型一致，设备应与数据设备一致
     if (!grad_)
     {
-        auto data_type = data_->dtype();
-        switch (data_type)
-        {
-            case DataType::kFloat32:
-            {
-                Scalar scalar_val(1.0f);
-                TensorOptions options(DataType::kFloat32);
-                grad_ = OriginMat::from_scalar(scalar_val, data_->shape(), options);
-                break;
-            }
-            case DataType::kDouble:
-            {
-                Scalar scalar_val(1.0);
-                TensorOptions options(DataType::kDouble);
-                grad_ = OriginMat::from_scalar(scalar_val, data_->shape(), options);
-                break;
-            }
-            case DataType::kInt32:
-            {
-                Scalar scalar_val(1);
-                TensorOptions options(DataType::kInt32);
-                grad_ = OriginMat::from_scalar(scalar_val, data_->shape(), options);
-                break;
-            }
-            case DataType::kInt8:
-            {
-                Scalar scalar_val(static_cast<int8_t>(1));
-                TensorOptions options(DataType::kInt8);
-                grad_ = OriginMat::from_scalar(scalar_val, data_->shape(), options);
-                break;
-            }
-            default:
-                THROW_INVALID_ARG("Unsupported data type {} for gradient initialization",
-                                  dtype_to_string(data_->dtype()));
-        }
+        auto data_device = data_->device();
+        TensorOptions options = TensorOptions(data_->dtype()).device(data_device);
+        grad_ = OriginMat::from_scalar(1, data_->shape(), options);
     }
 
     auto funcs    = std::list<FunctionPtr>();
