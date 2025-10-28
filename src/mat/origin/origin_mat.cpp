@@ -232,20 +232,6 @@ std::unique_ptr<Mat> OriginMat::operator/(const Mat &other) const
     }
 }
 
-// 标量乘法函数（非虚函数，仅供内部使用）
-std::unique_ptr<Mat> OriginMat::multiply_scalar(data_t scalar) const
-{
-    // 标量乘法：暂时只支持CPU
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::multiply_scalar(*this, scalar);
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Scalar multiplication only supported on CPU for now");
-    }
-}
-
 std::unique_ptr<Mat> OriginMat::operator-() const
 {
     if (storage_->device_type() == DeviceType::kCPU)
