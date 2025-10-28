@@ -104,11 +104,6 @@ public:
     std::unique_ptr<Mat> cos() const override;
     std::unique_ptr<Mat> sqrt() const override;
 
-    // 统计函数
-    data_t sum_all() const override;
-    data_t max_all() const override;
-    data_t min_all() const override;
-    data_t mean_all() const override;
 
     // 0维张量支持
     bool is_scalar() const override;

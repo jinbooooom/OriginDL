@@ -309,27 +309,6 @@ void TorchMat::print(const std::string &desc) const
 template data_t TorchMat::scalar<data_t>() const;
 template int TorchMat::scalar<int>() const;
 
-// 全局聚合函数实现 - 返回标量值
-// 注意：这些函数重命名为 *_all() 是为了避免与 sum(int axis) 等按轴操作的函数名冲突
-data_t TorchMat::sum_all() const
-{
-    return data_.sum().item<data_t>();
-}
-
-data_t TorchMat::max_all() const
-{
-    return data_.max().item<data_t>();
-}
-
-data_t TorchMat::min_all() const
-{
-    return data_.min().item<data_t>();
-}
-
-data_t TorchMat::mean_all() const
-{
-    return data_.mean().item<data_t>();
-}
 
 int TorchMat::backend_type() const
 {

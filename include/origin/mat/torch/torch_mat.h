@@ -191,10 +191,6 @@ public:
     // 数据访问
     template <typename U>
     U scalar() const;
-    data_t sum_all() const override;
-    data_t max_all() const override;
-    data_t min_all() const override;
-    data_t mean_all() const override;
     int backend_type() const override;
 
     // 新增：类型相关方法
