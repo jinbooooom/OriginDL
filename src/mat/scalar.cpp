@@ -3,320 +3,55 @@
 #include "origin/mat/basic_types.h"
 #include "origin/utils/exception.h"
 
+// 宏定义用于简化类型转换函数的实现
+#define SCALAR_CONVERSION_MACRO(return_type, member_name, cast_expr, bool_expr) \
+    auto Scalar::to_##member_name() const -> return_type \
+    { \
+        switch (type_) \
+        { \
+            case DataType::kFloat32: \
+                return cast_expr(v.f32); \
+            case DataType::kFloat64: \
+                return cast_expr(v.f64); \
+            case DataType::kInt8: \
+                return cast_expr(v.i8); \
+            case DataType::kInt16: \
+                return cast_expr(v.i16); \
+            case DataType::kInt32: \
+                return cast_expr(v.i32); \
+            case DataType::kInt64: \
+                return cast_expr(v.i64); \
+            case DataType::kUInt8: \
+                return cast_expr(v.u8); \
+            case DataType::kUInt16: \
+                return cast_expr(v.u16); \
+            case DataType::kUInt32: \
+                return cast_expr(v.u32); \
+            case DataType::kUInt64: \
+                return cast_expr(v.u64); \
+            case DataType::kBool: \
+                return bool_expr; \
+            default: \
+                THROW_INVALID_ARG("Cannot convert Scalar to " #return_type " from type: {}", dtype_to_string(type_)); \
+        } \
+    }
+
 namespace origin
 {
 
-// 类型转换实现
-auto Scalar::to_float32() const -> float
-{
-    switch (type_)
-    {
-        case DataType::kFloat32:
-            return v.f32;
-        case DataType::kFloat64:
-            return static_cast<float>(v.f64);
-        case DataType::kInt8:
-            return static_cast<float>(v.i8);
-        case DataType::kInt16:
-            return static_cast<float>(v.i16);
-        case DataType::kInt32:
-            return static_cast<float>(v.i32);
-        case DataType::kInt64:
-            return static_cast<float>(v.i64);
-        case DataType::kUInt8:
-            return static_cast<float>(v.u8);
-        case DataType::kUInt16:
-            return static_cast<float>(v.u16);
-        case DataType::kUInt32:
-            return static_cast<float>(v.u32);
-        case DataType::kUInt64:
-            return static_cast<float>(v.u64);
-        case DataType::kBool:
-            return v.b ? 1.0F : 0.0F;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to float from type: {}", dtype_to_string(type_));
-    }
-}
+// 类型转换实现 - 使用宏简化
+SCALAR_CONVERSION_MACRO(float, float32, static_cast<float>, v.b ? 1.0F : 0.0F)
+SCALAR_CONVERSION_MACRO(double, float64, static_cast<double>, v.b ? 1.0 : 0.0)
+SCALAR_CONVERSION_MACRO(int8_t, int8, static_cast<int8_t>, v.b ? 1 : 0)
+SCALAR_CONVERSION_MACRO(int16_t, int16, static_cast<int16_t>, v.b ? 1 : 0)
+SCALAR_CONVERSION_MACRO(int32_t, int32, static_cast<int32_t>, v.b ? 1 : 0)
+SCALAR_CONVERSION_MACRO(int64_t, int64, static_cast<int64_t>, v.b ? 1 : 0)
+SCALAR_CONVERSION_MACRO(uint8_t, uint8, static_cast<uint8_t>, v.b ? 1 : 0)
+SCALAR_CONVERSION_MACRO(uint16_t, uint16, static_cast<uint16_t>, v.b ? 1 : 0)
+SCALAR_CONVERSION_MACRO(uint32_t, uint32, static_cast<uint32_t>, v.b ? 1 : 0)
+SCALAR_CONVERSION_MACRO(uint64_t, uint64, static_cast<uint64_t>, v.b ? 1 : 0)
 
-auto Scalar::to_float64() const -> double
-{
-    switch (type_)
-    {
-        case DataType::kFloat32:
-            return static_cast<double>(v.f32);
-        case DataType::kFloat64:
-            return v.f64;
-        case DataType::kInt8:
-            return static_cast<double>(v.i8);
-        case DataType::kInt16:
-            return static_cast<double>(v.i16);
-        case DataType::kInt32:
-            return static_cast<double>(v.i32);
-        case DataType::kInt64:
-            return static_cast<double>(v.i64);
-        case DataType::kUInt8:
-            return static_cast<double>(v.u8);
-        case DataType::kUInt16:
-            return static_cast<double>(v.u16);
-        case DataType::kUInt32:
-            return static_cast<double>(v.u32);
-        case DataType::kUInt64:
-            return static_cast<double>(v.u64);
-        case DataType::kBool:
-            return v.b ? 1.0 : 0.0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to double from type: {}", dtype_to_string(type_));
-    }
-}
-
-auto Scalar::to_int8() const -> int8_t
-{
-    switch (type_)
-    {
-        case DataType::kInt8:
-            return v.i8;
-        case DataType::kInt16:
-            return static_cast<int8_t>(v.i16);
-        case DataType::kInt32:
-            return static_cast<int8_t>(v.i32);
-        case DataType::kInt64:
-            return static_cast<int8_t>(v.i64);
-        case DataType::kUInt8:
-            return static_cast<int8_t>(v.u8);
-        case DataType::kUInt16:
-            return static_cast<int8_t>(v.u16);
-        case DataType::kUInt32:
-            return static_cast<int8_t>(v.u32);
-        case DataType::kUInt64:
-            return static_cast<int8_t>(v.u64);
-        case DataType::kFloat32:
-            return static_cast<int8_t>(v.f32);
-        case DataType::kFloat64:
-            return static_cast<int8_t>(v.f64);
-        case DataType::kBool:
-            return v.b ? 1 : 0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to int8 from type: {}", dtype_to_string(type_));
-    }
-}
-
-auto Scalar::to_int16() const -> int16_t
-{
-    switch (type_)
-    {
-        case DataType::kInt16:
-            return v.i16;
-        case DataType::kInt8:
-            return static_cast<int16_t>(v.i8);
-        case DataType::kInt32:
-            return static_cast<int16_t>(v.i32);
-        case DataType::kInt64:
-            return static_cast<int16_t>(v.i64);
-        case DataType::kUInt8:
-            return static_cast<int16_t>(v.u8);
-        case DataType::kUInt16:
-            return static_cast<int16_t>(v.u16);
-        case DataType::kUInt32:
-            return static_cast<int16_t>(v.u32);
-        case DataType::kUInt64:
-            return static_cast<int16_t>(v.u64);
-        case DataType::kFloat32:
-            return static_cast<int16_t>(v.f32);
-        case DataType::kFloat64:
-            return static_cast<int16_t>(v.f64);
-        case DataType::kBool:
-            return v.b ? 1 : 0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to int16 from type: {}", dtype_to_string(type_));
-    }
-}
-
-auto Scalar::to_int32() const -> int32_t
-{
-    switch (type_)
-    {
-        case DataType::kInt32:
-            return v.i32;
-        case DataType::kInt8:
-            return static_cast<int32_t>(v.i8);
-        case DataType::kInt16:
-            return static_cast<int32_t>(v.i16);
-        case DataType::kInt64:
-            return static_cast<int32_t>(v.i64);
-        case DataType::kUInt8:
-            return static_cast<int32_t>(v.u8);
-        case DataType::kUInt16:
-            return static_cast<int32_t>(v.u16);
-        case DataType::kUInt32:
-            return static_cast<int32_t>(v.u32);
-        case DataType::kUInt64:
-            return static_cast<int32_t>(v.u64);
-        case DataType::kFloat32:
-            return static_cast<int32_t>(v.f32);
-        case DataType::kFloat64:
-            return static_cast<int32_t>(v.f64);
-        case DataType::kBool:
-            return v.b ? 1 : 0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to int32 from type: {}", dtype_to_string(type_));
-    }
-}
-
-auto Scalar::to_int64() const -> int64_t
-{
-    switch (type_)
-    {
-        case DataType::kInt64:
-            return v.i64;
-        case DataType::kInt8:
-            return static_cast<int64_t>(v.i8);
-        case DataType::kInt16:
-            return static_cast<int64_t>(v.i16);
-        case DataType::kInt32:
-            return static_cast<int64_t>(v.i32);
-        case DataType::kUInt8:
-            return static_cast<int64_t>(v.u8);
-        case DataType::kUInt16:
-            return static_cast<int64_t>(v.u16);
-        case DataType::kUInt32:
-            return static_cast<int64_t>(v.u32);
-        case DataType::kUInt64:
-            return static_cast<int64_t>(v.u64);
-        case DataType::kFloat32:
-            return static_cast<int64_t>(v.f32);
-        case DataType::kFloat64:
-            return static_cast<int64_t>(v.f64);
-        case DataType::kBool:
-            return v.b ? 1 : 0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to int64 from type: {}", dtype_to_string(type_));
-    }
-}
-
-auto Scalar::to_uint8() const -> uint8_t
-{
-    switch (type_)
-    {
-        case DataType::kUInt8:
-            return v.u8;
-        case DataType::kUInt16:
-            return static_cast<uint8_t>(v.u16);
-        case DataType::kUInt32:
-            return static_cast<uint8_t>(v.u32);
-        case DataType::kUInt64:
-            return static_cast<uint8_t>(v.u64);
-        case DataType::kInt8:
-            return static_cast<uint8_t>(v.i8);
-        case DataType::kInt16:
-            return static_cast<uint8_t>(v.i16);
-        case DataType::kInt32:
-            return static_cast<uint8_t>(v.i32);
-        case DataType::kInt64:
-            return static_cast<uint8_t>(v.i64);
-        case DataType::kFloat32:
-            return static_cast<uint8_t>(v.f32);
-        case DataType::kFloat64:
-            return static_cast<uint8_t>(v.f64);
-        case DataType::kBool:
-            return v.b ? 1 : 0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to uint8 from type: {}", dtype_to_string(type_));
-    }
-}
-
-auto Scalar::to_uint16() const -> uint16_t
-{
-    switch (type_)
-    {
-        case DataType::kUInt16:
-            return v.u16;
-        case DataType::kUInt8:
-            return static_cast<uint16_t>(v.u8);
-        case DataType::kUInt32:
-            return static_cast<uint16_t>(v.u32);
-        case DataType::kUInt64:
-            return static_cast<uint16_t>(v.u64);
-        case DataType::kInt8:
-            return static_cast<uint16_t>(v.i8);
-        case DataType::kInt16:
-            return static_cast<uint16_t>(v.i16);
-        case DataType::kInt32:
-            return static_cast<uint16_t>(v.i32);
-        case DataType::kInt64:
-            return static_cast<uint16_t>(v.i64);
-        case DataType::kFloat32:
-            return static_cast<uint16_t>(v.f32);
-        case DataType::kFloat64:
-            return static_cast<uint16_t>(v.f64);
-        case DataType::kBool:
-            return v.b ? 1 : 0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to uint16 from type: {}", dtype_to_string(type_));
-    }
-}
-
-auto Scalar::to_uint32() const -> uint32_t
-{
-    switch (type_)
-    {
-        case DataType::kUInt32:
-            return v.u32;
-        case DataType::kUInt8:
-            return static_cast<uint32_t>(v.u8);
-        case DataType::kUInt16:
-            return static_cast<uint32_t>(v.u16);
-        case DataType::kUInt64:
-            return static_cast<uint32_t>(v.u64);
-        case DataType::kInt8:
-            return static_cast<uint32_t>(v.i8);
-        case DataType::kInt16:
-            return static_cast<uint32_t>(v.i16);
-        case DataType::kInt32:
-            return static_cast<uint32_t>(v.i32);
-        case DataType::kInt64:
-            return static_cast<uint32_t>(v.i64);
-        case DataType::kFloat32:
-            return static_cast<uint32_t>(v.f32);
-        case DataType::kFloat64:
-            return static_cast<uint32_t>(v.f64);
-        case DataType::kBool:
-            return v.b ? 1 : 0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to uint32 from type: {}", dtype_to_string(type_));
-    }
-}
-
-auto Scalar::to_uint64() const -> uint64_t
-{
-    switch (type_)
-    {
-        case DataType::kUInt64:
-            return v.u64;
-        case DataType::kUInt8:
-            return static_cast<uint64_t>(v.u8);
-        case DataType::kUInt16:
-            return static_cast<uint64_t>(v.u16);
-        case DataType::kUInt32:
-            return static_cast<uint64_t>(v.u32);
-        case DataType::kInt8:
-            return static_cast<uint64_t>(v.i8);
-        case DataType::kInt16:
-            return static_cast<uint64_t>(v.i16);
-        case DataType::kInt32:
-            return static_cast<uint64_t>(v.i32);
-        case DataType::kInt64:
-            return static_cast<uint64_t>(v.i64);
-        case DataType::kFloat32:
-            return static_cast<uint64_t>(v.f32);
-        case DataType::kFloat64:
-            return static_cast<uint64_t>(v.f64);
-        case DataType::kBool:
-            return v.b ? 1 : 0;
-        default:
-            THROW_INVALID_ARG("Cannot convert Scalar to uint64 from type: {}", dtype_to_string(type_));
-    }
-}
-
+// bool 转换需要特殊处理
 auto Scalar::to_bool() const -> bool
 {
     switch (type_)
@@ -395,3 +130,6 @@ auto Scalar::to_string() const -> std::string
 }
 
 }  // namespace origin
+
+// 取消宏定义，避免污染其他文件
+#undef SCALAR_CONVERSION_MACRO

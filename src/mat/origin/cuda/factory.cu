@@ -186,7 +186,7 @@ std::unique_ptr<origin::OriginMat> full(const Shape &shape, const Scalar &scalar
 
     // 使用类型分发器替代重复的switch语句
     device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
-        launch_full_kernel(static_cast<T *>(data), n, static_cast<T>(scalar.to_float64()));
+        launch_full_kernel(static_cast<T *>(data), n, scalar.to<T>());
     });
 
     // 同步等待完成
