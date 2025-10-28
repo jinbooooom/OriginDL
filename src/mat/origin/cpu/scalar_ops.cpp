@@ -28,10 +28,5 @@ std::unique_ptr<OriginMat> scalar_operation(const OriginMat &mat, data_t scalar,
     return result;
 }
 
-std::unique_ptr<OriginMat> multiply_scalar(const OriginMat &mat, data_t scalar)
-{
-    return scalar_operation(mat, scalar, [](auto a, auto s) { return a * s; });
-}
-
 }  // namespace cpu
 }  // namespace origin

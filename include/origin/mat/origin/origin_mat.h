@@ -71,8 +71,6 @@ public:
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
     std::unique_ptr<Mat> operator-() const override;
 
-    // 标量乘法函数（非虚函数，仅供内部使用）
-    std::unique_ptr<Mat> multiply_scalar(data_t scalar) const;
     std::unique_ptr<Mat> square() const override;
     std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;

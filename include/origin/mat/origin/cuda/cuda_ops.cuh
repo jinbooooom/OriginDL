@@ -100,7 +100,7 @@ std::unique_ptr<Mat> negate(const origin::OriginMat &mat);
  * @param scalar 标量值
  * @return 标量加法结果矩阵
  */
-std::unique_ptr<Mat> add_scalar(const origin::OriginMat &mat, data_t scalar);
+std::unique_ptr<Mat> add_scalar(const origin::OriginMat &mat, data_t scalar);//TODO: 删除这个函数
 
 /**
  * @brief CUDA标量乘法算子
@@ -108,7 +108,7 @@ std::unique_ptr<Mat> add_scalar(const origin::OriginMat &mat, data_t scalar);
  * @param scalar 标量值
  * @return 标量乘法结果矩阵
  */
-std::unique_ptr<Mat> multiply_scalar(const origin::OriginMat &mat, data_t scalar);
+std::unique_ptr<Mat> multiply_scalar(const origin::OriginMat &mat, data_t scalar);//TODO: 删除这个函数
 
 // ============================================================================
 // 形状操作算子
