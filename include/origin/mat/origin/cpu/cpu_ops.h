@@ -28,10 +28,6 @@ std::unique_ptr<OriginMat> pow(const OriginMat &mat, const Scalar &exponent);
 
 // === 统计函数 ===
 std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis);
-data_t sum_all(const OriginMat &mat);
-data_t max_all(const OriginMat &mat);
-data_t min_all(const OriginMat &mat);
-data_t mean_all(const OriginMat &mat);
 
 // === 形状操作 ===
 std::unique_ptr<OriginMat> reshape(const OriginMat &mat, const Shape &new_shape);

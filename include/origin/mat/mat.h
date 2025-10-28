@@ -202,47 +202,7 @@ public:
      */
     virtual std::unique_ptr<Mat> pow(const Scalar &exponent) const = 0;
 
-    /**
-     * @brief 求和 - 返回标量值
-     * @return 所有元素的和
-     * @note 重命名为 sum_all() 是为了避免与 sum(int axis) 函数名冲突
-     *       原来命名为 sum() 会导致编译器无法区分按轴求和和全局求和
-     */
-    virtual data_t sum_all() const = 0;
 
-    /**
-     * @brief 求最大值 - 返回标量值
-     * @return 最大值
-     * @note 重命名为 max_all() 是为了保持命名一致性，避免与可能的按轴操作冲突
-     */
-    virtual data_t max_all() const = 0;
-
-    /**
-     * @brief 求最小值 - 返回标量值
-     * @return 最小值
-     * @note 重命名为 min_all() 是为了保持命名一致性，避免与可能的按轴操作冲突
-     */
-    virtual data_t min_all() const = 0;
-
-    /**
-     * @brief 求均值 - 返回标量值
-     * @return 均值
-     * @note 重命名为 mean_all() 是为了保持命名一致性，避免与可能的按轴操作冲突
-     */
-    virtual data_t mean_all() const = 0;
-
-    // === 泛型版本的数据访问方法 ===
-    template <typename T>
-    T sum_as() const;
-
-    template <typename T>
-    T max_as() const;
-
-    template <typename T>
-    T min_as() const;
-
-    template <typename T>
-    T mean_as() const;
 
     /**
      * @brief 获取后端类型
@@ -297,30 +257,6 @@ std::unique_ptr<Mat> create_mat(data_t value, const Shape &shape);
 
 
 
-template <typename T>
-T Mat::sum_as() const
-{
-    // 调用现有的虚函数，然后转换类型
-    return static_cast<T>(sum_all());
-}
-
-template <typename T>
-T Mat::max_as() const
-{
-    return static_cast<T>(max_all());
-}
-
-template <typename T>
-T Mat::min_as() const
-{
-    return static_cast<T>(min_all());
-}
-
-template <typename T>
-T Mat::mean_as() const
-{
-    return static_cast<T>(mean_all());
-}
 
 template <typename T>
 T *Mat::data_ptr()

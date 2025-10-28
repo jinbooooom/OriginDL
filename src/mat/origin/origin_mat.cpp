@@ -482,26 +482,6 @@ std::unique_ptr<Mat> OriginMat::sqrt() const
     return cpu::sqrt(*this);
 }
 
-// 统计函数
-data_t OriginMat::sum_all() const
-{
-    return cpu::sum_all(*this);
-}
-
-data_t OriginMat::max_all() const
-{
-    return cpu::max_all(*this);
-}
-
-data_t OriginMat::min_all() const
-{
-    return cpu::min_all(*this);
-}
-
-data_t OriginMat::mean_all() const
-{
-    return cpu::mean_all(*this);
-}
 
 // 类型和设备
 DataType OriginMat::dtype() const
