@@ -90,49 +90,22 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
     return result;
 }
 
-Tensor pow(const std::vector<Tensor> &xs, data_t exponent)
-{
-    auto op = std::make_shared<Pow>(exponent);
-    return (*op)(xs)[0];
-}
-
 // 支持Scalar类型的pow函数
 Tensor pow(const std::vector<Tensor> &xs, const Scalar &exponent)
 {
+    // TODO:虽然cuda底层是用 float32 类型，但这里是否转换为float32还有待商榷
     auto op = std::make_shared<Pow>(exponent.to_float32());
     return (*op)(xs)[0];
 }
 
-// 支持标量指数的pow函数（使用模板，参考add.cpp的实现）
-template <typename T>
-Tensor pow(const Tensor &base, T exponent)
+Tensor pow(const Tensor &base, const Scalar &exponent)
 {
-    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-
-    // 直接使用现有的pow函数，避免重复的PowHelper
-    auto xs = std::vector<Tensor>();
-    xs.emplace_back(base);
-    return pow(xs, static_cast<data_t>(exponent));
+    return pow(std::vector<Tensor>{base}, exponent);
 }
 
-template <typename T>
-Tensor operator^(const Tensor &base, T exponent)
+Tensor operator^(const Tensor &base, const Scalar &exponent)
 {
-    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-    return pow(base, exponent);
+    return pow(std::vector<Tensor>{base}, exponent);
 }
-
-// 模板实例化
-template Tensor pow(const Tensor &base, float exponent);
-template Tensor pow(const Tensor &base, double exponent);
-template Tensor pow(const Tensor &base, int32_t exponent);
-template Tensor pow(const Tensor &base, int8_t exponent);
-template Tensor pow(const Tensor &base, unsigned long exponent);
-
-template Tensor operator^(const Tensor &base, float exponent);
-template Tensor operator^(const Tensor &base, double exponent);
-template Tensor operator^(const Tensor &base, int32_t exponent);
-template Tensor operator^(const Tensor &base, int8_t exponent);
-template Tensor operator^(const Tensor &base, unsigned long exponent);
 
 }  // namespace origin

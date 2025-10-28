@@ -166,10 +166,9 @@ public:
 
     Scalar exponent_;  // 幂函数的指数，支持多种数值类型
 };
-template <typename T>
-Tensor pow(const Tensor &base, T exponent);  // 支持标量指数（模板）
-template <typename T>
-Tensor operator^(const Tensor &base, T exponent);  // 支持标量指数（模板）
+
+extern Tensor pow(const Tensor &base, const Scalar &exponent);  // 支持标量指数
+extern Tensor operator^(const Tensor &base, const Scalar &exponent);  // 支持标量指数
 
 class Exp : public Operator
 {
