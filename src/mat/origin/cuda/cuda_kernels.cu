@@ -960,20 +960,71 @@ template void launch_elementwise_kernel<bool, DivideOp>(const bool *,
                                                         DivideOp,
                                                         cudaStream_t);
 
-template void launch_unary_kernel<float, ExpOp>(const float *, float *, size_t, ExpOp, cudaStream_t);
-template void launch_unary_kernel<double, ExpOp>(const double *, double *, size_t, ExpOp, cudaStream_t);
-template void launch_unary_kernel<float, LogOp>(const float *, float *, size_t, LogOp, cudaStream_t);
-template void launch_unary_kernel<double, LogOp>(const double *, double *, size_t, LogOp, cudaStream_t);
-template void launch_unary_kernel<float, SqrtOp>(const float *, float *, size_t, SqrtOp, cudaStream_t);
-template void launch_unary_kernel<double, SqrtOp>(const double *, double *, size_t, SqrtOp, cudaStream_t);
-template void launch_unary_kernel<float, SquareOp>(const float *, float *, size_t, SquareOp, cudaStream_t);
-template void launch_unary_kernel<double, SquareOp>(const double *, double *, size_t, SquareOp, cudaStream_t);
-template void launch_unary_kernel<int32_t, SquareOp>(const int32_t *, int32_t *, size_t, SquareOp, cudaStream_t);
-template void launch_unary_kernel<int8_t, SquareOp>(const int8_t *, int8_t *, size_t, SquareOp, cudaStream_t);
-template void launch_unary_kernel<float, NegOp>(const float *, float *, size_t, NegOp, cudaStream_t);
-template void launch_unary_kernel<double, NegOp>(const double *, double *, size_t, NegOp, cudaStream_t);
-template void launch_unary_kernel<int32_t, NegOp>(const int32_t *, int32_t *, size_t, NegOp, cudaStream_t);
-template void launch_unary_kernel<int8_t, NegOp>(const int8_t *, int8_t *, size_t, NegOp, cudaStream_t);
+// 一元内核的显式实例化 - 按照 DataType 枚举顺序排列
+// ExpOp 实例化
+template void launch_unary_kernel<float, ExpOp>(const float *, float *, size_t, ExpOp, cudaStream_t);      // kFloat32
+template void launch_unary_kernel<double, ExpOp>(const double *, double *, size_t, ExpOp, cudaStream_t);  // kFloat64/kDouble
+template void launch_unary_kernel<int8_t, ExpOp>(const int8_t *, int8_t *, size_t, ExpOp, cudaStream_t);  // kInt8
+template void launch_unary_kernel<int16_t, ExpOp>(const int16_t *, int16_t *, size_t, ExpOp, cudaStream_t); // kInt16
+template void launch_unary_kernel<int32_t, ExpOp>(const int32_t *, int32_t *, size_t, ExpOp, cudaStream_t); // kInt32
+template void launch_unary_kernel<int64_t, ExpOp>(const int64_t *, int64_t *, size_t, ExpOp, cudaStream_t); // kInt64
+template void launch_unary_kernel<uint8_t, ExpOp>(const uint8_t *, uint8_t *, size_t, ExpOp, cudaStream_t); // kUInt8
+template void launch_unary_kernel<uint16_t, ExpOp>(const uint16_t *, uint16_t *, size_t, ExpOp, cudaStream_t); // kUInt16
+template void launch_unary_kernel<uint32_t, ExpOp>(const uint32_t *, uint32_t *, size_t, ExpOp, cudaStream_t); // kUInt32
+template void launch_unary_kernel<uint64_t, ExpOp>(const uint64_t *, uint64_t *, size_t, ExpOp, cudaStream_t); // kUInt64
+template void launch_unary_kernel<bool, ExpOp>(const bool *, bool *, size_t, ExpOp, cudaStream_t);          // kBool
+
+// LogOp 实例化
+template void launch_unary_kernel<float, LogOp>(const float *, float *, size_t, LogOp, cudaStream_t);      // kFloat32
+template void launch_unary_kernel<double, LogOp>(const double *, double *, size_t, LogOp, cudaStream_t);  // kFloat64/kDouble
+template void launch_unary_kernel<int8_t, LogOp>(const int8_t *, int8_t *, size_t, LogOp, cudaStream_t);  // kInt8
+template void launch_unary_kernel<int16_t, LogOp>(const int16_t *, int16_t *, size_t, LogOp, cudaStream_t); // kInt16
+template void launch_unary_kernel<int32_t, LogOp>(const int32_t *, int32_t *, size_t, LogOp, cudaStream_t); // kInt32
+template void launch_unary_kernel<int64_t, LogOp>(const int64_t *, int64_t *, size_t, LogOp, cudaStream_t); // kInt64
+template void launch_unary_kernel<uint8_t, LogOp>(const uint8_t *, uint8_t *, size_t, LogOp, cudaStream_t); // kUInt8
+template void launch_unary_kernel<uint16_t, LogOp>(const uint16_t *, uint16_t *, size_t, LogOp, cudaStream_t); // kUInt16
+template void launch_unary_kernel<uint32_t, LogOp>(const uint32_t *, uint32_t *, size_t, LogOp, cudaStream_t); // kUInt32
+template void launch_unary_kernel<uint64_t, LogOp>(const uint64_t *, uint64_t *, size_t, LogOp, cudaStream_t); // kUInt64
+template void launch_unary_kernel<bool, LogOp>(const bool *, bool *, size_t, LogOp, cudaStream_t);          // kBool
+
+// SqrtOp 实例化
+template void launch_unary_kernel<float, SqrtOp>(const float *, float *, size_t, SqrtOp, cudaStream_t);      // kFloat32
+template void launch_unary_kernel<double, SqrtOp>(const double *, double *, size_t, SqrtOp, cudaStream_t);  // kFloat64/kDouble
+template void launch_unary_kernel<int8_t, SqrtOp>(const int8_t *, int8_t *, size_t, SqrtOp, cudaStream_t);  // kInt8
+template void launch_unary_kernel<int16_t, SqrtOp>(const int16_t *, int16_t *, size_t, SqrtOp, cudaStream_t); // kInt16
+template void launch_unary_kernel<int32_t, SqrtOp>(const int32_t *, int32_t *, size_t, SqrtOp, cudaStream_t); // kInt32
+template void launch_unary_kernel<int64_t, SqrtOp>(const int64_t *, int64_t *, size_t, SqrtOp, cudaStream_t); // kInt64
+template void launch_unary_kernel<uint8_t, SqrtOp>(const uint8_t *, uint8_t *, size_t, SqrtOp, cudaStream_t); // kUInt8
+template void launch_unary_kernel<uint16_t, SqrtOp>(const uint16_t *, uint16_t *, size_t, SqrtOp, cudaStream_t); // kUInt16
+template void launch_unary_kernel<uint32_t, SqrtOp>(const uint32_t *, uint32_t *, size_t, SqrtOp, cudaStream_t); // kUInt32
+template void launch_unary_kernel<uint64_t, SqrtOp>(const uint64_t *, uint64_t *, size_t, SqrtOp, cudaStream_t); // kUInt64
+template void launch_unary_kernel<bool, SqrtOp>(const bool *, bool *, size_t, SqrtOp, cudaStream_t);          // kBool
+
+// SquareOp 实例化
+template void launch_unary_kernel<float, SquareOp>(const float *, float *, size_t, SquareOp, cudaStream_t);      // kFloat32
+template void launch_unary_kernel<double, SquareOp>(const double *, double *, size_t, SquareOp, cudaStream_t);  // kFloat64/kDouble
+template void launch_unary_kernel<int8_t, SquareOp>(const int8_t *, int8_t *, size_t, SquareOp, cudaStream_t);  // kInt8
+template void launch_unary_kernel<int16_t, SquareOp>(const int16_t *, int16_t *, size_t, SquareOp, cudaStream_t); // kInt16
+template void launch_unary_kernel<int32_t, SquareOp>(const int32_t *, int32_t *, size_t, SquareOp, cudaStream_t); // kInt32
+template void launch_unary_kernel<int64_t, SquareOp>(const int64_t *, int64_t *, size_t, SquareOp, cudaStream_t); // kInt64
+template void launch_unary_kernel<uint8_t, SquareOp>(const uint8_t *, uint8_t *, size_t, SquareOp, cudaStream_t); // kUInt8
+template void launch_unary_kernel<uint16_t, SquareOp>(const uint16_t *, uint16_t *, size_t, SquareOp, cudaStream_t); // kUInt16
+template void launch_unary_kernel<uint32_t, SquareOp>(const uint32_t *, uint32_t *, size_t, SquareOp, cudaStream_t); // kUInt32
+template void launch_unary_kernel<uint64_t, SquareOp>(const uint64_t *, uint64_t *, size_t, SquareOp, cudaStream_t); // kUInt64
+template void launch_unary_kernel<bool, SquareOp>(const bool *, bool *, size_t, SquareOp, cudaStream_t);          // kBool
+
+// NegOp 实例化
+template void launch_unary_kernel<float, NegOp>(const float *, float *, size_t, NegOp, cudaStream_t);      // kFloat32
+template void launch_unary_kernel<double, NegOp>(const double *, double *, size_t, NegOp, cudaStream_t);  // kFloat64/kDouble
+template void launch_unary_kernel<int8_t, NegOp>(const int8_t *, int8_t *, size_t, NegOp, cudaStream_t);  // kInt8
+template void launch_unary_kernel<int16_t, NegOp>(const int16_t *, int16_t *, size_t, NegOp, cudaStream_t); // kInt16
+template void launch_unary_kernel<int32_t, NegOp>(const int32_t *, int32_t *, size_t, NegOp, cudaStream_t); // kInt32
+template void launch_unary_kernel<int64_t, NegOp>(const int64_t *, int64_t *, size_t, NegOp, cudaStream_t); // kInt64
+template void launch_unary_kernel<uint8_t, NegOp>(const uint8_t *, uint8_t *, size_t, NegOp, cudaStream_t); // kUInt8
+template void launch_unary_kernel<uint16_t, NegOp>(const uint16_t *, uint16_t *, size_t, NegOp, cudaStream_t); // kUInt16
+template void launch_unary_kernel<uint32_t, NegOp>(const uint32_t *, uint32_t *, size_t, NegOp, cudaStream_t); // kUInt32
+template void launch_unary_kernel<uint64_t, NegOp>(const uint64_t *, uint64_t *, size_t, NegOp, cudaStream_t); // kUInt64
+template void launch_unary_kernel<bool, NegOp>(const bool *, bool *, size_t, NegOp, cudaStream_t);          // kBool
 
 template void launch_scalar_kernel<float, AddOp>(const float *, float, float *, size_t, AddOp, cudaStream_t);
 template void launch_scalar_kernel<double, AddOp>(const double *, double, double *, size_t, AddOp, cudaStream_t);
