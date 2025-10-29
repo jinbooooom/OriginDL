@@ -252,9 +252,6 @@ void Tensor::from_scalar(const Scalar &scalar, const Shape &shape, const TensorO
     impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar, shape, options));
 }
 
-
-
-
 // === 模板实例化 ===
 
 // 数据访问方法
@@ -275,8 +272,5 @@ template std::vector<double> Tensor::to_vector<double>() const;
 template std::vector<int32_t> Tensor::to_vector<int32_t>() const;
 template std::vector<int8_t> Tensor::to_vector<int8_t>() const;
 template std::vector<unsigned long> Tensor::to_vector<unsigned long>() const;
-
-
-
 
 }  // namespace origin

@@ -309,7 +309,6 @@ void TorchMat::print(const std::string &desc) const
 template data_t TorchMat::scalar<data_t>() const;
 template int TorchMat::scalar<int>() const;
 
-
 int TorchMat::backend_type() const
 {
     return TORCH_BACKEND_TYPE;

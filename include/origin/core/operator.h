@@ -167,7 +167,7 @@ public:
     Scalar exponent_;  // 幂函数的指数，支持多种数值类型
 };
 
-extern Tensor pow(const Tensor &base, const Scalar &exponent);  // 支持标量指数
+extern Tensor pow(const Tensor &base, const Scalar &exponent);        // 支持标量指数
 extern Tensor operator^(const Tensor &base, const Scalar &exponent);  // 支持标量指数
 
 class Exp : public Operator

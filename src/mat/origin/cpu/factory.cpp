@@ -116,12 +116,15 @@ std::unique_ptr<OriginMat> full(const Shape &shape, const Scalar &scalar, const 
     return result;
 }
 
-std::unique_ptr<OriginMat> from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options)
+std::unique_ptr<OriginMat> from_memory(const void *data,
+                                       DataType user_dtype,
+                                       const Shape &shape,
+                                       const TensorOptions &options)
 {
     // 创建存储
-    size_t size = shape.elements() * utils::get_dtype_size(options.dtype());
+    size_t size  = shape.elements() * utils::get_dtype_size(options.dtype());
     auto storage = Storage::create(size, options.device().type(), options.device().index());
-    
+
     // 检查是否需要类型转换
     if (user_dtype == options.dtype())
     {
@@ -143,7 +146,7 @@ std::unique_ptr<OriginMat> from_memory(const void *data, DataType user_dtype, co
             });
         });
     }
-    
+
     return std::make_unique<OriginMat>(storage, shape, options.dtype());
 }
 

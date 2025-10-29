@@ -38,7 +38,6 @@ std::unique_ptr<Mat> sum_to(const OriginMat &mat, const Shape &target_shape);
 // === 类型转换 ===
 std::unique_ptr<Mat> convert_datatype(const OriginMat &mat, DataType target_type);
 
-
 }  // namespace cpu
 }  // namespace origin
 

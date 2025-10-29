@@ -4,36 +4,36 @@
 #include "origin/utils/exception.h"
 
 // 宏定义用于简化类型转换函数的实现
-#define SCALAR_CONVERSION_MACRO(return_type, member_name, cast_expr, bool_expr) \
-    auto Scalar::to_##member_name() const -> return_type \
-    { \
-        switch (type_) \
-        { \
-            case DataType::kFloat32: \
-                return cast_expr(v.f32); \
-            case DataType::kFloat64: \
-                return cast_expr(v.f64); \
-            case DataType::kInt8: \
-                return cast_expr(v.i8); \
-            case DataType::kInt16: \
-                return cast_expr(v.i16); \
-            case DataType::kInt32: \
-                return cast_expr(v.i32); \
-            case DataType::kInt64: \
-                return cast_expr(v.i64); \
-            case DataType::kUInt8: \
-                return cast_expr(v.u8); \
-            case DataType::kUInt16: \
-                return cast_expr(v.u16); \
-            case DataType::kUInt32: \
-                return cast_expr(v.u32); \
-            case DataType::kUInt64: \
-                return cast_expr(v.u64); \
-            case DataType::kBool: \
-                return bool_expr; \
-            default: \
+#define SCALAR_CONVERSION_MACRO(return_type, member_name, cast_expr, bool_expr)                                       \
+    auto Scalar::to_##member_name() const->return_type                                                                \
+    {                                                                                                                 \
+        switch (type_)                                                                                                \
+        {                                                                                                             \
+            case DataType::kFloat32:                                                                                  \
+                return cast_expr(v.f32);                                                                              \
+            case DataType::kFloat64:                                                                                  \
+                return cast_expr(v.f64);                                                                              \
+            case DataType::kInt8:                                                                                     \
+                return cast_expr(v.i8);                                                                               \
+            case DataType::kInt16:                                                                                    \
+                return cast_expr(v.i16);                                                                              \
+            case DataType::kInt32:                                                                                    \
+                return cast_expr(v.i32);                                                                              \
+            case DataType::kInt64:                                                                                    \
+                return cast_expr(v.i64);                                                                              \
+            case DataType::kUInt8:                                                                                    \
+                return cast_expr(v.u8);                                                                               \
+            case DataType::kUInt16:                                                                                   \
+                return cast_expr(v.u16);                                                                              \
+            case DataType::kUInt32:                                                                                   \
+                return cast_expr(v.u32);                                                                              \
+            case DataType::kUInt64:                                                                                   \
+                return cast_expr(v.u64);                                                                              \
+            case DataType::kBool:                                                                                     \
+                return bool_expr;                                                                                     \
+            default:                                                                                                  \
                 THROW_INVALID_ARG("Cannot convert Scalar to " #return_type " from type: {}", dtype_to_string(type_)); \
-        } \
+        }                                                                                                             \
     }
 
 namespace origin

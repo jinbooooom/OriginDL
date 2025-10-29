@@ -78,7 +78,6 @@ public:
 
     // === 泛型标量操作 ===
 
-
     // === 泛型标量运算符 ===
     // 标量运算符已移除，统一通过算子层处理
 
@@ -202,8 +201,6 @@ public:
      */
     virtual std::unique_ptr<Mat> pow(const Scalar &exponent) const = 0;
 
-
-
     /**
      * @brief 获取后端类型
      * @return 后端类型标识符
@@ -252,11 +249,6 @@ std::unique_ptr<Mat> create_mat(const std::vector<data_t> &data, const Shape &sh
  * @return Mat对象的智能指针
  */
 std::unique_ptr<Mat> create_mat(data_t value, const Shape &shape);
-
-
-
-
-
 
 template <typename T>
 T *Mat::data_ptr()

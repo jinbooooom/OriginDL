@@ -3,9 +3,9 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -38,9 +38,8 @@ std::unique_ptr<Mat> square(const OriginMat &mat)
 
     // 直接调用一元内核
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-        launch_unary_kernel<T, SquareOp>(static_cast<const T *>(a_data), 
-                                        static_cast<T *>(c_data), 
-                                        mat.elements(), SquareOp{}, 0);
+        launch_unary_kernel<T, SquareOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(),
+                                         SquareOp{}, 0);
     });
 
     // 同步等待完成

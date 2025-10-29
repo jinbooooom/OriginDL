@@ -1,7 +1,7 @@
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/device_common/operation_templates.h"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
 
 namespace origin

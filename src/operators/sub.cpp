@@ -1,7 +1,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/utils/exception.h"
 #include "origin/mat/type_promotion.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {

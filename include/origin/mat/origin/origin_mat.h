@@ -59,7 +59,10 @@ public:
 
     // 两个核心工厂方法
     static std::unique_ptr<Mat> from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
-    static std::unique_ptr<Mat> from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
+    static std::unique_ptr<Mat> from_memory(const void *data,
+                                            DataType user_dtype,
+                                            const Shape &shape,
+                                            const TensorOptions &options);
 
     // Mat interface implementations
     std::unique_ptr<Mat> clone() const override;
@@ -103,7 +106,6 @@ public:
     std::unique_ptr<Mat> sin() const override;
     std::unique_ptr<Mat> cos() const override;
     std::unique_ptr<Mat> sqrt() const override;
-
 
     // 0维张量支持
     bool is_scalar() const override;

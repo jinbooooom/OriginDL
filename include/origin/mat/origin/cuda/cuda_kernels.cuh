@@ -262,7 +262,6 @@ __global__ void sum_all_kernel(const T *__restrict__ input, T *__restrict__ outp
 template <typename T>
 __global__ void transpose_kernel(const T *__restrict__ input, T *__restrict__ output, int rows, int cols);
 
-
 // ============================================================================
 // 内核启动函数
 // ============================================================================
@@ -324,9 +323,14 @@ void launch_scalar_kernel(const T *a, T scalar, T *c, size_t n, Op op, cudaStrea
  *          自动计算最优的网格和块大小。
  */
 template <typename T, typename Op>
-void launch_simple_broadcast_kernel(const T *a, const T *b, T *c, 
-                                   size_t a_elements, size_t b_elements, size_t c_elements,
-                                   Op op, cudaStream_t stream = 0);
+void launch_simple_broadcast_kernel(const T *a,
+                                    const T *b,
+                                    T *c,
+                                    size_t a_elements,
+                                    size_t b_elements,
+                                    size_t c_elements,
+                                    Op op,
+                                    cudaStream_t stream = 0);
 
 /**
  * @brief 启动复杂广播内核
@@ -351,11 +355,19 @@ void launch_simple_broadcast_kernel(const T *a, const T *b, T *c,
  *       建议使用 compute_broadcast_strides 等辅助函数来计算这些参数。
  */
 template <typename T, typename Op>
-void launch_complex_broadcast_kernel(const T *a, const T *b, T *c,
-                                    const int *a_strides, const int *b_strides, const int *c_strides,
-                                    const int *a_shape, const int *b_shape, const int *c_shape,
-                                    int ndims, size_t total_elements,
-                                    Op op, cudaStream_t stream = 0);
+void launch_complex_broadcast_kernel(const T *a,
+                                     const T *b,
+                                     T *c,
+                                     const int *a_strides,
+                                     const int *b_strides,
+                                     const int *c_strides,
+                                     const int *a_shape,
+                                     const int *b_shape,
+                                     const int *c_shape,
+                                     int ndims,
+                                     size_t total_elements,
+                                     Op op,
+                                     cudaStream_t stream = 0);
 
 /**
  * @brief 启动矩阵乘法内核

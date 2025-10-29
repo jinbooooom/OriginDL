@@ -32,7 +32,7 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
     // 使用抽象层进行梯度计算
     auto temp_mult = x * gy;
     // 创建标量2.0的张量
-    auto scalar_2 = Tensor(2, Shape({}), dtype(x.dtype()).device(x.device()));
+    auto scalar_2  = Tensor(2, Shape({}), dtype(x.dtype()).device(x.device()));
     auto gx_result = *temp_mult * mat(scalar_2);
     auto gx        = convert_mat_to_tensor(std::move(gx_result));
 

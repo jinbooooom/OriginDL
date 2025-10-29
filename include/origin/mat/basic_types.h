@@ -166,7 +166,6 @@ inline size_t element_size(DataType dtype)
     }
 }
 
-
 // 编译时字符串获取（推荐使用）
 template <typename T>
 inline constexpr const char *dtype_to_string()

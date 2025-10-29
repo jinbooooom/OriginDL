@@ -75,7 +75,10 @@ std::unique_ptr<Mat> OriginMat::from_scalar(const Scalar &scalar, const Shape &s
     }
 }
 
-std::unique_ptr<Mat> OriginMat::from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options)
+std::unique_ptr<Mat> OriginMat::from_memory(const void *data,
+                                            DataType user_dtype,
+                                            const Shape &shape,
+                                            const TensorOptions &options)
 {
     utils::validate_shape(shape);
 
@@ -482,7 +485,6 @@ std::unique_ptr<Mat> OriginMat::sqrt() const
 {
     return cpu::sqrt(*this);
 }
-
 
 // 类型和设备
 DataType OriginMat::dtype() const
