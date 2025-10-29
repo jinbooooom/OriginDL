@@ -1,11 +1,9 @@
 #include <cuda_runtime.h>
 #include <memory>
 #include "origin/mat/basic_types.h"
-#include "origin/mat/origin/cuda/cuda_broadcast.cuh"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
