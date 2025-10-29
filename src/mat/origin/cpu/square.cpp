@@ -20,17 +20,12 @@ namespace cpu
  */
 std::unique_ptr<Mat> square(const OriginMat &mat)
 {
-    // 输入验证 - 与CUDA保持一致
+    // 输入验证
     if (unlikely(mat.elements() == 0))
     {
         THROW_INVALID_ARG("Cannot compute square of empty matrix");
     }
-
-    if (unlikely(mat.device().type() != DeviceType::kCPU))
-    {
-        THROW_INVALID_ARG("Device mismatch in CPU square: expected CPU device, got {}", 
-                          mat.device().to_string());
-    }
+    VALIDATE_CPU_DEVICE(mat);
 
     // 创建结果矩阵
     auto result = std::make_unique<OriginMat>(mat.shape(), mat.dtype(), mat.device());

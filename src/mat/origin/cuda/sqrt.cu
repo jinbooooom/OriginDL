@@ -3,6 +3,7 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
@@ -26,16 +27,8 @@ namespace cuda
 std::unique_ptr<Mat> sqrt(const OriginMat &mat)
 {
     // 验证输入
-    if (unlikely(mat.device().type() != DeviceType::kCUDA))
-    {
-        THROW_INVALID_ARG("Device mismatch in CUDA sqrt: expected CUDA device, got {}", mat.device().to_string());
-    }
-
-    // 检查数据类型是否支持平方根运算 - 使用分支预测优化
-    if (unlikely(mat.dtype() != DataType::kFloat32 && mat.dtype() != DataType::kFloat64))
-    {
-        THROW_INVALID_ARG("Square root operation only supported for float32 and float64 types");
-    }
+    VALIDATE_CUDA_DEVICE(mat);
+    VALIDATE_FLOAT_DTYPE(mat);
 
     // 创建结果张量
     auto result = std::make_unique<OriginMat>(mat.shape(), mat.dtype(), mat.device());
