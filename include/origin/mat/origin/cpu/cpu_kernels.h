@@ -10,12 +10,12 @@ namespace cpu
 {
 
 /**
- * @brief CPU内核函数声明
- * @details 提供与CUDA内核对应的CPU实现，保持接口一致性
+ * @brief CPU计算函数声明
+ * @details 提供CPU端的元素级计算函数，与CUDA内核功能对应但使用CPU实现
  */
 
 /**
- * @brief CPU元素级二元运算内核
+ * @brief CPU元素级二元运算函数
  * @tparam T 数据类型
  * @tparam Op 操作函数对象类型
  * @param a 输入数据A
@@ -28,7 +28,7 @@ template <typename T, typename Op>
 void cpu_elementwise_kernel(const T *a, const T *b, T *c, size_t n, Op op);
 
 /**
- * @brief CPU简单广播二元运算内核
+ * @brief CPU简单广播二元运算函数
  * @tparam T 数据类型
  * @tparam Op 操作函数对象类型
  * @param a 输入数据A
@@ -45,7 +45,7 @@ void cpu_simple_broadcast_kernel(const T *a, const T *b, T *c,
                                 size_t result_elements, Op op);
 
 /**
- * @brief CPU一元运算内核
+ * @brief CPU一元运算函数
  * @tparam T 数据类型
  * @tparam Op 操作函数对象类型
  * @param a 输入数据
