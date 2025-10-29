@@ -13,8 +13,13 @@ std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b)
 {
     if (unlikely(a.dtype() != b.dtype()))
     {
-        THROW_INVALID_ARG("Data type mismatch for addition: expected {} but got {}", dtype_to_string(a.dtype()),
-                          dtype_to_string(b.dtype()));
+        THROW_INVALID_ARG("Data type mismatch in CPU add: {} vs {}", 
+                         dtype_to_string(a.dtype()), dtype_to_string(b.dtype()));
+    }
+
+    if (a.device() != b.device())
+    {
+        THROW_INVALID_ARG("Device mismatch in CPU add: {} vs {}", a.device().to_string(), b.device().to_string());
     }
 
     // 计算广播形状

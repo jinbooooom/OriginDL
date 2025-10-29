@@ -5,7 +5,7 @@ set(MY_LIB_NAME origindl)
 project (${MY_LIB_NAME})
 
 # 设置C++标准
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # CUDA支持选项（不设置默认架构，由CUDA子项目自动检测）

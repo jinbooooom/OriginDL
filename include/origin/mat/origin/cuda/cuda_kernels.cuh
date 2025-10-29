@@ -128,9 +128,13 @@ __global__ void shared_memory_kernel(const T *__restrict__ a,
  * @param b_elements B矩阵元素数量
  * @param c_elements C矩阵元素数量
  * @param op 操作函数对象
+ * @details 用于处理简单广播情况，其中一个操作数是标量（只有1个元素）。
+ *          这是广播运算中最常见的情况，性能最优。
+ * @note 此内核假设其中一个张量是标量，另一个张量是普通张量。
+ *       如果两个张量都是标量，此内核仍然可以正常工作。
  */
 template <typename T, typename Op>
-__global__ void scalar_broadcast_kernel(const T *__restrict__ a,
+__global__ void simple_broadcast_kernel(const T *__restrict__ a,
                                         const T *__restrict__ b,
                                         T *__restrict__ c,
                                         size_t a_elements,
@@ -413,6 +417,55 @@ void launch_unary_kernel(const T *a, T *c, size_t n, Op op, cudaStream_t stream 
  */
 template <typename T, typename Op>
 void launch_scalar_kernel(const T *a, T scalar, T *c, size_t n, Op op, cudaStream_t stream = 0);
+
+/**
+ * @brief 启动简单广播内核
+ * @tparam T 数据类型
+ * @tparam Op 操作函数对象类型
+ * @param a 输入矩阵A的设备指针
+ * @param b 输入矩阵B的设备指针
+ * @param c 输出矩阵C的设备指针
+ * @param a_elements A矩阵元素数量
+ * @param b_elements B矩阵元素数量
+ * @param c_elements C矩阵元素数量
+ * @param op 操作函数对象
+ * @param stream CUDA流
+ * @details 用于启动简单广播运算，其中一个操作数是标量。
+ *          自动计算最优的网格和块大小。
+ */
+template <typename T, typename Op>
+void launch_simple_broadcast_kernel(const T *a, const T *b, T *c, 
+                                   size_t a_elements, size_t b_elements, size_t c_elements,
+                                   Op op, cudaStream_t stream = 0);
+
+/**
+ * @brief 启动复杂广播内核
+ * @tparam T 数据类型
+ * @tparam Op 操作函数对象类型
+ * @param a 输入矩阵A的设备指针
+ * @param b 输入矩阵B的设备指针
+ * @param c 输出矩阵C的设备指针
+ * @param a_strides A矩阵的步长数组
+ * @param b_strides B矩阵的步长数组
+ * @param c_strides C矩阵的步长数组
+ * @param a_shape A矩阵的形状数组
+ * @param b_shape B矩阵的形状数组
+ * @param c_shape C矩阵的形状数组
+ * @param ndims 维度数量
+ * @param total_elements 总元素数量
+ * @param op 操作函数对象
+ * @param stream CUDA流
+ * @details 用于启动复杂广播运算，处理不同维度的张量之间的广播。
+ *          需要预先计算步长和形状信息，适用于任意维度的广播。
+ * @note 此函数需要调用者确保步长和形状数组在设备内存中，且维度信息正确。
+ *       建议使用 compute_broadcast_strides 等辅助函数来计算这些参数。
+ */
+template <typename T, typename Op>
+void launch_complex_broadcast_kernel(const T *a, const T *b, T *c,
+                                    const int *a_strides, const int *b_strides, const int *c_strides,
+                                    const int *a_shape, const int *b_shape, const int *c_shape,
+                                    int ndims, size_t total_elements,
+                                    Op op, cudaStream_t stream = 0);
 
 /**
  * @brief 启动矩阵乘法内核
