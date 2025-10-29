@@ -1,5 +1,6 @@
 #include "origin/mat/origin/cpu/cpu_kernels.h"
-#include "origin/mat/origin/cpu/operation_templates.h"
+#include "origin/mat/origin/device_common/operation_templates.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 
 namespace origin
 {

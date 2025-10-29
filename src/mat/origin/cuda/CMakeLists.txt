@@ -68,7 +68,6 @@ set(CUDA_OPERATOR_SRCS
 
 # 添加其他CUDA源文件
 set(CUDA_OTHER_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/cuda_broadcast.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/cuda_utils.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/device_validation.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/stream_manager.cu
