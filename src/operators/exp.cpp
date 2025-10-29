@@ -27,9 +27,9 @@ std::vector<Tensor> Exp::backward(const std::vector<Tensor> &gys)
     }
 
     // 使用抽象层进行梯度计算
-    auto &x         = mat(this->inputs_[0]);
-    auto &gy        = mat(gys[0]);
-    auto exp_x      = x.exp();
+    auto &x        = mat(this->inputs_[0]);
+    auto &gy       = mat(gys[0]);
+    auto exp_x     = x.exp();
     auto gx_result = *exp_x * gy;
     auto gx        = convert_mat_to_tensor(std::move(gx_result));
     std::vector<Tensor> outputs;

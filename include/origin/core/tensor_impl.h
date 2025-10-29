@@ -36,7 +36,10 @@ public:
 
     // 两个核心工厂方法
     static TensorImpl from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
-    static TensorImpl from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
+    static TensorImpl from_memory(const void *data,
+                                  DataType user_dtype,
+                                  const Shape &shape,
+                                  const TensorOptions &options);
 
     // 静态工厂方法
     static TensorImpl randn(const Shape &shape);

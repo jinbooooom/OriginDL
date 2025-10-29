@@ -84,7 +84,7 @@ public:
     [[nodiscard]] auto to_bool() const -> bool;
 
     // 通用模板转换函数 - 使用特化方式以获得最佳性能
-    template<typename T>
+    template <typename T>
     [[nodiscard]] auto to() const -> T;
 
     // 类型查询
@@ -121,67 +121,67 @@ public:
 };
 
 // auto to() const -> T 模板特化实现
-template<>
+template <>
 inline auto Scalar::to<float>() const -> float
 {
     return to_float32();
 }
 
-template<>
+template <>
 inline auto Scalar::to<double>() const -> double
 {
     return to_float64();
 }
 
-template<>
+template <>
 inline auto Scalar::to<int8_t>() const -> int8_t
 {
     return to_int8();
 }
 
-template<>
+template <>
 inline auto Scalar::to<int16_t>() const -> int16_t
 {
     return to_int16();
 }
 
-template<>
+template <>
 inline auto Scalar::to<int32_t>() const -> int32_t
 {
     return to_int32();
 }
 
-template<>
+template <>
 inline auto Scalar::to<int64_t>() const -> int64_t
 {
     return to_int64();
 }
 
-template<>
+template <>
 inline auto Scalar::to<uint8_t>() const -> uint8_t
 {
     return to_uint8();
 }
 
-template<>
+template <>
 inline auto Scalar::to<uint16_t>() const -> uint16_t
 {
     return to_uint16();
 }
 
-template<>
+template <>
 inline auto Scalar::to<uint32_t>() const -> uint32_t
 {
     return to_uint32();
 }
 
-template<>
+template <>
 inline auto Scalar::to<uint64_t>() const -> uint64_t
 {
     return to_uint64();
 }
 
-template<>
+template <>
 inline auto Scalar::to<bool>() const -> bool
 {
     return to_bool();

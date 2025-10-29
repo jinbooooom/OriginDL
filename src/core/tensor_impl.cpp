@@ -20,7 +20,10 @@ TensorImpl TensorImpl::from_scalar(const Scalar &scalar, const Shape &shape, con
     return TensorImpl(std::move(mat));
 }
 
-TensorImpl TensorImpl::from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options)
+TensorImpl TensorImpl::from_memory(const void *data,
+                                   DataType user_dtype,
+                                   const Shape &shape,
+                                   const TensorOptions &options)
 {
     // 直接调用OriginMat工厂方法
     auto mat = OriginMat::from_memory(data, user_dtype, shape, options);
@@ -79,9 +82,9 @@ void TensorImpl::backward()
     // 梯度类型应与数据类型一致，设备应与数据设备一致
     if (!grad_)
     {
-        auto data_device = data_->device();
+        auto data_device      = data_->device();
         TensorOptions options = TensorOptions(data_->dtype()).device(data_device);
-        grad_ = OriginMat::from_scalar(1, data_->shape(), options);
+        grad_                 = OriginMat::from_scalar(1, data_->shape(), options);
     }
 
     auto funcs    = std::list<FunctionPtr>();
@@ -170,8 +173,6 @@ TensorImpl TensorImpl::transpose() const
     auto new_mat = data_->transpose();
     return TensorImpl(std::move(new_mat));
 }
-
-
 
 // 访问器方法实现
 Shape TensorImpl::shape() const

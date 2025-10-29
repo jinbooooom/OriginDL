@@ -217,7 +217,6 @@ private:
     void from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
 };
 
-
 }  // namespace origin
 
 #endif

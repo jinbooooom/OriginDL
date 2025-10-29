@@ -1,7 +1,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/utils/exception.h"
 #include "origin/mat/type_promotion.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -20,14 +20,14 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
     if (TypePromotion::needs_promotion(xs))
     {
         auto promoted_tensors = TypePromotion::promote_tensors(xs);
-        auto result = mat(promoted_tensors[0]) + mat(promoted_tensors[1]);
-        auto y = convert_mat_to_tensor(std::move(result));
+        auto result           = mat(promoted_tensors[0]) + mat(promoted_tensors[1]);
+        auto y                = convert_mat_to_tensor(std::move(result));
         return std::vector<Tensor>{y};
     }
 
     // 类型匹配，直接运算
     auto result = mat(xs[0]) + mat(xs[1]);
-    auto y = convert_mat_to_tensor(std::move(result));
+    auto y      = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{y};
 }
 

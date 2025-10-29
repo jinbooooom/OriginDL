@@ -1,34 +1,36 @@
 #pragma once
 
+#include <vector>
 #include "origin/core/tensor.h"
 #include "origin/mat/basic_types.h"
-#include <vector>
 
-namespace origin {
+namespace origin
+{
 
 /**
  * @brief 统一的类型提升工具类
- * 
+ *
  * 参考LibTorch的设计，在算子层面统一处理类型提升
  * 确保forward和backward的类型提升一致性
  */
-class TypePromotion {
+class TypePromotion
+{
 public:
     /**
      * @brief 检查张量列表是否需要类型提升
      * @param tensors 张量列表
      * @return true如果需要类型提升，false否则
      */
-    static bool needs_promotion(const std::vector<Tensor>& tensors);
-    
+    static bool needs_promotion(const std::vector<Tensor> &tensors);
+
     /**
      * @brief 检查两个张量是否需要类型提升
      * @param a 第一个张量
      * @param b 第二个张量
      * @return true如果需要类型提升，false否则
      */
-    static bool needs_promotion(const Tensor& a, const Tensor& b);
-    
+    static bool needs_promotion(const Tensor &a, const Tensor &b);
+
     /**
      * @brief 检查两个数据类型是否需要类型提升
      * @param a 第一个数据类型
@@ -36,22 +38,22 @@ public:
      * @return true如果需要类型提升，false否则
      */
     static bool needs_promotion(DataType a, DataType b);
-    
+
     /**
      * @brief 对张量列表进行类型提升
      * @param tensors 原始张量列表
      * @return 提升后的张量列表
      */
-    static std::vector<Tensor> promote_tensors(const std::vector<Tensor>& tensors);
-    
+    static std::vector<Tensor> promote_tensors(const std::vector<Tensor> &tensors);
+
     /**
      * @brief 对两个张量进行类型提升
      * @param a 第一个张量
      * @param b 第二个张量
      * @return 提升后的张量对
      */
-    static std::pair<Tensor, Tensor> promote_tensors(const Tensor& a, const Tensor& b);
-    
+    static std::pair<Tensor, Tensor> promote_tensors(const Tensor &a, const Tensor &b);
+
     /**
      * @brief 获取两个数据类型的提升类型
      * @param a 第一个数据类型
@@ -59,29 +61,29 @@ public:
      * @return 提升后的数据类型
      */
     static DataType promote_types(DataType a, DataType b);
-    
+
     /**
      * @brief 获取张量列表的提升类型
      * @param tensors 张量列表
      * @return 提升后的数据类型
      */
-    static DataType promote_types(const std::vector<Tensor>& tensors);
-    
+    static DataType promote_types(const std::vector<Tensor> &tensors);
+
     /**
      * @brief 检查张量是否与目标类型匹配
      * @param tensor 张量
      * @param target_type 目标类型
      * @return true如果匹配，false否则
      */
-    static bool is_type_match(const Tensor& tensor, DataType target_type);
-    
+    static bool is_type_match(const Tensor &tensor, DataType target_type);
+
     /**
      * @brief 将张量转换为目标类型（如果需要）
      * @param tensor 原始张量
      * @param target_type 目标类型
      * @return 转换后的张量
      */
-    static Tensor to_type(const Tensor& tensor, DataType target_type);
+    static Tensor to_type(const Tensor &tensor, DataType target_type);
 };
 
 /**
@@ -131,4 +133,4 @@ inline DataType promote_types_rule(DataType a, DataType b)
     return a;
 }
 
-} // namespace origin
+}  // namespace origin

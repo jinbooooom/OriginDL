@@ -40,9 +40,13 @@ void cpu_elementwise_kernel(const T *a, const T *b, T *c, size_t n, Op op);
  * @param op 操作函数对象
  */
 template <typename T, typename Op>
-void cpu_simple_broadcast_kernel(const T *a, const T *b, T *c, 
-                                size_t a_elements, size_t b_elements, 
-                                size_t result_elements, Op op);
+void cpu_simple_broadcast_kernel(const T *a,
+                                 const T *b,
+                                 T *c,
+                                 size_t a_elements,
+                                 size_t b_elements,
+                                 size_t result_elements,
+                                 Op op);
 
 /**
  * @brief CPU一元运算函数

@@ -3,11 +3,11 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
-#include "origin/utils/exception.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -37,8 +37,8 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b)
     if (a.shape() == b.shape())
     {
         device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            launch_elementwise_kernel<T, SubtractOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data), 
-                                                    static_cast<T *>(c_data), a.elements(), SubtractOp{}, 0);
+            launch_elementwise_kernel<T, SubtractOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                                     static_cast<T *>(c_data), a.elements(), SubtractOp{}, 0);
         });
     }
     else if (a.elements() == 1 || b.elements() == 1)
@@ -47,9 +47,9 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b)
         dim3 grid  = get_optimal_grid_size(result->elements(), block);
 
         device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            launch_simple_broadcast_kernel<T, SubtractOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data), 
-                                                         static_cast<T *>(c_data), a.elements(), b.elements(), 
-                                                         result->elements(), SubtractOp{}, 0);
+            launch_simple_broadcast_kernel<T, SubtractOp>(
+                static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data), a.elements(),
+                b.elements(), result->elements(), SubtractOp{}, 0);
         });
     }
     else

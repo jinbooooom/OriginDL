@@ -185,9 +185,8 @@ std::unique_ptr<origin::OriginMat> full(const Shape &shape, const Scalar &scalar
     size_t n   = shape.elements();
 
     // 使用类型分发器替代重复的switch语句
-    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
-        launch_full_kernel(static_cast<T *>(data), n, scalar.to<T>());
-    });
+    device_common::TypeDispatcher::dispatch_void(
+        options.dtype(), [&]<typename T>() { launch_full_kernel(static_cast<T *>(data), n, scalar.to<T>()); });
 
     // 同步等待完成
     cudaDeviceSynchronize();
@@ -195,7 +194,10 @@ std::unique_ptr<origin::OriginMat> full(const Shape &shape, const Scalar &scalar
     return result;
 }
 
-std::unique_ptr<OriginMat> from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options)
+std::unique_ptr<OriginMat> from_memory(const void *data,
+                                       DataType user_dtype,
+                                       const Shape &shape,
+                                       const TensorOptions &options)
 {
     // 验证设备
     if (options.device().type() != DeviceType::kCUDA)
@@ -207,9 +209,9 @@ std::unique_ptr<OriginMat> from_memory(const void *data, DataType user_dtype, co
     set_cuda_device(options.device().index());
 
     // 创建存储
-    size_t size = shape.elements() * utils::get_dtype_size(options.dtype());
+    size_t size  = shape.elements() * utils::get_dtype_size(options.dtype());
     auto storage = Storage::create(size, options.device().type(), options.device().index());
-    
+
     // 检查是否需要类型转换
     if (user_dtype == options.dtype())
     {
@@ -223,9 +225,9 @@ std::unique_ptr<OriginMat> from_memory(const void *data, DataType user_dtype, co
         // 假设用户传入的数据是float64类型，但是希望创建的是int32类型的张量，那么需要将float64类型转换为int32类型。
         // float64 用 8字节表示，int32 用 4字节表示，
         // 不转换会导致把一个 float64 的高4位和低4位分别当做一个int32的值进行重解释，显然就是错误的。
-        size_t temp_size = shape.elements() * utils::get_dtype_size(options.dtype());
+        size_t temp_size  = shape.elements() * utils::get_dtype_size(options.dtype());
         void *temp_buffer = malloc(temp_size);
-        
+
         // 使用TypeDispatcher进行转换
         device_common::TypeDispatcher::dispatch_void(user_dtype, [&]<typename T>() {
             const T *user_data = static_cast<const T *>(data);
@@ -238,12 +240,12 @@ std::unique_ptr<OriginMat> from_memory(const void *data, DataType user_dtype, co
                 }
             });
         });
-        
+
         // 复制到CUDA设备
         cudaMemcpy(storage->data(), temp_buffer, temp_size, cudaMemcpyHostToDevice);
         free(temp_buffer);
     }
-    
+
     return std::make_unique<OriginMat>(storage, shape, options.dtype());
 }
 

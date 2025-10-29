@@ -2,9 +2,9 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cpu/cpu_kernels.h"
 #include "origin/mat/origin/device_common/operation_templates.h"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -33,13 +33,11 @@ std::unique_ptr<Mat> log(const OriginMat &mat)
 
     // 获取数据指针
     const void *a_data = mat.storage()->data();
-    void *c_data = result->storage()->data();
+    void *c_data       = result->storage()->data();
 
     // 使用类型分发器执行对数运算
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-        cpu_unary_kernel<T, LogOp>(static_cast<const T *>(a_data), 
-                                   static_cast<T *>(c_data), 
-                                   mat.elements(), LogOp{});
+        cpu_unary_kernel<T, LogOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(), LogOp{});
     });
 
     return result;

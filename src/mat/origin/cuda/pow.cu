@@ -1,8 +1,8 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -140,7 +140,8 @@ void launch_pow_scalar_kernel(const T *input, T *output, U exponent, size_t n)
     if constexpr (std::is_same<T, double>::value || std::is_same<U, double>::value)
     {
         // 有double类型，使用double版本（pow函数，高精度）
-        pow_scalar_kernel_double<<<grid_size, block_size>>>((const double *)input, (double *)output, (double)exponent, n);
+        pow_scalar_kernel_double<<<grid_size, block_size>>>((const double *)input, (double *)output, (double)exponent,
+                                                            n);
     }
     else
     {
@@ -164,12 +165,13 @@ auto pow(const OriginMat &base, const Scalar &exponent) -> std::unique_ptr<Mat>
     auto result = std::make_unique<OriginMat>(base.shape(), base.dtype(), base.device());
 
     device_common::TypeDispatcher::dispatch_void(base.dtype(), [&]<typename T>() {
-        if (exponent.dtype() == DataType::kFloat64) {
-            launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(),
-                                     exponent.to_float64(), base.elements());
-        } else {
-            launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(),
-                                     exponent.to_float32(), base.elements());
+        if (exponent.dtype() == DataType::kFloat64)
+        {
+            launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(), exponent.to_float64(), base.elements());
+        }
+        else
+        {
+            launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(), exponent.to_float32(), base.elements());
         }
     });
 

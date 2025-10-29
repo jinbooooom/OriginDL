@@ -27,9 +27,13 @@ void cpu_elementwise_kernel(const T *a, const T *b, T *c, size_t n, Op op)
  * @tparam Op 操作函数对象类型
  */
 template <typename T, typename Op>
-void cpu_simple_broadcast_kernel(const T *a, const T *b, T *c, 
-                                size_t a_elements, size_t b_elements, 
-                                size_t result_elements, Op op)
+void cpu_simple_broadcast_kernel(const T *a,
+                                 const T *b,
+                                 T *c,
+                                 size_t a_elements,
+                                 size_t b_elements,
+                                 size_t result_elements,
+                                 Op op)
 {
     // 如果A是标量，B是矩阵
     if (a_elements == 1)
@@ -88,26 +92,82 @@ template void cpu_elementwise_kernel<bool, AddOp>(const bool *, const bool *, bo
 template void cpu_elementwise_kernel<float, SubtractOp>(const float *, const float *, float *, size_t, SubtractOp);
 template void cpu_elementwise_kernel<double, SubtractOp>(const double *, const double *, double *, size_t, SubtractOp);
 template void cpu_elementwise_kernel<int8_t, SubtractOp>(const int8_t *, const int8_t *, int8_t *, size_t, SubtractOp);
-template void cpu_elementwise_kernel<int16_t, SubtractOp>(const int16_t *, const int16_t *, int16_t *, size_t, SubtractOp);
-template void cpu_elementwise_kernel<int32_t, SubtractOp>(const int32_t *, const int32_t *, int32_t *, size_t, SubtractOp);
-template void cpu_elementwise_kernel<int64_t, SubtractOp>(const int64_t *, const int64_t *, int64_t *, size_t, SubtractOp);
-template void cpu_elementwise_kernel<uint8_t, SubtractOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, SubtractOp);
-template void cpu_elementwise_kernel<uint16_t, SubtractOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, SubtractOp);
-template void cpu_elementwise_kernel<uint32_t, SubtractOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, SubtractOp);
-template void cpu_elementwise_kernel<uint64_t, SubtractOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, SubtractOp);
+template void cpu_elementwise_kernel<int16_t, SubtractOp>(const int16_t *,
+                                                          const int16_t *,
+                                                          int16_t *,
+                                                          size_t,
+                                                          SubtractOp);
+template void cpu_elementwise_kernel<int32_t, SubtractOp>(const int32_t *,
+                                                          const int32_t *,
+                                                          int32_t *,
+                                                          size_t,
+                                                          SubtractOp);
+template void cpu_elementwise_kernel<int64_t, SubtractOp>(const int64_t *,
+                                                          const int64_t *,
+                                                          int64_t *,
+                                                          size_t,
+                                                          SubtractOp);
+template void cpu_elementwise_kernel<uint8_t, SubtractOp>(const uint8_t *,
+                                                          const uint8_t *,
+                                                          uint8_t *,
+                                                          size_t,
+                                                          SubtractOp);
+template void cpu_elementwise_kernel<uint16_t, SubtractOp>(const uint16_t *,
+                                                           const uint16_t *,
+                                                           uint16_t *,
+                                                           size_t,
+                                                           SubtractOp);
+template void cpu_elementwise_kernel<uint32_t, SubtractOp>(const uint32_t *,
+                                                           const uint32_t *,
+                                                           uint32_t *,
+                                                           size_t,
+                                                           SubtractOp);
+template void cpu_elementwise_kernel<uint64_t, SubtractOp>(const uint64_t *,
+                                                           const uint64_t *,
+                                                           uint64_t *,
+                                                           size_t,
+                                                           SubtractOp);
 template void cpu_elementwise_kernel<bool, SubtractOp>(const bool *, const bool *, bool *, size_t, SubtractOp);
 
 // MultiplyOp 实例化
 template void cpu_elementwise_kernel<float, MultiplyOp>(const float *, const float *, float *, size_t, MultiplyOp);
 template void cpu_elementwise_kernel<double, MultiplyOp>(const double *, const double *, double *, size_t, MultiplyOp);
 template void cpu_elementwise_kernel<int8_t, MultiplyOp>(const int8_t *, const int8_t *, int8_t *, size_t, MultiplyOp);
-template void cpu_elementwise_kernel<int16_t, MultiplyOp>(const int16_t *, const int16_t *, int16_t *, size_t, MultiplyOp);
-template void cpu_elementwise_kernel<int32_t, MultiplyOp>(const int32_t *, const int32_t *, int32_t *, size_t, MultiplyOp);
-template void cpu_elementwise_kernel<int64_t, MultiplyOp>(const int64_t *, const int64_t *, int64_t *, size_t, MultiplyOp);
-template void cpu_elementwise_kernel<uint8_t, MultiplyOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, MultiplyOp);
-template void cpu_elementwise_kernel<uint16_t, MultiplyOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, MultiplyOp);
-template void cpu_elementwise_kernel<uint32_t, MultiplyOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, MultiplyOp);
-template void cpu_elementwise_kernel<uint64_t, MultiplyOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, MultiplyOp);
+template void cpu_elementwise_kernel<int16_t, MultiplyOp>(const int16_t *,
+                                                          const int16_t *,
+                                                          int16_t *,
+                                                          size_t,
+                                                          MultiplyOp);
+template void cpu_elementwise_kernel<int32_t, MultiplyOp>(const int32_t *,
+                                                          const int32_t *,
+                                                          int32_t *,
+                                                          size_t,
+                                                          MultiplyOp);
+template void cpu_elementwise_kernel<int64_t, MultiplyOp>(const int64_t *,
+                                                          const int64_t *,
+                                                          int64_t *,
+                                                          size_t,
+                                                          MultiplyOp);
+template void cpu_elementwise_kernel<uint8_t, MultiplyOp>(const uint8_t *,
+                                                          const uint8_t *,
+                                                          uint8_t *,
+                                                          size_t,
+                                                          MultiplyOp);
+template void cpu_elementwise_kernel<uint16_t, MultiplyOp>(const uint16_t *,
+                                                           const uint16_t *,
+                                                           uint16_t *,
+                                                           size_t,
+                                                           MultiplyOp);
+template void cpu_elementwise_kernel<uint32_t, MultiplyOp>(const uint32_t *,
+                                                           const uint32_t *,
+                                                           uint32_t *,
+                                                           size_t,
+                                                           MultiplyOp);
+template void cpu_elementwise_kernel<uint64_t, MultiplyOp>(const uint64_t *,
+                                                           const uint64_t *,
+                                                           uint64_t *,
+                                                           size_t,
+                                                           MultiplyOp);
 template void cpu_elementwise_kernel<bool, MultiplyOp>(const bool *, const bool *, bool *, size_t, MultiplyOp);
 
 // DivideOp 实例化
@@ -118,59 +178,275 @@ template void cpu_elementwise_kernel<int16_t, DivideOp>(const int16_t *, const i
 template void cpu_elementwise_kernel<int32_t, DivideOp>(const int32_t *, const int32_t *, int32_t *, size_t, DivideOp);
 template void cpu_elementwise_kernel<int64_t, DivideOp>(const int64_t *, const int64_t *, int64_t *, size_t, DivideOp);
 template void cpu_elementwise_kernel<uint8_t, DivideOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, DivideOp);
-template void cpu_elementwise_kernel<uint16_t, DivideOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, DivideOp);
-template void cpu_elementwise_kernel<uint32_t, DivideOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, DivideOp);
-template void cpu_elementwise_kernel<uint64_t, DivideOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, DivideOp);
+template void cpu_elementwise_kernel<uint16_t, DivideOp>(const uint16_t *,
+                                                         const uint16_t *,
+                                                         uint16_t *,
+                                                         size_t,
+                                                         DivideOp);
+template void cpu_elementwise_kernel<uint32_t, DivideOp>(const uint32_t *,
+                                                         const uint32_t *,
+                                                         uint32_t *,
+                                                         size_t,
+                                                         DivideOp);
+template void cpu_elementwise_kernel<uint64_t, DivideOp>(const uint64_t *,
+                                                         const uint64_t *,
+                                                         uint64_t *,
+                                                         size_t,
+                                                         DivideOp);
 template void cpu_elementwise_kernel<bool, DivideOp>(const bool *, const bool *, bool *, size_t, DivideOp);
 
 // 简单广播内核实例化
-template void cpu_simple_broadcast_kernel<float, AddOp>(const float *, const float *, float *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<double, AddOp>(const double *, const double *, double *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<int16_t, AddOp>(const int16_t *, const int16_t *, int16_t *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<int64_t, AddOp>(const int64_t *, const int64_t *, int64_t *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<uint8_t, AddOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<uint16_t, AddOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<uint32_t, AddOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<uint64_t, AddOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, size_t, size_t, AddOp);
-template void cpu_simple_broadcast_kernel<bool, AddOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, AddOp);
+template void
+cpu_simple_broadcast_kernel<float, AddOp>(const float *, const float *, float *, size_t, size_t, size_t, AddOp);
+template void
+cpu_simple_broadcast_kernel<double, AddOp>(const double *, const double *, double *, size_t, size_t, size_t, AddOp);
+template void
+cpu_simple_broadcast_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, AddOp);
+template void
+cpu_simple_broadcast_kernel<int16_t, AddOp>(const int16_t *, const int16_t *, int16_t *, size_t, size_t, size_t, AddOp);
+template void
+cpu_simple_broadcast_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, AddOp);
+template void
+cpu_simple_broadcast_kernel<int64_t, AddOp>(const int64_t *, const int64_t *, int64_t *, size_t, size_t, size_t, AddOp);
+template void
+cpu_simple_broadcast_kernel<uint8_t, AddOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, size_t, size_t, AddOp);
+template void cpu_simple_broadcast_kernel<uint16_t, AddOp>(const uint16_t *,
+                                                           const uint16_t *,
+                                                           uint16_t *,
+                                                           size_t,
+                                                           size_t,
+                                                           size_t,
+                                                           AddOp);
+template void cpu_simple_broadcast_kernel<uint32_t, AddOp>(const uint32_t *,
+                                                           const uint32_t *,
+                                                           uint32_t *,
+                                                           size_t,
+                                                           size_t,
+                                                           size_t,
+                                                           AddOp);
+template void cpu_simple_broadcast_kernel<uint64_t, AddOp>(const uint64_t *,
+                                                           const uint64_t *,
+                                                           uint64_t *,
+                                                           size_t,
+                                                           size_t,
+                                                           size_t,
+                                                           AddOp);
+template void
+cpu_simple_broadcast_kernel<bool, AddOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, AddOp);
 
-template void cpu_simple_broadcast_kernel<float, SubtractOp>(const float *, const float *, float *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<double, SubtractOp>(const double *, const double *, double *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<int8_t, SubtractOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<int16_t, SubtractOp>(const int16_t *, const int16_t *, int16_t *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<int32_t, SubtractOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<int64_t, SubtractOp>(const int64_t *, const int64_t *, int64_t *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<uint8_t, SubtractOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<uint16_t, SubtractOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<uint32_t, SubtractOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<uint64_t, SubtractOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, size_t, size_t, SubtractOp);
-template void cpu_simple_broadcast_kernel<bool, SubtractOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, SubtractOp);
+template void cpu_simple_broadcast_kernel<float, SubtractOp>(const float *,
+                                                             const float *,
+                                                             float *,
+                                                             size_t,
+                                                             size_t,
+                                                             size_t,
+                                                             SubtractOp);
+template void cpu_simple_broadcast_kernel<double, SubtractOp>(const double *,
+                                                              const double *,
+                                                              double *,
+                                                              size_t,
+                                                              size_t,
+                                                              size_t,
+                                                              SubtractOp);
+template void cpu_simple_broadcast_kernel<int8_t, SubtractOp>(const int8_t *,
+                                                              const int8_t *,
+                                                              int8_t *,
+                                                              size_t,
+                                                              size_t,
+                                                              size_t,
+                                                              SubtractOp);
+template void cpu_simple_broadcast_kernel<int16_t, SubtractOp>(const int16_t *,
+                                                               const int16_t *,
+                                                               int16_t *,
+                                                               size_t,
+                                                               size_t,
+                                                               size_t,
+                                                               SubtractOp);
+template void cpu_simple_broadcast_kernel<int32_t, SubtractOp>(const int32_t *,
+                                                               const int32_t *,
+                                                               int32_t *,
+                                                               size_t,
+                                                               size_t,
+                                                               size_t,
+                                                               SubtractOp);
+template void cpu_simple_broadcast_kernel<int64_t, SubtractOp>(const int64_t *,
+                                                               const int64_t *,
+                                                               int64_t *,
+                                                               size_t,
+                                                               size_t,
+                                                               size_t,
+                                                               SubtractOp);
+template void cpu_simple_broadcast_kernel<uint8_t, SubtractOp>(const uint8_t *,
+                                                               const uint8_t *,
+                                                               uint8_t *,
+                                                               size_t,
+                                                               size_t,
+                                                               size_t,
+                                                               SubtractOp);
+template void cpu_simple_broadcast_kernel<uint16_t, SubtractOp>(const uint16_t *,
+                                                                const uint16_t *,
+                                                                uint16_t *,
+                                                                size_t,
+                                                                size_t,
+                                                                size_t,
+                                                                SubtractOp);
+template void cpu_simple_broadcast_kernel<uint32_t, SubtractOp>(const uint32_t *,
+                                                                const uint32_t *,
+                                                                uint32_t *,
+                                                                size_t,
+                                                                size_t,
+                                                                size_t,
+                                                                SubtractOp);
+template void cpu_simple_broadcast_kernel<uint64_t, SubtractOp>(const uint64_t *,
+                                                                const uint64_t *,
+                                                                uint64_t *,
+                                                                size_t,
+                                                                size_t,
+                                                                size_t,
+                                                                SubtractOp);
+template void
+cpu_simple_broadcast_kernel<bool, SubtractOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, SubtractOp);
 
-template void cpu_simple_broadcast_kernel<float, MultiplyOp>(const float *, const float *, float *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<double, MultiplyOp>(const double *, const double *, double *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<int8_t, MultiplyOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<int16_t, MultiplyOp>(const int16_t *, const int16_t *, int16_t *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<int32_t, MultiplyOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<int64_t, MultiplyOp>(const int64_t *, const int64_t *, int64_t *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<uint8_t, MultiplyOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<uint16_t, MultiplyOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<uint32_t, MultiplyOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<uint64_t, MultiplyOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, size_t, size_t, MultiplyOp);
-template void cpu_simple_broadcast_kernel<bool, MultiplyOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, MultiplyOp);
+template void cpu_simple_broadcast_kernel<float, MultiplyOp>(const float *,
+                                                             const float *,
+                                                             float *,
+                                                             size_t,
+                                                             size_t,
+                                                             size_t,
+                                                             MultiplyOp);
+template void cpu_simple_broadcast_kernel<double, MultiplyOp>(const double *,
+                                                              const double *,
+                                                              double *,
+                                                              size_t,
+                                                              size_t,
+                                                              size_t,
+                                                              MultiplyOp);
+template void cpu_simple_broadcast_kernel<int8_t, MultiplyOp>(const int8_t *,
+                                                              const int8_t *,
+                                                              int8_t *,
+                                                              size_t,
+                                                              size_t,
+                                                              size_t,
+                                                              MultiplyOp);
+template void cpu_simple_broadcast_kernel<int16_t, MultiplyOp>(const int16_t *,
+                                                               const int16_t *,
+                                                               int16_t *,
+                                                               size_t,
+                                                               size_t,
+                                                               size_t,
+                                                               MultiplyOp);
+template void cpu_simple_broadcast_kernel<int32_t, MultiplyOp>(const int32_t *,
+                                                               const int32_t *,
+                                                               int32_t *,
+                                                               size_t,
+                                                               size_t,
+                                                               size_t,
+                                                               MultiplyOp);
+template void cpu_simple_broadcast_kernel<int64_t, MultiplyOp>(const int64_t *,
+                                                               const int64_t *,
+                                                               int64_t *,
+                                                               size_t,
+                                                               size_t,
+                                                               size_t,
+                                                               MultiplyOp);
+template void cpu_simple_broadcast_kernel<uint8_t, MultiplyOp>(const uint8_t *,
+                                                               const uint8_t *,
+                                                               uint8_t *,
+                                                               size_t,
+                                                               size_t,
+                                                               size_t,
+                                                               MultiplyOp);
+template void cpu_simple_broadcast_kernel<uint16_t, MultiplyOp>(const uint16_t *,
+                                                                const uint16_t *,
+                                                                uint16_t *,
+                                                                size_t,
+                                                                size_t,
+                                                                size_t,
+                                                                MultiplyOp);
+template void cpu_simple_broadcast_kernel<uint32_t, MultiplyOp>(const uint32_t *,
+                                                                const uint32_t *,
+                                                                uint32_t *,
+                                                                size_t,
+                                                                size_t,
+                                                                size_t,
+                                                                MultiplyOp);
+template void cpu_simple_broadcast_kernel<uint64_t, MultiplyOp>(const uint64_t *,
+                                                                const uint64_t *,
+                                                                uint64_t *,
+                                                                size_t,
+                                                                size_t,
+                                                                size_t,
+                                                                MultiplyOp);
+template void
+cpu_simple_broadcast_kernel<bool, MultiplyOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, MultiplyOp);
 
-template void cpu_simple_broadcast_kernel<float, DivideOp>(const float *, const float *, float *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<double, DivideOp>(const double *, const double *, double *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<int8_t, DivideOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<int16_t, DivideOp>(const int16_t *, const int16_t *, int16_t *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<int32_t, DivideOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<int64_t, DivideOp>(const int64_t *, const int64_t *, int64_t *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<uint8_t, DivideOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<uint16_t, DivideOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<uint32_t, DivideOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<uint64_t, DivideOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, size_t, size_t, DivideOp);
-template void cpu_simple_broadcast_kernel<bool, DivideOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, DivideOp);
+template void
+cpu_simple_broadcast_kernel<float, DivideOp>(const float *, const float *, float *, size_t, size_t, size_t, DivideOp);
+template void cpu_simple_broadcast_kernel<double, DivideOp>(const double *,
+                                                            const double *,
+                                                            double *,
+                                                            size_t,
+                                                            size_t,
+                                                            size_t,
+                                                            DivideOp);
+template void cpu_simple_broadcast_kernel<int8_t, DivideOp>(const int8_t *,
+                                                            const int8_t *,
+                                                            int8_t *,
+                                                            size_t,
+                                                            size_t,
+                                                            size_t,
+                                                            DivideOp);
+template void cpu_simple_broadcast_kernel<int16_t, DivideOp>(const int16_t *,
+                                                             const int16_t *,
+                                                             int16_t *,
+                                                             size_t,
+                                                             size_t,
+                                                             size_t,
+                                                             DivideOp);
+template void cpu_simple_broadcast_kernel<int32_t, DivideOp>(const int32_t *,
+                                                             const int32_t *,
+                                                             int32_t *,
+                                                             size_t,
+                                                             size_t,
+                                                             size_t,
+                                                             DivideOp);
+template void cpu_simple_broadcast_kernel<int64_t, DivideOp>(const int64_t *,
+                                                             const int64_t *,
+                                                             int64_t *,
+                                                             size_t,
+                                                             size_t,
+                                                             size_t,
+                                                             DivideOp);
+template void cpu_simple_broadcast_kernel<uint8_t, DivideOp>(const uint8_t *,
+                                                             const uint8_t *,
+                                                             uint8_t *,
+                                                             size_t,
+                                                             size_t,
+                                                             size_t,
+                                                             DivideOp);
+template void cpu_simple_broadcast_kernel<uint16_t, DivideOp>(const uint16_t *,
+                                                              const uint16_t *,
+                                                              uint16_t *,
+                                                              size_t,
+                                                              size_t,
+                                                              size_t,
+                                                              DivideOp);
+template void cpu_simple_broadcast_kernel<uint32_t, DivideOp>(const uint32_t *,
+                                                              const uint32_t *,
+                                                              uint32_t *,
+                                                              size_t,
+                                                              size_t,
+                                                              size_t,
+                                                              DivideOp);
+template void cpu_simple_broadcast_kernel<uint64_t, DivideOp>(const uint64_t *,
+                                                              const uint64_t *,
+                                                              uint64_t *,
+                                                              size_t,
+                                                              size_t,
+                                                              size_t,
+                                                              DivideOp);
+template void
+cpu_simple_broadcast_kernel<bool, DivideOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, DivideOp);
 
 // 一元内核实例化
 template void cpu_unary_kernel<float, NegOp>(const float *, float *, size_t, NegOp);

@@ -1,8 +1,8 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -198,7 +198,6 @@ void launch_sum_axis_kernel(const T *input, T *output, size_t outer_size, size_t
     dim3 grid(outer_size);
 
     sum_axis_kernel<T><<<grid, block>>>(input, output, outer_size, inner_size, axis_size);
-
 }
 
 /**

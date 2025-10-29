@@ -2,9 +2,9 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cpu/cpu_kernels.h"
 #include "origin/mat/origin/device_common/operation_templates.h"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -27,12 +27,12 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
 
     // 计算广播形状
     Shape result_shape = origin::utils::compute::compute_broadcast_shape(a, b);
-    auto result = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
+    auto result        = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
 
     // 获取数据指针
     const void *a_data = a.storage()->data();
     const void *b_data = b.storage()->data();
-    void *c_data = result->storage()->data();
+    void *c_data       = result->storage()->data();
 
     // 分支优化 - 与CUDA保持一致
     if (a.shape() == b.shape())
@@ -55,20 +55,16 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
         <T>：使用TypeDispatcher推断出的具体类型。
         */
         device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            cpu_elementwise_kernel<T, AddOp>(static_cast<const T *>(a_data), 
-                                            static_cast<const T *>(b_data), 
-                                            static_cast<T *>(c_data), 
-                                             a.elements(), AddOp{});
+            cpu_elementwise_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                             static_cast<T *>(c_data), a.elements(), AddOp{});
         });
     }
     else if (a.elements() == 1 || b.elements() == 1)
     {
         // 简单广播：标量广播
         device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            cpu_simple_broadcast_kernel<T, AddOp>(static_cast<const T *>(a_data), 
-                                                 static_cast<const T *>(b_data), 
-                                                 static_cast<T *>(c_data), 
-                                                 a.elements(), b.elements(), 
+            cpu_simple_broadcast_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                                  static_cast<T *>(c_data), a.elements(), b.elements(),
                                                   result->elements(), AddOp{});
         });
     }
