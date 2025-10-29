@@ -1,6 +1,6 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/cuda/device_validation.cuh"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
@@ -181,7 +181,7 @@ void launch_transpose_nd_kernel(const T *input, T *output, int last_dim, int sec
 std::unique_ptr<Mat> transpose(const OriginMat &mat)
 {
     // 验证设备类型
-    validation::validate_cuda_device(mat, "transpose");
+    VALIDATE_CUDA_DEVICE(mat);
 
     if (mat.shape().size() == 1)
     {

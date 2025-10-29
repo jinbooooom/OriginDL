@@ -1,6 +1,6 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/cuda/device_validation.cuh"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
@@ -162,7 +162,7 @@ void validate_broadcast_compatibility(const Shape &input_shape, const Shape &out
 std::unique_ptr<Mat> broadcast_to(const OriginMat &mat, const Shape &target_shape)
 {
     // 验证设备类型
-    validation::validate_cuda_device(mat, "broadcast_to");
+    VALIDATE_CUDA_DEVICE(mat);
 
     const auto &input_shape = mat.shape();
 

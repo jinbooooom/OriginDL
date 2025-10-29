@@ -8,6 +8,7 @@
 #include "origin/mat/origin/../shape.h"
 #include "origin/mat/scalar.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -128,6 +129,112 @@ bool compare_tensors(const std::vector<data_t> &data1, const std::vector<data_t>
 bool is_same_shape(const std::vector<size_t> &shape1, const std::vector<size_t> &shape2);
 
 bool is_broadcastable(const std::vector<size_t> &shape1, const std::vector<size_t> &shape2);
+
+// === 设备验证宏 ===
+// 验证两个张量在同一设备上
+#define VALIDATE_SAME_DEVICE(a, b) \
+    do { \
+        if (unlikely((a).device() != (b).device())) { \
+            THROW_INVALID_ARG("Expected all tensors to be on the same device, but found at least two devices, {} and {}!", \
+                             (a).device().to_string(), (b).device().to_string()); \
+        } \
+    } while(0)
+
+// 验证张量在指定设备上
+#define VALIDATE_DEVICE(tensor, expected_device) \
+    do { \
+        if (unlikely((tensor).device().type() != (expected_device))) { \
+            std::string expected_str = ((expected_device) == DeviceType::kCPU) ? "cpu" : "cuda"; \
+            THROW_INVALID_ARG("Expected tensor to be on {} device, but got {}!", \
+                             expected_str, (tensor).device().to_string()); \
+        } \
+    } while(0)
+
+// 验证张量在CUDA设备上
+#define VALIDATE_CUDA_DEVICE(tensor) \
+    do { \
+        if (unlikely((tensor).device().type() != DeviceType::kCUDA)) { \
+            THROW_INVALID_ARG("Expected tensor to be on cuda device, but got {}!", \
+                             (tensor).device().to_string()); \
+        } \
+    } while(0)
+
+// 验证张量在CPU设备上
+#define VALIDATE_CPU_DEVICE(tensor) \
+    do { \
+        if (unlikely((tensor).device().type() != DeviceType::kCPU)) { \
+            THROW_INVALID_ARG("Expected tensor to be on cpu device, but got {}!", \
+                             (tensor).device().to_string()); \
+        } \
+    } while(0)
+
+// 验证两个张量在同一CUDA设备上
+#define VALIDATE_SAME_CUDA_DEVICE(a, b) \
+    do { \
+        if (unlikely((a).device() != (b).device())) { \
+            THROW_INVALID_ARG("Expected all tensors to be on the same device, but found at least two devices, {} and {}!", \
+                             (a).device().to_string(), (b).device().to_string()); \
+        } \
+        if (unlikely((a).device().type() != DeviceType::kCUDA)) { \
+            THROW_INVALID_ARG("Expected tensor to be on cuda device, but got {}!", \
+                             (a).device().to_string()); \
+        } \
+    } while(0)
+
+// 验证两个张量在同一CPU设备上
+#define VALIDATE_SAME_CPU_DEVICE(a, b) \
+    do { \
+        if (unlikely((a).device() != (b).device())) { \
+            THROW_INVALID_ARG("Expected all tensors to be on the same device, but found at least two devices, {} and {}!", \
+                             (a).device().to_string(), (b).device().to_string()); \
+        } \
+        if (unlikely((a).device().type() != DeviceType::kCPU)) { \
+            THROW_INVALID_ARG("Expected tensor to be on cpu device, but got {}!", \
+                             (a).device().to_string()); \
+        } \
+    } while(0)
+
+// === 数据类型验证宏 ===
+// 验证两个张量的数据类型是否相同
+#define VALIDATE_SAME_DTYPE(a, b) \
+    do { \
+        if (unlikely((a).dtype() != (b).dtype())) { \
+            THROW_INVALID_ARG("Data type mismatch: {} vs {}!", \
+                             dtype_to_string((a).dtype()), dtype_to_string((b).dtype())); \
+        } \
+    } while(0)
+
+// 验证张量的数据类型是否是指定类型
+#define VALIDATE_DTYPE(tensor, expected_dtype) \
+    do { \
+        if (unlikely((tensor).dtype() != (expected_dtype))) { \
+            THROW_INVALID_ARG("Expected tensor to be of type {}, but got {}!", \
+                             dtype_to_string(expected_dtype), dtype_to_string((tensor).dtype())); \
+        } \
+    } while(0)
+
+// 验证张量是否支持浮点运算（用于exp, log, sqrt等数学函数）
+#define VALIDATE_FLOAT_DTYPE(tensor) \
+    do { \
+        if (unlikely((tensor).dtype() != DataType::kFloat32 && (tensor).dtype() != DataType::kFloat64)) { \
+            THROW_INVALID_ARG("Mathematical operation only supported for float32 and float64 types, but got {}!", \
+                             dtype_to_string((tensor).dtype())); \
+        } \
+    } while(0)
+
+// 验证两个张量是否都支持浮点运算
+#define VALIDATE_FLOAT_DTYPE_2(a, b) \
+    do { \
+        if (unlikely((a).dtype() != DataType::kFloat32 && (a).dtype() != DataType::kFloat64)) { \
+            THROW_INVALID_ARG("Mathematical operation only supported for float32 and float64 types, but got {}!", \
+                             dtype_to_string((a).dtype())); \
+        } \
+        if (unlikely((b).dtype() != DataType::kFloat32 && (b).dtype() != DataType::kFloat64)) { \
+            THROW_INVALID_ARG("Mathematical operation only supported for float32 and float64 types, but got {}!", \
+                             dtype_to_string((b).dtype())); \
+        } \
+    } while(0)
+
 }  // namespace validate
 
 // === OriginMat工具函数 ===

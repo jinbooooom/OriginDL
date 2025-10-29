@@ -3,6 +3,7 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
@@ -26,10 +27,7 @@ namespace cuda
 std::unique_ptr<Mat> negate(const OriginMat &mat)
 {
     // 验证输入
-    if (unlikely(mat.device().type() != DeviceType::kCUDA))
-    {
-        THROW_INVALID_ARG("Device mismatch in CUDA negate: expected CUDA device, got {}", mat.device().to_string());
-    }
+    VALIDATE_CUDA_DEVICE(mat);
 
     // 创建结果张量
     auto result = std::make_unique<OriginMat>(mat.shape(), mat.dtype(), mat.device());

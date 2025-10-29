@@ -2,10 +2,9 @@
 #include <memory>
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_broadcast.cuh"
-#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/cuda/device_validation.cuh"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
@@ -25,16 +24,8 @@ namespace cuda
 std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
 {
     // 验证输入
-    if (unlikely(a.dtype() != b.dtype()))
-    {
-        THROW_INVALID_ARG("Data type mismatch in CUDA add: {} vs {}", dtype_to_string(a.dtype()),
-                          dtype_to_string(b.dtype()));
-    }
-
-    if (unlikely(a.device() != b.device()))
-    {
-        THROW_INVALID_ARG("Device mismatch in CUDA add: {} vs {}", a.device().to_string(), b.device().to_string());
-    }
+    VALIDATE_SAME_DTYPE(a, b);
+    VALIDATE_SAME_CUDA_DEVICE(a, b);
 
     // 计算广播形状
     Shape result_shape = origin::utils::compute::compute_broadcast_shape(a, b);

@@ -1,6 +1,6 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/cuda/device_validation.cuh"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
@@ -210,7 +210,7 @@ void launch_sum_axis_kernel(const T *input, T *output, size_t outer_size, size_t
 std::unique_ptr<Mat> sum(const OriginMat &mat, int axis)
 {
     // 验证设备类型
-    validation::validate_cuda_device(mat, "sum");
+    VALIDATE_CUDA_DEVICE(mat);
 
     const auto &shape = mat.shape();
 

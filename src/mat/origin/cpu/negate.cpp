@@ -20,12 +20,8 @@ namespace cpu
  */
 std::unique_ptr<Mat> negate(const OriginMat &mat)
 {
-    // 输入验证 - 与CUDA保持一致
-    if (unlikely(mat.device().type() != DeviceType::kCPU))
-    {
-        THROW_INVALID_ARG("Device mismatch in CPU negate: expected CPU device, got {}", 
-                          mat.device().to_string());
-    }
+    // 输入验证
+    VALIDATE_CPU_DEVICE(mat);
 
     // 创建结果张量
     auto result = std::make_unique<OriginMat>(mat.shape(), mat.dtype(), mat.device());

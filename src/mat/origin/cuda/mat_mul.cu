@@ -1,6 +1,6 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/cuda/device_validation.cuh"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
@@ -223,14 +223,8 @@ void launch_matmul_2d_kernel(const T *a, const T *b, T *c, int M, int N, int K)
 std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
 {
     // 验证输入
-    if (a.dtype() != b.dtype())
-    {
-        THROW_INVALID_ARG("Data type mismatch in CUDA matmul: {} vs {}", dtype_to_string(a.dtype()),
-                          dtype_to_string(b.dtype()));
-    }
-
-    // 验证设备类型
-    validation::validate_same_cuda_device(a, b, "matmul");
+    VALIDATE_SAME_DTYPE(a, b);
+    VALIDATE_SAME_CUDA_DEVICE(a, b);
 
     // 获取输入形状
     const auto &shape_a = a.shape();
