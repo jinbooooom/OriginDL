@@ -9,7 +9,7 @@ namespace origin
 namespace cpu
 {
 
-std::unique_ptr<OriginMat> convert_datatype(const OriginMat &mat, DataType target_type)
+std::unique_ptr<Mat> convert_datatype(const OriginMat &mat, DataType target_type)
 {
     if (target_type == mat.dtype())
     {
