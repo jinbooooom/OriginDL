@@ -59,4 +59,15 @@ inline std::string basename(const std::string &file)
 #define THROW_OUT_OF_RANGE(format_str, ...) THROW(std::out_of_range, format_str, ##__VA_ARGS__)
 #define THROW_BAD_ALLOC(format_str, ...) THROW(std::bad_alloc, format_str, ##__VA_ARGS__)
 
+// 不支持操作的异常宏
+// 在CUDA设备代码中使用简单的printf，在CPU代码中抛出异常
+#ifdef __CUDACC__
+    #define THROW_UNSUPPORTED(format_str, ...) \
+        do { \
+            printf("\033[31m[%s:%s:%d] %s\033[0m\n", __FILE__, __FUNCTION__, __LINE__, format_str); \
+        } while (0)
+#else
+    #define THROW_UNSUPPORTED(format_str, ...) THROW_RUNTIME_ERROR(format_str, ##__VA_ARGS__)
+#endif
+
 #endif  // __ORIGIN_DL_EXCEPTION_H__
