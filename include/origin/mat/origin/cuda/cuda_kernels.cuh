@@ -3,6 +3,7 @@
 
 #include <cuda_runtime.h>
 #include "../../basic_types.h"
+#include "../device_common/operation_templates.h"
 
 namespace origin
 {
@@ -261,117 +262,6 @@ __global__ void sum_all_kernel(const T *__restrict__ input, T *__restrict__ outp
 template <typename T>
 __global__ void transpose_kernel(const T *__restrict__ input, T *__restrict__ output, int rows, int cols);
 
-// ============================================================================
-// 操作函数对象定义
-// ============================================================================
-
-/**
- * @brief 加法操作函数对象
- */
-struct AddOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T a, T b) const
-    {
-        return a + b;
-    }
-};
-
-/**
- * @brief 减法操作函数对象
- */
-struct SubtractOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T a, T b) const
-    {
-        return a - b;
-    }
-};
-
-/**
- * @brief 乘法操作函数对象
- */
-struct MultiplyOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T a, T b) const
-    {
-        return a * b;
-    }
-};
-
-/**
- * @brief 除法操作函数对象
- */
-struct DivideOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T a, T b) const
-    {
-        return a / b;
-    }
-};
-
-/**
- * @brief 指数操作函数对象
- */
-struct ExpOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T value) const
-    {
-        return exp(value);
-    }
-};
-
-/**
- * @brief 对数操作函数对象
- */
-struct LogOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T value) const
-    {
-        return log(value);
-    }
-};
-
-/**
- * @brief 平方根操作函数对象
- */
-struct SqrtOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T value) const
-    {
-        return sqrt(value);
-    }
-};
-
-/**
- * @brief 平方操作函数对象
- */
-struct SquareOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T value) const
-    {
-        return value * value;
-    }
-};
-
-/**
- * @brief 取负操作函数对象
- */
-struct NegOp
-{
-    template <typename T>
-    __device__ __forceinline__ T operator()(T value) const
-    {
-        return -value;
-    }
-};
 
 // ============================================================================
 // 内核启动函数

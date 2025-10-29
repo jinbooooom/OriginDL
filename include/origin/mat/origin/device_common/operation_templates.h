@@ -6,33 +6,15 @@
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 
+// 在纯CPU环境中，__host__ __device__ 修饰符会导致编译错误。需要使用条件编译来处理这个问题。
+#ifdef __CUDACC__
+    #define ORIGIN_HOST_DEVICE __host__ __device__
+#else
+    #define ORIGIN_HOST_DEVICE
+#endif
+
 namespace origin
 {
-namespace cpu
-{
-// 使用设备通用的TypeDispatcher（使用完整命名空间）
-
-/**
- * @brief 一元操作函数对象基类
- * @tparam T 数据类型
- */
-template <typename T>
-struct UnaryOp
-{
-    virtual T operator()(T value) const = 0;
-    virtual ~UnaryOp()                  = default;
-};
-
-/**
- * @brief 二元操作函数对象基类
- * @tparam T 数据类型
- */
-template <typename T>
-struct BinaryOp
-{
-    virtual T operator()(T a, T b) const = 0;
-    virtual ~BinaryOp()                  = default;
-};
 
 /**
  * @brief 加法操作
@@ -40,7 +22,7 @@ struct BinaryOp
 struct AddOp
 {
     template <typename T>
-    T operator()(T a, T b) const
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
         return a + b;
     }
@@ -52,7 +34,7 @@ struct AddOp
 struct DivideOp
 {
     template <typename T>
-    T operator()(T a, T b) const
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
         return a / b;
     }
@@ -64,7 +46,7 @@ struct DivideOp
 struct SquareOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return value * value;
     }
@@ -76,7 +58,7 @@ struct SquareOp
 struct SubtractOp
 {
     template <typename T>
-    T operator()(T a, T b) const
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
         return a - b;
     }
@@ -88,7 +70,7 @@ struct SubtractOp
 struct MultiplyOp
 {
     template <typename T>
-    T operator()(T a, T b) const
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
         return a * b;
     }
@@ -100,7 +82,7 @@ struct MultiplyOp
 struct ExpOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return std::exp(value);
     }
@@ -112,7 +94,7 @@ struct ExpOp
 struct LogOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return std::log(value);
     }
@@ -124,7 +106,7 @@ struct LogOp
 struct SqrtOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return std::sqrt(value);
     }
@@ -136,7 +118,7 @@ struct SqrtOp
 struct PowOp
 {
     template <typename T>
-    T operator()(T base, T exponent) const
+    ORIGIN_HOST_DEVICE T operator()(T base, T exponent) const
     {
         return std::pow(base, exponent);
     }
@@ -148,7 +130,7 @@ struct PowOp
 struct NegOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return -value;
     }
@@ -464,7 +446,6 @@ public:
     }
 };
 
-}  // namespace cpu
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_OPERATION_TEMPLATES_H__
