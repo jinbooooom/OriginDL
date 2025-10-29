@@ -2,9 +2,11 @@
 #define __ORIGIN_DL_OPERATION_TEMPLATES_H__
 
 #include <cmath>
+#include <type_traits>
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 // 在纯CPU环境中，__host__ __device__ 修饰符会导致编译错误。需要使用条件编译来处理这个问题。
 #ifdef __CUDACC__
@@ -24,7 +26,12 @@ struct AddOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        return a + b;
+        if constexpr (std::is_same_v<T, bool>) {
+            // 布尔类型不支持加法，使用逻辑OR作为替代
+            return a || b;
+        } else {
+            return a + b;   // 对于数值类型使用加法
+        }
     }
 };
 
@@ -36,7 +43,12 @@ struct DivideOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        return a / b;
+        if constexpr (std::is_same_v<T, bool>) {
+            // 布尔类型不支持除法操作
+            THROW_UNSUPPORTED("Division is not supported for boolean tensors");
+        } else {
+            return a / b;   // 对于数值类型使用除法
+        }
     }
 };
 
@@ -48,7 +60,11 @@ struct SquareOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T value) const
     {
-        return value * value;
+        if constexpr (std::is_same_v<T, bool>) {
+            return value && value;  // 对于布尔类型使用逻辑AND
+        } else {
+            return value * value;   // 对于数值类型使用乘法
+        }
     }
 };
 
@@ -60,7 +76,12 @@ struct SubtractOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        return a - b;
+        if constexpr (std::is_same_v<T, bool>) {
+            // 布尔类型不支持减法，使用逻辑异或 (XOR) 作为替代
+            return a != b;
+        } else {
+            return a - b;   // 对于数值类型使用减法
+        }
     }
 };
 
@@ -72,7 +93,12 @@ struct MultiplyOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        return a * b;
+        if constexpr (std::is_same_v<T, bool>) {
+            // 布尔类型乘法等同于逻辑AND
+            return a && b;
+        } else {
+            return a * b;   // 对于数值类型使用乘法
+        }
     }
 };
 
