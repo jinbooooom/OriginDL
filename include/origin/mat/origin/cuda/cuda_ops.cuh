@@ -91,26 +91,6 @@ std::unique_ptr<Mat> square(const origin::OriginMat &mat);
 std::unique_ptr<Mat> negate(const origin::OriginMat &mat);
 
 // ============================================================================
-// 标量运算算子
-// ============================================================================
-
-/**
- * @brief CUDA标量加法算子
- * @param mat 输入矩阵
- * @param scalar 标量值
- * @return 标量加法结果矩阵
- */
-std::unique_ptr<Mat> add_scalar(const origin::OriginMat &mat, data_t scalar);//TODO: 删除这个函数
-
-/**
- * @brief CUDA标量乘法算子
- * @param mat 输入矩阵
- * @param scalar 标量值
- * @return 标量乘法结果矩阵
- */
-std::unique_ptr<Mat> multiply_scalar(const origin::OriginMat &mat, data_t scalar);//TODO: 删除这个函数
-
-// ============================================================================
 // 形状操作算子
 // ============================================================================
 
@@ -156,14 +136,6 @@ std::unique_ptr<Mat> sum(const OriginMat &mat, int axis = -1);
  * @return 幂运算结果矩阵
  */
 std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
-
-/**
- * @brief CUDA幂运算算子（张量）
- * @param base 底数矩阵
- * @param exponent 指数矩阵
- * @return 幂运算结果矩阵
- */
-std::unique_ptr<Mat> pow(const OriginMat &base, const OriginMat &exponent);
 
 /**
  * @brief CUDA广播算子

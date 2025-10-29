@@ -11,6 +11,7 @@
 #include "origin/core/tensor.h"
 #include "origin/core/tensor_impl.h"
 #include "origin/mat/origin/cpu/cpu_ops.h"
+#include "origin/mat/origin/cpu/factory.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
 
