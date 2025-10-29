@@ -1,5 +1,8 @@
-#include <stdexcept>
+#include <memory>
+#include "origin/mat/basic_types.h"
+#include "origin/mat/origin/cpu/cpu_kernels.h"
 #include "origin/mat/origin/cpu/operation_templates.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
@@ -9,47 +12,85 @@ namespace origin
 namespace cpu
 {
 
-std::unique_ptr<OriginMat> add(const OriginMat &a, const OriginMat &b)
+/**
+ * @brief CPU加法算子实现
+ * @param a 输入矩阵A
+ * @param b 输入矩阵B
+ * @return 加法结果矩阵
+ */
+std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
 {
+    // 输入验证 - 与CUDA保持一致
     if (unlikely(a.dtype() != b.dtype()))
     {
         THROW_INVALID_ARG("Data type mismatch in CPU add: {} vs {}", 
-                         dtype_to_string(a.dtype()), dtype_to_string(b.dtype()));
+                          dtype_to_string(a.dtype()), dtype_to_string(b.dtype()));
     }
 
-    if (a.device() != b.device())
+    if (unlikely(a.device() != b.device()))
     {
-        THROW_INVALID_ARG("Device mismatch in CPU add: {} vs {}", a.device().to_string(), b.device().to_string());
+        THROW_INVALID_ARG("Device mismatch in CPU add: {} vs {}", 
+                          a.device().to_string(), b.device().to_string());
+    }
+
+    if (unlikely(a.device().type() != DeviceType::kCPU))
+    {
+        THROW_INVALID_ARG("Device mismatch in CPU add: expected CPU device, got {}", 
+                          a.device().to_string());
     }
 
     // 计算广播形状
-    Shape result_shape = compute_broadcast_shape(a, b);  // TODO: 未来需要考虑高维矩阵的广播形状计算
-    auto result        = std::make_unique<OriginMat>(result_shape, a.dtype());
+    Shape result_shape = compute_broadcast_shape(a, b);
+    auto result = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
 
-    // 使用类型分发器执行加法操作
-    /*
-    1. device_common::TypeDispatcher::dispatch_void
-    这是一个类型分发器，它的作用是：
-    根据 a.dtype() 返回的数据类型（如 kFloat32、kFloat64 等）
-    自动选择对应的C++类型（如 float、double 等）
-    调用传入的lambda函数，并传递正确的类型参数
-    2. Lambda表达式 [&]<typename T>()
-    这是C++20的模板lambda语法：
-    [&]：捕获所有外部变量 by reference
-    <typename T>()：模板参数，T会被TypeDispatcher自动推断
-    当TypeDispatcher检测到数据类型是kFloat32时，T就是float
-    当检测到kFloat64时，T就是double
-    3. BroadcastCompute::binary_broadcast<T>
-    这是广播计算模板：
-    <T>：使用TypeDispatcher推断出的具体类型
-    处理两个矩阵的广播运算（形状匹配、标量广播等）
-    支持三种情况：
-    相同形状：直接元素级运算
-    a是标量：广播到b的形状
-    b是标量：广播到a的形状
-    */
-    device_common::TypeDispatcher::dispatch_void(
-        a.dtype(), [&]<typename T>() { BroadcastCompute::binary_broadcast<T>(a, b, *result, AddOp{}); });
+    // 获取数据指针
+    const void *a_data = a.storage()->data();
+    const void *b_data = b.storage()->data();
+    void *c_data = result->storage()->data();
+
+    // 分支优化 - 与CUDA保持一致
+    if (a.shape() == b.shape())
+    {
+        // 相同形状：直接元素级运算
+        // 使用类型分发器执行加法操作
+        /*
+        1. device_common::TypeDispatcher::dispatch_void
+        这是一个类型分发器，它的作用是：
+        根据 a.dtype() 返回的数据类型（如 kFloat32、kFloat64 等）
+        自动选择对应的C++类型（如 float、double 等）
+        调用传入的lambda函数，并传递正确的类型参数
+        2. Lambda表达式 [&]<typename T>()
+        这是C++20的模板lambda语法：
+        [&]：捕获所有外部变量 by reference
+        <typename T>()：模板参数，T会被TypeDispatcher自动推断
+        当TypeDispatcher检测到数据类型是kFloat32时，T就是float
+        当检测到kFloat64时，T就是double
+        3. cpu_elementwise_kernel<T, AddOp>
+        <T>：使用TypeDispatcher推断出的具体类型。
+        */
+        device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+            cpu_elementwise_kernel<T, AddOp>(static_cast<const T *>(a_data), 
+                                            static_cast<const T *>(b_data), 
+                                            static_cast<T *>(c_data), 
+                                            a.elements(), AddOp{});
+        });
+    }
+    else if (a.elements() == 1 || b.elements() == 1)
+    {
+        // 简单广播：标量广播
+        device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+            cpu_simple_broadcast_kernel<T, AddOp>(static_cast<const T *>(a_data), 
+                                                 static_cast<const T *>(b_data), 
+                                                 static_cast<T *>(c_data), 
+                                                 a.elements(), b.elements(), 
+                                                 result->elements(), AddOp{});
+        });
+    }
+    else
+    {
+        // 复杂广播：需要计算步长信息
+        THROW_RUNTIME_ERROR("Complex broadcasting not yet implemented for CPU add operation");
+    }
 
     return result;
 }

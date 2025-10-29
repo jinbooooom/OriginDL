@@ -13,7 +13,7 @@ namespace cuda
  * @param b 输入矩阵B
  * @return 广播后的结果形状
  */
-Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b)
+Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b) 
 {
     const auto &shape_a = a.shape();
     const auto &shape_b = b.shape();
