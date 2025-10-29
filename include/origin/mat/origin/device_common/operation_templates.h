@@ -464,14 +464,6 @@ public:
     }
 };
 
-/**
- * @brief 广播形状计算
- * @param a 输入矩阵A
- * @param b 输入矩阵B
- * @return 广播后的结果形状
- */
-Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b);
-
 }  // namespace cpu
 }  // namespace origin
 

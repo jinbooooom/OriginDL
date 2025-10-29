@@ -3,9 +3,11 @@
 
 #include <string>
 #include <vector>
+#include <cmath>
 #include "origin/mat/origin/../basic_types.h"
 #include "origin/mat/origin/../shape.h"
 #include "origin/mat/scalar.h"
+#include "origin/mat/origin/origin_mat.h"
 
 namespace origin
 {
@@ -108,6 +110,9 @@ void convert_from_vector(const std::vector<data_t> &data_vec, void *data_ptr, Da
 
 // 标量值提取函数
 Scalar get_scalar_value(const void *data_ptr, DataType dtype);
+
+// 广播形状计算函数
+Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b);
 }  // namespace compute
 
 namespace validate

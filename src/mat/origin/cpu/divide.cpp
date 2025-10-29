@@ -1,7 +1,8 @@
 #include <memory>
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cpu/cpu_kernels.h"
-#include "origin/mat/origin/cpu/operation_templates.h"
+#include "origin/mat/origin/device_common/operation_templates.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
@@ -40,7 +41,7 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b)
     }
 
     // 计算广播形状
-    Shape result_shape = compute_broadcast_shape(a, b);
+    Shape result_shape = origin::utils::compute::compute_broadcast_shape(a, b);
     auto result = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
 
     // 获取数据指针
