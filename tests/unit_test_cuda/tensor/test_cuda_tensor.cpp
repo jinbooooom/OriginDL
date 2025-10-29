@@ -127,10 +127,10 @@ TEST_F(CudaTensorTest, ShapeValidation)
     auto tensor =
         Tensor(std::vector<float>{1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(Float32).device(kCUDA));
 
-    EXPECT_EQ(tensor.shape().elements(), 6);
-    EXPECT_EQ(tensor.shape().ndims(), 2);
-    EXPECT_EQ(tensor.shape()[0], 2);
-    EXPECT_EQ(tensor.shape()[1], 3);
+    EXPECT_EQ(tensor.shape().elements(), 6U);
+    EXPECT_EQ(tensor.shape().ndims(), 2U);
+    EXPECT_EQ(tensor.shape()[0], 2U);
+    EXPECT_EQ(tensor.shape()[1], 3U);
 }
 
 // ============================================================================

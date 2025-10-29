@@ -185,9 +185,13 @@ __global__ void shared_memory_kernel(const T *__restrict__ a,
 
 /**
  * @brief 简单广播内核实现（一个操作数是标量）
+ * @details 用于处理简单广播情况，其中一个操作数是标量（只有1个元素）。
+ *          这是广播运算中最常见的情况，性能最优。
+ * @note 此内核假设其中一个张量是标量，另一个张量是普通张量。
+ *       如果两个张量都是标量，此内核仍然可以正常工作。
  */
 template <typename T, typename Op>
-__global__ void scalar_broadcast_kernel(const T *__restrict__ a,
+__global__ void simple_broadcast_kernel(const T *__restrict__ a,
                                         const T *__restrict__ b,
                                         T *__restrict__ c,
                                         size_t a_elements,
@@ -491,6 +495,43 @@ void launch_scalar_kernel(const T *a, T scalar, T *c, size_t n, Op op, cudaStrea
 }
 
 /**
+ * @brief 启动简单广播内核
+ * @details 用于启动简单广播运算，其中一个操作数是标量。
+ *          自动计算最优的网格和块大小。
+ */
+template <typename T, typename Op>
+void launch_simple_broadcast_kernel(const T *a, const T *b, T *c, 
+                                   size_t a_elements, size_t b_elements, size_t c_elements,
+                                   Op op, cudaStream_t stream)
+{
+    dim3 block = get_optimal_block_size(c_elements);
+    dim3 grid  = get_optimal_grid_size(c_elements, block);
+
+    simple_broadcast_kernel<T, Op><<<grid, block, 0, stream>>>(a, b, c, a_elements, b_elements, c_elements, op);
+}
+
+/**
+ * @brief 启动复杂广播内核
+ * @details 用于启动复杂广播运算，处理不同维度的张量之间的广播。
+ *          需要预先计算步长和形状信息，适用于任意维度的广播。
+ * @note 此函数需要调用者确保步长和形状数组在设备内存中，且维度信息正确。
+ *       建议使用 compute_broadcast_strides 等辅助函数来计算这些参数。
+ */
+template <typename T, typename Op>
+void launch_complex_broadcast_kernel(const T *a, const T *b, T *c,
+                                    const int *a_strides, const int *b_strides, const int *c_strides,
+                                    const int *a_shape, const int *b_shape, const int *c_shape,
+                                    int ndims, size_t total_elements,
+                                    Op op, cudaStream_t stream)
+{
+    dim3 block = get_optimal_block_size(total_elements);
+    dim3 grid  = get_optimal_grid_size(total_elements, block);
+
+    complex_broadcast_kernel<T, Op><<<grid, block, 0, stream>>>(a, b, c, a_strides, b_strides, c_strides,
+                                                               a_shape, b_shape, c_shape, ndims, total_elements, op);
+}
+
+/**
  * @brief 启动矩阵乘法内核
  */
 template <typename T>
@@ -518,119 +559,141 @@ void launch_matmul_kernel(const T *a, const T *b, T *c, int M, int N, int K, cud
 // ============================================================================
 
 // 基础内核的显式实例化
-template __global__ void elementwise_kernel<float, AddOp>(const float *, const float *, float *, size_t, AddOp);
-template __global__ void elementwise_kernel<double, AddOp>(const double *, const double *, double *, size_t, AddOp);
-template __global__ void elementwise_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, AddOp);
-template __global__ void elementwise_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, AddOp);
+// 按照 DataType 枚举顺序排列
+template __global__ void elementwise_kernel<float, AddOp>(const float *, const float *, float *, size_t, AddOp);      // kFloat32
+template __global__ void elementwise_kernel<double, AddOp>(const double *, const double *, double *, size_t, AddOp);  // kFloat64/kDouble
+template __global__ void elementwise_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, AddOp);  // kInt8
+template __global__ void elementwise_kernel<int16_t, AddOp>(const int16_t *, const int16_t *, int16_t *, size_t, AddOp); // kInt16
+template __global__ void elementwise_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, AddOp); // kInt32
+template __global__ void elementwise_kernel<int64_t, AddOp>(const int64_t *, const int64_t *, int64_t *, size_t, AddOp); // kInt64
+template __global__ void elementwise_kernel<uint8_t, AddOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, AddOp); // kUInt8
+template __global__ void elementwise_kernel<uint16_t, AddOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, AddOp); // kUInt16
+template __global__ void elementwise_kernel<uint32_t, AddOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, AddOp); // kUInt32
+template __global__ void elementwise_kernel<uint64_t, AddOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, AddOp); // kUInt64
+template __global__ void elementwise_kernel<bool, AddOp>(const bool *, const bool *, bool *, size_t, AddOp);          // kBool
 
-template __global__ void elementwise_kernel<float, SubtractOp>(const float *,
-                                                               const float *,
-                                                               float *,
-                                                               size_t,
-                                                               SubtractOp);
-template __global__ void elementwise_kernel<double, SubtractOp>(const double *,
-                                                                const double *,
-                                                                double *,
-                                                                size_t,
-                                                                SubtractOp);
-template __global__ void elementwise_kernel<int32_t, SubtractOp>(const int32_t *,
-                                                                 const int32_t *,
-                                                                 int32_t *,
-                                                                 size_t,
-                                                                 SubtractOp);
-template __global__ void elementwise_kernel<int8_t, SubtractOp>(const int8_t *,
-                                                                const int8_t *,
-                                                                int8_t *,
-                                                                size_t,
-                                                                SubtractOp);
+template __global__ void elementwise_kernel<float, SubtractOp>(const float *, const float *, float *, size_t, SubtractOp);      // kFloat32
+template __global__ void elementwise_kernel<double, SubtractOp>(const double *, const double *, double *, size_t, SubtractOp);  // kFloat64/kDouble
+template __global__ void elementwise_kernel<int8_t, SubtractOp>(const int8_t *, const int8_t *, int8_t *, size_t, SubtractOp);  // kInt8
+template __global__ void elementwise_kernel<int16_t, SubtractOp>(const int16_t *, const int16_t *, int16_t *, size_t, SubtractOp); // kInt16
+template __global__ void elementwise_kernel<int32_t, SubtractOp>(const int32_t *, const int32_t *, int32_t *, size_t, SubtractOp); // kInt32
+template __global__ void elementwise_kernel<int64_t, SubtractOp>(const int64_t *, const int64_t *, int64_t *, size_t, SubtractOp); // kInt64
+template __global__ void elementwise_kernel<uint8_t, SubtractOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, SubtractOp); // kUInt8
+template __global__ void elementwise_kernel<uint16_t, SubtractOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, SubtractOp); // kUInt16
+template __global__ void elementwise_kernel<uint32_t, SubtractOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, SubtractOp); // kUInt32
+template __global__ void elementwise_kernel<uint64_t, SubtractOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, SubtractOp); // kUInt64
+template __global__ void elementwise_kernel<bool, SubtractOp>(const bool *, const bool *, bool *, size_t, SubtractOp);          // kBool
 
-template __global__ void elementwise_kernel<float, MultiplyOp>(const float *,
-                                                               const float *,
-                                                               float *,
-                                                               size_t,
-                                                               MultiplyOp);
-template __global__ void elementwise_kernel<double, MultiplyOp>(const double *,
-                                                                const double *,
-                                                                double *,
-                                                                size_t,
-                                                                MultiplyOp);
-template __global__ void elementwise_kernel<int32_t, MultiplyOp>(const int32_t *,
-                                                                 const int32_t *,
-                                                                 int32_t *,
-                                                                 size_t,
-                                                                 MultiplyOp);
-template __global__ void elementwise_kernel<int8_t, MultiplyOp>(const int8_t *,
-                                                                const int8_t *,
-                                                                int8_t *,
-                                                                size_t,
-                                                                MultiplyOp);
+template __global__ void elementwise_kernel<float, MultiplyOp>(const float *, const float *, float *, size_t, MultiplyOp);      // kFloat32
+template __global__ void elementwise_kernel<double, MultiplyOp>(const double *, const double *, double *, size_t, MultiplyOp);  // kFloat64/kDouble
+template __global__ void elementwise_kernel<int8_t, MultiplyOp>(const int8_t *, const int8_t *, int8_t *, size_t, MultiplyOp);  // kInt8
+template __global__ void elementwise_kernel<int16_t, MultiplyOp>(const int16_t *, const int16_t *, int16_t *, size_t, MultiplyOp); // kInt16
+template __global__ void elementwise_kernel<int32_t, MultiplyOp>(const int32_t *, const int32_t *, int32_t *, size_t, MultiplyOp); // kInt32
+template __global__ void elementwise_kernel<int64_t, MultiplyOp>(const int64_t *, const int64_t *, int64_t *, size_t, MultiplyOp); // kInt64
+template __global__ void elementwise_kernel<uint8_t, MultiplyOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, MultiplyOp); // kUInt8
+template __global__ void elementwise_kernel<uint16_t, MultiplyOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, MultiplyOp); // kUInt16
+template __global__ void elementwise_kernel<uint32_t, MultiplyOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, MultiplyOp); // kUInt32
+template __global__ void elementwise_kernel<uint64_t, MultiplyOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, MultiplyOp); // kUInt64
+template __global__ void elementwise_kernel<bool, MultiplyOp>(const bool *, const bool *, bool *, size_t, MultiplyOp);          // kBool
 
-template __global__ void elementwise_kernel<float, DivideOp>(const float *, const float *, float *, size_t, DivideOp);
-template __global__ void elementwise_kernel<double, DivideOp>(const double *,
-                                                              const double *,
-                                                              double *,
-                                                              size_t,
-                                                              DivideOp);
-template __global__ void elementwise_kernel<int32_t, DivideOp>(const int32_t *,
-                                                               const int32_t *,
-                                                               int32_t *,
-                                                               size_t,
-                                                               DivideOp);
-template __global__ void elementwise_kernel<int8_t, DivideOp>(const int8_t *,
-                                                              const int8_t *,
-                                                              int8_t *,
-                                                              size_t,
-                                                              DivideOp);
+template __global__ void elementwise_kernel<float, DivideOp>(const float *, const float *, float *, size_t, DivideOp);      // kFloat32
+template __global__ void elementwise_kernel<double, DivideOp>(const double *, const double *, double *, size_t, DivideOp);  // kFloat64/kDouble
+template __global__ void elementwise_kernel<int8_t, DivideOp>(const int8_t *, const int8_t *, int8_t *, size_t, DivideOp);  // kInt8
+template __global__ void elementwise_kernel<int16_t, DivideOp>(const int16_t *, const int16_t *, int16_t *, size_t, DivideOp); // kInt16
+template __global__ void elementwise_kernel<int32_t, DivideOp>(const int32_t *, const int32_t *, int32_t *, size_t, DivideOp); // kInt32
+template __global__ void elementwise_kernel<int64_t, DivideOp>(const int64_t *, const int64_t *, int64_t *, size_t, DivideOp); // kInt64
+template __global__ void elementwise_kernel<uint8_t, DivideOp>(const uint8_t *, const uint8_t *, uint8_t *, size_t, DivideOp); // kUInt8
+template __global__ void elementwise_kernel<uint16_t, DivideOp>(const uint16_t *, const uint16_t *, uint16_t *, size_t, DivideOp); // kUInt16
+template __global__ void elementwise_kernel<uint32_t, DivideOp>(const uint32_t *, const uint32_t *, uint32_t *, size_t, DivideOp); // kUInt32
+template __global__ void elementwise_kernel<uint64_t, DivideOp>(const uint64_t *, const uint64_t *, uint64_t *, size_t, DivideOp); // kUInt64
+template __global__ void elementwise_kernel<bool, DivideOp>(const bool *, const bool *, bool *, size_t, DivideOp);          // kBool
 
 // 一元内核的显式实例化
-template __global__ void unary_kernel<float, ExpOp>(const float *, float *, size_t, ExpOp);
-template __global__ void unary_kernel<double, ExpOp>(const double *, double *, size_t, ExpOp);
-template __global__ void unary_kernel<float, LogOp>(const float *, float *, size_t, LogOp);
-template __global__ void unary_kernel<double, LogOp>(const double *, double *, size_t, LogOp);
-template __global__ void unary_kernel<float, SqrtOp>(const float *, float *, size_t, SqrtOp);
-template __global__ void unary_kernel<double, SqrtOp>(const double *, double *, size_t, SqrtOp);
-template __global__ void unary_kernel<float, SquareOp>(const float *, float *, size_t, SquareOp);
-template __global__ void unary_kernel<double, SquareOp>(const double *, double *, size_t, SquareOp);
-template __global__ void unary_kernel<int32_t, SquareOp>(const int32_t *, int32_t *, size_t, SquareOp);
-template __global__ void unary_kernel<int8_t, SquareOp>(const int8_t *, int8_t *, size_t, SquareOp);
-template __global__ void unary_kernel<short, SquareOp>(const short *, short *, size_t, SquareOp);
-template __global__ void unary_kernel<long, SquareOp>(const long *, long *, size_t, SquareOp);
-template __global__ void unary_kernel<unsigned char, SquareOp>(const unsigned char *,
-                                                               unsigned char *,
-                                                               size_t,
-                                                               SquareOp);
-template __global__ void unary_kernel<unsigned short, SquareOp>(const unsigned short *,
-                                                                unsigned short *,
-                                                                size_t,
-                                                                SquareOp);
-template __global__ void unary_kernel<unsigned int, SquareOp>(const unsigned int *, unsigned int *, size_t, SquareOp);
-template __global__ void unary_kernel<unsigned long, SquareOp>(const unsigned long *,
-                                                               unsigned long *,
-                                                               size_t,
-                                                               SquareOp);
-template __global__ void unary_kernel<bool, SquareOp>(const bool *, bool *, size_t, SquareOp);
-template __global__ void unary_kernel<float, NegOp>(const float *, float *, size_t, NegOp);
-template __global__ void unary_kernel<double, NegOp>(const double *, double *, size_t, NegOp);
-template __global__ void unary_kernel<int32_t, NegOp>(const int32_t *, int32_t *, size_t, NegOp);
-template __global__ void unary_kernel<int8_t, NegOp>(const int8_t *, int8_t *, size_t, NegOp);
-template __global__ void unary_kernel<short, NegOp>(const short *, short *, size_t, NegOp);
-template __global__ void unary_kernel<long, NegOp>(const long *, long *, size_t, NegOp);
-template __global__ void unary_kernel<unsigned char, NegOp>(const unsigned char *, unsigned char *, size_t, NegOp);
-template __global__ void unary_kernel<unsigned short, NegOp>(const unsigned short *, unsigned short *, size_t, NegOp);
-template __global__ void unary_kernel<unsigned int, NegOp>(const unsigned int *, unsigned int *, size_t, NegOp);
-template __global__ void unary_kernel<unsigned long, NegOp>(const unsigned long *, unsigned long *, size_t, NegOp);
-template __global__ void unary_kernel<bool, NegOp>(const bool *, bool *, size_t, NegOp);
+// 按照 DataType 枚举顺序排列
+template __global__ void unary_kernel<float, ExpOp>(const float *, float *, size_t, ExpOp);      // kFloat32
+template __global__ void unary_kernel<double, ExpOp>(const double *, double *, size_t, ExpOp);  // kFloat64/kDouble
+template __global__ void unary_kernel<int8_t, ExpOp>(const int8_t *, int8_t *, size_t, ExpOp);  // kInt8
+template __global__ void unary_kernel<int16_t, ExpOp>(const int16_t *, int16_t *, size_t, ExpOp); // kInt16
+template __global__ void unary_kernel<int32_t, ExpOp>(const int32_t *, int32_t *, size_t, ExpOp); // kInt32
+template __global__ void unary_kernel<int64_t, ExpOp>(const int64_t *, int64_t *, size_t, ExpOp); // kInt64
+template __global__ void unary_kernel<uint8_t, ExpOp>(const uint8_t *, uint8_t *, size_t, ExpOp); // kUInt8
+template __global__ void unary_kernel<uint16_t, ExpOp>(const uint16_t *, uint16_t *, size_t, ExpOp); // kUInt16
+template __global__ void unary_kernel<uint32_t, ExpOp>(const uint32_t *, uint32_t *, size_t, ExpOp); // kUInt32
+template __global__ void unary_kernel<uint64_t, ExpOp>(const uint64_t *, uint64_t *, size_t, ExpOp); // kUInt64
+template __global__ void unary_kernel<bool, ExpOp>(const bool *, bool *, size_t, ExpOp);          // kBool
+
+template __global__ void unary_kernel<float, LogOp>(const float *, float *, size_t, LogOp);      // kFloat32
+template __global__ void unary_kernel<double, LogOp>(const double *, double *, size_t, LogOp);  // kFloat64/kDouble
+template __global__ void unary_kernel<int8_t, LogOp>(const int8_t *, int8_t *, size_t, LogOp);  // kInt8
+template __global__ void unary_kernel<int16_t, LogOp>(const int16_t *, int16_t *, size_t, LogOp); // kInt16
+template __global__ void unary_kernel<int32_t, LogOp>(const int32_t *, int32_t *, size_t, LogOp); // kInt32
+template __global__ void unary_kernel<int64_t, LogOp>(const int64_t *, int64_t *, size_t, LogOp); // kInt64
+template __global__ void unary_kernel<uint8_t, LogOp>(const uint8_t *, uint8_t *, size_t, LogOp); // kUInt8
+template __global__ void unary_kernel<uint16_t, LogOp>(const uint16_t *, uint16_t *, size_t, LogOp); // kUInt16
+template __global__ void unary_kernel<uint32_t, LogOp>(const uint32_t *, uint32_t *, size_t, LogOp); // kUInt32
+template __global__ void unary_kernel<uint64_t, LogOp>(const uint64_t *, uint64_t *, size_t, LogOp); // kUInt64
+template __global__ void unary_kernel<bool, LogOp>(const bool *, bool *, size_t, LogOp);          // kBool
+
+template __global__ void unary_kernel<float, SqrtOp>(const float *, float *, size_t, SqrtOp);      // kFloat32
+template __global__ void unary_kernel<double, SqrtOp>(const double *, double *, size_t, SqrtOp);  // kFloat64/kDouble
+template __global__ void unary_kernel<int8_t, SqrtOp>(const int8_t *, int8_t *, size_t, SqrtOp);  // kInt8
+template __global__ void unary_kernel<int16_t, SqrtOp>(const int16_t *, int16_t *, size_t, SqrtOp); // kInt16
+template __global__ void unary_kernel<int32_t, SqrtOp>(const int32_t *, int32_t *, size_t, SqrtOp); // kInt32
+template __global__ void unary_kernel<int64_t, SqrtOp>(const int64_t *, int64_t *, size_t, SqrtOp); // kInt64
+template __global__ void unary_kernel<uint8_t, SqrtOp>(const uint8_t *, uint8_t *, size_t, SqrtOp); // kUInt8
+template __global__ void unary_kernel<uint16_t, SqrtOp>(const uint16_t *, uint16_t *, size_t, SqrtOp); // kUInt16
+template __global__ void unary_kernel<uint32_t, SqrtOp>(const uint32_t *, uint32_t *, size_t, SqrtOp); // kUInt32
+template __global__ void unary_kernel<uint64_t, SqrtOp>(const uint64_t *, uint64_t *, size_t, SqrtOp); // kUInt64
+template __global__ void unary_kernel<bool, SqrtOp>(const bool *, bool *, size_t, SqrtOp);          // kBool
+
+template __global__ void unary_kernel<float, SquareOp>(const float *, float *, size_t, SquareOp);      // kFloat32
+template __global__ void unary_kernel<double, SquareOp>(const double *, double *, size_t, SquareOp);  // kFloat64/kDouble
+template __global__ void unary_kernel<int8_t, SquareOp>(const int8_t *, int8_t *, size_t, SquareOp);  // kInt8
+template __global__ void unary_kernel<int16_t, SquareOp>(const int16_t *, int16_t *, size_t, SquareOp); // kInt16
+template __global__ void unary_kernel<int32_t, SquareOp>(const int32_t *, int32_t *, size_t, SquareOp); // kInt32
+template __global__ void unary_kernel<int64_t, SquareOp>(const int64_t *, int64_t *, size_t, SquareOp); // kInt64
+template __global__ void unary_kernel<uint8_t, SquareOp>(const uint8_t *, uint8_t *, size_t, SquareOp); // kUInt8
+template __global__ void unary_kernel<uint16_t, SquareOp>(const uint16_t *, uint16_t *, size_t, SquareOp); // kUInt16
+template __global__ void unary_kernel<uint32_t, SquareOp>(const uint32_t *, uint32_t *, size_t, SquareOp); // kUInt32
+template __global__ void unary_kernel<uint64_t, SquareOp>(const uint64_t *, uint64_t *, size_t, SquareOp); // kUInt64
+template __global__ void unary_kernel<bool, SquareOp>(const bool *, bool *, size_t, SquareOp);          // kBool
+template __global__ void unary_kernel<float, NegOp>(const float *, float *, size_t, NegOp);      // kFloat32
+template __global__ void unary_kernel<double, NegOp>(const double *, double *, size_t, NegOp);  // kFloat64/kDouble
+template __global__ void unary_kernel<int8_t, NegOp>(const int8_t *, int8_t *, size_t, NegOp);  // kInt8
+template __global__ void unary_kernel<int16_t, NegOp>(const int16_t *, int16_t *, size_t, NegOp); // kInt16
+template __global__ void unary_kernel<int32_t, NegOp>(const int32_t *, int32_t *, size_t, NegOp); // kInt32
+template __global__ void unary_kernel<int64_t, NegOp>(const int64_t *, int64_t *, size_t, NegOp); // kInt64
+template __global__ void unary_kernel<uint8_t, NegOp>(const uint8_t *, uint8_t *, size_t, NegOp); // kUInt8
+template __global__ void unary_kernel<uint16_t, NegOp>(const uint16_t *, uint16_t *, size_t, NegOp); // kUInt16
+template __global__ void unary_kernel<uint32_t, NegOp>(const uint32_t *, uint32_t *, size_t, NegOp); // kUInt32
+template __global__ void unary_kernel<uint64_t, NegOp>(const uint64_t *, uint64_t *, size_t, NegOp); // kUInt64
+template __global__ void unary_kernel<bool, NegOp>(const bool *, bool *, size_t, NegOp);          // kBool
 
 // 标量内核的显式实例化
-template __global__ void scalar_kernel<float, AddOp>(const float *, float, float *, size_t, AddOp);
-template __global__ void scalar_kernel<double, AddOp>(const double *, double, double *, size_t, AddOp);
-template __global__ void scalar_kernel<int32_t, AddOp>(const int32_t *, int32_t, int32_t *, size_t, AddOp);
-template __global__ void scalar_kernel<int8_t, AddOp>(const int8_t *, int8_t, int8_t *, size_t, AddOp);
+// 按照 DataType 枚举顺序排列
+template __global__ void scalar_kernel<float, AddOp>(const float *, float, float *, size_t, AddOp);      // kFloat32
+template __global__ void scalar_kernel<double, AddOp>(const double *, double, double *, size_t, AddOp);  // kFloat64/kDouble
+template __global__ void scalar_kernel<int8_t, AddOp>(const int8_t *, int8_t, int8_t *, size_t, AddOp);  // kInt8
+template __global__ void scalar_kernel<int16_t, AddOp>(const int16_t *, int16_t, int16_t *, size_t, AddOp); // kInt16
+template __global__ void scalar_kernel<int32_t, AddOp>(const int32_t *, int32_t, int32_t *, size_t, AddOp); // kInt32
+template __global__ void scalar_kernel<int64_t, AddOp>(const int64_t *, int64_t, int64_t *, size_t, AddOp); // kInt64
+template __global__ void scalar_kernel<uint8_t, AddOp>(const uint8_t *, uint8_t, uint8_t *, size_t, AddOp); // kUInt8
+template __global__ void scalar_kernel<uint16_t, AddOp>(const uint16_t *, uint16_t, uint16_t *, size_t, AddOp); // kUInt16
+template __global__ void scalar_kernel<uint32_t, AddOp>(const uint32_t *, uint32_t, uint32_t *, size_t, AddOp); // kUInt32
+template __global__ void scalar_kernel<uint64_t, AddOp>(const uint64_t *, uint64_t, uint64_t *, size_t, AddOp); // kUInt64
+template __global__ void scalar_kernel<bool, AddOp>(const bool *, bool, bool *, size_t, AddOp);          // kBool
 
-template __global__ void scalar_kernel<float, MultiplyOp>(const float *, float, float *, size_t, MultiplyOp);
-template __global__ void scalar_kernel<double, MultiplyOp>(const double *, double, double *, size_t, MultiplyOp);
-template __global__ void scalar_kernel<int32_t, MultiplyOp>(const int32_t *, int32_t, int32_t *, size_t, MultiplyOp);
-template __global__ void scalar_kernel<int8_t, MultiplyOp>(const int8_t *, int8_t, int8_t *, size_t, MultiplyOp);
+template __global__ void scalar_kernel<float, MultiplyOp>(const float *, float, float *, size_t, MultiplyOp);      // kFloat32
+template __global__ void scalar_kernel<double, MultiplyOp>(const double *, double, double *, size_t, MultiplyOp);  // kFloat64/kDouble
+template __global__ void scalar_kernel<int8_t, MultiplyOp>(const int8_t *, int8_t, int8_t *, size_t, MultiplyOp);  // kInt8
+template __global__ void scalar_kernel<int16_t, MultiplyOp>(const int16_t *, int16_t, int16_t *, size_t, MultiplyOp); // kInt16
+template __global__ void scalar_kernel<int32_t, MultiplyOp>(const int32_t *, int32_t, int32_t *, size_t, MultiplyOp); // kInt32
+template __global__ void scalar_kernel<int64_t, MultiplyOp>(const int64_t *, int64_t, int64_t *, size_t, MultiplyOp); // kInt64
+template __global__ void scalar_kernel<uint8_t, MultiplyOp>(const uint8_t *, uint8_t, uint8_t *, size_t, MultiplyOp); // kUInt8
+template __global__ void scalar_kernel<uint16_t, MultiplyOp>(const uint16_t *, uint16_t, uint16_t *, size_t, MultiplyOp); // kUInt16
+template __global__ void scalar_kernel<uint32_t, MultiplyOp>(const uint32_t *, uint32_t, uint32_t *, size_t, MultiplyOp); // kUInt32
+template __global__ void scalar_kernel<uint64_t, MultiplyOp>(const uint64_t *, uint64_t, uint64_t *, size_t, MultiplyOp); // kUInt64
+template __global__ void scalar_kernel<bool, MultiplyOp>(const bool *, bool, bool *, size_t, MultiplyOp);          // kBool
 
 // 矩阵乘法内核的显式实例化
 template __global__ void matmul_kernel<float>(const float *, const float *, float *, int, int, int);
@@ -1182,33 +1245,33 @@ template __global__ void shared_memory_kernel<int8_t, DivideOp>(const int8_t *,
                                                                 size_t,
                                                                 DivideOp);
 
-// 标量广播内核的显式实例化
+// 简单广播内核的显式实例化
 template __global__ void
-scalar_broadcast_kernel<float, AddOp>(const float *, const float *, float *, size_t, size_t, size_t, AddOp);
+simple_broadcast_kernel<float, AddOp>(const float *, const float *, float *, size_t, size_t, size_t, AddOp);
 template __global__ void
-scalar_broadcast_kernel<double, AddOp>(const double *, const double *, double *, size_t, size_t, size_t, AddOp);
+simple_broadcast_kernel<double, AddOp>(const double *, const double *, double *, size_t, size_t, size_t, AddOp);
 template __global__ void
-scalar_broadcast_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, AddOp);
+simple_broadcast_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, AddOp);
 template __global__ void
-scalar_broadcast_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, AddOp);
+simple_broadcast_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, AddOp);
 
 template __global__ void
-scalar_broadcast_kernel<float, SubtractOp>(const float *, const float *, float *, size_t, size_t, size_t, SubtractOp);
-template __global__ void scalar_broadcast_kernel<double, SubtractOp>(const double *,
+simple_broadcast_kernel<float, SubtractOp>(const float *, const float *, float *, size_t, size_t, size_t, SubtractOp);
+template __global__ void simple_broadcast_kernel<double, SubtractOp>(const double *,
                                                                      const double *,
                                                                      double *,
                                                                      size_t,
                                                                      size_t,
                                                                      size_t,
                                                                      SubtractOp);
-template __global__ void scalar_broadcast_kernel<int32_t, SubtractOp>(const int32_t *,
+template __global__ void simple_broadcast_kernel<int32_t, SubtractOp>(const int32_t *,
                                                                       const int32_t *,
                                                                       int32_t *,
                                                                       size_t,
                                                                       size_t,
                                                                       size_t,
                                                                       SubtractOp);
-template __global__ void scalar_broadcast_kernel<int8_t, SubtractOp>(const int8_t *,
+template __global__ void simple_broadcast_kernel<int8_t, SubtractOp>(const int8_t *,
                                                                      const int8_t *,
                                                                      int8_t *,
                                                                      size_t,
@@ -1217,22 +1280,22 @@ template __global__ void scalar_broadcast_kernel<int8_t, SubtractOp>(const int8_
                                                                      SubtractOp);
 
 template __global__ void
-scalar_broadcast_kernel<float, MultiplyOp>(const float *, const float *, float *, size_t, size_t, size_t, MultiplyOp);
-template __global__ void scalar_broadcast_kernel<double, MultiplyOp>(const double *,
+simple_broadcast_kernel<float, MultiplyOp>(const float *, const float *, float *, size_t, size_t, size_t, MultiplyOp);
+template __global__ void simple_broadcast_kernel<double, MultiplyOp>(const double *,
                                                                      const double *,
                                                                      double *,
                                                                      size_t,
                                                                      size_t,
                                                                      size_t,
                                                                      MultiplyOp);
-template __global__ void scalar_broadcast_kernel<int32_t, MultiplyOp>(const int32_t *,
+template __global__ void simple_broadcast_kernel<int32_t, MultiplyOp>(const int32_t *,
                                                                       const int32_t *,
                                                                       int32_t *,
                                                                       size_t,
                                                                       size_t,
                                                                       size_t,
                                                                       MultiplyOp);
-template __global__ void scalar_broadcast_kernel<int8_t, MultiplyOp>(const int8_t *,
+template __global__ void simple_broadcast_kernel<int8_t, MultiplyOp>(const int8_t *,
                                                                      const int8_t *,
                                                                      int8_t *,
                                                                      size_t,
@@ -1241,10 +1304,10 @@ template __global__ void scalar_broadcast_kernel<int8_t, MultiplyOp>(const int8_
                                                                      MultiplyOp);
 
 template __global__ void
-scalar_broadcast_kernel<float, DivideOp>(const float *, const float *, float *, size_t, size_t, size_t, DivideOp);
+simple_broadcast_kernel<float, DivideOp>(const float *, const float *, float *, size_t, size_t, size_t, DivideOp);
 template __global__ void
-scalar_broadcast_kernel<double, DivideOp>(const double *, const double *, double *, size_t, size_t, size_t, DivideOp);
-template __global__ void scalar_broadcast_kernel<int32_t, DivideOp>(const int32_t *,
+simple_broadcast_kernel<double, DivideOp>(const double *, const double *, double *, size_t, size_t, size_t, DivideOp);
+template __global__ void simple_broadcast_kernel<int32_t, DivideOp>(const int32_t *,
                                                                     const int32_t *,
                                                                     int32_t *,
                                                                     size_t,
@@ -1252,37 +1315,37 @@ template __global__ void scalar_broadcast_kernel<int32_t, DivideOp>(const int32_
                                                                     size_t,
                                                                     DivideOp);
 template __global__ void
-scalar_broadcast_kernel<int8_t, DivideOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, DivideOp);
+simple_broadcast_kernel<int8_t, DivideOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, DivideOp);
 
 // 添加缺失的数据类型实例化
 
 // 标量广播内核的缺失实例化
 template __global__ void
-scalar_broadcast_kernel<short, AddOp>(const short *, const short *, short *, size_t, size_t, size_t, AddOp);
+simple_broadcast_kernel<short, AddOp>(const short *, const short *, short *, size_t, size_t, size_t, AddOp);
 template __global__ void
-scalar_broadcast_kernel<long, AddOp>(const long *, const long *, long *, size_t, size_t, size_t, AddOp);
-template __global__ void scalar_broadcast_kernel<unsigned char, AddOp>(const unsigned char *,
+simple_broadcast_kernel<long, AddOp>(const long *, const long *, long *, size_t, size_t, size_t, AddOp);
+template __global__ void simple_broadcast_kernel<unsigned char, AddOp>(const unsigned char *,
                                                                        const unsigned char *,
                                                                        unsigned char *,
                                                                        size_t,
                                                                        size_t,
                                                                        size_t,
                                                                        AddOp);
-template __global__ void scalar_broadcast_kernel<unsigned short, AddOp>(const unsigned short *,
+template __global__ void simple_broadcast_kernel<unsigned short, AddOp>(const unsigned short *,
                                                                         const unsigned short *,
                                                                         unsigned short *,
                                                                         size_t,
                                                                         size_t,
                                                                         size_t,
                                                                         AddOp);
-template __global__ void scalar_broadcast_kernel<unsigned int, AddOp>(const unsigned int *,
+template __global__ void simple_broadcast_kernel<unsigned int, AddOp>(const unsigned int *,
                                                                       const unsigned int *,
                                                                       unsigned int *,
                                                                       size_t,
                                                                       size_t,
                                                                       size_t,
                                                                       AddOp);
-template __global__ void scalar_broadcast_kernel<unsigned long, AddOp>(const unsigned long *,
+template __global__ void simple_broadcast_kernel<unsigned long, AddOp>(const unsigned long *,
                                                                        const unsigned long *,
                                                                        unsigned long *,
                                                                        size_t,
@@ -1290,34 +1353,34 @@ template __global__ void scalar_broadcast_kernel<unsigned long, AddOp>(const uns
                                                                        size_t,
                                                                        AddOp);
 template __global__ void
-scalar_broadcast_kernel<bool, AddOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, AddOp);
+simple_broadcast_kernel<bool, AddOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, AddOp);
 
 template __global__ void
-scalar_broadcast_kernel<short, SubtractOp>(const short *, const short *, short *, size_t, size_t, size_t, SubtractOp);
+simple_broadcast_kernel<short, SubtractOp>(const short *, const short *, short *, size_t, size_t, size_t, SubtractOp);
 template __global__ void
-scalar_broadcast_kernel<long, SubtractOp>(const long *, const long *, long *, size_t, size_t, size_t, SubtractOp);
-template __global__ void scalar_broadcast_kernel<unsigned char, SubtractOp>(const unsigned char *,
+simple_broadcast_kernel<long, SubtractOp>(const long *, const long *, long *, size_t, size_t, size_t, SubtractOp);
+template __global__ void simple_broadcast_kernel<unsigned char, SubtractOp>(const unsigned char *,
                                                                             const unsigned char *,
                                                                             unsigned char *,
                                                                             size_t,
                                                                             size_t,
                                                                             size_t,
                                                                             SubtractOp);
-template __global__ void scalar_broadcast_kernel<unsigned short, SubtractOp>(const unsigned short *,
+template __global__ void simple_broadcast_kernel<unsigned short, SubtractOp>(const unsigned short *,
                                                                              const unsigned short *,
                                                                              unsigned short *,
                                                                              size_t,
                                                                              size_t,
                                                                              size_t,
                                                                              SubtractOp);
-template __global__ void scalar_broadcast_kernel<unsigned int, SubtractOp>(const unsigned int *,
+template __global__ void simple_broadcast_kernel<unsigned int, SubtractOp>(const unsigned int *,
                                                                            const unsigned int *,
                                                                            unsigned int *,
                                                                            size_t,
                                                                            size_t,
                                                                            size_t,
                                                                            SubtractOp);
-template __global__ void scalar_broadcast_kernel<unsigned long, SubtractOp>(const unsigned long *,
+template __global__ void simple_broadcast_kernel<unsigned long, SubtractOp>(const unsigned long *,
                                                                             const unsigned long *,
                                                                             unsigned long *,
                                                                             size_t,
@@ -1325,34 +1388,34 @@ template __global__ void scalar_broadcast_kernel<unsigned long, SubtractOp>(cons
                                                                             size_t,
                                                                             SubtractOp);
 template __global__ void
-scalar_broadcast_kernel<bool, SubtractOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, SubtractOp);
+simple_broadcast_kernel<bool, SubtractOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, SubtractOp);
 
 template __global__ void
-scalar_broadcast_kernel<short, MultiplyOp>(const short *, const short *, short *, size_t, size_t, size_t, MultiplyOp);
+simple_broadcast_kernel<short, MultiplyOp>(const short *, const short *, short *, size_t, size_t, size_t, MultiplyOp);
 template __global__ void
-scalar_broadcast_kernel<long, MultiplyOp>(const long *, const long *, long *, size_t, size_t, size_t, MultiplyOp);
-template __global__ void scalar_broadcast_kernel<unsigned char, MultiplyOp>(const unsigned char *,
+simple_broadcast_kernel<long, MultiplyOp>(const long *, const long *, long *, size_t, size_t, size_t, MultiplyOp);
+template __global__ void simple_broadcast_kernel<unsigned char, MultiplyOp>(const unsigned char *,
                                                                             const unsigned char *,
                                                                             unsigned char *,
                                                                             size_t,
                                                                             size_t,
                                                                             size_t,
                                                                             MultiplyOp);
-template __global__ void scalar_broadcast_kernel<unsigned short, MultiplyOp>(const unsigned short *,
+template __global__ void simple_broadcast_kernel<unsigned short, MultiplyOp>(const unsigned short *,
                                                                              const unsigned short *,
                                                                              unsigned short *,
                                                                              size_t,
                                                                              size_t,
                                                                              size_t,
                                                                              MultiplyOp);
-template __global__ void scalar_broadcast_kernel<unsigned int, MultiplyOp>(const unsigned int *,
+template __global__ void simple_broadcast_kernel<unsigned int, MultiplyOp>(const unsigned int *,
                                                                            const unsigned int *,
                                                                            unsigned int *,
                                                                            size_t,
                                                                            size_t,
                                                                            size_t,
                                                                            MultiplyOp);
-template __global__ void scalar_broadcast_kernel<unsigned long, MultiplyOp>(const unsigned long *,
+template __global__ void simple_broadcast_kernel<unsigned long, MultiplyOp>(const unsigned long *,
                                                                             const unsigned long *,
                                                                             unsigned long *,
                                                                             size_t,
@@ -1360,34 +1423,34 @@ template __global__ void scalar_broadcast_kernel<unsigned long, MultiplyOp>(cons
                                                                             size_t,
                                                                             MultiplyOp);
 template __global__ void
-scalar_broadcast_kernel<bool, MultiplyOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, MultiplyOp);
+simple_broadcast_kernel<bool, MultiplyOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, MultiplyOp);
 
 template __global__ void
-scalar_broadcast_kernel<short, DivideOp>(const short *, const short *, short *, size_t, size_t, size_t, DivideOp);
+simple_broadcast_kernel<short, DivideOp>(const short *, const short *, short *, size_t, size_t, size_t, DivideOp);
 template __global__ void
-scalar_broadcast_kernel<long, DivideOp>(const long *, const long *, long *, size_t, size_t, size_t, DivideOp);
-template __global__ void scalar_broadcast_kernel<unsigned char, DivideOp>(const unsigned char *,
+simple_broadcast_kernel<long, DivideOp>(const long *, const long *, long *, size_t, size_t, size_t, DivideOp);
+template __global__ void simple_broadcast_kernel<unsigned char, DivideOp>(const unsigned char *,
                                                                           const unsigned char *,
                                                                           unsigned char *,
                                                                           size_t,
                                                                           size_t,
                                                                           size_t,
                                                                           DivideOp);
-template __global__ void scalar_broadcast_kernel<unsigned short, DivideOp>(const unsigned short *,
+template __global__ void simple_broadcast_kernel<unsigned short, DivideOp>(const unsigned short *,
                                                                            const unsigned short *,
                                                                            unsigned short *,
                                                                            size_t,
                                                                            size_t,
                                                                            size_t,
                                                                            DivideOp);
-template __global__ void scalar_broadcast_kernel<unsigned int, DivideOp>(const unsigned int *,
+template __global__ void simple_broadcast_kernel<unsigned int, DivideOp>(const unsigned int *,
                                                                          const unsigned int *,
                                                                          unsigned int *,
                                                                          size_t,
                                                                          size_t,
                                                                          size_t,
                                                                          DivideOp);
-template __global__ void scalar_broadcast_kernel<unsigned long, DivideOp>(const unsigned long *,
+template __global__ void simple_broadcast_kernel<unsigned long, DivideOp>(const unsigned long *,
                                                                           const unsigned long *,
                                                                           unsigned long *,
                                                                           size_t,
@@ -1395,7 +1458,56 @@ template __global__ void scalar_broadcast_kernel<unsigned long, DivideOp>(const 
                                                                           size_t,
                                                                           DivideOp);
 template __global__ void
-scalar_broadcast_kernel<bool, DivideOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, DivideOp);
+simple_broadcast_kernel<bool, DivideOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, DivideOp);
+
+// 简单广播启动函数的显式实例化
+template void launch_simple_broadcast_kernel<float, AddOp>(const float *, const float *, float *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<double, AddOp>(const double *, const double *, double *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<int32_t, AddOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<int8_t, AddOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<short, AddOp>(const short *, const short *, short *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<long, AddOp>(const long *, const long *, long *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned char, AddOp>(const unsigned char *, const unsigned char *, unsigned char *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned short, AddOp>(const unsigned short *, const unsigned short *, unsigned short *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned int, AddOp>(const unsigned int *, const unsigned int *, unsigned int *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned long, AddOp>(const unsigned long *, const unsigned long *, unsigned long *, size_t, size_t, size_t, AddOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<bool, AddOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, AddOp, cudaStream_t);
+
+template void launch_simple_broadcast_kernel<float, SubtractOp>(const float *, const float *, float *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<double, SubtractOp>(const double *, const double *, double *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<int32_t, SubtractOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<int8_t, SubtractOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<short, SubtractOp>(const short *, const short *, short *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<long, SubtractOp>(const long *, const long *, long *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned char, SubtractOp>(const unsigned char *, const unsigned char *, unsigned char *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned short, SubtractOp>(const unsigned short *, const unsigned short *, unsigned short *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned int, SubtractOp>(const unsigned int *, const unsigned int *, unsigned int *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned long, SubtractOp>(const unsigned long *, const unsigned long *, unsigned long *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<bool, SubtractOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, SubtractOp, cudaStream_t);
+
+template void launch_simple_broadcast_kernel<float, MultiplyOp>(const float *, const float *, float *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<double, MultiplyOp>(const double *, const double *, double *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<int32_t, MultiplyOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<int8_t, MultiplyOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<short, MultiplyOp>(const short *, const short *, short *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<long, MultiplyOp>(const long *, const long *, long *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned char, MultiplyOp>(const unsigned char *, const unsigned char *, unsigned char *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned short, MultiplyOp>(const unsigned short *, const unsigned short *, unsigned short *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned int, MultiplyOp>(const unsigned int *, const unsigned int *, unsigned int *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned long, MultiplyOp>(const unsigned long *, const unsigned long *, unsigned long *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<bool, MultiplyOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, MultiplyOp, cudaStream_t);
+
+template void launch_simple_broadcast_kernel<float, DivideOp>(const float *, const float *, float *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<double, DivideOp>(const double *, const double *, double *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<int32_t, DivideOp>(const int32_t *, const int32_t *, int32_t *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<int8_t, DivideOp>(const int8_t *, const int8_t *, int8_t *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<short, DivideOp>(const short *, const short *, short *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<long, DivideOp>(const long *, const long *, long *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned char, DivideOp>(const unsigned char *, const unsigned char *, unsigned char *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned short, DivideOp>(const unsigned short *, const unsigned short *, unsigned short *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned int, DivideOp>(const unsigned int *, const unsigned int *, unsigned int *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<unsigned long, DivideOp>(const unsigned long *, const unsigned long *, unsigned long *, size_t, size_t, size_t, DivideOp, cudaStream_t);
+template void launch_simple_broadcast_kernel<bool, DivideOp>(const bool *, const bool *, bool *, size_t, size_t, size_t, DivideOp, cudaStream_t);
 
 }  // namespace cuda
 }  // namespace origin
