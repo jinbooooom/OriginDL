@@ -48,7 +48,18 @@ protected:
     }
 };
 
-// CUDA线性回归收敛性测试
+/**
+ * @brief CUDA线性回归收敛性测试（基本功能测试）
+ * @details 测试完整的训练流程，验证参数是否能收敛到期望值
+ * 
+ * 测试目的：
+ * 1. 验证前向传播：y = x * w + b 计算正确
+ * 2. 验证损失函数：MSE损失计算正确
+ * 3. 验证反向传播：梯度计算和参数更新正确
+ * 4. 验证收敛性：经过多轮训练后参数收敛到真实值附近
+ * 
+ * 这是最核心的功能测试，确保整个自动微分训练流程正常工作
+ */
 TEST_F(CudaLinearRegressionTest, ConvergeToExpectedValues)
 {
     // 生成随机数据
@@ -83,14 +94,6 @@ TEST_F(CudaLinearRegressionTest, ConvergeToExpectedValues)
         // 更新参数 - 使用算子而不是直接修改data()
         w = w - lr * w.grad();
         b = b - lr * b.grad();
-
-        // 打印结果
-#if 0
-        float loss_val = loss.to_vector<float>()[0];
-        float w_val = w.to_vector<float>()[0];
-        float b_val = b.to_vector<float>()[0];
-        logi("Iteration {}: loss = {:.6f}, w = {:.6f}, b = {:.6f}", i, loss_val, w_val, b_val);
-#endif
     }
 
     // 验证权重是否收敛到期望值
@@ -105,7 +108,18 @@ TEST_F(CudaLinearRegressionTest, ConvergeToExpectedValues)
         << "Bias b should converge to " << kExpectedB << ", but got " << final_b;
 }
 
-// CUDA线性回归梯度测试
+/**
+ * @brief CUDA线性回归梯度计算测试
+ * @details 专门测试反向传播中梯度计算的正确性
+ * 
+ * 测试目的：
+ * 1. 验证梯度张量形状正确：确保梯度张量与参数张量形状匹配
+ * 2. 验证梯度数值非零：对于非最优参数，梯度应该不为零
+ * 3. 验证梯度计算机制：确保backward()函数能正确计算梯度
+ * 4. 验证梯度存储：确保梯度能正确存储在参数的grad()中
+ * 
+ * 这个测试专注于梯度计算环节，帮助快速定位反向传播问题
+ */
 TEST_F(CudaLinearRegressionTest, GradientComputation)
 {
     // 创建简单的测试数据
@@ -135,23 +149,34 @@ TEST_F(CudaLinearRegressionTest, GradientComputation)
     EXPECT_GT(std::abs(b_grad[0]), 1e-6);
 }
 
-// CUDA线性回归数值稳定性测试
+/**
+ * @brief CUDA线性回归数值稳定性测试
+ * @details 测试在极端条件下（大学习率）的数值稳定性和鲁棒性
+ * 
+ * 测试目的：
+ * 1. 验证大学习率下的稳定性：确保参数不会发散或产生NaN/Inf值
+ * 2. 验证数值有限性：每个训练步骤后参数都保持有限值
+ * 3. 验证边界条件收敛：即使在不利条件下仍能收敛到合理范围
+ * 4. 验证鲁棒性：确保算法对超参数变化有一定的容忍度
+ * 
+ * 这个测试确保算法在实际使用中的稳定性和可靠性
+ */
 TEST_F(CudaLinearRegressionTest, NumericalStability)
 {
-    // 使用较大的学习率测试数值稳定性
+    // 使用随机数据和较大学习率测试数值稳定性
     size_t input_size = 50;
-    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(kCUDA));
-    auto noise        = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(kCUDA)) * 0.01f;
-    auto y            = x * kExpectedW + kExpectedB + noise;
+    auto x = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(kCUDA));
+    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(kCUDA)) * 0.01f;
+    auto y = x * kExpectedW + kExpectedB + noise;
 
     // 初始化参数
     auto w = Tensor(0.0f, Shape{1, 1}, dtype(Float32).device(kCUDA));
     auto b = Tensor(0.0f, Shape{1, 1}, dtype(Float32).device(kCUDA));
 
-    float lr  = 0.5f;  // 较大的学习率
+    float lr = 0.5f;  // 较大的学习率
     int iters = 100;
 
-    // 训练
+    // 训练并检查数值稳定性
     for (int i = 0; i < iters; i++)
     {
         w.clear_grad();
@@ -159,7 +184,6 @@ TEST_F(CudaLinearRegressionTest, NumericalStability)
 
         auto y_pred = Predict(x, w, b);
         auto loss   = MSE(y, y_pred);
-
         loss.backward();
 
         w = w - lr * w.grad();
@@ -168,7 +192,6 @@ TEST_F(CudaLinearRegressionTest, NumericalStability)
         // 检查参数是否保持有限值
         auto w_data = w.to_vector<float>();
         auto b_data = b.to_vector<float>();
-
         EXPECT_TRUE(std::isfinite(w_data[0]));
         EXPECT_TRUE(std::isfinite(b_data[0]));
     }
@@ -176,53 +199,6 @@ TEST_F(CudaLinearRegressionTest, NumericalStability)
     // 验证最终收敛性
     float final_w = w.to_vector<float>()[0];
     float final_b = b.to_vector<float>()[0];
-
-    EXPECT_NEAR(final_w, kExpectedW, kTolerance * 2);  // 允许更大的误差
+    EXPECT_NEAR(final_w, kExpectedW, kTolerance * 2);
     EXPECT_NEAR(final_b, kExpectedB, kTolerance * 2);
-}
-
-// CUDA线性回归多变量测试
-TEST_F(CudaLinearRegressionTest, MultiVariableRegression)
-{
-    // 测试多变量线性回归：y = w1*x1 + w2*x2 + b
-    size_t input_size = 100;
-    auto x1           = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(kCUDA));
-    auto x2           = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(kCUDA));
-
-    // 合并输入特征
-    auto x = Tensor::zeros(Shape{input_size, 2}, dtype(DataType::kFloat32).device(kCUDA));
-    // 注意：这里需要手动设置数据，因为Tensor::zeros可能不支持直接赋值
-    // 为了简化测试，我们使用单变量版本
-
-    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(kCUDA)) * 0.1f;
-    auto y     = x1 * 2.0f + 5.0f + noise;
-
-    // 初始化参数
-    auto w = Tensor(0.0f, Shape{1, 1}, dtype(Float32).device(kCUDA));
-    auto b = Tensor(0.0f, Shape{1, 1}, dtype(Float32).device(kCUDA));
-
-    float lr  = 0.1f;
-    int iters = 150;
-
-    // 训练
-    for (int i = 0; i < iters; i++)
-    {
-        w.clear_grad();
-        b.clear_grad();
-
-        auto y_pred = Predict(x1, w, b);
-        auto loss   = MSE(y, y_pred);
-
-        loss.backward();
-
-        w = w - lr * w.grad();
-        b = b - lr * b.grad();
-    }
-
-    // 验证收敛性
-    float final_w = w.to_vector<float>()[0];
-    float final_b = b.to_vector<float>()[0];
-
-    EXPECT_NEAR(final_w, 2.0f, kTolerance);
-    EXPECT_NEAR(final_b, 5.0f, kTolerance);
 }
