@@ -15,6 +15,7 @@ namespace origin
 constexpr int ORIGIN_BACKEND_TYPE = 0;
 constexpr int TORCH_BACKEND_TYPE  = 1;
 
+// TODO:UInt16/UInt32/UInt64 在 LibTorch 中无对应标量类型。
 // 数据类型枚举
 enum class DataType
 {
