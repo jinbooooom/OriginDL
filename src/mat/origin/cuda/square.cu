@@ -15,11 +15,6 @@ namespace cuda
 {
 
 /**
- * @brief CUDA平方算子实现
- * @details 计算输入张量每个元素的平方值
- */
-
-/**
  * @brief square算子实现
  * @param mat 输入矩阵
  * @return 平方运算结果矩阵

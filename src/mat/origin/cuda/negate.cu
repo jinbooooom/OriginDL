@@ -13,12 +13,6 @@ namespace origin
 {
 namespace cuda
 {
-
-/**
- * @brief CUDA取负算子实现
- * @details 计算输入张量每个元素的负值
- */
-
 /**
  * @brief negate算子实现
  * @param mat 输入矩阵
