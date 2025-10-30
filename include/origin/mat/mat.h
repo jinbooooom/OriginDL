@@ -155,7 +155,7 @@ public:
      * @brief 转换为向量
      * @return 矩阵数据的向量表示
      */
-    virtual std::vector<data_t> to_vector() const = 0;
+    virtual std::vector<data_t> to_vector() const = 0;//TODO：不再硬编码返回std::vector<data_t>
 
     // 数学函数
     /**

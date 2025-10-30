@@ -18,8 +18,8 @@ add_executable(${BIN_PREFIX}_tensor_print tensor_print.cpp)
 add_dependencies(${BIN_PREFIX}_tensor_print ${MY_LIB_NAME})
 target_link_libraries(${BIN_PREFIX}_tensor_print PRIVATE ${MY_LIB_NAME})
 
-# 编译第三个可执行程序：tensor_cuda (仅在启用CUDA时)
-if(ENABLE_CUDA)
+# 仅在 ORIGIN 后端且启用 CUDA 时编译 CUDA 示例
+if(ENABLE_CUDA AND MAT_BACKEND STREQUAL "ORIGIN")
     add_executable(${BIN_PREFIX}_tensor_cuda tensor_cuda.cpp)
     add_dependencies(${BIN_PREFIX}_tensor_cuda ${MY_LIB_NAME})
     target_link_libraries(${BIN_PREFIX}_tensor_cuda PRIVATE ${MY_LIB_NAME})
@@ -39,17 +39,15 @@ if(ENABLE_CUDA)
     add_dependencies(${BIN_PREFIX}_tensor_cuda_simple ${MY_LIB_NAME})
     target_link_libraries(${BIN_PREFIX}_tensor_cuda_simple PRIVATE ${MY_LIB_NAME})
     
-    # 编译第七个可执行程序：tensor_cuda_minimal (仅在启用CUDA时)
+    # 编译第七个可执行程序：tensor_cuda_minimal
     add_executable(${BIN_PREFIX}_tensor_cuda_minimal tensor_cuda_minimal.cpp)
     add_dependencies(${BIN_PREFIX}_tensor_cuda_minimal ${MY_LIB_NAME})
-    target_link_libraries(${BIN_PREFIX}_tensor_cuda_minimal PRIVATE ${MY_LIB_NAME})
+    target_link_libraries(${BIN_PREFIX}_tensor_cuda_minimal PRIVATE ${MY_LIB_NAME} originmat_cuda)
     
     # 如果使用ORIGIN后端，还需要链接CUDA库
-    if(MAT_BACKEND STREQUAL "ORIGIN")
-        target_link_libraries(${BIN_PREFIX}_tensor_cuda PRIVATE originmat_cuda)
-        target_link_libraries(${BIN_PREFIX}_tensor_cuda_extended PRIVATE originmat_cuda)
-        target_link_libraries(${BIN_PREFIX}_tensor_cuda_debug PRIVATE originmat_cuda)
-    endif()
+    target_link_libraries(${BIN_PREFIX}_tensor_cuda PRIVATE originmat_cuda)
+    target_link_libraries(${BIN_PREFIX}_tensor_cuda_extended PRIVATE originmat_cuda)
+    target_link_libraries(${BIN_PREFIX}_tensor_cuda_debug PRIVATE originmat_cuda)
 endif()
 
 # 设置输出目录
@@ -62,7 +60,7 @@ set_target_properties(${BIN_PREFIX}_tensor_print PROPERTIES
 )
 
 # 设置CUDA示例的输出目录
-if(ENABLE_CUDA)
+if(ENABLE_CUDA AND MAT_BACKEND STREQUAL "ORIGIN")
     set_target_properties(${BIN_PREFIX}_tensor_cuda PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
     )

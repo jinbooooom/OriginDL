@@ -9,6 +9,83 @@
 namespace origin
 {
 
+// === 类型分发辅助函数对象（对齐 OriginMat 的分发器用法） ===
+namespace {
+template <typename Func>
+auto dispatch_supported(DataType dtype, Func &&func)
+{
+    switch (dtype)
+    {
+        case DataType::kFloat32:
+            return func.template operator()<float>();
+        case DataType::kDouble:
+            return func.template operator()<double>();
+        case DataType::kInt8:
+            return func.template operator()<int8_t>();
+        case DataType::kInt16:
+            return func.template operator()<int16_t>();
+        case DataType::kInt32:
+            return func.template operator()<int32_t>();
+        case DataType::kInt64:
+            return func.template operator()<int64_t>();
+        case DataType::kUInt8:
+            return func.template operator()<uint8_t>();
+        case DataType::kBool:
+            return func.template operator()<bool>();
+        default:
+            THROW_INVALID_ARG("Unsupported data type {} for torch operation", dtype_to_string(dtype));
+    }
+}
+
+struct VectorConverter
+{
+    const torch::Tensor &t;
+    template <typename U>
+    std::vector<data_t> operator()() const
+    {
+        auto vec_u = TorchMat::tensor_to_vector<U>(t);
+        std::vector<data_t> result;
+        result.reserve(vec_u.size());
+        for (const auto &v : vec_u)
+        {
+            result.push_back(static_cast<data_t>(v));
+        }
+        return result;
+    }
+};
+
+struct ScalarReader
+{
+    const torch::Tensor &t;
+    template <typename T>
+    Scalar operator()() const
+    {
+        return Scalar(t.item<T>());
+    }
+};
+
+struct ToTorchScalar
+{
+    const Scalar &s;
+    template <typename T>
+    torch::Scalar operator()() const
+    {
+        if constexpr (
+            std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, int8_t> ||
+            std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+            std::is_same_v<T, uint8_t> || std::is_same_v<T, bool>)
+        {
+            return torch::Scalar(static_cast<T>(s.to<T>()));
+        }
+        else
+        {
+            THROW_INVALID_ARG("Unsupported data type {} for torch scalar conversion",
+                              dtype_to_string(DataTypeTraits<T>::type));
+        }
+    }
+};
+}  // namespace
+
 std::unique_ptr<Mat> TorchMat::clone() const
 {
     return std::make_unique<TorchMat>(data_.clone());
@@ -190,48 +267,9 @@ size_t TorchMat::elements() const
 
 std::vector<data_t> TorchMat::to_vector() const
 {
-    // 根据张量的实际类型进行转换
-    if (data_.scalar_type() == torch::kFloat32)
-    {
-        return to_vector<float>();
-    }
-    else if (data_.scalar_type() == torch::kFloat64)
-    {
-        auto double_vec = to_vector<double>();
-        std::vector<data_t> result;
-        result.reserve(double_vec.size());
-        for (const auto &val : double_vec)
-        {
-            result.push_back(static_cast<data_t>(val));
-        }
-        return result;
-    }
-    else if (data_.scalar_type() == torch::kInt32)
-    {
-        auto int_vec = to_vector<int32_t>();
-        std::vector<data_t> result;
-        result.reserve(int_vec.size());
-        for (const auto &val : int_vec)
-        {
-            result.push_back(static_cast<data_t>(val));
-        }
-        return result;
-    }
-    else if (data_.scalar_type() == torch::kInt8)
-    {
-        auto int_vec = to_vector<int8_t>();
-        std::vector<data_t> result;
-        result.reserve(int_vec.size());
-        for (const auto &val : int_vec)
-        {
-            result.push_back(static_cast<data_t>(val));
-        }
-        return result;
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported tensor type for to_vector()");
-    }
+    auto dt = get_data_type_from_torch(data_.scalar_type());
+    VectorConverter converter{data_};
+    return dispatch_supported(dt, converter);
 }
 
 template <typename U>
@@ -271,21 +309,10 @@ std::unique_ptr<Mat> TorchMat::square() const
     return std::make_unique<TorchMat>(data_ * data_);
 }
 
-std::unique_ptr<Mat> TorchMat::pow(data_t exponent) const
+std::unique_ptr<Mat> TorchMat::pow(const Scalar &exponent) const
 {
-    return pow<data_t>(exponent);
-}
-
-template <typename U>
-std::unique_ptr<Mat> TorchMat::pow(U exponent) const
-{
-    // 根据输入类型动态转换
-    auto data_type  = DataTypeTraits<U>::type;
-    auto torch_type = get_torch_type(data_type);
-
-    // 创建标量tensor
-    torch::Tensor exponent_tensor = torch::full({}, exponent, torch_type);
-    return std::make_unique<TorchMat>(torch::pow(data_, exponent_tensor));
+    auto torch_scalar = make_torch_scalar_from_scalar(exponent, dtype());
+    return std::make_unique<TorchMat>(torch::pow(data_, torch_scalar));
 }
 
 // 数据访问方法
@@ -312,6 +339,22 @@ template int TorchMat::scalar<int>() const;
 int TorchMat::backend_type() const
 {
     return TORCH_BACKEND_TYPE;
+}
+
+bool TorchMat::is_scalar() const
+{
+    return data_.dim() == 0 || data_.numel() == 1;
+}
+
+Scalar TorchMat::scalar_value() const
+{
+    if (!is_scalar())
+    {
+        THROW_RUNTIME_ERROR("scalar_value() can only be called on scalar tensors");
+    }
+    auto dt = get_data_type_from_torch(data_.scalar_type());
+    ScalarReader reader{data_};
+    return dispatch_supported(dt, reader);
 }
 
 /*
@@ -408,6 +451,42 @@ std::unique_ptr<Mat> TorchMat::randn(const Shape &shape, const TensorOptions &op
     }
 }
 
+std::unique_ptr<Mat> TorchMat::from_scalar(const Scalar &scalar,
+                                           const Shape &shape,
+                                           const TensorOptions &options)
+{
+    auto sizes         = TorchMat::convert_shape_to_torch_sizes(shape);
+    auto torch_options = get_torch_tensor_options(options);
+    // 使用与 Origin 风格一致的分发器辅助
+    auto value = make_torch_scalar_from_scalar(scalar, options.dtype());
+    torch::Tensor t = torch::full(sizes, value, torch_options);
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+std::unique_ptr<Mat> TorchMat::from_memory(const void *data,
+                                           DataType user_dtype,
+                                           const Shape &shape,
+                                           const TensorOptions &options)
+{
+    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
+    // 先用用户数据类型创建，再转换到目标dtype与设备
+    auto user_torch_dtype = get_torch_type(user_dtype);
+    torch::Tensor t       = torch::from_blob(const_cast<void *>(data), sizes,
+                                       torch::TensorOptions().dtype(user_torch_dtype).device(torch::kCPU))
+                                .clone();
+
+    if (options.dtype() != user_dtype)
+    {
+        t = t.to(get_torch_type(options.dtype()));
+    }
+
+    if (options.device().type() != DeviceType::kCPU)
+    {
+        t = t.to(torch::Device(torch::kCUDA, options.device().index()));
+    }
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
 // 类型相关方法实现
 DataType TorchMat::dtype() const
 {
@@ -470,6 +549,14 @@ torch::ScalarType TorchMat::get_torch_type(DataType dtype)
             return torch::kInt32;
         case DataType::kInt8:
             return torch::kInt8;
+        case DataType::kInt16:
+            return torch::kInt16;
+        case DataType::kInt64:
+            return torch::kInt64;
+        case DataType::kUInt8:
+            return torch::kUInt8;
+        case DataType::kBool:
+            return torch::kBool;
         default:
             THROW_INVALID_ARG("Unsupported data type {} for torch operation", dtype_to_string(dtype));
     }
@@ -487,6 +574,15 @@ DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type)
             return DataType::kInt32;
         case torch::kInt8:
             return DataType::kInt8;
+        case torch::kInt16:
+            return DataType::kInt16;
+        case torch::kInt64:
+            return DataType::kInt64;
+        case torch::kUInt8:
+            return DataType::kUInt8;
+        // UInt16/UInt32/UInt64 在 LibTorch 中无对应标量类型
+        case torch::kBool:
+            return DataType::kBool;
         default:
             THROW_INVALID_ARG("Unsupported torch scalar type");
     }
@@ -508,6 +604,13 @@ torch::TensorOptions TorchMat::get_torch_tensor_options(const TensorOptions &opt
     return torch_options;
 }
 
+// === 助手：通过类型分发器将 Scalar 转为 torch::Scalar ===
+torch::Scalar TorchMat::make_torch_scalar_from_scalar(const Scalar &scalar, DataType dtype)
+{
+    ToTorchScalar fn{scalar};
+    return dispatch_supported(dtype, fn);
+}
+
 // === TorchMat泛型方法实现 ===
 template <typename U>
 U *TorchMat::data_ptr()
@@ -521,57 +624,8 @@ template double *TorchMat::data_ptr<double>();
 template int32_t *TorchMat::data_ptr<int32_t>();
 template int8_t *TorchMat::data_ptr<int8_t>();
 
-// 标量操作模板实例化（注释掉，让编译器自动实例化）
-// template std::unique_ptr<Mat> TorchMat::add_scalar<float>(float scalar) const;
-// template std::unique_ptr<Mat> TorchMat::add_scalar<double>(double scalar) const;
-// template std::unique_ptr<Mat> TorchMat::add_scalar<int32_t>(int32_t scalar) const;
-// template std::unique_ptr<Mat> TorchMat::add_scalar<int8_t>(int8_t scalar) const;
 
-// template std::unique_ptr<Mat> TorchMat::mul_scalar<float>(float scalar) const;
-// template std::unique_ptr<Mat> TorchMat::mul_scalar<double>(double scalar) const;
-// template std::unique_ptr<Mat> TorchMat::mul_scalar<int32_t>(int32_t scalar) const;
-// template std::unique_ptr<Mat> TorchMat::mul_scalar<int8_t>(int8_t scalar) const;
 
-// template std::unique_ptr<Mat> TorchMat::operator+<float>(float scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator+<double>(double scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator+<int32_t>(int32_t scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator+<int8_t>(int8_t scalar) const;
 
-// template std::unique_ptr<Mat> TorchMat::operator-<float>(float scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator-<double>(double scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator-<int32_t>(int32_t scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator-<int8_t>(int8_t scalar) const;
-
-// template std::unique_ptr<Mat> TorchMat::operator*<float>(float scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator*<double>(double scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator*<int32_t>(int32_t scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator*<int8_t>(int8_t scalar) const;
-
-// template std::unique_ptr<Mat> TorchMat::operator/<float>(float scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator/<double>(double scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator/<int32_t>(int32_t scalar) const;
-// template std::unique_ptr<Mat> TorchMat::operator/<int8_t>(int8_t scalar) const;
-
-// pow 模板实例化（如果需要的话）
-// template std::unique_ptr<Mat> TorchMat::pow<float>(float exponent) const;
-// template std::unique_ptr<Mat> TorchMat::pow<double>(double exponent) const;
-// template std::unique_ptr<Mat> TorchMat::pow<int32_t>(int32_t exponent) const;
-// template std::unique_ptr<Mat> TorchMat::pow<int8_t>(int8_t exponent) const;
-
-template std::vector<float> TorchMat::to_vector<float>() const;
-template std::vector<double> TorchMat::to_vector<double>() const;
-template std::vector<int32_t> TorchMat::to_vector<int32_t>() const;
-template std::vector<int8_t> TorchMat::to_vector<int8_t>() const;
-
-template std::vector<float> TorchMat::tensor_to_vector<float>(const torch::Tensor &tensor);
-template std::vector<double> TorchMat::tensor_to_vector<double>(const torch::Tensor &tensor);
-template std::vector<int32_t> TorchMat::tensor_to_vector<int32_t>(const torch::Tensor &tensor);
-template std::vector<int8_t> TorchMat::tensor_to_vector<int8_t>(const torch::Tensor &tensor);
-
-// vector_to_tensor 模板实例化（如果需要的话）
-// template torch::Tensor TorchMat::vector_to_tensor<float>(const std::vector<float> &data, const Shape &shape);
-// template torch::Tensor TorchMat::vector_to_tensor<double>(const std::vector<double> &data, const Shape &shape);
-// template torch::Tensor TorchMat::vector_to_tensor<int32_t>(const std::vector<int32_t> &data, const Shape &shape);
-// template torch::Tensor TorchMat::vector_to_tensor<int8_t>(const std::vector<int8_t> &data, const Shape &shape);
 
 }  // namespace origin

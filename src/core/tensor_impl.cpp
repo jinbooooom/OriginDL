@@ -15,8 +15,8 @@ namespace origin
 // 两个核心工厂方法实现
 TensorImpl TensorImpl::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
 {
-    // 直接调用OriginMat工厂方法
-    auto mat = OriginMat::from_scalar(scalar, shape, options);
+    // 通过后端Mat接口工厂方法（与后端解耦）
+    auto mat = Mat_t::from_scalar(scalar, shape, options);
     return TensorImpl(std::move(mat));
 }
 
@@ -25,8 +25,8 @@ TensorImpl TensorImpl::from_memory(const void *data,
                                    const Shape &shape,
                                    const TensorOptions &options)
 {
-    // 直接调用OriginMat工厂方法
-    auto mat = OriginMat::from_memory(data, user_dtype, shape, options);
+    // 通过后端Mat接口工厂方法（与后端解耦）
+    auto mat = Mat_t::from_memory(data, user_dtype, shape, options);
     return TensorImpl(std::move(mat));
 }
 
@@ -84,7 +84,7 @@ void TensorImpl::backward()
     {
         auto data_device      = data_->device();
         TensorOptions options = TensorOptions(data_->dtype()).device(data_device);
-        grad_                 = OriginMat::from_scalar(1, data_->shape(), options);
+        grad_                 = Mat_t::from_scalar(1, data_->shape(), options);
     }
 
     auto funcs    = std::list<FunctionPtr>();
