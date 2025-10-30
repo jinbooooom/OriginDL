@@ -10,7 +10,8 @@ namespace origin
 {
 
 // === 类型分发辅助函数对象（对齐 OriginMat 的分发器用法） ===
-namespace {
+namespace
+{
 template <typename Func>
 auto dispatch_supported(DataType dtype, Func &&func)
 {
@@ -70,10 +71,9 @@ struct ToTorchScalar
     template <typename T>
     torch::Scalar operator()() const
     {
-        if constexpr (
-            std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, int8_t> ||
-            std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
-            std::is_same_v<T, uint8_t> || std::is_same_v<T, bool>)
+        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, int8_t> ||
+                      std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+                      std::is_same_v<T, uint8_t> || std::is_same_v<T, bool>)
         {
             return torch::Scalar(static_cast<T>(s.to<T>()));
         }
@@ -451,14 +451,12 @@ std::unique_ptr<Mat> TorchMat::randn(const Shape &shape, const TensorOptions &op
     }
 }
 
-std::unique_ptr<Mat> TorchMat::from_scalar(const Scalar &scalar,
-                                           const Shape &shape,
-                                           const TensorOptions &options)
+std::unique_ptr<Mat> TorchMat::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
 {
     auto sizes         = TorchMat::convert_shape_to_torch_sizes(shape);
     auto torch_options = get_torch_tensor_options(options);
     // 使用与 Origin 风格一致的分发器辅助
-    auto value = make_torch_scalar_from_scalar(scalar, options.dtype());
+    auto value      = make_torch_scalar_from_scalar(scalar, options.dtype());
     torch::Tensor t = torch::full(sizes, value, torch_options);
     return std::make_unique<TorchMat>(std::move(t));
 }
@@ -472,8 +470,8 @@ std::unique_ptr<Mat> TorchMat::from_memory(const void *data,
     // 先用用户数据类型创建，再转换到目标dtype与设备
     auto user_torch_dtype = get_torch_type(user_dtype);
     torch::Tensor t       = torch::from_blob(const_cast<void *>(data), sizes,
-                                       torch::TensorOptions().dtype(user_torch_dtype).device(torch::kCPU))
-                                .clone();
+                                             torch::TensorOptions().dtype(user_torch_dtype).device(torch::kCPU))
+                          .clone();
 
     if (options.dtype() != user_dtype)
     {
@@ -623,9 +621,5 @@ template float *TorchMat::data_ptr<float>();
 template double *TorchMat::data_ptr<double>();
 template int32_t *TorchMat::data_ptr<int32_t>();
 template int8_t *TorchMat::data_ptr<int8_t>();
-
-
-
-
 
 }  // namespace origin

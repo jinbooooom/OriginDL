@@ -104,29 +104,29 @@ auto t = Tensor::randn({3, 3});
 ### Tensor::full
 
 ```cpp
-static Tensor full(const Shape &shape, double value, const TensorOptions &options = TensorOptions())
+static Tensor full(const Shape &shape, const Scalar &value, const TensorOptions &options = TensorOptions())
 ```
 
 返回一个用指定值填充的张量。
 
 **参数:**
 - `shape` (Shape) – 定义输出张量的形状
-- `value` (double) – 填充值
+- `value` (Scalar) – 填充值，支持多种数值类型
 - `options` (TensorOptions, optional) – 张量选项
 
 **返回值:** Tensor – 用指定值填充的张量
 
 **例子:**
 ```cpp
-// 创建用2.5填充的2x2张量
-auto t1 = Tensor::full({2, 2}, 2.5);
+// 创建用2.5f填充的2x2张量
+auto t1 = Tensor::full({2, 2}, 2.5f);
 // t1.print() 输出:
 // [[2.5, 2.5],
 //  [2.5, 2.5]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
 
-// 创建用-1填充的3x1张量
-auto t2 = Tensor::full({3, 1}, -1.0);
+// 创建用-1.0f填充的3x1张量
+auto t2 = Tensor::full({3, 1}, -1.0f);
 // t2.print() 输出:
 // [[-1],
 //  [-1],
@@ -167,18 +167,35 @@ auto t = Tensor::from_blob(data, {2, 2});
 ```cpp
 template <typename T>
 Tensor(const std::vector<T> &data, const Shape &shape)
+template <typename T>
+Tensor(const std::vector<T> &data, const Shape &shape, DataType dtype)
+template <typename T>
+Tensor(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
 ```
 
-从向量数据创建张量，自动推断数据类型。
+从向量数据创建张量。
+
+**参数:**
+- `data` (std::vector<T>) – 向量数据
+- `shape` (Shape) – 张量形状
+- `dtype` (DataType, optional) – 指定数据类型，如果不指定则自动推断
+- `options` (TensorOptions, optional) – 张量选项，可指定数据类型、设备等
 
 **例子:**
 ```cpp
+// 自动推断类型
 std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
-auto t = Tensor(data, {2, 2});
-// t.print() 输出:
+auto t1 = Tensor(data, {2, 2});
+// t1.print() 输出:
 // [[1, 2],
 //  [3, 4]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+// 指定数据类型
+auto t2 = Tensor(data, {2, 2}, DataType::kFloat64);
+
+// 使用TensorOptions指定完整选项
+auto t3 = Tensor(data, {2, 2}, dtype(DataType::kFloat64).device(DeviceType::kCUDA));
 ```
 
 #### 从初始化列表创建
@@ -186,17 +203,34 @@ auto t = Tensor(data, {2, 2});
 ```cpp
 template <typename T>
 Tensor(std::initializer_list<T> data, const Shape &shape)
+template <typename T>
+Tensor(std::initializer_list<T> data, const Shape &shape, DataType dtype)
+template <typename T>
+Tensor(std::initializer_list<T> data, const Shape &shape, const TensorOptions &options)
 ```
 
 从初始化列表创建张量。
 
+**参数:**
+- `data` (std::initializer_list<T>) – 初始化列表数据
+- `shape` (Shape) – 张量形状
+- `dtype` (DataType, optional) – 指定数据类型
+- `options` (TensorOptions, optional) – 张量选项
+
 **例子:**
 ```cpp
-auto t = Tensor({1, 2, 3, 4}, {2, 2});
-// t.print() 输出:
+// 自动推断类型
+auto t1 = Tensor({1, 2, 3, 4}, {2, 2});
+// t1.print() 输出:
 // [[1, 2],
 //  [3, 4]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+// 指定数据类型
+auto t2 = Tensor({1, 2, 3, 4}, {2, 2}, DataType::kInt32);
+
+// 使用TensorOptions
+auto t3 = Tensor({1, 2, 3, 4}, {2, 2}, TensorOptions().dtype(DataType::kFloat64));
 ```
 
 #### 标量填充
@@ -204,18 +238,35 @@ auto t = Tensor({1, 2, 3, 4}, {2, 2});
 ```cpp
 template <typename T>
 Tensor(T scalar, const Shape &shape)
+template <typename T>
+Tensor(T scalar, const Shape &shape, DataType dtype)
+template <typename T>
+Tensor(T scalar, const Shape &shape, const TensorOptions &options)
 ```
 
 用标量值填充整个张量。
 
+**参数:**
+- `scalar` (T) – 标量值
+- `shape` (Shape) – 张量形状
+- `dtype` (DataType, optional) – 指定数据类型
+- `options` (TensorOptions, optional) – 张量选项
+
 **例子:**
 ```cpp
-auto t = Tensor(5.0, {3, 3});
-// t.print() 输出:
+// 自动推断类型
+auto t1 = Tensor(5.0, {3, 3});
+// t1.print() 输出:
 // [[5, 5, 5],
 //  [5, 5, 5],
 //  [5, 5, 5]]
 //  OriginMat(shape={3, 3}, dtype=float32, device=cpu)
+
+// 指定数据类型
+auto t2 = Tensor(5.0, {3, 3}, DataType::kFloat64);
+
+// 使用TensorOptions
+auto t3 = Tensor(5.0, {3, 3}, TensorOptions().dtype(DataType::kFloat64).device(DeviceType::kCUDA));
 ```
 
 ### TensorOptions 配置
@@ -227,17 +278,19 @@ TensorOptions 提供了灵活的配置选项，支持链式调用。
 ```cpp
 TensorOptions &dtype(DataType dtype)
 TensorOptions &dtype(const std::string &dtype_str)
+TensorOptions &dtype(const char *dtype_str)
 ```
 
 **例子:**
 ```cpp
 // 设置数据类型为double
-auto options = TensorOptions().dtype(DataType::kFloat64);
-auto t = Tensor::zeros({2, 2}, options);
+auto t = Tensor::zeros({2, 2}, dtype(DataType::kFloat64));
 
 // 使用字符串设置类型
-auto options2 = TensorOptions().dtype("float64");
-auto t2 = Tensor::ones({3, 3}, options2);
+auto t2 = Tensor::ones({3, 3}, dtype("float64"));
+
+// 使用C字符串设置类型
+auto t3 = Tensor::zeros({2, 2}, dtype("float32"));
 ```
 
 #### 设备设置
@@ -246,6 +299,7 @@ auto t2 = Tensor::ones({3, 3}, options2);
 TensorOptions &device(Device device)
 TensorOptions &device(DeviceType device_type, int index = 0)
 TensorOptions &device(const std::string &device_str)
+TensorOptions &device(const char *device_str)
 ```
 
 **例子:**
@@ -257,6 +311,10 @@ auto t = Tensor::randn({2, 2}, options);
 // 使用字符串设置设备
 auto options2 = TensorOptions().device("cuda:0");
 auto t2 = Tensor::zeros({3, 3}, options2);
+
+// 使用C字符串设置设备
+auto options3 = TensorOptions().device("cpu");
+auto t3 = Tensor::ones({2, 2}, options3);
 ```
 
 #### 链式配置
@@ -279,7 +337,12 @@ auto t = Tensor::ones({2, 2}, options);
 
 ```cpp
 TensorOptions dtype(DataType dtype)
+TensorOptions dtype(const std::string &dtype_str)
+TensorOptions dtype(const char *dtype_str)
 TensorOptions device(Device device)
+TensorOptions device(DeviceType device_type, int index = 0)
+TensorOptions device(const std::string &device_str)
+TensorOptions device(const char *device_str)
 TensorOptions requires_grad(bool requires_grad = true)
 ```
 
@@ -289,6 +352,10 @@ TensorOptions requires_grad(bool requires_grad = true)
 auto t1 = Tensor::zeros({2, 2}, dtype(DataType::kFloat64));
 auto t2 = Tensor::ones({3, 3}, device(DeviceType::kCUDA));
 auto t3 = Tensor::randn({2, 2}, requires_grad(false));
+
+// 使用字符串便捷函数
+auto t4 = Tensor::zeros({2, 2}, dtype("float64"));
+auto t5 = Tensor::ones({3, 3}, device("cuda:0"));
 ```
 
 ---
@@ -407,6 +474,60 @@ size_t nbytes() const
 ```cpp
 auto t = Tensor::ones({2, 2}, dtype(DataType::kFloat32));
 auto bytes = t.nbytes();  // 16 (4个元素 × 4字节)
+```
+
+### 梯度相关
+
+#### grad
+
+```cpp
+Tensor grad() const
+```
+
+获取张量的梯度。如果梯度未初始化，将返回一个全零张量。
+
+**返回值:** Tensor – 梯度张量
+
+**例子:**
+```cpp
+auto x = Tensor::ones({2, 2});
+auto y = x * x;
+y.backward();
+auto g = x.grad();  // 获取x的梯度
+// g.print() 输出梯度值
+```
+
+#### backward
+
+```cpp
+void backward()
+```
+
+执行反向传播，计算计算图中所有张量的梯度。
+
+**例子:**
+```cpp
+auto x = Tensor::ones({2, 2});
+auto y = x * x;
+y.backward();  // 执行反向传播
+// 此时x.grad()包含了y对x的梯度
+```
+
+#### clear_grad
+
+```cpp
+void clear_grad()
+```
+
+清除张量的梯度。
+
+**例子:**
+```cpp
+auto x = Tensor::ones({2, 2});
+auto y = x * x;
+y.backward();
+x.clear_grad();  // 清除x的梯度
+// 之后x.grad()将返回全零张量
 ```
 
 ---
@@ -691,24 +812,33 @@ auto b = square(a);
 #### pow
 
 ```cpp
-template <typename T>
-Tensor pow(const Tensor &base, T exponent)
-template <typename T>
-Tensor operator^(const Tensor &base, T exponent)
+Tensor pow(const Tensor &base, const Scalar &exponent)
+Tensor operator^(const Tensor &base, const Scalar &exponent)
 ```
 
 计算张量的幂。
 
+**参数:**
+- `base` (Tensor) – 底数张量
+- `exponent` (Scalar) – 指数值
+
+**返回值:** Tensor – 幂运算结果
+
 **例子:**
 ```cpp
 auto a = Tensor({2, 3, 4}, {1, 3});
-auto b = pow(a, 2);  // 或者 a ^ 2
+auto b = pow(a, 2);    // 使用函数形式
+auto c = a ^ 2;        // 使用操作符形式（等价于pow(a, 2)）
 // a.print() 输出:
 // [[2, 3, 4]]
 //  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
 // b.print() 输出:
 // [[4, 9, 16]]
 //  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
+
+// 支持不同数值类型的指数
+auto d = pow(a, 3.0);   // 浮点数指数
+auto e = a ^ 2.5;        // 使用操作符形式
 ```
 
 #### exp
