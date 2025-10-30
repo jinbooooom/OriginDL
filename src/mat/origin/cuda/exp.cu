@@ -13,12 +13,6 @@ namespace origin
 {
 namespace cuda
 {
-
-/**
- * @brief CUDA指数算子实现
- * @details 计算输入张量每个元素的指数值
- */
-
 /**
  * @brief exp算子实现
  * @param mat 输入矩阵
