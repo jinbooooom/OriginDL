@@ -122,7 +122,7 @@ std::unique_ptr<OriginMat> from_memory(const void *data,
                                        const TensorOptions &options)
 {
     // 创建存储
-    size_t size  = shape.elements() * utils::get_dtype_size(options.dtype());
+    size_t size  = shape.elements() * element_size(options.dtype());
     auto storage = Storage::create(size, options.device().type(), options.device().index());
 
     // 检查是否需要类型转换

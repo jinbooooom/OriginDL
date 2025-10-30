@@ -813,23 +813,6 @@ std::vector<size_t> compute_strides(const Shape &shape)
     return strides;
 }
 
-size_t get_dtype_size(DataType dtype)
-{
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            return sizeof(float);
-        case DataType::kFloat64:
-            return sizeof(double);
-        case DataType::kInt32:
-            return sizeof(int32_t);
-        case DataType::kInt8:
-            return sizeof(int8_t);
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for operation", dtype_to_string(dtype));
-    }
-}
-
 bool can_broadcast_to(const Shape &source_shape, const Shape &target_shape)
 {
     // sum_to 的广播规则：可以求和到更小的形状，但不能广播到更大的形状

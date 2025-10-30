@@ -39,7 +39,7 @@ OriginMat::OriginMat(const Shape &shape, DataType dtype) : shape_(shape), dtype_
     strides_ = utils::compute_strides(shape);
 
     // 创建存储
-    size_t size = shape_.elements() * utils::get_dtype_size(dtype_);
+    size_t size = shape_.elements() * element_size(dtype_);
     storage_    = Storage::create(size, DeviceType::kCPU);
 }
 
@@ -49,7 +49,7 @@ OriginMat::OriginMat(const Shape &shape, DataType dtype, Device device) : shape_
     strides_ = utils::compute_strides(shape);
 
     // 创建存储
-    size_t size = shape_.elements() * utils::get_dtype_size(dtype_);
+    size_t size = shape_.elements() * element_size(dtype_);
     storage_    = Storage::create(size, device.type(), device.index());
 }
 

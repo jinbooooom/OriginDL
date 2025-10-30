@@ -209,7 +209,7 @@ std::unique_ptr<OriginMat> from_memory(const void *data,
     set_cuda_device(options.device().index());
 
     // 创建存储
-    size_t size  = shape.elements() * utils::get_dtype_size(options.dtype());
+    size_t size  = shape.elements() * element_size(options.dtype());
     auto storage = Storage::create(size, options.device().type(), options.device().index());
 
     // 检查是否需要类型转换
@@ -225,7 +225,7 @@ std::unique_ptr<OriginMat> from_memory(const void *data,
         // 假设用户传入的数据是float64类型，但是希望创建的是int32类型的张量，那么需要将float64类型转换为int32类型。
         // float64 用 8字节表示，int32 用 4字节表示，
         // 不转换会导致把一个 float64 的高4位和低4位分别当做一个int32的值进行重解释，显然就是错误的。
-        size_t temp_size  = shape.elements() * utils::get_dtype_size(options.dtype());
+        size_t temp_size  = shape.elements() * element_size(options.dtype());
         void *temp_buffer = malloc(temp_size);
 
         // 使用TypeDispatcher进行转换
