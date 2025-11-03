@@ -1,6 +1,7 @@
 #ifndef __ORIGIN_DL_OPERATOR_H__
 #define __ORIGIN_DL_OPERATOR_H__
 
+#include "../utils/exception.h"
 #include "origin/mat/scalar.h"
 #include "tensor.h"
 
@@ -54,8 +55,32 @@ public:
 
 protected:
     // 获取Mat引用（仅限Operator子类使用）
-    const Mat &mat(const Tensor &tensor) const { return *tensor.impl_->data_; }
-    Mat &mat(Tensor &tensor) { return *tensor.impl_->data_; }
+    const Mat &mat(const Tensor &tensor) const
+    {
+        if (!tensor.impl_)
+        {
+            THROW_RUNTIME_ERROR("mat() called on Tensor with null impl_");
+        }
+        if (!tensor.impl_->data_)
+        {
+            THROW_RUNTIME_ERROR("mat() called on Tensor with null data_, shape was: {}",
+                                tensor.impl_->shape().to_string());
+        }
+        return *tensor.impl_->data_;
+    }
+    Mat &mat(Tensor &tensor)
+    {
+        if (!tensor.impl_)
+        {
+            THROW_RUNTIME_ERROR("mat() called on Tensor with null impl_");
+        }
+        if (!tensor.impl_->data_)
+        {
+            THROW_RUNTIME_ERROR("mat() called on Tensor with null data_, shape was: {}",
+                                tensor.impl_->shape().to_string());
+        }
+        return *tensor.impl_->data_;
+    }
 
     // 从Mat创建Tensor（仅限Operator子类使用）
     Tensor convert_mat_to_tensor(std::unique_ptr<Mat> mat) { return Tensor(std::move(mat)); }

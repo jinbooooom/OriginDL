@@ -21,6 +21,9 @@ file(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operators/*.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/**/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/optim/*.cpp
 )
 
 # 根据后端添加对应的源文件

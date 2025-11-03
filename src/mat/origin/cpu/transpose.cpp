@@ -29,7 +29,12 @@ namespace cpu
 // 视图转置，不重新排列数据。只转置最后两个维度。未来还需要完善，完善视图转置的逻辑
 std::unique_ptr<OriginMat> transpose(const OriginMat &mat)
 {
-    if (mat.shape().size() == 1)
+    if (mat.shape().size() == 0)
+    {
+        // 0维张量（标量）：转置后保持不变
+        return std::make_unique<OriginMat>(mat);
+    }
+    else if (mat.shape().size() == 1)
     {
         // 一维张量：转置后保持不变
         return std::make_unique<OriginMat>(mat);
