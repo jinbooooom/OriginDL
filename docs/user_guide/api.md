@@ -9,6 +9,7 @@ OriginDL 是一个C++深度学习框架，提供了类似PyTorch的API接口。�
 - [张量操作](#张量操作)
 - [数学运算](#数学运算)
 - [调试工具](#调试工具)
+- [CUDA 支持](#cuda-支持)
 
 ---
 
@@ -1037,4 +1038,170 @@ auto t = Tensor::ones({2, 2});
 int backend = t.backend_type();
 // 0: Origin后端
 // 1: Torch后端
+```
+
+---
+
+## CUDA 支持
+
+OriginDL 提供了 CUDA 支持，允许在 GPU 上进行张量计算。使用 CUDA 功能需要：
+1. 系统安装 NVIDIA CUDA Toolkit
+2. 编译时启用 CUDA 支持（使用 `--cuda` 标志）
+3. 运行时系统有可用的 CUDA 设备
+
+### origin::cuda::is_available
+
+```cpp
+bool origin::cuda::is_available()
+```
+
+检查当前系统是否有可用的 CUDA 设备。这是 PyTorch 中 `torch.cuda.is_available()` 的对应 API。
+
+**返回值:** bool – 如果 CUDA 可用返回 `true`，否则返回 `false`
+
+**注意:** 
+- 此函数需要在编译时启用 CUDA 支持（`WITH_CUDA` 宏定义）
+- 如果未启用 CUDA 支持，包含 `origin.h` 时不会暴露 CUDA 命名空间
+
+**例子:**
+```cpp
+#include "origin.h"
+
+#ifdef WITH_CUDA
+    // 检查 CUDA 是否可用
+    if (origin::cuda::is_available()) {
+        std::cout << "CUDA is available!" << std::endl;
+        
+        // 创建 CUDA 张量
+        auto t = Tensor::ones({2, 2}, 
+                              TensorOptions().device(DeviceType::kCUDA));
+        t.print("CUDA Tensor");
+    } else {
+        std::cout << "CUDA is not available on this system." << std::endl;
+    }
+#else
+    std::cout << "CUDA support is not compiled in." << std::endl;
+#endif
+```
+
+### origin::cuda::device_count
+
+```cpp
+int origin::cuda::device_count()
+```
+
+返回系统中可用的 CUDA 设备数量。这是 PyTorch 中 `torch.cuda.device_count()` 的对应 API。
+
+**返回值:** int – 可用的 CUDA 设备数量，如果没有可用设备则返回 0
+
+**例子:**
+```cpp
+#include "origin.h"
+
+#ifdef WITH_CUDA
+    if (origin::cuda::is_available()) {
+        int count = origin::cuda::device_count();
+        std::cout << "Number of CUDA devices: " << count << std::endl;
+        
+        // 遍历所有设备
+        for (int i = 0; i < count; ++i) {
+            origin::cuda::set_device(i);
+            std::cout << "Using device " << i << std::endl;
+        }
+    }
+#endif
+```
+
+### origin::cuda::current_device
+
+```cpp
+int origin::cuda::current_device()
+```
+
+返回当前选定的 CUDA 设备索引。这是 PyTorch 中 `torch.cuda.current_device()` 的对应 API。
+
+**返回值:** int – 当前 CUDA 设备索引
+
+**注意:** 
+- 如果当前没有设置设备或 CUDA 不可用，可能会抛出异常
+- 建议在使用前先检查 `is_available()`
+
+**例子:**
+```cpp
+#include "origin.h"
+
+#ifdef WITH_CUDA
+    if (origin::cuda::is_available()) {
+        // 设置设备
+        origin::cuda::set_device(0);
+        
+        // 获取当前设备
+        int current = origin::cuda::current_device();
+        std::cout << "Current device: " << current << std::endl;
+    }
+#endif
+```
+
+### origin::cuda::set_device
+
+```cpp
+void origin::cuda::set_device(int device_id)
+```
+
+设置当前 CUDA 设备。这是 PyTorch 中 `torch.cuda.set_device(device)` 的对应 API。
+
+**参数:**
+- `device_id` (int) – 要设置的设备 ID，必须小于 `device_count()`
+
+**注意:** 
+- 如果设备 ID 无效，会抛出异常
+- 建议在使用前先检查 `device_count()` 确保设备 ID 有效
+
+**例子:**
+```cpp
+#include "origin.h"
+
+#ifdef WITH_CUDA
+    if (origin::cuda::is_available()) {
+        int count = origin::cuda::device_count();
+        
+        if (count > 0) {
+            // 设置使用第一个设备
+            origin::cuda::set_device(0);
+            
+            // 创建 CUDA 张量（会使用当前设置的设备）
+            auto t = Tensor::ones({2, 2}, 
+                                  TensorOptions().device(DeviceType::kCUDA));
+        }
+    }
+#endif
+```
+
+### origin::cuda::device_info
+
+```cpp
+void origin::cuda::device_info()
+```
+
+打印所有可用 CUDA 设备的详细信息，包括设备名称、计算能力、内存大小、多处理器数量等。
+
+**例子:**
+```cpp
+#include "origin.h"
+
+#ifdef WITH_CUDA
+    if (origin::cuda::is_available()) {
+        // 打印所有设备信息
+        origin::cuda::device_info();
+        // 输出示例:
+        // CUDA devices available: 2
+        // Device 0: NVIDIA GeForce RTX 3090
+        //   Compute capability: 8.6
+        //   Memory: 24564 MB
+        //   Multiprocessors: 82
+        //   Max threads per block: 1024
+        // Device 1: NVIDIA GeForce RTX 3080
+        //   ...
+    }
+#endif
 ```
