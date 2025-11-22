@@ -9,6 +9,7 @@ OriginDL 是一个C++深度学习框架，提供了类似PyTorch的API接口。�
 - [张量操作](#张量操作)
 - [数学运算](#数学运算)
 - [调试工具](#调试工具)
+- [神经网络模块](#神经网络模块)
 - [CUDA 支持](#cuda-支持)
 
 ---
@@ -1038,6 +1039,480 @@ auto t = Tensor::ones({2, 2});
 int backend = t.backend_type();
 // 0: Origin后端
 // 1: Torch后端
+```
+
+---
+
+## 神经网络模块
+
+OriginDL 提供了神经网络模块，支持构建和训练深度学习模型。模块设计参考 PyTorch，提供了类似的 API 接口。
+
+### Module 基类
+
+所有神经网络模块都继承自 `Module` 基类，提供了参数管理、训练模式切换、设备迁移等核心功能。
+
+#### forward
+
+```cpp
+virtual Tensor forward(const Tensor &input)
+```
+
+执行前向传播。这是所有模块必须实现的纯虚函数。
+
+**参数:**
+- `input` (Tensor) – 输入张量
+
+**返回值:** Tensor – 输出张量
+
+**例子:**
+```cpp
+Sequential model;
+model.add(std::make_unique<Linear>(10, 5));
+Tensor input = Tensor::randn({32, 10});
+Tensor output = model.forward(input);
+```
+
+#### operator()
+
+```cpp
+Tensor operator()(const Tensor &input)
+```
+
+调用操作符，等价于 `forward()`。提供更简洁的调用方式。
+
+**例子:**
+```cpp
+auto output = model(input);  // 等价于 model.forward(input)
+```
+
+#### train / eval
+
+```cpp
+void train(bool mode = true)
+void eval()
+```
+
+设置模块的训练模式或评估模式。
+
+**参数:**
+- `mode` (bool, optional) – 训练模式标志，默认为 `true`
+
+**注意:**
+- `train()` 设置训练模式，启用 dropout、batch normalization 等训练时的行为
+- `eval()` 设置评估模式，禁用训练时的特殊行为
+
+**例子:**
+```cpp
+model.train();  // 设置为训练模式
+// ... 训练代码 ...
+model.eval();   // 设置为评估模式
+// ... 评估代码 ...
+```
+
+#### to (设备迁移)
+
+```cpp
+virtual void to(Device device)
+void to(const TensorOptions &options)
+```
+
+将模块及其所有参数迁移到指定设备。
+
+**参数:**
+- `device` (Device) – 目标设备
+- `options` (TensorOptions) – 张量选项（包含设备和数据类型）
+
+**例子:**
+```cpp
+// 迁移到 CUDA 设备
+model.to(Device(DeviceType::kCUDA, 0));
+
+// 使用 TensorOptions
+model.to(TensorOptions().device(DeviceType::kCUDA).dtype(DataType::kFloat32));
+```
+
+#### zero_grad
+
+```cpp
+void zero_grad()
+```
+
+清除模块中所有参数的梯度。
+
+**例子:**
+```cpp
+optimizer.zero_grad();  // 通常在优化器中调用，会自动清除模型参数梯度
+```
+
+#### parameters
+
+```cpp
+virtual std::vector<Parameter *> parameters()
+```
+
+获取模块中所有参数的列表。
+
+**返回值:** std::vector<Parameter *> – 参数指针向量
+
+**例子:**
+```cpp
+auto params = model.parameters();
+for (auto *param : params) {
+    // 访问参数
+}
+```
+
+### Sequential 容器
+
+`Sequential` 是一个顺序容器，用于按顺序组织多个模块。
+
+#### 构造函数
+
+```cpp
+Sequential()
+```
+
+创建空的 Sequential 容器。
+
+**例子:**
+```cpp
+Sequential model;
+```
+
+#### add
+
+```cpp
+void add(std::unique_ptr<Module> module)
+```
+
+向容器中添加模块。
+
+**参数:**
+- `module` (std::unique_ptr<Module>) – 要添加的模块
+
+**例子:**
+```cpp
+Sequential model;
+model.add(std::make_unique<Linear>(10, 5));
+model.add(std::make_unique<Linear>(5, 1));
+```
+
+#### forward
+
+```cpp
+Tensor forward(const Tensor &input) override
+```
+
+按顺序执行所有模块的前向传播。
+
+**例子:**
+```cpp
+Sequential model;
+model.add(std::make_unique<Linear>(10, 5));
+model.add(std::make_unique<Linear>(5, 1));
+
+Tensor input = Tensor::randn({32, 10});
+Tensor output = model(input);  // 依次通过两个 Linear 层
+```
+
+#### operator[]
+
+```cpp
+Module &operator[](size_t index)
+const Module &operator[](size_t index) const
+```
+
+通过索引访问容器中的模块。
+
+**参数:**
+- `index` (size_t) – 模块索引
+
+**返回值:** Module & – 模块引用
+
+**例子:**
+```cpp
+Sequential model;
+model.add(std::make_unique<Linear>(10, 5));
+model.add(std::make_unique<Linear>(5, 1));
+
+// 访问第一个模块
+auto &first_layer = model[0];
+auto &linear_layer = dynamic_cast<Linear &>(model[0]);
+float w = linear_layer.weight()->item<float>();
+```
+
+#### size
+
+```cpp
+size_t size() const
+```
+
+获取容器中模块的数量。
+
+**返回值:** size_t – 模块数量
+
+**例子:**
+```cpp
+Sequential model;
+model.add(std::make_unique<Linear>(10, 5));
+std::cout << "Number of layers: " << model.size() << std::endl;  // 输出: 1
+```
+
+### Linear 层
+
+`Linear` 是全连接层（线性层），实现 `y = x * W + b`。
+
+#### 构造函数
+
+```cpp
+Linear(int in_features, int out_features, bool bias = true)
+```
+
+创建线性层。
+
+**参数:**
+- `in_features` (int) – 输入特征数
+- `out_features` (int) – 输出特征数
+- `bias` (bool, optional) – 是否使用偏置，默认为 `true`
+
+**例子:**
+```cpp
+// 创建输入10维、输出5维的线性层，带偏置
+auto linear = std::make_unique<Linear>(10, 5, true);
+
+// 创建不带偏置的线性层
+auto linear_no_bias = std::make_unique<Linear>(10, 5, false);
+```
+
+#### forward
+
+```cpp
+Tensor forward(const Tensor &input) override
+```
+
+执行线性变换：`output = input * weight^T + bias`
+
+**参数:**
+- `input` (Tensor) – 输入张量，形状应为 `[..., in_features]`
+
+**返回值:** Tensor – 输出张量，形状为 `[..., out_features]`
+
+**例子:**
+```cpp
+Linear linear(10, 5);
+Tensor input = Tensor::randn({32, 10});
+Tensor output = linear(input);  // 输出形状: {32, 5}
+```
+
+#### weight / bias
+
+```cpp
+Parameter *weight()
+Parameter *bias()
+```
+
+访问权重和偏置参数。
+
+**返回值:** Parameter * – 参数指针，`bias()` 在未使用偏置时返回 `nullptr`
+
+**例子:**
+```cpp
+Linear linear(10, 5);
+auto *w = linear.weight();
+auto *b = linear.bias();
+
+// 访问参数值
+float w_val = w->item<float>();
+if (b != nullptr) {
+    float b_val = b->item<float>();
+}
+```
+
+#### reset_parameters
+
+```cpp
+void reset_parameters()
+```
+
+重置参数，使用默认初始化策略重新初始化权重和偏置。
+
+**例子:**
+```cpp
+Linear linear(10, 5);
+linear.reset_parameters();  // 重新初始化参数
+```
+
+### Optimizer 优化器
+
+`Optimizer` 是优化器基类，用于更新模型参数。
+
+#### 构造函数
+
+```cpp
+explicit Optimizer(Module &target)
+```
+
+创建优化器。
+
+**参数:**
+- `target` (Module &) – 目标模块
+
+**注意:** 通常不直接使用 `Optimizer`，而是使用其子类如 `SGD`。
+
+#### step
+
+```cpp
+void step()
+```
+
+执行一步参数更新。
+
+**例子:**
+```cpp
+SGD optimizer(model, 0.01f);
+// ... 计算梯度 ...
+optimizer.step();  // 更新参数
+```
+
+#### zero_grad
+
+```cpp
+void zero_grad()
+```
+
+清除所有参数的梯度。
+
+**例子:**
+```cpp
+optimizer.zero_grad();  // 在每次迭代开始时调用
+```
+
+### SGD 优化器
+
+`SGD` 实现随机梯度下降优化算法。
+
+#### 构造函数
+
+```cpp
+SGD(Module &target, float lr, float momentum = 0.0f, float weight_decay = 0.0f, bool nesterov = false)
+```
+
+创建 SGD 优化器。
+
+**参数:**
+- `target` (Module &) – 目标模块
+- `lr` (float) – 学习率
+- `momentum` (float, optional) – 动量系数，默认为 0.0
+- `weight_decay` (float, optional) – 权重衰减（L2正则化），默认为 0.0
+- `nesterov` (bool, optional) – 是否使用 Nesterov 动量，默认为 false
+
+**例子:**
+```cpp
+// 基础 SGD
+SGD optimizer(model, 0.1f);
+
+// 带动量的 SGD
+SGD optimizer_momentum(model, 0.1f, 0.9f);
+
+// 带权重衰减的 SGD
+SGD optimizer_decay(model, 0.1f, 0.0f, 0.0001f);
+
+// Nesterov 动量 SGD
+SGD optimizer_nesterov(model, 0.1f, 0.9f, 0.0f, true);
+```
+
+#### step
+
+```cpp
+void step() override
+```
+
+执行一步 SGD 更新。
+
+**例子:**
+```cpp
+SGD optimizer(model, 0.1f);
+
+for (int i = 0; i < num_iterations; ++i) {
+    optimizer.zero_grad();
+    
+    // 前向传播
+    auto output = model(input);
+    
+    // 计算损失
+    auto loss = compute_loss(output, target);
+    
+    // 反向传播
+    loss.backward();
+    
+    // 更新参数
+    optimizer.step();
+}
+```
+
+### 完整训练示例
+
+以下是一个完整的线性回归训练示例：
+
+```cpp
+#include "origin.h"
+#include "origin/nn/layers/linear.h"
+#include "origin/nn/sequential.h"
+#include "origin/optim/sgd.h"
+
+using namespace origin;
+
+int main() {
+    // 1. 创建训练数据
+    size_t input_size = 100;
+    auto x = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32));
+    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32)) * 0.1f;
+    auto y = x * 2.0f + 5.0f + noise;  // y = 2x + 5 + noise
+
+    // 2. 创建模型
+    Sequential model;
+    model.add(std::make_unique<Linear>(1, 1, true));  // 输入1维，输出1维，带偏置
+
+    // 3. 创建优化器
+    float learning_rate = 0.1f;
+    SGD optimizer(model, learning_rate);
+
+    // 4. 开始训练
+    int iters = 200;
+    model.train();  // 设置为训练模式
+
+    for (int i = 0; i < iters; ++i) {
+        optimizer.zero_grad();
+        
+        // 前向传播
+        auto y_pred = model(x);
+        
+        // 计算损失（MSE）
+        auto diff = y_pred - y;
+        auto sum_result = sum(pow(diff, 2));
+        auto elements = Tensor(diff.elements(), sum_result.shape(), DataType::kFloat32);
+        auto loss = sum_result / elements;
+        
+        // 反向传播
+        loss.backward();
+        
+        // 更新参数
+        optimizer.step();
+        
+        // 打印训练进度
+        if (i % 10 == 0 || i == iters - 1) {
+            float loss_val = loss.item<float>();
+            auto &linear_layer = dynamic_cast<Linear &>(model[0]);
+            float w_val = linear_layer.weight()->item<float>();
+            float b_val = linear_layer.bias()->item<float>();
+            
+            std::cout << "iter " << i << ": loss = " << loss_val 
+                      << ", w = " << w_val << ", b = " << b_val << std::endl;
+        }
+    }
+    
+    return 0;
+}
 ```
 
 ---
