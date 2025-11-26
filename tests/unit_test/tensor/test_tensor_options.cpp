@@ -2,8 +2,11 @@
 #include "origin/core/tensor.h"
 #include "origin/core/tensor_options.h"
 #include "origin/mat/basic_types.h"
+#include "../common/gtest_utils.h"
+#include "../common/test_utils.h"
 
 using namespace origin;
+using namespace origin::test;
 
 class TensorOptionsTest : public ::testing::Test
 {
@@ -65,22 +68,22 @@ TEST_F(TensorOptionsTest, TensorFactoryMethods)
     // 测试zeros
     auto t1 = Tensor::zeros(shape, dtype(DataType::kInt32));
     EXPECT_EQ(t1.dtype(), DataType::kInt32);
-    EXPECT_EQ(t1.shape(), shape);
+    GTestUtils::EXPECT_TENSOR_SHAPE(t1, shape);
 
     // 测试ones
     auto t2 = Tensor::ones(shape, dtype(DataType::kFloat32));
     EXPECT_EQ(t2.dtype(), DataType::kFloat32);
-    EXPECT_EQ(t2.shape(), shape);
+    GTestUtils::EXPECT_TENSOR_SHAPE(t2, shape);
 
     // 测试randn
     auto t3 = Tensor::randn(shape, dtype(DataType::kFloat32));
     EXPECT_EQ(t3.dtype(), DataType::kFloat32);
-    EXPECT_EQ(t3.shape(), shape);
+    GTestUtils::EXPECT_TENSOR_SHAPE(t3, shape);
 
     // 测试full
     auto t4 = Tensor::full(shape, 5.0, dtype(DataType::kInt32));
     EXPECT_EQ(t4.dtype(), DataType::kInt32);
-    EXPECT_EQ(t4.shape(), shape);
+    GTestUtils::EXPECT_TENSOR_SHAPE(t4, shape);
 }
 
 // 测试链式调用
@@ -93,7 +96,7 @@ TEST_F(TensorOptionsTest, ChainedOptions)
 
     auto t = Tensor::zeros(shape, options);
     EXPECT_EQ(t.dtype(), DataType::kInt32);
-    EXPECT_EQ(t.shape(), shape);
+    GTestUtils::EXPECT_TENSOR_SHAPE(t, shape);
 }
 
 // 测试类型转换
@@ -108,7 +111,7 @@ TEST_F(TensorOptionsTest, TypeConversion)
     // 转换为int32
     auto t2 = t1.to(dtype(DataType::kInt32));
     EXPECT_EQ(t2.dtype(), DataType::kInt32);
-    EXPECT_EQ(t2.shape(), shape);
+    GTestUtils::EXPECT_TENSOR_SHAPE(t2, shape);
 }
 
 // 测试向后兼容性

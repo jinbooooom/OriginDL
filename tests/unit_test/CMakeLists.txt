@@ -26,14 +26,17 @@ set(UNIT_TEST_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/unit_test)
 
 # 添加Tensor基础测试
 add_executable(test_tensor_create tensor/test_create_tensor.cpp)
-add_dependencies(test_tensor_create gtest gtest_main origindl)
+add_dependencies(test_tensor_create gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_tensor_create 
     ${GTEST_LIBRARIES}
     origindl
+    test_utils
+    gtest_utils
     pthread
 )
 target_include_directories(test_tensor_create PRIVATE
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/tests/common
     ${GTEST_INCLUDE_DIRS}
 )
 set_target_properties(test_tensor_create PROPERTIES
@@ -44,14 +47,17 @@ set_target_properties(test_tensor_create PROPERTIES
 
 # 添加多类型张量测试
 add_executable(test_multi_type_tensor tensor/test_multi_type_tensor.cpp)
-add_dependencies(test_multi_type_tensor gtest gtest_main origindl)
+add_dependencies(test_multi_type_tensor gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_multi_type_tensor 
     ${GTEST_LIBRARIES}
     origindl
+    test_utils
+    gtest_utils
     pthread
 )
 target_include_directories(test_multi_type_tensor PRIVATE
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/tests/common
     ${GTEST_INCLUDE_DIRS}
 )
 set_target_properties(test_multi_type_tensor PROPERTIES
@@ -62,14 +68,17 @@ set_target_properties(test_multi_type_tensor PROPERTIES
 
 # 添加TensorOptions测试
 add_executable(test_tensor_options tensor/test_tensor_options.cpp)
-add_dependencies(test_tensor_options gtest gtest_main origindl)
+add_dependencies(test_tensor_options gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_tensor_options 
     ${GTEST_LIBRARIES}
     origindl
+    test_utils
+    gtest_utils
     pthread
 )
 target_include_directories(test_tensor_options PRIVATE
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/tests/common
     ${GTEST_INCLUDE_DIRS}
 )
 set_target_properties(test_tensor_options PROPERTIES
@@ -81,9 +90,9 @@ set_target_properties(test_tensor_options PROPERTIES
 # 添加算子测试
 # 基础算术算子测试
 add_executable(test_add operator/test_add.cpp)
-add_dependencies(test_add gtest gtest_main origindl)
-target_link_libraries(test_add ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_add PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_add gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_add ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_add PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_add PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -91,9 +100,9 @@ set_target_properties(test_add PROPERTIES
 )
 
 add_executable(test_sub operator/test_sub.cpp)
-add_dependencies(test_sub gtest gtest_main origindl)
-target_link_libraries(test_sub ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_sub PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_sub gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_sub ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_sub PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_sub PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -101,9 +110,9 @@ set_target_properties(test_sub PROPERTIES
 )
 
 add_executable(test_mul operator/test_mul.cpp)
-add_dependencies(test_mul gtest gtest_main origindl)
-target_link_libraries(test_mul ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_mul PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_mul gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_mul ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_mul PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_mul PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -111,9 +120,9 @@ set_target_properties(test_mul PROPERTIES
 )
 
 add_executable(test_div operator/test_div.cpp)
-add_dependencies(test_div gtest gtest_main origindl)
-target_link_libraries(test_div ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_div PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_div gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_div ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_div PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_div PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -122,9 +131,9 @@ set_target_properties(test_div PROPERTIES
 
 # 一元算子测试
 add_executable(test_neg operator/test_neg.cpp)
-add_dependencies(test_neg gtest gtest_main origindl)
-target_link_libraries(test_neg ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_neg PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_neg gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_neg ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_neg PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_neg PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -132,9 +141,9 @@ set_target_properties(test_neg PROPERTIES
 )
 
 add_executable(test_square operator/test_square.cpp)
-add_dependencies(test_square gtest gtest_main origindl)
-target_link_libraries(test_square ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_square PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_square gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_square ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_square PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_square PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -142,9 +151,9 @@ set_target_properties(test_square PROPERTIES
 )
 
 add_executable(test_exp operator/test_exp.cpp)
-add_dependencies(test_exp gtest gtest_main origindl)
-target_link_libraries(test_exp ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_exp PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_exp gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_exp ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_exp PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_exp PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -152,9 +161,9 @@ set_target_properties(test_exp PROPERTIES
 )
 
 add_executable(test_pow operator/test_pow.cpp)
-add_dependencies(test_pow gtest gtest_main origindl)
-target_link_libraries(test_pow ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_pow PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_pow gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_pow ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_pow PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_pow PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -163,9 +172,9 @@ set_target_properties(test_pow PROPERTIES
 
 # 聚合算子测试
 add_executable(test_sum operator/test_sum.cpp)
-add_dependencies(test_sum gtest gtest_main origindl)
-target_link_libraries(test_sum ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_sum PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_sum gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_sum ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_sum PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_sum PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -173,9 +182,9 @@ set_target_properties(test_sum PROPERTIES
 )
 
 add_executable(test_sum_to operator/test_sum_to.cpp)
-add_dependencies(test_sum_to gtest gtest_main origindl)
-target_link_libraries(test_sum_to ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_sum_to PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_sum_to gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_sum_to ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_sum_to PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_sum_to PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -183,9 +192,9 @@ set_target_properties(test_sum_to PROPERTIES
 )
 
 add_executable(test_broadcast_to operator/test_broadcast_to.cpp)
-add_dependencies(test_broadcast_to gtest gtest_main origindl)
-target_link_libraries(test_broadcast_to ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_broadcast_to PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_broadcast_to gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_broadcast_to ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_broadcast_to PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_broadcast_to PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -194,9 +203,9 @@ set_target_properties(test_broadcast_to PROPERTIES
 
 # 形状操作算子测试
 add_executable(test_transpose operator/test_transpose.cpp)
-add_dependencies(test_transpose gtest gtest_main origindl)
-target_link_libraries(test_transpose ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_transpose PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_transpose gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_transpose ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_transpose PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_transpose PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -204,9 +213,9 @@ set_target_properties(test_transpose PROPERTIES
 )
 
 add_executable(test_reshape operator/test_reshape.cpp)
-add_dependencies(test_reshape gtest gtest_main origindl)
-target_link_libraries(test_reshape ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_reshape PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_reshape gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_reshape ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_reshape PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_reshape PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -215,9 +224,9 @@ set_target_properties(test_reshape PROPERTIES
 
 # 矩阵运算算子测试
 add_executable(test_matmul operator/test_matmul.cpp)
-add_dependencies(test_matmul gtest gtest_main origindl)
-target_link_libraries(test_matmul ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_matmul PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_matmul gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_matmul ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_matmul PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_matmul PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -226,9 +235,9 @@ set_target_properties(test_matmul PROPERTIES
 
 # 自动微分测试
 add_executable(test_linear_regression autograd/test_linear_regression.cpp)
-add_dependencies(test_linear_regression gtest gtest_main origindl)
-target_link_libraries(test_linear_regression ${GTEST_LIBRARIES} origindl pthread)
-target_include_directories(test_linear_regression PRIVATE ${CMAKE_SOURCE_DIR}/include ${GTEST_INCLUDE_DIRS})
+add_dependencies(test_linear_regression gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_linear_regression ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_linear_regression PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_linear_regression PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}

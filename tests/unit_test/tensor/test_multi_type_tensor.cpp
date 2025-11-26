@@ -2,8 +2,11 @@
 #include <vector>
 #include "origin/core/tensor.h"
 #include "origin/mat/basic_types.h"
+#include "../common/gtest_utils.h"
+#include "../common/test_utils.h"
 
 using namespace origin;
+using namespace origin::test;
 
 class MultiTypeTensorTest : public ::testing::Test
 {
@@ -66,17 +69,17 @@ TEST_F(MultiTypeTensorTest, ScalarTensors)
     // 测试float标量
     Tensor t1(5.0f, Shape{1});
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
-    EXPECT_EQ(t1.shape(), (Shape{1}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t1, Shape{1});
 
     // 测试int标量
     Tensor t2(42, Shape{1});
     EXPECT_EQ(t2.dtype(), DataType::kInt32);
-    EXPECT_EQ(t2.shape(), (Shape{1}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t2, Shape{1});
 
     // 测试int8标量
     Tensor t3(static_cast<int8_t>(10), Shape{1});
     EXPECT_EQ(t3.dtype(), DataType::kInt8);
-    EXPECT_EQ(t3.shape(), (Shape{1}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t3, Shape{1});
 }
 
 // 测试指定数据类型的构造函数
@@ -131,33 +134,33 @@ TEST_F(MultiTypeTensorTest, FactoryFunctions)
     // 测试zeros工厂函数
     Tensor t1 = Tensor::zeros(Shape{2, 3}, dtype(DataType::kFloat32));  // 默认kFloat32
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
-    EXPECT_EQ(t1.shape(), (Shape{2, 3}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t1, Shape{2, 3});
 
     Tensor t2 = Tensor::zeros(Shape{2, 3}, dtype(DataType::kInt32));
     EXPECT_EQ(t2.dtype(), DataType::kInt32);
-    EXPECT_EQ(t2.shape(), (Shape{2, 3}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t2, Shape{2, 3});
 
     Tensor t3 = Tensor::zeros(Shape{2, 3}, dtype(DataType::kInt8));
     EXPECT_EQ(t3.dtype(), DataType::kInt8);
-    EXPECT_EQ(t3.shape(), (Shape{2, 3}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t3, Shape{2, 3});
 
     // 测试ones工厂函数
     Tensor t4 = Tensor::ones(Shape{2, 2}, dtype(DataType::kFloat32));  // 默认kFloat32
     EXPECT_EQ(t4.dtype(), DataType::kFloat32);
-    EXPECT_EQ(t4.shape(), (Shape{2, 2}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t4, Shape{2, 2});
 
     Tensor t5 = Tensor::ones(Shape{2, 2}, dtype(DataType::kInt32));
     EXPECT_EQ(t5.dtype(), DataType::kInt32);
-    EXPECT_EQ(t5.shape(), (Shape{2, 2}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t5, Shape{2, 2});
 
     // 测试randn工厂函数
     Tensor t6 = Tensor::randn(Shape{3, 3}, dtype(DataType::kFloat32));  // 默认kFloat32
     EXPECT_EQ(t6.dtype(), DataType::kFloat32);
-    EXPECT_EQ(t6.shape(), (Shape{3, 3}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t6, Shape{3, 3});
 
     Tensor t7 = Tensor::randn(Shape{3, 3}, dtype(DataType::kInt32));
     EXPECT_EQ(t7.dtype(), DataType::kInt32);
-    EXPECT_EQ(t7.shape(), (Shape{3, 3}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t7, Shape{3, 3});
 }
 
 // 测试std::initializer_list构造函数
@@ -166,17 +169,17 @@ TEST_F(MultiTypeTensorTest, InitializerListConstructor)
     // 测试float类型的initializer_list
     Tensor t1({1.0f, 2.0f, 3.0f}, Shape{3});
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
-    EXPECT_EQ(t1.shape(), (Shape{3}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t1, Shape{3});
 
     // 测试int类型的initializer_list
     Tensor t2({1, 2, 3, 4}, Shape{2, 2});
     EXPECT_EQ(t2.dtype(), DataType::kInt32);
-    EXPECT_EQ(t2.shape(), (Shape{2, 2}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t2, Shape{2, 2});
 
     // 测试int8类型的initializer_list
     Tensor t3({static_cast<int8_t>(1), static_cast<int8_t>(2)}, Shape{2});
     EXPECT_EQ(t3.dtype(), DataType::kInt8);
-    EXPECT_EQ(t3.shape(), (Shape{2}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t3, Shape{2});
 
     // 测试与vector构造函数的一致性
     std::vector<float> vec = {1.0f, 2.0f, 3.0f};
@@ -236,12 +239,12 @@ TEST_F(MultiTypeTensorTest, ErrorHandling)
 TEST_F(MultiTypeTensorTest, ShapeAndElements)
 {
     Tensor t1({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2});
-    EXPECT_EQ(t1.shape(), (Shape{2, 2}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t1, Shape{2, 2});
     EXPECT_EQ(t1.elements(), 4u);
     EXPECT_EQ(t1.ndim(), 2u);
 
     Tensor t2(5.0f, Shape{1});
-    EXPECT_EQ(t2.shape(), (Shape{1}));
+    GTestUtils::EXPECT_TENSOR_SHAPE(t2, Shape{1});
     EXPECT_EQ(t2.elements(), 1u);
     EXPECT_EQ(t2.ndim(), 1u);
 }
