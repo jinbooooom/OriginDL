@@ -1,97 +1,56 @@
 #include <gtest/gtest.h>
-#include <cmath>
 #include <vector>
 #include "origin.h"
+#include "../common/device_test_base.h"
+#include "../common/gtest_utils.h"
+#include "../common/test_utils.h"
 
 using namespace origin;
 
-class MulOperatorTest : public ::testing::Test
+/**
+ * @brief 乘法算子测试类（参数化版本）
+ * @details 使用参数化测试，自动为CPU和CUDA生成测试用例
+ *          无GPU环境只运行CPU测试，有GPU环境运行CPU+CUDA测试
+ */
+class MulOperatorTest : public origin::test::OperatorTestBase
 {
-protected:
-    void SetUp() override
-    {
-        // 测试前的设置
-    }
-
-    void TearDown() override
-    {
-        // 测试后的清理
-    }
-
-    // 辅助函数：比较两个浮点数是否相等（考虑浮点精度）
-    bool isEqual(double a, double b, double tolerance = 1e-6) { return std::abs(a - b) < tolerance; }
-
-    // 辅助函数：比较两个Tensor是否相等
-    bool tensorsEqual(const Tensor &a, const Tensor &b, double tolerance = 1e-6)
-    {
-        if (a.shape() != b.shape())
-        {
-            return false;
-        }
-
-        auto data_a = a.to_vector<float>();
-        auto data_b = b.to_vector<float>();
-
-        if (data_a.size() != data_b.size())
-        {
-            return false;
-        }
-
-        for (size_t i = 0; i < data_a.size(); ++i)
-        {
-            if (!isEqual(data_a[i], data_b[i], tolerance))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
 };
 
 // ==================== 前向传播测试 ====================
 
-TEST_F(MulOperatorTest, ForwardBasic)
+TEST_P(MulOperatorTest, ForwardBasic)
 {
     // 测试基本乘法运算
-    auto x0 = Tensor({1.0, 2.0, 3.0, 4.0}, Shape{2, 2});
-    auto x1 = Tensor({2.0, 3.0, 4.0, 5.0}, Shape{2, 2});
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({2.0f, 3.0f, 4.0f, 5.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {2.0, 6.0, 12.0, 20.0};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], 1e-6);
-    }
+    auto expected = Tensor({2.0f, 6.0f, 12.0f, 20.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(MulOperatorTest, ForwardOperatorOverload)
+TEST_P(MulOperatorTest, ForwardOperatorOverload)
 {
     // 测试运算符重载
-    auto x0 = Tensor({2.0, 3.0}, Shape{2});
-    auto x1 = Tensor({4.0, 5.0}, Shape{2});
+    auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({4.0f, 5.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = x0 * x1;
 
-    EXPECT_EQ(result.shape(), Shape{2});
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {8.0, 15.0};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], 1e-6);
-    }
+    Shape expected_shape{2};
+    EXPECT_EQ(result.shape(), expected_shape);
+    auto expected = Tensor({8.0f, 15.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(MulOperatorTest, ForwardScalarTensor)
+TEST_P(MulOperatorTest, ForwardScalarTensor)
 {
     // 测试标量与张量的乘法
-    auto x        = Tensor({1.0f, 2.0f, 3.0f}, Shape{3});
-    data_t scalar = 2.0f;
+    auto x       = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    float scalar = 2.0f;
 
     auto result1 = x * scalar;
     auto result2 = scalar * x;
@@ -99,96 +58,71 @@ TEST_F(MulOperatorTest, ForwardScalarTensor)
     EXPECT_EQ(result1.shape(), Shape{3});
     EXPECT_EQ(result2.shape(), Shape{3});
 
-    auto data1                   = result1.to_vector<float>();
-    auto data2                   = result2.to_vector<float>();
-    std::vector<data_t> expected = {2.0, 4.0, 6.0};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(data1[i], expected[i], 1e-6);
-        EXPECT_NEAR(data2[i], expected[i], 1e-6);
-    }
+    auto expected = Tensor({2.0f, 4.0f, 6.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, expected, origin::test::TestTolerance::kDefault);
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result2, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(MulOperatorTest, ForwardZeroTensor)
+TEST_P(MulOperatorTest, ForwardZeroTensor)
 {
     // 测试零张量乘法
-    auto x0 = Tensor({1.0, 2.0}, Shape{2});
-    auto x1 = Tensor({0.0, 0.0}, Shape{2});
+    auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
-    auto result_data = result.to_vector<float>();
-    for (size_t i = 0; i < result_data.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], 0.0, 1e-6);
-    }
+    auto expected = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(MulOperatorTest, ForwardNegativeValues)
+TEST_P(MulOperatorTest, ForwardNegativeValues)
 {
     // 测试负值乘法
-    auto x0 = Tensor({-1.0, -2.0}, Shape{2});
-    auto x1 = Tensor({3.0, 4.0}, Shape{2});
+    auto x0 = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {-3.0, -8.0};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], 1e-6);
-    }
+    auto expected = Tensor({-3.0f, -8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 // ==================== 反向传播测试 ====================
 
-TEST_F(MulOperatorTest, BackwardBasic)
+TEST_P(MulOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x0 = Tensor({2.0, 3.0}, Shape{2});
-    auto x1 = Tensor({4.0, 5.0}, Shape{2});
+    auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x1 = Tensor({4.0f, 5.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = mul(x0, x1);
     y.backward();
 
     // 乘法算子的梯度：∂y/∂x0 = x1, ∂y/∂x1 = x0
-    auto gx0_data = x0.grad().to_vector<float>();
-    auto gx1_data = x1.grad().to_vector<float>();
-
-    for (size_t i = 0; i < gx0_data.size(); ++i)
-    {
-        EXPECT_NEAR(gx0_data[i], x1.to_vector<float>()[i], 1e-6);
-        EXPECT_NEAR(gx1_data[i], x0.to_vector<float>()[i], 1e-6);
-    }
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0.grad(), x1, origin::test::TestTolerance::kDefault);
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1.grad(), x0, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(MulOperatorTest, BackwardWithGradient)
+TEST_P(MulOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x0 = Tensor({2.0, 3.0}, Shape{2});
-    auto x1 = Tensor({1.0, 1.0}, Shape{2});
+    auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x1 = Tensor({1.0f, 1.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = mul(x0, x1);
-    // 乘法算子的梯度：∂y/∂x0 = x1, ∂y/∂x1 = x0
     y.backward();
 
-    auto gx0_data = x0.grad().to_vector<float>();
-    auto gx1_data = x1.grad().to_vector<float>();
-
-    for (size_t i = 0; i < gx0_data.size(); ++i)
-    {
-        EXPECT_NEAR(gx0_data[i], 1.0, 1e-6);                       // ∂y/∂x0 = x1 = 1
-        EXPECT_NEAR(gx1_data[i], x0.to_vector<float>()[i], 1e-6);  // ∂y/∂x1 = x0
-    }
+    // 乘法算子的梯度：∂y/∂x0 = x1 = 1, ∂y/∂x1 = x0
+    auto expected_gx0 = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0.grad(), expected_gx0, origin::test::TestTolerance::kDefault);
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1.grad(), x0, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(MulOperatorTest, BackwardDifferentShapes)
+TEST_P(MulOperatorTest, BackwardDifferentShapes)
 {
     // 测试不同形状的张量乘法反向传播
-    auto x0 = Tensor({2.0, 3.0}, Shape{2});
-    auto x1 = Tensor({4.0}, Shape{1});
+    auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x1 = Tensor({4.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = mul(x0, x1);
     y.backward();
@@ -200,97 +134,91 @@ TEST_F(MulOperatorTest, BackwardDifferentShapes)
     EXPECT_EQ(gx0_data.size(), 2U);
     EXPECT_EQ(gx1_data.size(), 1U);
 
-    for (size_t i = 0; i < gx0_data.size(); ++i)
-    {
-        EXPECT_NEAR(gx0_data[i], 4.0, 1e-6);  // 广播后的x1值
-    }
-    EXPECT_NEAR(gx1_data[0], 5.0, 1e-6);  // sum(x0) = 2 + 3
+    // x0的梯度应该是广播后的x1值
+    auto expected_gx0 = Tensor({4.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0.grad(), expected_gx0, origin::test::TestTolerance::kDefault);
+
+    // x1的梯度应该是sum(x0) = 2 + 3 = 5
+    EXPECT_NEAR(gx1_data[0], 5.0f, origin::test::TestTolerance::kDefault);
 }
 
 // ==================== 边界情况测试 ====================
 
-TEST_F(MulOperatorTest, SingleElement)
+TEST_P(MulOperatorTest, SingleElement)
 {
     // 测试单元素张量
-    auto x0 = Tensor({5.0}, Shape{1});
-    auto x1 = Tensor({3.0}, Shape{1});
+    auto x0 = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
-    EXPECT_EQ(result.shape(), Shape{1});
-    EXPECT_NEAR(result.item<float>(), 15.0, 1e-6);
+    Shape expected_shape{1};
+    EXPECT_EQ(result.shape(), expected_shape);
+    EXPECT_NEAR(result.item<float>(), 15.0f, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(MulOperatorTest, LargeTensor)
+TEST_P(MulOperatorTest, LargeTensor)
 {
     // 测试大张量
-    std::vector<data_t> data1(100, 2.0);
-    std::vector<data_t> data2(100, 3.0);
-    auto x0 = Tensor(data1, Shape{10, 10});
-    auto x1 = Tensor(data2, Shape{10, 10});
+    std::vector<float> data1(100, 2.0f);
+    std::vector<float> data2(100, 3.0f);
+    auto x0 = Tensor(data1, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor(data2, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector<float>();
-
-    for (size_t i = 0; i < result_data.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], 6.0, 1e-6);
-    }
+    
+    auto expected = Tensor(std::vector<float>(100, 6.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(MulOperatorTest, ThreeDimensional)
+TEST_P(MulOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x0 = Tensor({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0}, Shape{2, 2, 2});
-    auto x1 = Tensor({0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5}, Shape{2, 2, 2});
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector<float>();
-
-    for (size_t i = 0; i < result_data.size(); ++i)
+    
+    std::vector<float> expected_data;
+    for (int i = 1; i <= 8; ++i)
     {
-        EXPECT_NEAR(result_data[i], (i + 1) * 0.5, 1e-6);
+        expected_data.push_back(i * 0.5f);
     }
+    auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 // ==================== 数值稳定性测试 ====================
 
-TEST_F(MulOperatorTest, NumericalStability)
+TEST_P(MulOperatorTest, NumericalStability)
 {
     // 测试数值稳定性
-    auto x0 = Tensor({1e10, 1e-10}, Shape{2});
-    auto x1 = Tensor({1e-10, 1e10}, Shape{2});
+    auto x0 = Tensor({1e10f, 1e-10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({1e-10f, 1e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {1.0, 1.0};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], 1e-6);
-    }
+    auto expected = Tensor({1.0f, 1.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e-3);
 }
 
-TEST_F(MulOperatorTest, PrecisionTest)
+TEST_P(MulOperatorTest, PrecisionTest)
 {
     // 测试精度
-    auto x0 = Tensor({0.1, 0.2}, Shape{2});
-    auto x1 = Tensor({0.3, 0.4}, Shape{2});
+    auto x0 = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({0.3f, 0.4f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {0.03, 0.08};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], 1e-6);
-    }
+    auto expected = Tensor({0.03f, 0.08f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
+
+// 实例化测试套件：自动为CPU和可用CUDA生成测试
+INSTANTIATE_DEVICE_TEST_SUITE_P(MulOperatorTest);

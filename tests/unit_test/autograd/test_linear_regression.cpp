@@ -3,26 +3,23 @@
 #include <vector>
 #include "origin.h"
 #include "origin/utils/log.h"
+#include "../common/device_test_base.h"
+#include "../common/gtest_utils.h"
+#include "../common/test_utils.h"
 
 using namespace origin;
-
-class LinearRegressionTest : public ::testing::Test
+/**
+ * @brief 线性回归测试类（参数化版本）
+ * @details 使用参数化测试，自动为CPU和CUDA生成测试用例
+ *          无GPU环境只运行CPU测试，有GPU环境运行CPU+CUDA测试
+ */
+class LinearRegressionTest : public origin::test::OperatorTestBase
 {
 protected:
     // 精度忍受常量
     static constexpr double kTolerance = 0.1;   // 线性回归允许较大的误差
     static constexpr float kExpectedW  = 2.0f;  // 期望的权重
     static constexpr float kExpectedB  = 5.0f;  // 期望的偏置
-
-    void SetUp() override
-    {
-        // 测试前的设置
-    }
-
-    void TearDown() override
-    {
-        // 测试后的清理
-    }
 
     // 预测函数（带偏置）
     Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
@@ -37,26 +34,28 @@ protected:
         auto diff       = x0 - x1;
         auto sum_result = origin::sum(origin::pow(diff, 2.0f));
         // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-        auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(), Float32);
+        // 确保elements张量在正确的设备上
+        auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(), 
+                                     dtype(DataType::kFloat32).device(deviceType()));
         auto result   = sum_result / elements;
         return result;
     }
 };
 
 // 线性回归收敛性测试
-TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
+TEST_P(LinearRegressionTest, ConvergeToExpectedValues)
 {
     // 生成随机数据
     size_t input_size = 100;
-    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32));
+    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(deviceType()));
     // 设置一个噪声，使真实值在预测结果附近
-    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32)) * 0.1f;
+    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(deviceType())) * 0.1f;
     // 生成真实标签：y = x * 2.0 + 5.0 + noise
     auto y = x * kExpectedW + kExpectedB + noise;
 
     // 初始化权重和偏置
-    auto w = Tensor(0.0f, Shape{1, 1}, Float32);
-    auto b = Tensor(0.0f, Shape{1, 1}, Float32);
+    auto w = Tensor(0.0f, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto b = Tensor(0.0f, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     // 设置学习率和迭代次数
     float lr  = 0.1f;
@@ -99,3 +98,6 @@ TEST_F(LinearRegressionTest, ConvergeToExpectedValues)
     EXPECT_NEAR(final_b, kExpectedB, kTolerance)
         << "Bias b should converge to " << kExpectedB << ", but got " << final_b;
 }
+
+// 实例化测试套件：自动为CPU和可用CUDA生成测试
+INSTANTIATE_DEVICE_TEST_SUITE_P(LinearRegressionTest);
