@@ -12,14 +12,23 @@ namespace origin
 // 工具函数：获取文件名（去掉路径）
 inline const char *basename(const char *file)
 {
-    const char *last_slash = strrchr(file, '/');
-    return last_slash ? last_slash + 1 : file;
+    const char *last_slash     = strrchr(file, '/');
+    const char *last_backslash = strrchr(file, '\\');
+
+    // 找到最后一个路径分隔符
+    const char *last_sep = last_slash;
+    if (last_backslash && (!last_slash || last_backslash > last_slash))
+    {
+        last_sep = last_backslash;
+    }
+
+    return last_sep ? last_sep + 1 : file;
 }
 
-// 工具函数：获取文件名（去掉路径）- C++17版本
+// 工具函数：获取文件名（去掉路径）
 inline std::string basename(const std::string &file)
 {
-    return std::filesystem::path(file).filename().string();
+    return std::string(basename(file.c_str()));
 }
 
 }  // namespace origin
@@ -49,5 +58,17 @@ inline std::string basename(const std::string &file)
 #define THROW_LOGIC_ERROR(format_str, ...) THROW(std::logic_error, format_str, ##__VA_ARGS__)
 #define THROW_OUT_OF_RANGE(format_str, ...) THROW(std::out_of_range, format_str, ##__VA_ARGS__)
 #define THROW_BAD_ALLOC(format_str, ...) THROW(std::bad_alloc, format_str, ##__VA_ARGS__)
+
+// 不支持操作的异常宏
+// 在CUDA设备代码中使用简单的printf，在CPU代码中抛出异常
+#ifdef __CUDACC__
+#    define THROW_UNSUPPORTED(format_str, ...)                                                      \
+        do                                                                                          \
+        {                                                                                           \
+            printf("\033[31m[%s:%s:%d] %s\033[0m\n", __FILE__, __FUNCTION__, __LINE__, format_str); \
+        } while (0)
+#else
+#    define THROW_UNSUPPORTED(format_str, ...) THROW_RUNTIME_ERROR(format_str, ##__VA_ARGS__)
+#endif
 
 #endif  // __ORIGIN_DL_EXCEPTION_H__

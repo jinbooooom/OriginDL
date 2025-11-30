@@ -3,6 +3,10 @@
 #include <stdexcept>
 #include "origin/utils/exception.h"
 
+#ifdef WITH_CUDA
+#    include <cuda_runtime.h>
+#endif
+
 namespace origin
 {
 
@@ -83,7 +87,19 @@ std::shared_ptr<Storage> Storage::to_device(DeviceType target_device_type, int t
     {
         // Same device, just return a copy
         auto new_storage = create(size_, device_type_, device_index_);
-        memcpy(new_storage->data(), data_, size_);
+        if (device_type_ == DeviceType::kCPU)
+        {
+            memcpy(new_storage->data(), data_, size_);
+        }
+        else
+        {
+#ifdef WITH_CUDA
+            // CUDA to CUDA copy
+            cudaMemcpy(new_storage->data(), data_, size_, cudaMemcpyDeviceToDevice);
+#else
+            THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+        }
         return new_storage;
     }
 
@@ -91,13 +107,48 @@ std::shared_ptr<Storage> Storage::to_device(DeviceType target_device_type, int t
     {
         // Copy to CPU
         auto cpu_storage = create(size_, DeviceType::kCPU);
-        memcpy(cpu_storage->data(), data_, size_);
+        if (device_type_ == DeviceType::kCUDA)
+        {
+#ifdef WITH_CUDA
+            cudaMemcpy(cpu_storage->data(), data_, size_, cudaMemcpyDeviceToHost);
+#else
+            THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+        }
+        else
+        {
+            memcpy(cpu_storage->data(), data_, size_);
+        }
         return cpu_storage;
+    }
+    else if (target_device_type == DeviceType::kCUDA)
+    {
+        // Copy to CUDA
+        auto cuda_storage = create(size_, DeviceType::kCUDA, target_device_index);
+        if (device_type_ == DeviceType::kCPU)
+        {
+#ifdef WITH_CUDA
+            cudaMemcpy(cuda_storage->data(), data_, size_, cudaMemcpyHostToDevice);
+#else
+            THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+        }
+        else
+        {
+#ifdef WITH_CUDA
+            cudaMemcpy(cuda_storage->data(), data_, size_, cudaMemcpyDeviceToDevice);
+#else
+            THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+        }
+        return cuda_storage;
     }
     else
     {
-        // CUDA not supported yet
-        THROW_RUNTIME_ERROR("CUDA device transfer not supported yet.");
+        Device src_device(device_type_, device_index_);
+        Device dst_device(target_device_type, target_device_index);
+        THROW_RUNTIME_ERROR("Unsupported device type for transfer: from device {} to device {}", src_device.to_string(),
+                            dst_device.to_string());
     }
 }
 

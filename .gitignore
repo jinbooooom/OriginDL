@@ -14,7 +14,7 @@ data/*
 **/*.out
 *.h.gch
 compile_commands.json
-dllog/*
+originlog/*
 3rd/libtorch/*
 
 r
@@ -23,7 +23,9 @@ t
 tmp
 t.cpp
 build
+build_cuda
 torch_build
+torch_build_cuda
 main
 **/bin/*
 

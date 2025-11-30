@@ -1,8 +1,15 @@
 #minimum version required
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required (VERSION 3.18)
 #project name
 set(MY_LIB_NAME origindl)
 project (${MY_LIB_NAME})
+
+# 设置C++标准
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# CUDA支持选项（不设置默认架构，由CUDA子项目自动检测）
+option(ENABLE_CUDA "Enable CUDA support for OriginMat" OFF)
 
 set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -14,6 +21,9 @@ file(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operators/*.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/**/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/optim/*.cpp
 )
 
 # 根据后端添加对应的源文件
@@ -25,6 +35,11 @@ elseif(MAT_BACKEND STREQUAL "ORIGIN")
     file(GLOB ORIGIN_CPU_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/cpu/*.cpp)
     list(APPEND MY_LIB_SRCS ${ORIGIN_SRCS})
     list(APPEND MY_LIB_SRCS ${ORIGIN_CPU_SRCS})
+    
+    # 如果启用CUDA，添加CUDA子项目
+    if(ENABLE_CUDA)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/cuda)
+    endif()
 endif()
 
 # 支持多种后端选择
@@ -32,10 +47,15 @@ if(MAT_BACKEND STREQUAL "TORCH")
     add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
     add_definitions(-DMAT_BACKEND=2)  # ORIGIN = 2
+    if(ENABLE_CUDA)
+        add_definitions(-DWITH_CUDA)
+    endif()
 else()
     # 默认使用TORCH后端
     add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
 endif()
+
+# CUDA支持现在由独立的子项目处理
 
 # message(WARNING ${MY_LIB_SRCS})
 
@@ -70,10 +90,8 @@ add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
 # 禁止一些警告
 # add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-reorder -Wno-format) 
 
-# 根据后端动态设置库输出目录
-if(MAT_BACKEND STREQUAL "ORIGIN")
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
-elseif(MAT_BACKEND STREQUAL "TORCH")
+# 根据后端设置输出目录
+if(MAT_BACKEND STREQUAL "TORCH")
     set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/lib/)
 else()
     set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
@@ -103,34 +121,37 @@ set(GTEST_INCLUDE_DIRS
 
 message(STATUS "GoogleTest libraries will be built and available for all tests")
 
-# 创建spdlog静态库dllog
+# 创建日志库 originlog
 file(
     GLOB LOG_LIB_SRCS
         ${PROJECT_SOURCE_DIR}/3rd/spdlog/src/*.cpp
 )
-add_library(dllog SHARED ${LOG_LIB_SRCS})
-target_include_directories(dllog PUBLIC 3rd/)
-target_compile_definitions(dllog PUBLIC SPDLOG_COMPILED_LIB)
+add_library(originlog SHARED ${LOG_LIB_SRCS})
+target_include_directories(originlog PUBLIC 3rd/)
+target_compile_definitions(originlog PUBLIC SPDLOG_COMPILED_LIB)
 
 add_library(${PROJECT_NAME} SHARED ${MY_LIB_SRCS})
 
 # 根据后端选择相应的链接库
 if(MAT_BACKEND STREQUAL "TORCH")
-    target_link_libraries(${PROJECT_NAME} dllog -lpthread "${TORCH_LIBRARIES}")
+    target_link_libraries(${PROJECT_NAME} originlog -lpthread "${TORCH_LIBRARIES}")
     message(STATUS "Linking with LibTorch backend")
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
-    target_link_libraries(${PROJECT_NAME} dllog -lpthread)
+    target_link_libraries(${PROJECT_NAME} originlog -lpthread)
     message(STATUS "Linking with OriginMat backend")
+    
+    # 如果启用CUDA，链接CUDA库
+    if(ENABLE_CUDA)
+        target_link_libraries(${PROJECT_NAME} originmat_cuda)
+        message(STATUS "Linking with CUDA library")
+    endif()
 else()
-    target_link_libraries(${PROJECT_NAME} dllog -lpthread)
+    target_link_libraries(${PROJECT_NAME} originlog -lpthread)
     message(STATUS "Linking with default backend")
 endif()
 
-# 开始编译可执行程序
-# 根据后端动态设置输出目录
-if(MAT_BACKEND STREQUAL "ORIGIN")
-    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
-elseif(MAT_BACKEND STREQUAL "TORCH")
+# 根据后端设置可执行文件输出目录
+if(MAT_BACKEND STREQUAL "TORCH")
     set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/bin)
 else()
     set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)

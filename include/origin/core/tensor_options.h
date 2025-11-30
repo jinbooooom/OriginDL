@@ -7,8 +7,7 @@ namespace origin
 {
 
 /**
- * @brief 张量选项配置类，用于统一管理张量的各种属性
- * @details 参考LibTorch的TensorOptions设计，支持链式调用和隐式转换
+ * @brief 张量选项配置类，用于统一管理张量的各种属性，支持链式调用。
  */
 class TensorOptions
 {
@@ -26,11 +25,34 @@ public:
         return *this;
     }
 
+    TensorOptions &dtype(const std::string &dtype_str)
+    {
+        dtype_ = parse_dtype_string(dtype_str);
+        return *this;
+    }
+
+    TensorOptions &dtype(const char *dtype_str) { return dtype(std::string(dtype_str)); }
+
     TensorOptions &device(Device device)
     {
         device_ = device;
         return *this;
     }
+
+    // 支持DeviceType + index
+    TensorOptions &device(DeviceType device_type, int index = 0)
+    {
+        device_ = Device(device_type, index);
+        return *this;
+    }
+
+    TensorOptions &device(const std::string &device_str)
+    {
+        device_ = parse_device_string(device_str);
+        return *this;
+    }
+
+    TensorOptions &device(const char *device_str) { return device(std::string(device_str)); }
 
     TensorOptions &requires_grad(bool requires_grad)
     {
@@ -70,15 +92,39 @@ private:
     bool requires_grad_ = true;  // TODO：当前的origindl不支持requires_grad=false，所以默认是true，未来支持后，需要修改
 };
 
-// 便利函数，支持链式调用
 inline TensorOptions dtype(DataType dtype)
 {
     return TensorOptions(dtype);
 }
 
+inline TensorOptions dtype(const std::string &dtype_str)
+{
+    return TensorOptions().dtype(dtype_str);
+}
+
+inline TensorOptions dtype(const char *dtype_str)
+{
+    return TensorOptions().dtype(dtype_str);
+}
+
 inline TensorOptions device(Device device)
 {
     return TensorOptions().device(device);
+}
+
+inline TensorOptions device(DeviceType device_type, int index = 0)
+{
+    return TensorOptions().device(device_type, index);
+}
+
+inline TensorOptions device(const std::string &device_str)
+{
+    return TensorOptions().device(device_str);
+}
+
+inline TensorOptions device(const char *device_str)
+{
+    return TensorOptions().device(device_str);
 }
 
 inline TensorOptions requires_grad(bool requires_grad = true)

@@ -38,50 +38,12 @@ Tensor::Tensor(std::unique_ptr<Mat> mat) : impl_(std::make_shared<TensorImpl>(st
 
 Tensor Tensor::zeros(const Shape &shape, const TensorOptions &options)
 {
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            std::vector<float> data(shape.elements(), 0.0f);
-            return Tensor(data, shape, options);
-        }
-        case DataType::kInt32:
-        {
-            std::vector<int32_t> data(shape.elements(), 0);
-            return Tensor(data, shape, options);
-        }
-        case DataType::kInt8:
-        {
-            std::vector<int8_t> data(shape.elements(), 0);
-            return Tensor(data, shape, options);
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for zeros operation", dtype_to_string(options.dtype()));
-    }
+    return Tensor(0, shape, options);
 }
 
 Tensor Tensor::ones(const Shape &shape, const TensorOptions &options)
 {
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            std::vector<float> data(shape.elements(), 1.0f);
-            return Tensor(data, shape, options);
-        }
-        case DataType::kInt32:
-        {
-            std::vector<int32_t> data(shape.elements(), 1);
-            return Tensor(data, shape, options);
-        }
-        case DataType::kInt8:
-        {
-            std::vector<int8_t> data(shape.elements(), 1);
-            return Tensor(data, shape, options);
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for ones operation", dtype_to_string(options.dtype()));
-    }
+    return Tensor(1, shape, options);
 }
 
 Tensor Tensor::randn(const Shape &shape, const TensorOptions &options)
@@ -90,32 +52,16 @@ Tensor Tensor::randn(const Shape &shape, const TensorOptions &options)
     return Tensor(std::make_shared<TensorImpl>(std::move(impl)));
 }
 
-Tensor Tensor::full(const Shape &shape, double value, const TensorOptions &options)
+Tensor Tensor::full(const Shape &shape, const Scalar &value, const TensorOptions &options)
 {
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-            return Tensor(static_cast<float>(value), shape, options);
-        case DataType::kDouble:
-            return Tensor(value, shape, options);
-        case DataType::kInt32:
-            return Tensor(static_cast<int32_t>(value), shape, options);
-        case DataType::kInt8:
-            return Tensor(static_cast<int8_t>(value), shape, options);
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for full operation", dtype_to_string(options.dtype()));
-    }
+    return Tensor(value, shape, options);
 }
 
 Tensor Tensor::from_blob(void *data, const Shape &shape, const TensorOptions &options)
 {
     Tensor result;
-    result.create_tensor_from_raw_data(data, shape, options.dtype());
-    // 如果设备不是CPU，需要移动到指定设备
-    if (options.device().type() != DeviceType::kCPU)
-    {
-        result = result.to(options);
-    }
+    result.from_memory(data, options.dtype(), shape, options);
+
     return result;
 }
 
@@ -134,6 +80,23 @@ size_t Tensor::ndim() const
 size_t Tensor::elements() const
 {
     return impl_->elements();
+}
+
+// === 张量属性方法实现 ===
+
+size_t Tensor::element_size() const
+{
+    return origin::element_size(dtype());
+}
+
+size_t Tensor::numel() const
+{
+    return elements();  // numel()和elements()功能相同
+}
+
+size_t Tensor::nbytes() const
+{
+    return element_size() * numel();
 }
 
 // === 数据访问：类型安全实现 ===
@@ -159,9 +122,20 @@ DataType Tensor::dtype() const
     return impl_->data_->dtype();
 }
 
+Device Tensor::device() const
+{
+    return impl_->data_->device();
+}
+
 Tensor Tensor::to(DataType target_type) const
 {
     auto converted_mat = impl_->data_->to(target_type);
+    return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
+}
+
+Tensor Tensor::to(Device device) const
+{
+    auto converted_mat = impl_->data_->to_device(device);
     return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
 }
 
@@ -238,135 +212,44 @@ int Tensor::backend_type() const
 
 // === 私有方法实现 ===
 
-void Tensor::create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype)
+void Tensor::from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options)
 {
-    // 验证形状是否有效（不能有0维度）
-    for (size_t i = 0; i < shape.size(); ++i)
+    // 验证形状是否有效
+    // 0维张量（标量张量）是合法的，但其他维度不能为0
+    if (!shape.is_scalar())
     {
-        if (shape[i] == 0)
+        for (size_t i = 0; i < shape.size(); ++i)
         {
-            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
-                              shape.to_string());
+            if (shape[i] == 0)
+            {
+                THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
+                                  shape.to_string());
+            }
         }
     }
 
-    // 最底层方法：直接通过TensorImpl创建，避免任何中间拷贝
-    impl_ = std::make_unique<TensorImpl>(data, shape, dtype);
+    // 直接调用TensorImpl工厂方法
+    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_memory(data, user_dtype, shape, options));
 }
 
-template <typename T>
-void Tensor::create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, DataType dtype)
+void Tensor::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
 {
-    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-
     // 验证形状是否有效
-    for (size_t i = 0; i < shape.size(); ++i)
+    // 0维张量（标量张量）是合法的，但其他维度不能为0
+    if (!shape.is_scalar())
     {
-        if (shape[i] == 0)
+        for (size_t i = 0; i < shape.size(); ++i)
         {
-            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
-                              shape.to_string());
-        }
-    }
-
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-        {
-            float val = static_cast<float>(scalar);
-            impl_     = std::make_unique<TensorImpl>(val, shape);
-            break;
-        }
-        case DataType::kDouble:
-        {
-            double val = static_cast<double>(scalar);
-            impl_      = std::make_unique<TensorImpl>(val, shape);
-            break;
-        }
-        case DataType::kInt32:
-        {
-            int32_t val = static_cast<int32_t>(scalar);
-            impl_       = std::make_unique<TensorImpl>(val, shape);
-            break;
-        }
-        case DataType::kInt8:
-        {
-            int8_t val = static_cast<int8_t>(scalar);
-            impl_      = std::make_unique<TensorImpl>(val, shape);
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(dtype));
-    }
-}
-
-template <typename T>
-void Tensor::create_tensor_from_data_with_dtype(const T *data, size_t count, const Shape &shape, DataType dtype)
-{
-    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-
-    // 验证数据大小
-    if (count != shape.elements())
-    {
-        THROW_INVALID_ARG("Data count {} does not match shape elements {}", count, shape.elements());
-    }
-
-    // 验证形状是否有效
-    for (size_t i = 0; i < shape.size(); ++i)
-    {
-        if (shape[i] == 0)
-        {
-            THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
-                              shape.to_string());
-        }
-    }
-
-    // 根据目标类型进行转换
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-        {
-            std::vector<float> converted_data(count);
-            for (size_t i = 0; i < count; ++i)
+            if (shape[i] == 0)
             {
-                converted_data[i] = static_cast<float>(data[i]);
+                THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
+                                  shape.to_string());
             }
-            impl_ = std::make_unique<TensorImpl>(converted_data, shape);
-            break;
         }
-        case DataType::kDouble:
-        {
-            std::vector<double> converted_data(count);
-            for (size_t i = 0; i < count; ++i)
-            {
-                converted_data[i] = static_cast<double>(data[i]);
-            }
-            impl_ = std::make_unique<TensorImpl>(converted_data, shape);
-            break;
-        }
-        case DataType::kInt32:
-        {
-            std::vector<int32_t> converted_data(count);
-            for (size_t i = 0; i < count; ++i)
-            {
-                converted_data[i] = static_cast<int32_t>(data[i]);
-            }
-            impl_ = std::make_unique<TensorImpl>(converted_data, shape);
-            break;
-        }
-        case DataType::kInt8:
-        {
-            std::vector<int8_t> converted_data(count);
-            for (size_t i = 0; i < count; ++i)
-            {
-                converted_data[i] = static_cast<int8_t>(data[i]);
-            }
-            impl_ = std::make_unique<TensorImpl>(converted_data, shape);
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor creation", dtype_to_string(dtype));
     }
+
+    // 直接调用TensorImpl工厂方法并设置impl_
+    impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar, shape, options));
 }
 
 // === 模板实例化 ===
@@ -389,33 +272,5 @@ template std::vector<double> Tensor::to_vector<double>() const;
 template std::vector<int32_t> Tensor::to_vector<int32_t>() const;
 template std::vector<int8_t> Tensor::to_vector<int8_t>() const;
 template std::vector<unsigned long> Tensor::to_vector<unsigned long>() const;
-
-// 泛型标量操作
-// 成员操作符模板实例化已移除，使用全局操作符重载
-
-// 内部辅助方法
-template void Tensor::create_tensor_from_data_with_dtype<float>(const float *data,
-                                                                size_t count,
-                                                                const Shape &shape,
-                                                                DataType dtype);
-template void Tensor::create_tensor_from_data_with_dtype<double>(const double *data,
-                                                                 size_t count,
-                                                                 const Shape &shape,
-                                                                 DataType dtype);
-template void Tensor::create_tensor_from_data_with_dtype<int32_t>(const int32_t *data,
-                                                                  size_t count,
-                                                                  const Shape &shape,
-                                                                  DataType dtype);
-template void Tensor::create_tensor_from_data_with_dtype<int8_t>(const int8_t *data,
-                                                                 size_t count,
-                                                                 const Shape &shape,
-                                                                 DataType dtype);
-
-// 模板实例化 - create_tensor_from_scalar_with_dtype
-template void Tensor::create_tensor_from_scalar_with_dtype<float>(float scalar, const Shape &shape, DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<double>(double scalar, const Shape &shape, DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<int32_t>(int32_t scalar, const Shape &shape, DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<int8_t>(int8_t scalar, const Shape &shape, DataType dtype);
-template void Tensor::create_tensor_from_scalar_with_dtype<size_t>(size_t scalar, const Shape &shape, DataType dtype);
 
 }  // namespace origin

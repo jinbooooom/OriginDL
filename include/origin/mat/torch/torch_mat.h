@@ -8,6 +8,7 @@
 #include "../basic_types.h"
 #include "../mat.h"
 #include "../shape.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 
 namespace origin
 {
@@ -65,7 +66,7 @@ public:
         }
 
         auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
-        auto data_type  = get_data_type_from_template<T>();
+        auto data_type  = DataTypeTraits<T>::type;
         auto torch_type = get_torch_type(data_type);
         data_           = torch::from_blob(const_cast<T *>(data.data()), sizes, torch_type).clone();
     }
@@ -89,7 +90,7 @@ public:
         }
 
         auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
-        auto data_type  = get_data_type_from_template<T>();
+        auto data_type  = DataTypeTraits<T>::type;
         auto torch_type = get_torch_type(data_type);
         data_           = torch::full(sizes, static_cast<T>(value), torch_type);
     }
@@ -160,27 +161,7 @@ public:
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
-    // 虚函数重写（保持与基类兼容）
-    std::unique_ptr<Mat> add_scalar(data_t scalar) const override;
-    std::unique_ptr<Mat> mul_scalar(data_t scalar) const override;
-    std::unique_ptr<Mat> operator+(data_t scalar) const override;
-    std::unique_ptr<Mat> operator-(data_t scalar) const override;
-    std::unique_ptr<Mat> operator*(data_t scalar) const override;
-    std::unique_ptr<Mat> operator/(data_t scalar) const override;
 
-    // 模板版本（提供泛型支持）
-    template <typename U>
-    std::unique_ptr<Mat> add_scalar(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> mul_scalar(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> operator+(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> operator-(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> operator*(U scalar) const;
-    template <typename U>
-    std::unique_ptr<Mat> operator/(U scalar) const;
     std::unique_ptr<Mat> operator-() const override;
     std::unique_ptr<Mat> broadcast_to(const Shape &shape) const override;
     std::unique_ptr<Mat> sum_to(const Shape &shape) const override;
@@ -201,8 +182,12 @@ public:
     std::unique_ptr<Mat> cos() const override;
     std::unique_ptr<Mat> sqrt() const override;
     std::unique_ptr<Mat> square() const override;
-    // 虚函数重写
-    std::unique_ptr<Mat> pow(data_t exponent) const override;
+    // 虚函数重写（与OriginMat接口对齐）
+    std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
+
+    // 0维张量支持（与OriginMat接口对齐）
+    bool is_scalar() const override;
+    Scalar scalar_value() const override;
 
     // 模板版本
     template <typename U>
@@ -211,10 +196,6 @@ public:
     // 数据访问
     template <typename U>
     U scalar() const;
-    data_t sum_all() const override;
-    data_t max_all() const override;
-    data_t min_all() const override;
-    data_t mean_all() const override;
     int backend_type() const override;
 
     // 新增：类型相关方法
@@ -278,16 +259,16 @@ public:
      */
     static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options);
 
+    static std::unique_ptr<Mat> from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
+
+    static std::unique_ptr<Mat> from_memory(const void *data,
+                                            DataType user_dtype,
+                                            const Shape &shape,
+                                            const TensorOptions &options);
+
 private:
-    /**
-     * @brief 类型推断辅助函数
-     * @return 对应的DataType
-     */
-    template <typename T>
-    DataType get_data_type() const
-    {
-        return get_data_type_from_template<T>();
-    }
+    // 辅助：根据 DataType 和 Scalar 生成 torch::Scalar（通过类型分发器）
+    static torch::Scalar make_torch_scalar_from_scalar(const Scalar &scalar, DataType dtype);
 
     /**
      * @brief 将DataType转换为torch::ScalarType

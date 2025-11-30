@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include "basic_types.h"
+#include "scalar.h"
 #include "shape.h"
 
 namespace origin
@@ -75,67 +76,10 @@ public:
      */
     virtual std::unique_ptr<Mat> operator/(const Mat &other) const = 0;
 
-    /**
-     * @brief 标量加法
-     * @param scalar 标量值
-     * @return 加法结果
-     */
-    virtual std::unique_ptr<Mat> add_scalar(data_t scalar) const = 0;
-
-    /**
-     * @brief 标量乘法
-     * @param scalar 标量值
-     * @return 乘法结果
-     */
-    virtual std::unique_ptr<Mat> mul_scalar(data_t scalar) const = 0;
-
     // === 泛型标量操作 ===
-    template <typename T>
-    std::unique_ptr<Mat> add_scalar(T scalar) const;
-
-    template <typename T>
-    std::unique_ptr<Mat> mul_scalar(T scalar) const;
-
-    /**
-     * @brief 标量加法运算符
-     * @param scalar 标量值
-     * @return 加法结果
-     */
-    virtual std::unique_ptr<Mat> operator+(data_t scalar) const = 0;
-
-    /**
-     * @brief 标量减法运算符
-     * @param scalar 标量值
-     * @return 减法结果
-     */
-    virtual std::unique_ptr<Mat> operator-(data_t scalar) const = 0;
-
-    /**
-     * @brief 标量乘法运算符
-     * @param scalar 标量值
-     * @return 乘法结果
-     */
-    virtual std::unique_ptr<Mat> operator*(data_t scalar) const = 0;
-
-    /**
-     * @brief 标量除法运算符
-     * @param scalar 标量值
-     * @return 除法结果
-     */
-    virtual std::unique_ptr<Mat> operator/(data_t scalar) const = 0;
 
     // === 泛型标量运算符 ===
-    template <typename T>
-    std::unique_ptr<Mat> operator+(T scalar) const;
-
-    template <typename T>
-    std::unique_ptr<Mat> operator-(T scalar) const;
-
-    template <typename T>
-    std::unique_ptr<Mat> operator*(T scalar) const;
-
-    template <typename T>
-    std::unique_ptr<Mat> operator/(T scalar) const;
+    // 标量运算符已移除，统一通过算子层处理
 
     /**
      * @brief 一元负号运算符
@@ -183,6 +127,18 @@ public:
     template <typename T>
     T scalar() const;
 
+    /**
+     * @brief 判断是否为0维张量（标量张量）
+     * @return 如果是0维张量返回true，否则返回false
+     */
+    virtual bool is_scalar() const = 0;
+
+    /**
+     * @brief 获取标量值（仅适用于0维张量）
+     * @return 标量值
+     */
+    virtual Scalar scalar_value() const = 0;
+
     template <typename T>
     T *data_ptr();
 
@@ -199,7 +155,7 @@ public:
      * @brief 转换为向量
      * @return 矩阵数据的向量表示
      */
-    virtual std::vector<data_t> to_vector() const = 0;
+    virtual std::vector<data_t> to_vector() const = 0;  // TODO：不再硬编码返回std::vector<data_t>
 
     // 数学函数
     /**
@@ -243,49 +199,7 @@ public:
      * @param exponent 指数
      * @return 幂运算结果
      */
-    virtual std::unique_ptr<Mat> pow(data_t exponent) const = 0;
-
-    /**
-     * @brief 求和 - 返回标量值
-     * @return 所有元素的和
-     * @note 重命名为 sum_all() 是为了避免与 sum(int axis) 函数名冲突
-     *       原来命名为 sum() 会导致编译器无法区分按轴求和和全局求和
-     */
-    virtual data_t sum_all() const = 0;
-
-    /**
-     * @brief 求最大值 - 返回标量值
-     * @return 最大值
-     * @note 重命名为 max_all() 是为了保持命名一致性，避免与可能的按轴操作冲突
-     */
-    virtual data_t max_all() const = 0;
-
-    /**
-     * @brief 求最小值 - 返回标量值
-     * @return 最小值
-     * @note 重命名为 min_all() 是为了保持命名一致性，避免与可能的按轴操作冲突
-     */
-    virtual data_t min_all() const = 0;
-
-    /**
-     * @brief 求均值 - 返回标量值
-     * @return 均值
-     * @note 重命名为 mean_all() 是为了保持命名一致性，避免与可能的按轴操作冲突
-     */
-    virtual data_t mean_all() const = 0;
-
-    // === 泛型版本的数据访问方法 ===
-    template <typename T>
-    T sum_as() const;
-
-    template <typename T>
-    T max_as() const;
-
-    template <typename T>
-    T min_as() const;
-
-    template <typename T>
-    T mean_as() const;
+    virtual std::unique_ptr<Mat> pow(const Scalar &exponent) const = 0;
 
     /**
      * @brief 获取后端类型
@@ -335,70 +249,6 @@ std::unique_ptr<Mat> create_mat(const std::vector<data_t> &data, const Shape &sh
  * @return Mat对象的智能指针
  */
 std::unique_ptr<Mat> create_mat(data_t value, const Shape &shape);
-
-// === Mat模板方法实现 ===
-template <typename T>
-std::unique_ptr<Mat> Mat::add_scalar(T scalar) const
-{
-    // 将泛型标量转换为data_t，然后调用现有的虚函数
-    return add_scalar(static_cast<data_t>(scalar));
-}
-
-template <typename T>
-std::unique_ptr<Mat> Mat::mul_scalar(T scalar) const
-{
-    // 将泛型标量转换为data_t，然后调用现有的虚函数
-    return mul_scalar(static_cast<data_t>(scalar));
-}
-
-template <typename T>
-std::unique_ptr<Mat> Mat::operator+(T scalar) const
-{
-    return add_scalar<T>(scalar);
-}
-
-template <typename T>
-std::unique_ptr<Mat> Mat::operator-(T scalar) const
-{
-    return operator+(-scalar);
-}
-
-template <typename T>
-std::unique_ptr<Mat> Mat::operator*(T scalar) const
-{
-    return mul_scalar<T>(scalar);
-}
-
-template <typename T>
-std::unique_ptr<Mat> Mat::operator/(T scalar) const
-{
-    return mul_scalar<T>(1.0 / scalar);
-}
-
-template <typename T>
-T Mat::sum_as() const
-{
-    // 调用现有的虚函数，然后转换类型
-    return static_cast<T>(sum_all());
-}
-
-template <typename T>
-T Mat::max_as() const
-{
-    return static_cast<T>(max_all());
-}
-
-template <typename T>
-T Mat::min_as() const
-{
-    return static_cast<T>(min_all());
-}
-
-template <typename T>
-T Mat::mean_as() const
-{
-    return static_cast<T>(mean_all());
-}
 
 template <typename T>
 T *Mat::data_ptr()

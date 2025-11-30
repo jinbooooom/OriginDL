@@ -16,7 +16,7 @@ namespace origin
  * @brief OriginMat后端的矩阵实现
  *
  * 这是OriginDL的自定义矩阵计算后端，使用Storage进行内存管理，
- * 支持CPU计算，为未来的CUDA支持预留接口
+ * 支持CPU/GPU计算
  */
 class OriginMat : public Mat
 {
@@ -39,10 +39,6 @@ private:
     // Helper to compute strides
     std::vector<size_t> compute_strides(const Shape &shape);
 
-    // Helper to get data type from template
-    template <typename T>
-    DataType get_data_type_from_template() const;
-
 public:
     /**
      * @brief 默认构造函数
@@ -50,38 +46,23 @@ public:
     OriginMat() = default;
 
     /**
-     * @brief 从Storage构造
+     * @brief 核心构造函数
      * @param storage 存储对象
      * @param shape 张量形状
      * @param dtype 数据类型
      */
     OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, DataType dtype);
+
+    // 为了向后兼容，保留一些构造函数
     OriginMat(const Shape &shape, DataType dtype);
+    OriginMat(const Shape &shape, DataType dtype, Device device);
 
-    /**
-     * @brief 通用构造函数：从不同数据类型创建
-     * @param data 数据向量
-     * @param shape 矩阵形状
-     */
-    template <typename T>
-    OriginMat(const std::vector<T> &data, const Shape &shape);
-
-    /**
-     * @brief 标量构造函数
-     * @param value 标量值
-     * @param shape 矩阵形状
-     */
-    template <typename T>
-    OriginMat(T value, const Shape &shape);
-
-    /**
-     * @brief 带TensorOptions的构造函数
-     */
-    template <typename T>
-    OriginMat(const std::vector<T> &data, const Shape &shape, const TensorOptions &options);
-
-    template <typename T>
-    OriginMat(T value, const Shape &shape, const TensorOptions &options);
+    // 两个核心工厂方法
+    static std::unique_ptr<Mat> from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
+    static std::unique_ptr<Mat> from_memory(const void *data,
+                                            DataType user_dtype,
+                                            const Shape &shape,
+                                            const TensorOptions &options);
 
     // Mat interface implementations
     std::unique_ptr<Mat> clone() const override;
@@ -91,15 +72,10 @@ public:
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
-    std::unique_ptr<Mat> operator+(data_t scalar) const override;
-    std::unique_ptr<Mat> operator-(data_t scalar) const override;
-    std::unique_ptr<Mat> operator*(data_t scalar) const override;
-    std::unique_ptr<Mat> operator/(data_t scalar) const override;
-    std::unique_ptr<Mat> add_scalar(data_t scalar) const override;
-    std::unique_ptr<Mat> mul_scalar(data_t scalar) const override;
     std::unique_ptr<Mat> operator-() const override;
+
     std::unique_ptr<Mat> square() const override;
-    std::unique_ptr<Mat> pow(data_t exponent) const override;
+    std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> sum(int axis) const override;
     std::unique_ptr<Mat> broadcast_to(const Shape &target_shape) const override;
@@ -131,11 +107,9 @@ public:
     std::unique_ptr<Mat> cos() const override;
     std::unique_ptr<Mat> sqrt() const override;
 
-    // 统计函数
-    data_t sum_all() const override;
-    data_t max_all() const override;
-    data_t min_all() const override;
-    data_t mean_all() const override;
+    // 0维张量支持
+    bool is_scalar() const override;
+    Scalar scalar_value() const override;
 
     // 类型和设备
     DataType dtype() const override;
@@ -156,12 +130,12 @@ public:
         return static_cast<const T *>(storage_->data());
     }
 
+    // 访问storage（用于CUDA运算）
+    std::shared_ptr<Storage> storage() const { return storage_; }
+
     // 调试
     void print(const std::string &desc = "") const override;
     int backend_type() const override;
-
-    // 访问storage_的公共方法
-    std::shared_ptr<Storage> get_storage() const { return storage_; }
 
     // 工厂方法
     static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options = TensorOptions());

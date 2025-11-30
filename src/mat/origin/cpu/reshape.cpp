@@ -1,5 +1,6 @@
 #include <cstring>
 #include <stdexcept>
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
@@ -18,24 +19,10 @@ std::unique_ptr<OriginMat> reshape(const OriginMat &mat, const Shape &new_shape)
     }
     // 创建一个新的OriginMat，共享存储但使用新的形状
     auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
-    // 复制数据
-    switch (mat.dtype())
-    {
-        case DataType::kFloat32:
-            memcpy(result->data_ptr<float>(), mat.data_ptr<float>(), mat.elements() * sizeof(float));
-            break;
-        case DataType::kFloat64:
-            memcpy(result->data_ptr<double>(), mat.data_ptr<double>(), mat.elements() * sizeof(double));
-            break;
-        case DataType::kInt32:
-            memcpy(result->data_ptr<int32_t>(), mat.data_ptr<int32_t>(), mat.elements() * sizeof(int32_t));
-            break;
-        case DataType::kInt8:
-            memcpy(result->data_ptr<int8_t>(), mat.data_ptr<int8_t>(), mat.elements() * sizeof(int8_t));
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for reshape operation", dtype_to_string(mat.dtype()));
-    }
+    // 使用类型分发器复制数据
+    device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
+        memcpy(result->data_ptr<T>(), mat.data_ptr<T>(), mat.elements() * sizeof(T));
+    });
     return result;
 }
 

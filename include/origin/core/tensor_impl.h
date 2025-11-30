@@ -31,30 +31,15 @@ public:
     FunctionPtr creator_;
     int generation_;
 
-    // 构造函数
+    // 核心构造函数
     TensorImpl(std::unique_ptr<Mat> data) : data_(std::move(data)), grad_(nullptr), creator_(nullptr), generation_(0) {}
-    TensorImpl(const Mat &data) : data_(data.clone()), grad_(nullptr), creator_(nullptr), generation_(0) {}
 
-    // 支持多种数据类型的构造函数
-    template <typename T>
-    TensorImpl(const std::vector<T> &data, const Shape &shape)
-    {
-        auto inferred_type = get_data_type_from_template<T>();
-        create_impl_from_data(data.data(), shape, inferred_type);
-    }
-
-    template <typename T>
-    TensorImpl(T scalar, const Shape &shape)
-    {
-        auto inferred_type = get_data_type_from_template<T>();
-        create_impl_from_scalar(scalar, shape, inferred_type);
-    }
-
-    // 从void*数据构造，需要指定数据类型
-    TensorImpl(const void *data, const Shape &shape, DataType dtype);
-
-    // 从void*数据构造，支持TensorOptions
-    TensorImpl(const void *data, const Shape &shape, const TensorOptions &options);
+    // 两个核心工厂方法
+    static TensorImpl from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
+    static TensorImpl from_memory(const void *data,
+                                  DataType user_dtype,
+                                  const Shape &shape,
+                                  const TensorOptions &options);
 
     // 静态工厂方法
     static TensorImpl randn(const Shape &shape);
@@ -92,16 +77,7 @@ public:
     TensorImpl reshape(const Shape &shape) const;
     TensorImpl transpose() const;
 
-    // 运算符重载
-    TensorImpl operator+(const TensorImpl &other) const;
-    template <typename T>
-    TensorImpl operator+(T scalar) const;
-    TensorImpl operator-(const TensorImpl &other) const;
-    TensorImpl operator*(const TensorImpl &other) const;
-    TensorImpl operator/(const TensorImpl &other) const;
-
-    // 一元负号运算符
-    TensorImpl operator-() const;
+    // 运算符重载 - 一元负号运算符已移除，通过算子层实现
 
     // 访问器方法
     Shape shape() const;
@@ -117,15 +93,6 @@ public:
     template <typename T>
     T *data_ptr();
 
-    template <typename T>
-    TensorImpl operator-(T scalar) const;
-
-    template <typename T>
-    TensorImpl operator*(T scalar) const;
-
-    template <typename T>
-    TensorImpl operator/(T scalar) const;
-
     // 调试
     void print(const std::string &desc = "") const;
 
@@ -133,23 +100,7 @@ public:
     TensorImpl to(const TensorOptions &options) const;
 
 private:
-    // 类型推断辅助函数
-    template <typename T>
-    DataType get_data_type()
-    {
-        return get_data_type_from_template<T>();
-    }
-
-    // 张量创建辅助函数
-    void create_impl_from_data(const void *data, const Shape &shape, DataType dtype);
-    void create_impl_from_scalar(double data, const Shape &shape, DataType dtype);
-
-    // 模板化的张量创建实现 - 声明在头文件，实现在cpp文件
-    template <typename T>
-    void create_impl_impl(const T *data, size_t count, const Shape &shape);
-
-    template <typename T>
-    void create_impl_impl(T scalar, const Shape &shape);
+    // 移除所有私有辅助方法，直接实现核心逻辑
 };
 
 using TensorImplPtr = std::shared_ptr<TensorImpl>;

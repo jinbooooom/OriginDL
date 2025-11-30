@@ -11,8 +11,8 @@ include_directories(${ORIGINDL_ROOT_DIR}/include)
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/ SRC)
 
 add_executable(${PROJECT_NAME} ${SRC}) 
-add_dependencies(${PROJECT_NAME} ${MY_LIB_NAME} dllog)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${MY_LIB_NAME} dllog)
+add_dependencies(${PROJECT_NAME} ${MY_LIB_NAME} originlog)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${MY_LIB_NAME} originlog)
 
 # 设置输出目录
 set_target_properties(${PROJECT_NAME} PROPERTIES

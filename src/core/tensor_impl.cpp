@@ -12,23 +12,22 @@
 namespace origin
 {
 
-// 从void*数据构造的实现
-TensorImpl::TensorImpl(const void *data, const Shape &shape, DataType dtype)
-    : grad_(nullptr), creator_(nullptr), generation_(0)
+// 两个核心工厂方法实现
+TensorImpl TensorImpl::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
 {
-    create_impl_from_data(data, shape, dtype);
+    // 通过后端Mat接口工厂方法（与后端解耦）
+    auto mat = Mat_t::from_scalar(scalar, shape, options);
+    return TensorImpl(std::move(mat));
 }
 
-// 从void*数据构造的实现（支持TensorOptions）
-TensorImpl::TensorImpl(const void *data, const Shape &shape, const TensorOptions &options)
-    : grad_(nullptr), creator_(nullptr), generation_(0)
+TensorImpl TensorImpl::from_memory(const void *data,
+                                   DataType user_dtype,
+                                   const Shape &shape,
+                                   const TensorOptions &options)
 {
-    create_impl_from_data(data, shape, options.dtype());
-    // 如果设备不是CPU，需要移动到指定设备
-    if (options.device().type() != DeviceType::kCPU)
-    {
-        data_ = data_->to_device(options.device());
-    }
+    // 通过后端Mat接口工厂方法（与后端解耦）
+    auto mat = Mat_t::from_memory(data, user_dtype, shape, options);
+    return TensorImpl(std::move(mat));
 }
 
 // 静态工厂方法实现
@@ -80,28 +79,12 @@ void TensorImpl::set_creator(const FunctionPtr &func)
 void TensorImpl::backward()
 {
     // 如果梯度为空，初始化为全1（输出张量的梯度）
-    // 梯度类型应与数据类型一致
+    // 梯度类型应与数据类型一致，设备应与数据设备一致
     if (!grad_)
     {
-        auto data_type = data_->dtype();
-        switch (data_type)
-        {
-            case DataType::kFloat32:
-                grad_ = std::make_unique<Mat_t>(1.0f, data_->shape());
-                break;
-            case DataType::kDouble:
-                grad_ = std::make_unique<Mat_t>(1.0, data_->shape());
-                break;
-            case DataType::kInt32:
-                grad_ = std::make_unique<Mat_t>(1, data_->shape());
-                break;
-            case DataType::kInt8:
-                grad_ = std::make_unique<Mat_t>(static_cast<int8_t>(1), data_->shape());
-                break;
-            default:
-                THROW_INVALID_ARG("Unsupported data type {} for gradient initialization",
-                                  dtype_to_string(data_->dtype()));
-        }
+        auto data_device      = data_->device();
+        TensorOptions options = TensorOptions(data_->dtype()).device(data_device);
+        grad_                 = Mat_t::from_scalar(1, data_->shape(), options);
     }
 
     auto funcs    = std::list<FunctionPtr>();
@@ -179,7 +162,6 @@ void TensorImpl::clear_grad()
     grad_ = nullptr;
 }
 
-// 张量操作实现
 TensorImpl TensorImpl::reshape(const Shape &shape) const
 {
     auto new_mat = data_->reshape(shape);
@@ -190,44 +172,6 @@ TensorImpl TensorImpl::transpose() const
 {
     auto new_mat = data_->transpose();
     return TensorImpl(std::move(new_mat));
-}
-
-// 运算符重载实现
-TensorImpl TensorImpl::operator+(const TensorImpl &other) const
-{
-    auto result = *data_ + *other.data_;
-    return TensorImpl(std::move(result));
-}
-
-template <typename T>
-TensorImpl TensorImpl::operator+(T scalar) const
-{
-    auto result = data_->add_scalar<T>(scalar);
-    return TensorImpl(std::move(result));
-}
-
-TensorImpl TensorImpl::operator-(const TensorImpl &other) const
-{
-    auto result = *data_ - *other.data_;
-    return TensorImpl(std::move(result));
-}
-
-TensorImpl TensorImpl::operator*(const TensorImpl &other) const
-{
-    auto result = *data_ * *other.data_;
-    return TensorImpl(std::move(result));
-}
-
-TensorImpl TensorImpl::operator/(const TensorImpl &other) const
-{
-    auto result = *data_ / *other.data_;
-    return TensorImpl(std::move(result));
-}
-
-TensorImpl TensorImpl::operator-() const
-{
-    auto result = -*data_;
-    return TensorImpl(std::move(result));
 }
 
 // 访问器方法实现
@@ -271,27 +215,7 @@ T *TensorImpl::data_ptr()
 }
 
 // === 泛型标量操作实现 ===
-
-template <typename T>
-TensorImpl TensorImpl::operator-(T scalar) const
-{
-    auto result = data_->operator-(scalar);
-    return TensorImpl(std::move(result));
-}
-
-template <typename T>
-TensorImpl TensorImpl::operator*(T scalar) const
-{
-    auto result = data_->mul_scalar<T>(scalar);
-    return TensorImpl(std::move(result));
-}
-
-template <typename T>
-TensorImpl TensorImpl::operator/(T scalar) const
-{
-    auto result = data_->operator/(scalar);
-    return TensorImpl(std::move(result));
-}
+// 标量运算符已移除，统一通过算子层处理
 
 int TensorImpl::backend_type() const
 {
@@ -318,79 +242,7 @@ TensorImpl TensorImpl::to(const TensorOptions &options) const
     return TensorImpl(std::move(converted_mat));
 }
 
-// 私有辅助方法实现
-void TensorImpl::create_impl_from_data(const void *data, const Shape &shape, DataType dtype)
-{
-    size_t count = shape.elements();
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            create_impl_impl<float>(static_cast<const float *>(data), count, shape);
-            break;
-        case DataType::kDouble:
-            create_impl_impl<double>(static_cast<const double *>(data), count, shape);
-            break;
-        case DataType::kInt32:
-            create_impl_impl<int32_t>(static_cast<const int32_t *>(data), count, shape);
-            break;
-        case DataType::kInt8:
-            create_impl_impl<int8_t>(static_cast<const int8_t *>(data), count, shape);
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor implementation", dtype_to_string(dtype));
-    }
-}
-
-void TensorImpl::create_impl_from_scalar(double data, const Shape &shape, DataType dtype)
-{
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            create_impl_impl<float>(static_cast<float>(data), shape);
-            break;
-        case DataType::kDouble:
-            create_impl_impl<double>(data, shape);
-            break;
-        case DataType::kInt32:
-            create_impl_impl<int32_t>(static_cast<int32_t>(data), shape);
-            break;
-        case DataType::kInt8:
-            create_impl_impl<int8_t>(static_cast<int8_t>(data), shape);
-            break;
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for tensor implementation", dtype_to_string(dtype));
-    }
-}
-
-// 模板函数实现
-template <typename T>
-void TensorImpl::create_impl_impl(const T *data, size_t count, const Shape &shape)
-{
-    std::vector<T> vec_data(data, data + count);
-    data_       = std::make_unique<Mat_t>(vec_data, shape);
-    grad_       = nullptr;
-    creator_    = nullptr;
-    generation_ = 0;
-}
-
-template <typename T>
-void TensorImpl::create_impl_impl(T scalar, const Shape &shape)
-{
-    data_       = std::make_unique<Mat_t>(scalar, shape);
-    grad_       = nullptr;
-    creator_    = nullptr;
-    generation_ = 0;
-}
-
-// 显式实例化常用类型
-template void TensorImpl::create_impl_impl<float>(const float *data, size_t count, const Shape &shape);
-template void TensorImpl::create_impl_impl<double>(const double *data, size_t count, const Shape &shape);
-template void TensorImpl::create_impl_impl<int32_t>(const int32_t *data, size_t count, const Shape &shape);
-template void TensorImpl::create_impl_impl<int8_t>(const int8_t *data, size_t count, const Shape &shape);
-template void TensorImpl::create_impl_impl<float>(float scalar, const Shape &shape);
-template void TensorImpl::create_impl_impl<double>(double scalar, const Shape &shape);
-template void TensorImpl::create_impl_impl<int32_t>(int32_t scalar, const Shape &shape);
-template void TensorImpl::create_impl_impl<int8_t>(int8_t scalar, const Shape &shape);
+// 移除所有私有辅助方法，直接实现核心逻辑
 
 // === 泛型方法实例化 ===
 // 数据访问方法
@@ -409,29 +261,9 @@ template std::vector<double> TensorImpl::to_vector<double>() const;
 template std::vector<int32_t> TensorImpl::to_vector<int32_t>() const;
 template std::vector<int8_t> TensorImpl::to_vector<int8_t>() const;
 
-// 泛型标量操作
-template TensorImpl TensorImpl::operator+ <float>(float scalar) const;
-template TensorImpl TensorImpl::operator+ <double>(double scalar) const;
-template TensorImpl TensorImpl::operator+ <int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator+ <int8_t>(int8_t scalar) const;
-
-template TensorImpl TensorImpl::operator- <float>(float scalar) const;
-template TensorImpl TensorImpl::operator- <double>(double scalar) const;
-template TensorImpl TensorImpl::operator- <int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator- <int8_t>(int8_t scalar) const;
-
-template TensorImpl TensorImpl::operator* <float>(float scalar) const;
-template TensorImpl TensorImpl::operator* <double>(double scalar) const;
-template TensorImpl TensorImpl::operator* <int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator* <int8_t>(int8_t scalar) const;
-
-template TensorImpl TensorImpl::operator/ <float>(float scalar) const;
-template TensorImpl TensorImpl::operator/ <double>(double scalar) const;
-template TensorImpl TensorImpl::operator/ <int32_t>(int32_t scalar) const;
-template TensorImpl TensorImpl::operator/ <int8_t>(int8_t scalar) const;
+// 泛型标量操作已移除，统一通过算子层处理
 
 // 额外的模板实例化（只添加新的类型）
-template TensorImpl TensorImpl::operator+ <unsigned long>(unsigned long scalar) const;
 template unsigned long TensorImpl::item<unsigned long>() const;
 template unsigned long *TensorImpl::data_ptr<unsigned long>();
 template std::vector<unsigned long> TensorImpl::to_vector<unsigned long>() const;

@@ -2,36 +2,21 @@
 #define __ORIGIN_DL_OPERATION_TEMPLATES_H__
 
 #include <cmath>
+#include <type_traits>
 #include "origin/mat/basic_types.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
-#include "type_dispatcher.h"
+#include "origin/utils/exception.h"
+
+// 在纯CPU环境中，__host__ __device__ 修饰符会导致编译错误。需要使用条件编译来处理这个问题。
+#ifdef __CUDACC__
+#    define ORIGIN_HOST_DEVICE __host__ __device__
+#else
+#    define ORIGIN_HOST_DEVICE
+#endif
 
 namespace origin
 {
-namespace cpu
-{
-
-/**
- * @brief 一元操作函数对象基类
- * @tparam T 数据类型
- */
-template <typename T>
-struct UnaryOp
-{
-    virtual T operator()(T value) const = 0;
-    virtual ~UnaryOp()                  = default;
-};
-
-/**
- * @brief 二元操作函数对象基类
- * @tparam T 数据类型
- */
-template <typename T>
-struct BinaryOp
-{
-    virtual T operator()(T a, T b) const = 0;
-    virtual ~BinaryOp()                  = default;
-};
 
 /**
  * @brief 加法操作
@@ -39,9 +24,17 @@ struct BinaryOp
 struct AddOp
 {
     template <typename T>
-    T operator()(T a, T b) const
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        return a + b;
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            // 布尔类型不支持加法，使用逻辑OR作为替代
+            return a || b;
+        }
+        else
+        {
+            return a + b;  // 对于数值类型使用加法
+        }
     }
 };
 
@@ -51,9 +44,17 @@ struct AddOp
 struct DivideOp
 {
     template <typename T>
-    T operator()(T a, T b) const
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        return a / b;
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            // 布尔类型不支持除法操作
+            THROW_UNSUPPORTED("Division is not supported for boolean tensors");
+        }
+        else
+        {
+            return a / b;  // 对于数值类型使用除法
+        }
     }
 };
 
@@ -63,9 +64,16 @@ struct DivideOp
 struct SquareOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
-        return value * value;
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            return value && value;  // 对于布尔类型使用逻辑AND
+        }
+        else
+        {
+            return value * value;  // 对于数值类型使用乘法
+        }
     }
 };
 
@@ -75,9 +83,17 @@ struct SquareOp
 struct SubtractOp
 {
     template <typename T>
-    T operator()(T a, T b) const
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        return a - b;
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            // 布尔类型不支持减法，使用逻辑异或 (XOR) 作为替代
+            return a != b;
+        }
+        else
+        {
+            return a - b;  // 对于数值类型使用减法
+        }
     }
 };
 
@@ -87,9 +103,17 @@ struct SubtractOp
 struct MultiplyOp
 {
     template <typename T>
-    T operator()(T a, T b) const
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        return a * b;
+        if constexpr (std::is_same_v<T, bool>)
+        {
+            // 布尔类型乘法等同于逻辑AND
+            return a && b;
+        }
+        else
+        {
+            return a * b;  // 对于数值类型使用乘法
+        }
     }
 };
 
@@ -99,7 +123,7 @@ struct MultiplyOp
 struct ExpOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return std::exp(value);
     }
@@ -111,7 +135,7 @@ struct ExpOp
 struct LogOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return std::log(value);
     }
@@ -123,7 +147,7 @@ struct LogOp
 struct SqrtOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return std::sqrt(value);
     }
@@ -135,7 +159,7 @@ struct SqrtOp
 struct PowOp
 {
     template <typename T>
-    T operator()(T base, T exponent) const
+    ORIGIN_HOST_DEVICE T operator()(T base, T exponent) const
     {
         return std::pow(base, exponent);
     }
@@ -147,7 +171,7 @@ struct PowOp
 struct NegOp
 {
     template <typename T>
-    T operator()(T value) const
+    ORIGIN_HOST_DEVICE T operator()(T value) const
     {
         return -value;
     }
@@ -413,6 +437,9 @@ public:
                 c_data[i] = op(a_data[i], b_data[i]);
             }
         }
+        // TODO:项目的元素为1的情况看是否可以去掉，经过优化后，到达这里的矩阵a,b会具有相同的dtype、shape、device。
+        // 下面dOperator已经验证，其它的还需要再验证下
+        // Add
         else if (a_elements == 1)
         {
             // a是标量，广播到b的形状
@@ -460,15 +487,6 @@ public:
     }
 };
 
-/**
- * @brief 广播形状计算
- * @param a 输入矩阵A
- * @param b 输入矩阵B
- * @return 广播后的结果形状
- */
-Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b);
-
-}  // namespace cpu
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_OPERATION_TEMPLATES_H__

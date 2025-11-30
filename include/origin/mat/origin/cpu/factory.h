@@ -1,0 +1,65 @@
+#ifndef __ORIGIN_DL_CPU_FACTORY_H__
+#define __ORIGIN_DL_CPU_FACTORY_H__
+
+#include "../../../core/tensor_options.h"
+#include "../../basic_types.h"
+#include "../../shape.h"
+
+namespace origin
+{
+namespace cpu
+{
+
+// 前向声明
+class OriginMat;
+
+/**
+ * @brief 在CPU设备上创建随机张量
+ * @param shape 张量形状
+ * @param options 张量选项（必须指定CPU设备）
+ * @return 随机张量
+ */
+std::unique_ptr<origin::OriginMat> randn(const Shape &shape, const TensorOptions &options);
+
+/**
+ * @brief 在CPU设备上创建零张量
+ * @param shape 张量形状
+ * @param options 张量选项（必须指定CPU设备）
+ * @return 零张量
+ */
+std::unique_ptr<origin::OriginMat> zeros(const Shape &shape, const TensorOptions &options);
+
+/**
+ * @brief 在CPU设备上创建全1张量
+ * @param shape 张量形状
+ * @param options 张量选项（必须指定CPU设备）
+ * @return 全1张量
+ */
+std::unique_ptr<origin::OriginMat> ones(const Shape &shape, const TensorOptions &options);
+
+/**
+ * @brief 在CPU设备上创建填充指定值的张量
+ * @param shape 张量形状
+ * @param scalar 填充值
+ * @param options 张量选项（必须指定CPU设备）
+ * @return 填充张量
+ */
+std::unique_ptr<origin::OriginMat> full(const Shape &shape, const Scalar &scalar, const TensorOptions &options);
+
+/**
+ * @brief 从内存数据创建CPU张量
+ * @param data 原始数据指针
+ * @param user_dtype 用户数据类型
+ * @param shape 张量形状
+ * @param options 张量选项（必须指定CPU设备）
+ * @return 创建的张量
+ */
+std::unique_ptr<origin::OriginMat> from_memory(const void *data,
+                                               DataType user_dtype,
+                                               const Shape &shape,
+                                               const TensorOptions &options);
+
+}  // namespace cpu
+}  // namespace origin
+
+#endif  // __ORIGIN_DL_CPU_FACTORY_H__

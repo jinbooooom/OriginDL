@@ -1,17 +1,17 @@
-#ifndef __ORIGIN_DL_TYPE_DISPATCHER_H__
-#define __ORIGIN_DL_TYPE_DISPATCHER_H__
+#ifndef __ORIGIN_DL_DEVICE_COMMON_TYPE_DISPATCHER_H__
+#define __ORIGIN_DL_DEVICE_COMMON_TYPE_DISPATCHER_H__
 
 #include "origin/mat/basic_types.h"
 #include "origin/utils/exception.h"
 
 namespace origin
 {
-namespace cpu
+namespace device_common
 {
 
 /**
- * @brief 类型分发器，用于替代重复的switch语句
- * @details 提供统一的类型分发机制，支持编译时类型安全
+ * @brief 设备通用类型分发器，用于替代重复的switch语句
+ * @details 提供统一的类型分发机制，支持编译时类型安全，CPU、GPU等所有设备通用
  */
 class TypeDispatcher
 {
@@ -36,6 +36,20 @@ public:
                 return func.template operator()<int32_t>();
             case DataType::kInt8:
                 return func.template operator()<int8_t>();
+            case DataType::kInt16:
+                return func.template operator()<int16_t>();
+            case DataType::kInt64:
+                return func.template operator()<int64_t>();
+            case DataType::kUInt8:
+                return func.template operator()<uint8_t>();
+            case DataType::kUInt16:
+                return func.template operator()<uint16_t>();
+            case DataType::kUInt32:
+                return func.template operator()<uint32_t>();
+            case DataType::kUInt64:
+                return func.template operator()<uint64_t>();
+            case DataType::kBool:
+                return func.template operator()<bool>();
             default:
                 THROW_INVALID_ARG("Unsupported data type {} for operation", dtype_to_string(dtype));
         }
@@ -72,13 +86,34 @@ public:
             case DataType::kInt8:
                 func.template operator()<int8_t>();  // 理解为 func<int8_t>()
                 break;
+            case DataType::kInt16:
+                func.template operator()<int16_t>();
+                break;
+            case DataType::kInt64:
+                func.template operator()<int64_t>();
+                break;
+            case DataType::kUInt8:
+                func.template operator()<uint8_t>();
+                break;
+            case DataType::kUInt16:
+                func.template operator()<uint16_t>();
+                break;
+            case DataType::kUInt32:
+                func.template operator()<uint32_t>();
+                break;
+            case DataType::kUInt64:
+                func.template operator()<uint64_t>();
+                break;
+            case DataType::kBool:
+                func.template operator()<bool>();
+                break;
             default:
                 THROW_INVALID_ARG("Unsupported data type {} for operation", dtype_to_string(dtype));
         }
     }
 };
 
-}  // namespace cpu
+}  // namespace device_common
 }  // namespace origin
 
-#endif  // __ORIGIN_DL_TYPE_DISPATCHER_H__
+#endif  // __ORIGIN_DL_DEVICE_COMMON_TYPE_DISPATCHER_H__

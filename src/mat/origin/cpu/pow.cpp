@@ -1,6 +1,7 @@
 #include <cmath>
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/scalar.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -8,7 +9,7 @@ namespace origin
 namespace cpu
 {
 
-std::unique_ptr<OriginMat> pow(const OriginMat &mat, data_t exponent)
+std::unique_ptr<OriginMat> pow(const OriginMat &mat, const Scalar &exponent)
 {
     auto result = std::make_unique<OriginMat>(mat.shape(), mat.dtype());
 
@@ -18,7 +19,7 @@ std::unique_ptr<OriginMat> pow(const OriginMat &mat, data_t exponent)
         {
             const float *a_data = mat.data_ptr<float>();
             float *c_data       = result->data_ptr<float>();
-            float exp           = static_cast<float>(exponent);
+            float exp           = exponent.to_float32();
             for (size_t i = 0; i < mat.elements(); ++i)
             {
                 c_data[i] = std::pow(a_data[i], exp);
@@ -29,7 +30,7 @@ std::unique_ptr<OriginMat> pow(const OriginMat &mat, data_t exponent)
         {
             const double *a_data = mat.data_ptr<double>();
             double *c_data       = result->data_ptr<double>();
-            double exp           = static_cast<double>(exponent);
+            double exp           = exponent.to_float64();
             for (size_t i = 0; i < mat.elements(); ++i)
             {
                 c_data[i] = std::pow(a_data[i], exp);
@@ -40,7 +41,7 @@ std::unique_ptr<OriginMat> pow(const OriginMat &mat, data_t exponent)
         {
             const int32_t *a_data = mat.data_ptr<int32_t>();
             int32_t *c_data       = result->data_ptr<int32_t>();
-            int32_t exp           = static_cast<int32_t>(exponent);
+            int32_t exp           = exponent.to_int32();
             for (size_t i = 0; i < mat.elements(); ++i)
             {
                 c_data[i] = static_cast<int32_t>(std::pow(static_cast<double>(a_data[i]), static_cast<double>(exp)));
@@ -51,7 +52,7 @@ std::unique_ptr<OriginMat> pow(const OriginMat &mat, data_t exponent)
         {
             const int8_t *a_data = mat.data_ptr<int8_t>();
             int8_t *c_data       = result->data_ptr<int8_t>();
-            int8_t exp           = static_cast<int8_t>(exponent);
+            int8_t exp           = exponent.to_int8();
             for (size_t i = 0; i < mat.elements(); ++i)
             {
                 c_data[i] = static_cast<int8_t>(std::pow(static_cast<double>(a_data[i]), static_cast<double>(exp)));

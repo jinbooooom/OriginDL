@@ -16,17 +16,17 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 
-class DLLog final
+class OriginLog final
 {
 
 protected:
-    DLLog()
+    OriginLog()
     {
         static auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
         console_sink->set_level(spdlog::level::trace);
         console_sink->set_pattern("%^%W %Y-%m-%d %H:%M:%S.%e %^%L %t %P [%s:%!:%#] %v%$");
 
-        static auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("dllog/dl.txt", true);
+        static auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("originlog/origin.txt", true);
         file_sink->set_level(spdlog::level::trace);
         file_sink->set_pattern("%^%W %Y-%m-%d %H:%M:%S.%e %^%L %t %P [%s:%!:%#] %v%$");
 
@@ -35,14 +35,14 @@ protected:
 
         mLogger = &sLogger;
     };
-    DLLog(const DLLog &)            = delete;
-    DLLog &operator=(const DLLog &) = delete;
-    virtual ~DLLog() {};
+    OriginLog(const OriginLog &)            = delete;
+    OriginLog &operator=(const OriginLog &) = delete;
+    virtual ~OriginLog(){};
 
 public:
-    static DLLog *GetInstance()
+    static OriginLog *GetInstance()
     {
-        static DLLog instance;
+        static OriginLog instance;
         return &instance;
     }
 
@@ -51,7 +51,7 @@ public:
     spdlog::logger *mLogger;
 };
 
-#define origin_logger (DLLog::GetInstance()->mLogger)
+#define origin_logger (OriginLog::GetInstance()->mLogger)
 #define logt(format, ...) SPDLOG_LOGGER_TRACE(origin_logger, format, ##__VA_ARGS__)
 #define logd(format, ...) SPDLOG_LOGGER_DEBUG(origin_logger, format, ##__VA_ARGS__)
 #define logi(format, ...) SPDLOG_LOGGER_INFO(origin_logger, format, ##__VA_ARGS__)

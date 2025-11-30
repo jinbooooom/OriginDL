@@ -51,7 +51,7 @@ public:
     // 向量构造函数（自动推断类型）
     template <typename T>
     Tensor(const std::vector<T> &data, const Shape &shape)
-        : Tensor(data, shape, get_data_type_from_template<T>())  // 根据T推断数据类型，然后委托给DataType版本的构造函数
+        : Tensor(data, shape, DataTypeTraits<T>::type)  // 根据T推断数据类型，然后委托给DataType版本的构造函数
     {
         // 在编译时做静态检查，避免运行时出现问题
         ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
@@ -79,12 +79,7 @@ public:
                                         ") does not match shape elements (" + std::to_string(expected_elements) + ")");
         }
 
-        create_tensor_from_data_with_dtype(data.data(), data.size(), shape, options.dtype());
-        // 如果设备不是CPU，需要移动到指定设备
-        if (options.device().type() != DeviceType::kCPU)
-        {
-            impl_ = std::make_shared<TensorImpl>(impl_->to(options));
-        }
+        from_memory(data.data(), DataTypeTraits<T>::type, shape, options);
     }
 
     // TODO: 初始化列表的方式到vector的方式有性能问题，未来需要优化
@@ -115,7 +110,7 @@ public:
     // 标量构造函数（自动推断类型）
     template <typename T>
     Tensor(T scalar, const Shape &shape)
-        : Tensor(scalar, shape, get_data_type_from_template<T>())  // 委托给DataType版本的构造函数
+        : Tensor(scalar, shape, DataTypeTraits<T>::type)  // 委托给DataType版本的构造函数
     {
         ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
     }
@@ -133,25 +128,31 @@ public:
     Tensor(T scalar, const Shape &shape, const TensorOptions &options)
     {
         ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-        create_tensor_from_scalar_with_dtype(scalar, shape, options.dtype());
-        // 如果设备不是CPU，需要移动到指定设备
-        if (options.device().type() != DeviceType::kCPU)
-        {
-            impl_ = std::make_shared<TensorImpl>(impl_->to(options));
-        }
+        from_scalar(scalar, shape, options);
+    }
+
+    Tensor(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
+    {
+        impl_ = std::make_unique<TensorImpl>(TensorImpl::from_scalar(scalar, shape, options));
     }
 
     // === 工厂方法（只保留TensorOptions版本）===
     static Tensor zeros(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor ones(const Shape &shape, const TensorOptions &options = TensorOptions());
     static Tensor randn(const Shape &shape, const TensorOptions &options = TensorOptions());
-    static Tensor full(const Shape &shape, double value, const TensorOptions &options = TensorOptions());
+    static Tensor full(const Shape &shape, const Scalar &value, const TensorOptions &options = TensorOptions());
+    // data 的类型一定要与 options.dtypa()一致，不然在解引用指针data的时候可能会出现问题。
     static Tensor from_blob(void *data, const Shape &shape, const TensorOptions &options = TensorOptions());
 
     // === 形状和维度 ===
     Shape shape() const;
     size_t ndim() const;
     size_t elements() const;
+
+    // === 张量属性方法（对应PyTorch的tensor.element_size()等） ===
+    size_t element_size() const;  // 对应tensor.element_size()
+    size_t numel() const;         // 对应tensor.numel()
+    size_t nbytes() const;        // 对应tensor.nbytes
 
     // === 数据访问：类型安全 ===
     template <typename T>
@@ -162,7 +163,9 @@ public:
 
     // === 类型查询和转换 ===
     DataType dtype() const;
+    Device device() const;
     Tensor to(DataType target_type) const;
+    Tensor to(Device device) const;
     Tensor to(const TensorOptions &options) const;
 
     // === 梯度相关 ===
@@ -192,43 +195,26 @@ private:
     // 从Mat创建Tensor的构造函数 - 仅限友元类使用
     Tensor(std::unique_ptr<Mat> mat);
 
-    // === 内部辅助方法 ===
-    template <typename T>
-    DataType get_data_type()
-    {
-        return get_data_type_from_template<T>();
-    }
+    // 友元函数，供内部使用
+    friend Tensor create_tensor_from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
 
     // === 用于显式类型指定的方法 ===
     /**
-     * @brief 从标量数据创建张量（显式指定类型）
-     * @details 用于工厂方法如full()，标量数据是单个值，用void*传递，类型信息由dtype参数提供
-     * @param data 标量数据的指针
+     * @brief 从标量数据创建张量
+     * @param scalar 标量值
      * @param shape 张量形状
-     * @param dtype 目标数据类型
+     * @param options 张量选项
      */
-    template <typename T>
-    void create_tensor_from_scalar_with_dtype(T scalar, const Shape &shape, DataType dtype);
+    void from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
 
     /**
-     * @brief 从原始数据创建张量（显式指定类型）
-     * @details 用于from_blob()方法，原始数据是void*指针，直接传递，类型信息由dtype参数提供
+     * @brief 从原始数据创建张量
      * @param data 原始数据的指针
+     * @param user_dtype 原始数据类型
      * @param shape 张量形状
-     * @param dtype 目标数据类型
+     * @param options 张量选项
      */
-    void create_tensor_from_raw_data(const void *data, const Shape &shape, DataType dtype);
-
-    /**
-     * @brief 从带类型的数据创建张量（显式指定类型）
-     * @details 用于带DataType的构造函数，带类型的数据保持原始类型信息，可以进行类型转换和验证
-     * @param data 带类型数据的指针
-     * @param count 数据元素数量
-     * @param shape 张量形状
-     * @param dtype 目标数据类型
-     */
-    template <typename T>
-    void create_tensor_from_data_with_dtype(const T *data, size_t count, const Shape &shape, DataType dtype);
+    void from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
 };
 
 }  // namespace origin

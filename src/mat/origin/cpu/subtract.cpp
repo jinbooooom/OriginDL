@@ -1,6 +1,11 @@
-#include <stdexcept>
-#include "origin/mat/origin/cpu/operation_templates.h"
+#include <memory>
+#include "origin/mat/basic_types.h"
+#include "origin/mat/origin/cpu/cpu_kernels.h"
+#include "origin/mat/origin/device_common/operation_templates.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -8,22 +13,50 @@ namespace origin
 namespace cpu
 {
 
-std::unique_ptr<OriginMat> subtract(const OriginMat &a, const OriginMat &b)
+/**
+ * @brief CPU减法算子实现
+ * @param a 输入矩阵A
+ * @param b 输入矩阵B
+ * @return 减法结果矩阵
+ */
+std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b)
 {
-    // 检查数据类型是否匹配
-    if (a.dtype() != b.dtype())
-    {
-        THROW_INVALID_ARG("Data type mismatch for subtraction: expected {} but got {}", dtype_to_string(a.dtype()),
-                          dtype_to_string(b.dtype()));
-    }
+    // 输入验证
+    VALIDATE_SAME_DTYPE(a, b);
+    VALIDATE_SAME_CPU_DEVICE(a, b);
 
     // 计算广播形状
-    Shape result_shape = compute_broadcast_shape(a, b);
-    auto result        = std::make_unique<OriginMat>(result_shape, a.dtype());
+    Shape result_shape = origin::utils::compute::compute_broadcast_shape(a, b);
+    auto result        = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
 
-    // 使用类型分发器执行减法操作
-    TypeDispatcher::dispatch_void(
-        a.dtype(), [&]<typename T>() { BroadcastCompute::binary_broadcast<T>(a, b, *result, SubtractOp{}); });
+    // 获取数据指针
+    const void *a_data = a.storage()->data();
+    const void *b_data = b.storage()->data();
+    void *c_data       = result->storage()->data();
+
+    // 分支优化 - 与CUDA保持一致
+    if (a.shape() == b.shape())
+    {
+        // 相同形状：直接元素级运算
+        device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+            cpu_elementwise_kernel<T, SubtractOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                                  static_cast<T *>(c_data), a.elements(), SubtractOp{});
+        });
+    }
+    else if (a.elements() == 1 || b.elements() == 1)
+    {
+        // 简单广播：标量广播
+        device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+            cpu_simple_broadcast_kernel<T, SubtractOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                                       static_cast<T *>(c_data), a.elements(), b.elements(),
+                                                       result->elements(), SubtractOp{});
+        });
+    }
+    else
+    {
+        // 复杂广播：需要计算步长信息
+        THROW_RUNTIME_ERROR("Complex broadcasting not yet implemented for CPU subtract operation");
+    }
 
     return result;
 }

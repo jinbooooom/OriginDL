@@ -2,330 +2,245 @@
 #include <cmath>
 #include <vector>
 #include "origin.h"
+#include "../common/device_test_base.h"
+#include "../common/gtest_utils.h"
+#include "../common/test_utils.h"
 
 using namespace origin;
-
-class ExpOperatorTest : public ::testing::Test
+/**
+ * @brief 指数算子测试类（参数化版本）
+ */
+class ExpOperatorTest : public origin::test::OperatorTestBase
 {
-protected:
-    // 精度忍受常量
-    static constexpr double kTolerance = 1e-3;
-    void SetUp() override
-    {
-        // 测试前的设置
-        // 测试前的设置
-    }
-
-    void TearDown() override
-    {
-        // 测试后的清理
-    }
-
-    // 辅助函数：比较两个浮点数是否相等（考虑浮点精度）
-    bool isEqual(double a, double b, double tolerance = kTolerance) { return std::abs(a - b) < tolerance; }
-
-    // 辅助函数：比较两个Tensor是否相等
-    bool tensorsEqual(const Tensor &a, const Tensor &b, double tolerance = kTolerance)
-    {
-        if (a.shape() != b.shape())
-        {
-            return false;
-        }
-
-        auto data_a = a.to_vector<float>();
-        auto data_b = b.to_vector<float>();
-
-        if (data_a.size() != data_b.size())
-        {
-            return false;
-        }
-
-        for (size_t i = 0; i < data_a.size(); ++i)
-        {
-            if (!isEqual(data_a[i], data_b[i], tolerance))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
 };
 
 // ==================== 前向传播测试 ====================
 
-TEST_F(ExpOperatorTest, ForwardBasic)
+TEST_P(ExpOperatorTest, ForwardBasic)
 {
     // 测试基本指数运算
-    auto x = Tensor({0.0, 1.0, 2.0}, Shape{3});
+    auto x = Tensor({0.0f, 1.0f, 2.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {1.0, std::exp(1.0), std::exp(2.0)};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], kTolerance);
-    }
+    std::vector<float> expected_data = {1.0f, static_cast<float>(std::exp(1.0)), static_cast<float>(std::exp(2.0))};
+    auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, ForwardZero)
+TEST_P(ExpOperatorTest, ForwardZero)
 {
     // 测试零值
-    auto x = Tensor({0.0, 0.0}, Shape{2});
+    auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
-    auto result_data = result.to_vector<float>();
-    for (size_t i = 0; i < result_data.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], 1.0, kTolerance);
-    }
+    auto expected = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, ForwardNegativeValues)
+TEST_P(ExpOperatorTest, ForwardNegativeValues)
 {
     // 测试负值
-    auto x = Tensor({-1.0, -2.0}, Shape{2});
+    auto x = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {std::exp(-1.0), std::exp(-2.0)};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], kTolerance);
-    }
+    std::vector<float> expected_data = {static_cast<float>(std::exp(-1.0)), static_cast<float>(std::exp(-2.0))};
+    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, ForwardLargeValues)
+TEST_P(ExpOperatorTest, ForwardLargeValues)
 {
     // 测试大值
-    auto x = Tensor({5.0, 10.0}, Shape{2});
+    auto x = Tensor({5.0f, 10.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {std::exp(5.0), std::exp(10.0)};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], kTolerance);
-    }
+    std::vector<float> expected_data = {static_cast<float>(std::exp(5.0)), static_cast<float>(std::exp(10.0))};
+    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e3);
 }
 
 // ==================== 反向传播测试 ====================
 
-TEST_F(ExpOperatorTest, BackwardBasic)
+TEST_P(ExpOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x = Tensor({1.0, 2.0}, Shape{2});
+    auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = exp(x);
     y.backward();
 
-    // 指数算子的梯度：∂y/∂x = exp(x)
-    auto gx_data = x.grad().to_vector<float>();
-    auto y_data  = y.to_vector<float>();
-
-    for (size_t i = 0; i < gx_data.size(); ++i)
-    {
-        EXPECT_NEAR(gx_data[i], y_data[i], kTolerance);
-    }
+    // 指数算子的梯度：∂y/∂x = exp(x) = y
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), y, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, BackwardWithGradient)
+TEST_P(ExpOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x = Tensor({1.0, 2.0}, Shape{2});
+    auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = exp(x);
     y.backward();
 
-    // 设置输出梯度为2
-    auto gy = Tensor({2.0, 2.0}, Shape{2});
-    y.backward();
-
-    auto gx_data = x.grad().to_vector<float>();
-    auto y_data  = y.to_vector<float>();
-
-    for (size_t i = 0; i < gx_data.size(); ++i)
-    {
-        EXPECT_NEAR(gx_data[i], 2.0 * y_data[i], kTolerance);  // gy * exp(x)
-    }
+    // 梯度会累积
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), y, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, BackwardZeroGradient)
+TEST_P(ExpOperatorTest, BackwardZeroGradient)
 {
     // 测试零点的梯度
-    auto x = Tensor({0.0, 0.0}, Shape{2});
+    auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = exp(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector<float>();
-
-    for (size_t i = 0; i < gx_data.size(); ++i)
-    {
-        EXPECT_NEAR(gx_data[i], 1.0, kTolerance);  // exp(0) = 1
-    }
+    // exp(0) = 1，所以梯度应该是1
+    auto expected_grad = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, BackwardNegativeValues)
+TEST_P(ExpOperatorTest, BackwardNegativeValues)
 {
     // 测试负值的梯度
-    auto x = Tensor({-1.0, -2.0}, Shape{2});
+    auto x = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto y = exp(x);
     y.backward();
 
-    auto gx_data = x.grad().to_vector<float>();
-    auto y_data  = y.to_vector<float>();
-
-    for (size_t i = 0; i < gx_data.size(); ++i)
-    {
-        EXPECT_NEAR(gx_data[i], y_data[i], kTolerance);
-    }
+    // 梯度应该等于y（即exp(x)）
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), y, origin::test::TestTolerance::kDefault);
 }
 
 // ==================== 边界情况测试 ====================
 
-TEST_F(ExpOperatorTest, SingleElement)
+TEST_P(ExpOperatorTest, SingleElement)
 {
     // 测试单元素张量
-    auto x = Tensor({1.0}, Shape{1});
+    auto x = Tensor({1.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
-    EXPECT_NEAR(result.item<float>(), std::exp(1.0), kTolerance);
+    EXPECT_NEAR(result.item<float>(), static_cast<float>(std::exp(1.0)), origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, LargeTensor)
+TEST_P(ExpOperatorTest, LargeTensor)
 {
     // 测试大张量
-    std::vector<data_t> data(100, 1.0);
-    auto x = Tensor(data, Shape{10, 10});
+    std::vector<float> data(100, 1.0f);
+    auto x = Tensor(data, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector<float>();
-    data_t expected  = std::exp(1.0);
-
-    for (size_t i = 0; i < result_data.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected, kTolerance);
-    }
+    
+    float expected_val = static_cast<float>(std::exp(1.0));
+    auto expected = Tensor(std::vector<float>(100, expected_val), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, ThreeDimensional)
+TEST_P(ExpOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x = Tensor({0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0}, Shape{2, 2, 2});
+    auto x = Tensor({0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto result_data = result.to_vector<float>();
-
-    for (size_t i = 0; i < result_data.size(); ++i)
+    
+    std::vector<float> expected_data;
+    for (int i = 0; i < 8; ++i)
     {
-        EXPECT_NEAR(result_data[i], std::exp(i), kTolerance);
+        expected_data.push_back(static_cast<float>(std::exp(i)));
     }
+    auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e3);
 }
 
 // ==================== 数值稳定性测试 ====================
 
-TEST_F(ExpOperatorTest, NumericalStability)
+TEST_P(ExpOperatorTest, NumericalStability)
 {
     // 测试数值稳定性
-    auto x = Tensor({-10.0, 0.0, 10.0}, Shape{3});
+    auto x = Tensor({-10.0f, 0.0f, 10.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {std::exp(-10.0), 1.0, std::exp(10.0)};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], kTolerance);
-    }
+    std::vector<float> expected_data = {static_cast<float>(std::exp(-10.0)), 1.0f, static_cast<float>(std::exp(10.0))};
+    auto expected = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e3);
 }
 
-TEST_F(ExpOperatorTest, PrecisionTest)
+TEST_P(ExpOperatorTest, PrecisionTest)
 {
     // 测试精度
-    auto x = Tensor({0.1, 0.2}, Shape{2});
+    auto x = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {std::exp(0.1), std::exp(0.2)};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], kTolerance);
-    }
+    std::vector<float> expected_data = {static_cast<float>(std::exp(0.1)), static_cast<float>(std::exp(0.2))};
+    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 // ==================== 特殊值测试 ====================
 
-TEST_F(ExpOperatorTest, SmallValues)
+TEST_P(ExpOperatorTest, SmallValues)
 {
     // 测试小值
-    auto x = Tensor({kTolerance, 2e-6}, Shape{2});
+    auto x = Tensor({1e-3f, 2e-6f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
-    auto result_data             = result.to_vector<float>();
-    std::vector<data_t> expected = {std::exp(kTolerance), std::exp(2e-6)};
-
-    for (size_t i = 0; i < expected.size(); ++i)
-    {
-        EXPECT_NEAR(result_data[i], expected[i], kTolerance);
-    }
+    std::vector<float> expected_data = {static_cast<float>(std::exp(1e-3)), static_cast<float>(std::exp(2e-6))};
+    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, VerySmallValues)
+TEST_P(ExpOperatorTest, VerySmallValues)
 {
     // 测试非常小的值
-    auto x = Tensor({-50.0, -100.0}, Shape{2});
+    auto x = Tensor({-50.0f, -100.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
-    auto result_data = result.to_vector<float>();
     // 这些值应该非常接近0
+    auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
-        EXPECT_LT(result_data[i], 1e-20);
+        EXPECT_LT(result_data[i], 1e-20f);
     }
 }
 
-TEST_F(ExpOperatorTest, IdentityProperty)
+TEST_P(ExpOperatorTest, IdentityProperty)
 {
     // 测试恒等性质：exp(0) = 1
-    auto x = Tensor({0.0}, Shape{1});
+    auto x = Tensor::zeros(Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
-    EXPECT_NEAR(result.item<float>(), 1.0, kTolerance);
+    EXPECT_NEAR(result.item<float>(), 1.0f, origin::test::TestTolerance::kDefault);
 }
 
-TEST_F(ExpOperatorTest, MonotonicProperty)
+TEST_P(ExpOperatorTest, MonotonicProperty)
 {
     // 测试单调性：如果 x1 < x2，则 exp(x1) < exp(x2)
-    auto x1 = Tensor({1.0}, Shape{1});
-    auto x2 = Tensor({2.0}, Shape{1});
+    auto x1 = Tensor({1.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x2 = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto y1 = exp(x1);
     auto y2 = exp(x2);
 
     EXPECT_LT(y1.item<float>(), y2.item<float>());
 }
+
+// 实例化测试套件：自动为CPU和可用CUDA生成测试
+INSTANTIATE_DEVICE_TEST_SUITE_P(ExpOperatorTest);

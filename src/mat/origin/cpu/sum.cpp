@@ -1,6 +1,7 @@
 #include <stdexcept>
-#include "origin/mat/origin/cpu/operation_templates.h"
+#include "origin/mat/origin/device_common/operation_templates.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -18,7 +19,11 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
         // 对所有元素求和，返回标量
         data_t sum_value   = sum_all(mat);
         Shape result_shape = {1};  // 标量结果
-        return std::make_unique<OriginMat>(sum_value, result_shape);
+        // 创建标量张量
+        Scalar scalar_val(sum_value);
+        TensorOptions options(mat.dtype());
+        auto mat_result = OriginMat::from_scalar(scalar_val, result_shape, options);
+        return std::unique_ptr<OriginMat>(static_cast<OriginMat *>(mat_result.release()));
     }
 
     // 验证轴的有效性
@@ -41,7 +46,8 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
     auto result = std::make_unique<OriginMat>(result_shape, mat.dtype());
 
     // 使用类型分发器执行轴求和操作
-    TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() { AxisSumCompute::axis_sum<T>(mat, *result, axis); });
+    device_common::TypeDispatcher::dispatch_void(
+        mat.dtype(), [&]<typename T>() { AxisSumCompute::axis_sum<T>(mat, *result, axis); });
 
     return result;
 }
@@ -49,7 +55,7 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
 data_t sum_all(const OriginMat &mat)
 {
     // 使用类型分发器执行全元素求和
-    return TypeDispatcher::dispatch(mat.dtype(), [&]<typename T>() -> data_t {
+    return device_common::TypeDispatcher::dispatch(mat.dtype(), [&]<typename T>() -> data_t {
         T sum_val = AxisSumCompute::sum_all<T>(mat);
         return static_cast<data_t>(sum_val);
     });

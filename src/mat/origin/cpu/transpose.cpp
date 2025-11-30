@@ -1,6 +1,7 @@
 #include <stdexcept>
-#include "origin/mat/origin/cpu/operation_templates.h"
+#include "origin/mat/origin/device_common/operation_templates.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -28,7 +29,12 @@ namespace cpu
 // 视图转置，不重新排列数据。只转置最后两个维度。未来还需要完善，完善视图转置的逻辑
 std::unique_ptr<OriginMat> transpose(const OriginMat &mat)
 {
-    if (mat.shape().size() == 1)
+    if (mat.shape().size() == 0)
+    {
+        // 0维张量（标量）：转置后保持不变
+        return std::make_unique<OriginMat>(mat);
+    }
+    else if (mat.shape().size() == 1)
     {
         // 一维张量：转置后保持不变
         return std::make_unique<OriginMat>(mat);
@@ -41,8 +47,8 @@ std::unique_ptr<OriginMat> transpose(const OriginMat &mat)
         auto result = std::make_unique<OriginMat>(new_shape, mat.dtype());
 
         // 使用类型分发器执行转置操作
-        TypeDispatcher::dispatch_void(mat.dtype(),
-                                      [&]<typename T>() { TransposeCompute::transpose_2d<T>(mat, *result); });
+        device_common::TypeDispatcher::dispatch_void(
+            mat.dtype(), [&]<typename T>() { TransposeCompute::transpose_2d<T>(mat, *result); });
 
         return result;
     }

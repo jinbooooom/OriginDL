@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -9,36 +10,50 @@ namespace cpu
 
 std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
 {
-    // 检查数据类型匹配
-    if (a.dtype() != b.dtype())
+    // 检查数据类型匹配 - 使用分支预测优化
+    if (unlikely(a.dtype() != b.dtype()))
     {
         THROW_INVALID_ARG("Data type mismatch for matrix multiplication: expected {} but got {}",
                           dtype_to_string(a.dtype()), dtype_to_string(b.dtype()));
     }
 
     // 处理不同维度的矩阵乘法
-    if (a.shape().size() == 2 && b.shape().size() == 2)
+    auto a_shape = a.shape();
+    auto b_shape = b.shape();
+
+    // 确保至少是2维（如果已经是2维以上，保持不变）
+    // 注意：这里假设MatMul::forward已经处理了0维和1维的情况
+    // 但如果直接调用底层函数，我们需要处理
+    if (a_shape.size() < 2 || b_shape.size() < 2)
+    {
+        THROW_INVALID_ARG("Matrix multiplication requires at least 2D tensors. A shape: {}, B shape: {}",
+                          a_shape.to_string(), b_shape.to_string());
+    }
+
+    if (a_shape.size() == 2 && b_shape.size() == 2)
     {
         // 2D x 2D 矩阵乘法
-        if (a.shape()[1] != b.shape()[0])
+        if (unlikely(a_shape[1] != b_shape[0]))
         {
-            THROW_INVALID_ARG("Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}",
-                              a.shape().to_string(), b.shape().to_string());
+            THROW_INVALID_ARG(
+                "Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}, A[1]={} != B[0]={}",
+                a_shape.to_string(), b_shape.to_string(), a_shape[1], b_shape[0]);
         }
     }
-    else if (a.shape().size() == 3 && b.shape().size() == 2)
+    else if (a_shape.size() == 3 && b_shape.size() == 2)
     {
         // 3D x 2D 矩阵乘法：对3D张量的最后两个维度进行矩阵乘法
-        if (a.shape()[2] != b.shape()[0])
+        if (a_shape[2] != b_shape[0])
         {
-            THROW_INVALID_ARG("Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}",
-                              a.shape().to_string(), b.shape().to_string());
+            THROW_INVALID_ARG(
+                "Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}, A[2]={} != B[0]={}",
+                a_shape.to_string(), b_shape.to_string(), a_shape[2], b_shape[0]);
         }
     }
     else
     {
         THROW_INVALID_ARG("Matrix multiplication requires compatible dimensions. A shape: {}, B shape: {}",
-                          a.shape().to_string(), b.shape().to_string());
+                          a_shape.to_string(), b_shape.to_string());
     }
 
     // 计算结果形状

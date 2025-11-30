@@ -5,6 +5,7 @@
 #include <iostream>
 #include <numeric>
 #include <sstream>
+#include "origin/mat/scalar.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -45,16 +46,17 @@ void print_origin_mat(const std::string &desc,
 
     if (shape.empty())
     {
-        // 标量
-        std::cout << "(" << format_element(data_vec[0], dtype) << ")" << std::endl;
-        return;
+        // 标量, 0维向量
+        std::cout << format_element(data_vec[0], dtype) << std::endl;
+    }
+    else
+    {
+        // 使用LibTorch风格的打印
+        print_libtorch_style(data_vec, shape);
+        std::cout << std::endl;
     }
 
-    // 使用LibTorch风格的打印
-    print_libtorch_style(data_vec, shape);
-    std::cout << std::endl;
-
-    // 基本信息最后打印
+    // 基本信息最后打印，这样长矩阵也能看到基本信息了
     std::cout << " OriginMat(shape=" << format_shape(shape) << ", dtype=" << format_dtype(dtype)
               << ", device=" << format_device(device_str) << ")" << std::endl;
 }
@@ -337,14 +339,14 @@ std::string format_element(data_t value, DataType dtype)
 std::string format_shape(const std::vector<size_t> &shape)
 {
     std::ostringstream oss;
-    oss << "[";
+    oss << "{";
     for (size_t i = 0; i < shape.size(); ++i)
     {
         if (i > 0)
             oss << ", ";
         oss << shape[i];
     }
-    oss << "]";
+    oss << "}";
     return oss.str();
 }
 
@@ -566,6 +568,70 @@ std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, Dat
     return result;
 }
 
+Scalar get_scalar_value(const void *data_ptr, DataType dtype)
+{
+    switch (dtype)
+    {
+        case DataType::kFloat32:
+        {
+            const float *data = static_cast<const float *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kFloat64:
+        {
+            const double *data = static_cast<const double *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kInt32:
+        {
+            const int32_t *data = static_cast<const int32_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kInt8:
+        {
+            const int8_t *data = static_cast<const int8_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kInt16:
+        {
+            const int16_t *data = static_cast<const int16_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kInt64:
+        {
+            const int64_t *data = static_cast<const int64_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kUInt8:
+        {
+            const uint8_t *data = static_cast<const uint8_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kUInt16:
+        {
+            const uint16_t *data = static_cast<const uint16_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kUInt32:
+        {
+            const uint32_t *data = static_cast<const uint32_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kUInt64:
+        {
+            const uint64_t *data = static_cast<const uint64_t *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        case DataType::kBool:
+        {
+            const bool *data = static_cast<const bool *>(data_ptr);
+            return Scalar(data[0]);
+        }
+        default:
+            THROW_INVALID_ARG("Unsupported data type {} for scalar value extraction", dtype_to_string(dtype));
+    }
+}
+
 void convert_from_vector(const std::vector<data_t> &data_vec, void *data_ptr, DataType dtype)
 {
     switch (dtype)
@@ -609,6 +675,49 @@ void convert_from_vector(const std::vector<data_t> &data_vec, void *data_ptr, Da
         default:
             THROW_INVALID_ARG("Unsupported data type {} for conversion", dtype_to_string(dtype));
     }
+}
+
+Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b)
+{
+    const auto &shape_a = a.shape();
+    const auto &shape_b = b.shape();
+
+    // 如果形状相同，直接返回
+    if (shape_a == shape_b)
+    {
+        return shape_a;
+    }
+
+    // 如果一个是标量，返回另一个的形状
+    if (a.elements() == 1)
+    {
+        return shape_b;
+    }
+    if (b.elements() == 1)
+    {
+        return shape_a;
+    }
+
+    // 复杂广播：计算输出形状
+    size_t max_dims = std::max(shape_a.size(), shape_b.size());
+    std::vector<size_t> result_dims(max_dims);
+
+    for (size_t i = 0; i < max_dims; ++i)
+    {
+        size_t dim_a = (i < shape_a.size()) ? shape_a[shape_a.size() - 1 - i] : 1;
+        size_t dim_b = (i < shape_b.size()) ? shape_b[shape_b.size() - 1 - i] : 1;
+
+        if (dim_a == 1 || dim_b == 1 || dim_a == dim_b)
+        {
+            result_dims[max_dims - 1 - i] = std::max(dim_a, dim_b);
+        }
+        else
+        {
+            THROW_INVALID_ARG("Cannot broadcast shapes {} and {}", shape_a.to_string(), shape_b.to_string());
+        }
+    }
+
+    return Shape(result_dims);
 }
 
 }  // namespace compute
@@ -703,43 +812,6 @@ std::vector<size_t> compute_strides(const Shape &shape)
     }
     return strides;
 }
-
-size_t get_dtype_size(DataType dtype)
-{
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            return sizeof(float);
-        case DataType::kFloat64:
-            return sizeof(double);
-        case DataType::kInt32:
-            return sizeof(int32_t);
-        case DataType::kInt8:
-            return sizeof(int8_t);
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for operation", dtype_to_string(dtype));
-    }
-}
-
-template <typename T>
-DataType get_data_type_from_template()
-{
-    if (std::is_same_v<T, float>)
-        return DataType::kFloat32;
-    if (std::is_same_v<T, double>)
-        return DataType::kFloat64;
-    if (std::is_same_v<T, int32_t>)
-        return DataType::kInt32;
-    if (std::is_same_v<T, int8_t>)
-        return DataType::kInt8;
-    THROW_INVALID_ARG("Unsupported template type");
-}
-
-// 显式实例化模板
-template DataType get_data_type_from_template<float>();
-template DataType get_data_type_from_template<double>();
-template DataType get_data_type_from_template<int32_t>();
-template DataType get_data_type_from_template<int8_t>();
 
 bool can_broadcast_to(const Shape &source_shape, const Shape &target_shape)
 {
