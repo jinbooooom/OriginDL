@@ -11,6 +11,7 @@ OriginDL 是一个C++深度学习框架，提供了类似PyTorch的API接口。�
 - [调试工具](#调试工具)
 - [神经网络模块](#神经网络模块)
 - [CUDA 支持](#cuda-支持)
+- [当前实现限制](#当前实现限制)
 
 ---
 
@@ -590,17 +591,24 @@ Tensor to(const TensorOptions &options) const
 - `device` (Device) – 目标设备
 - `options` (TensorOptions) – 目标选项
 
-**返回值:** Tensor – 转换后的张量
+**返回值:** Tensor – 转换后的新张量
+
+**注意:**
+- `to()` 方法总是返回一个新的张量，不会修改原张量（非原地操作）
+- 如果目标类型或设备与当前张量相同，仍会创建一个新的张量对象
+- 原张量的数据不会被修改，可以安全地继续使用
 
 **例子:**
 ```cpp
 auto t = Tensor::ones({2, 2}, dtype(DataType::kFloat32));
 
-// 转换数据类型
+// 转换数据类型（返回新张量，t保持不变）
 auto t_float64 = t.to(DataType::kFloat64);
+// t 仍然是 float32 类型
 
-// 转换设备
+// 转换设备（返回新张量）
 auto t_cuda = t.to(Device(DeviceType::kCUDA));
+// t 仍然在 CPU 上
 
 // 同时转换类型和设备
 auto options = TensorOptions().dtype(DataType::kFloat64).device(DeviceType::kCUDA);
@@ -616,15 +624,29 @@ T item() const
 
 获取标量张量的值。
 
+**参数:**
+- `T` – 返回值的类型，必须与张量的数据类型兼容
+
 **返回值:** T – 标量值
+
+**注意:**
+- `item()` 只能用于标量张量（元素数量为1的张量）
+- 如果张量不是标量（元素数量大于1），调用 `item()` 会抛出 `RuntimeError` 异常
+- 对于0维张量（形状为 `{}`）或1维单元素张量（形状为 `{1}`），都可以使用 `item()`
 
 **例子:**
 ```cpp
-auto t = Tensor::full({1}, 3.14f);
-float value = t.item<float>();  // 3.14
-// t.print() 输出:
-// 3.14
-//  OriginMat(shape={}, dtype=float32, device=cpu)
+// 标量张量（0维）
+auto t1 = Tensor::full({1}, 3.14f);
+float value1 = t1.item<float>();  // 3.14
+
+// 单元素张量（1维）
+auto t2 = Tensor({3.14f}, {1});
+float value2 = t2.item<float>();  // 3.14
+
+// 错误示例：非标量张量
+auto t3 = Tensor::ones({2, 2});
+// float value3 = t3.item<float>();  // 会抛出异常：tensor has 4 elements
 ```
 
 ### data_ptr
@@ -636,13 +658,30 @@ T *data_ptr()
 
 获取张量数据的原始指针。
 
-**返回值:** T* – 数据指针
+**参数:**
+- `T` – 指针类型，必须与张量的数据类型匹配
+
+**返回值:** T* – 指向张量数据的原始指针
+
+**注意:**
+- **内存管理**: 返回的指针指向张量内部管理的存储空间，指针的生命周期与张量对象绑定。当张量对象被销毁时，指针将失效
+- **线程安全**: `data_ptr()` 本身不是线程安全的。如果多个线程同时访问同一个张量的数据指针，需要自行实现同步机制
+- **数据修改**: 通过返回的指针修改数据会直接影响张量的值，这可能会影响计算图和梯度计算。建议仅在必要时使用，并确保了解其影响
+- **设备限制**: 对于 CUDA 张量，返回的指针指向 GPU 内存，在 CPU 代码中直接访问可能导致未定义行为。需要先将数据复制到 CPU
+- **类型匹配**: 模板参数 `T` 必须与张量的实际数据类型匹配，否则可能导致未定义行为
 
 **例子:**
 ```cpp
 auto t = Tensor::ones({2, 2}, dtype(DataType::kFloat32));
 float* ptr = t.data_ptr<float>();
-// 现在可以通过ptr访问数据
+
+// 通过指针访问和修改数据
+for (size_t i = 0; i < t.elements(); ++i) {
+    ptr[i] = i * 0.1f;
+}
+
+// 注意：修改指针指向的数据会影响原张量
+t.print();  // 会显示修改后的值
 ```
 
 ### to_vector
@@ -780,11 +819,38 @@ Tensor operator+(T lhs, const Tensor &rhs)
 // 减法、乘法、除法类似
 ```
 
+**类型提升规则:**
+
+当张量与标量进行运算时，框架会自动进行类型提升，确保运算结果使用精度更高的类型。类型提升的优先级规则如下（从高到低）：
+
+1. **浮点类型**: `double` (float64) > `float` (float32)
+2. **整数类型**: `int64` > `int32` > `int16` > `int8`
+3. **无符号整数**: `uint64` > `uint32` > `uint16` > `uint8`
+4. **布尔类型**: `bool`
+
+**提升规则说明:**
+- 如果张量和标量类型相同，结果类型保持不变
+- 如果类型不同，结果类型为两者中优先级更高的类型
+- 浮点类型优先级高于整数类型（例如：`float32` 张量 + `int32` 标量 → `float32` 结果）
+- 整数类型之间按精度提升（例如：`int32` 张量 + `int64` 标量 → `int64` 结果）
+
 **例子:**
 ```cpp
-auto a = Tensor::ones({2, 2});
-auto b = a + 2.0;  // 标量加法
-auto c = 3.0 * a;  // 标量乘法
+// 相同类型，不提升
+auto a1 = Tensor::ones({2, 2}, dtype(DataType::kFloat32));
+auto b1 = a1 + 2.0f;  // 结果类型: float32
+
+// 类型提升：float32 + double → double
+auto a2 = Tensor::ones({2, 2}, dtype(DataType::kFloat32));
+auto b2 = a2 + 2.0;   // 结果类型: float64 (double)
+
+// 类型提升：int32 + float32 → float32
+auto a3 = Tensor({1, 2, 3, 4}, {2, 2}, DataType::kInt32);
+auto b3 = a3 + 2.5f;  // 结果类型: float32
+
+// 类型提升：int32 + int64 → int64
+auto a4 = Tensor({1, 2, 3, 4}, {2, 2}, DataType::kInt32);
+auto b4 = a4 + 2L;    // 结果类型: int64
 ```
 
 ### 数学函数
@@ -826,6 +892,12 @@ Tensor operator^(const Tensor &base, const Scalar &exponent)
 
 **返回值:** Tensor – 幂运算结果
 
+**注意:**
+- **负数底数与非整数指数**: 当底数为负数且指数为非整数时，结果为 `NaN`（Not a Number）。这是因为负数的非整数次幂在实数域中无定义，底层使用 `std::pow` 函数会返回 `NaN`。例如：`pow(-2.0, 2.5)` 会产生 `NaN`
+- **负数底数与整数指数**: 当底数为负数但指数为整数时，运算正常进行。例如：`pow(-2.0, 2)` 结果为 `4.0`，`pow(-2.0, 3)` 结果为 `-8.0`
+- **零的负指数**: 当底数为0且指数为负数时，结果可能为 `inf`（无穷大）或抛出异常
+- **类型提升**: 如果底数张量和指数的类型不同，会按照类型提升规则自动提升到更高精度的类型
+
 **例子:**
 ```cpp
 auto a = Tensor({2, 3, 4}, {1, 3});
@@ -840,7 +912,13 @@ auto c = a ^ 2;        // 使用操作符形式（等价于pow(a, 2)）
 
 // 支持不同数值类型的指数
 auto d = pow(a, 3.0);   // 浮点数指数
-auto e = a ^ 2.5;        // 使用操作符形式
+auto e = a ^ 2.5;       // 使用操作符形式
+
+// 负数底数示例
+auto neg = Tensor({-2.0, -3.0}, {1, 2});
+auto pos_int_pow = pow(neg, 2);     // 结果: [4.0, 9.0]（正常）
+auto neg_int_pow = pow(neg, 3);     // 结果: [-8.0, -27.0]（正常）
+auto non_int_pow = pow(neg, 2.5);   // 结果: [NaN, NaN]（负数非整数次幂产生NaN）
 ```
 
 #### exp
@@ -962,14 +1040,40 @@ auto d = sum(a, 1);   // 按第1轴求和
 Tensor mat_mul(const Tensor &x, const Tensor &w)
 ```
 
-矩阵乘法。
+矩阵乘法（张量乘法）。
+
+**参数:**
+- `x` (Tensor) – 第一个张量，形状应为 `[..., m, n]`
+- `w` (Tensor) – 第二个张量，形状应为 `[..., n, p]`
+
+**返回值:** Tensor – 矩阵乘法结果张量，形状为 `[..., m, p]`
+
+**注意:**
+- 这是真正的矩阵乘法（不是逐元素乘法），对应数学中的矩阵乘法运算
+- **当前实现限制**：OriginDL 当前版本仅支持以下两种形式：
+  - **2D x 2D**: `{m, k} x {k, n}` → `{m, n}`（标准矩阵乘法）
+  - **3D x 2D**: `{batch, m, k} x {k, n}` → `{batch, m, n}`（批量矩阵乘法）
+- 第一个张量的最后一个维度必须与第二个张量的第一个维度相同（`k` 必须匹配）
+- **与 PyTorch 的差异**：PyTorch 的 `torch.matmul` 支持更广泛的形状组合，包括：
+  - `{batch, m, k} x {batch, k, n}` → `{batch, m, n}`（两个3D张量的批量矩阵乘法）
+  - `{m, k} x {batch, k, n}` → `{batch, m, n}`（2D x 3D，自动广播）
+  - `{batch, m, k} x {k, n}` → `{batch, m, n}`（3D x 2D，已支持）
+  - 更高维度的批量矩阵乘法
+- 当前实现不支持 3D x 3D、2D x 3D 等组合，这些功能可能在未来的版本中添加
 
 **例子:**
 ```cpp
+// 2D张量矩阵乘法
 auto a = Tensor::ones({2, 3});
 auto b = Tensor::ones({3, 4});
 auto c = mat_mul(a, b);
-// 结果: 2x4的矩阵
+// 结果: 2x4的张量
+
+// 批量矩阵乘法（3D x 2D）
+// 对3D张量的最后两个维度进行矩阵乘法，第一个维度作为批量维度
+auto batch_a = Tensor::ones({10, 2, 3});  // 形状: {10, 2, 3}，10个2x3的张量
+auto b = Tensor::ones({3, 4});            // 形状: {3, 4}，共享的权重张量
+auto batch_c = mat_mul(batch_a, b);       // 结果: {10, 2, 4}，10个2x4的张量
 ```
 
 ---
@@ -1679,4 +1783,167 @@ void origin::cuda::device_info()
         //   ...
     }
 #endif
+```
+
+
+
+---
+
+## 当前实现限制
+
+本文档列出了 OriginDL 当前版本的一些限制和与 PyTorch 的差异。这些限制可能会在未来的版本中得到改进。
+
+### 数学函数限制
+
+#### sin 和 cos 函数
+
+**限制**: `sin()` 和 `cos()` 函数在 Origin 后端尚未实现。
+
+**当前状态**: 调用这些函数会抛出 `RuntimeError` 异常。
+
+**影响范围**: 仅影响 Origin 后端，如果使用 Torch 后端则不受影响。
+
+**例子:**
+```cpp
+auto t = Tensor::ones({2, 2});
+auto s = sin(t);  // 抛出异常: "sin function not implemented yet"
+auto c = cos(t);  // 抛出异常: "cos function not implemented yet"
+```
+
+#### log 函数
+
+**限制**: `log()` 函数在 Origin 后端仅在 CPU 上实现，CUDA 张量会回退到 CPU 计算。
+
+**当前状态**: 即使 CUDA 有实现，`OriginMat::log()` 也只调用 CPU 版本。
+
+**影响范围**: CUDA 张量的 `log()` 操作会先复制到 CPU，计算后再复制回 CUDA，影响性能。
+
+### 矩阵乘法限制
+
+**限制**: `mat_mul()` 仅支持以下两种形状组合：
+- `{m, k} x {k, n}` → `{m, n}` (2D x 2D)
+- `{batch, m, k} x {k, n}` → `{batch, m, n}` (3D x 2D)
+
+**不支持的形式**:
+- `{batch, m, k} x {batch, k, n}` (3D x 3D)
+- `{m, k} x {batch, k, n}` (2D x 3D，广播)
+- 其他维度组合
+
+**与 PyTorch 的差异**: PyTorch 的 `torch.matmul` 支持更广泛的形状组合，包括批量矩阵乘法和广播。
+
+### sum_to 限制
+
+**限制**: `sum_to()` 不支持广播。
+
+**行为**: 当目标形状的元素数量大于源张量时，会抛出异常（与 libtorch 一致，但 libtorch 会静默返回原始张量）。
+
+**与 PyTorch 的差异**: PyTorch 没有直接的 `sum_to` 函数，但可以通过 `sum` + `expand` 实现广播功能。
+
+**例子:**
+```cpp
+auto x = Tensor({5.0}, Shape{1});
+auto result = sum_to(x, Shape{3});  // 抛出异常: 不支持广播
+```
+
+### CUDA 支持限制
+
+#### 复杂广播
+
+**限制**: CUDA 后端不支持复杂广播操作。
+
+**影响范围**: 对于需要复杂广播的算术运算（如 `add`, `subtract`, `multiply` 等），如果形状不匹配且不是简单的标量广播，会抛出异常。
+
+**当前支持**: 仅支持相同形状或标量广播（其中一个张量元素数量为1）。
+
+**例子:**
+```cpp
+// 在CUDA上
+auto a = Tensor::ones({2, 3}, device(DeviceType::kCUDA));
+auto b = Tensor::ones({3, 2}, device(DeviceType::kCUDA));
+auto c = a + b;  // 可能抛出异常: "Complex broadcasting not yet implemented"
+```
+
+#### 类型转换
+
+**限制**: `to(DataType)` 在 Origin 后端仅在 CPU 上实现类型转换。
+
+**行为**: CUDA 张量进行类型转换时，会先复制到 CPU，转换后再复制回 CUDA。
+
+**影响**: 性能开销较大，建议在创建张量时就指定正确的数据类型。
+
+### 自动求导限制
+
+#### requires_grad
+
+**限制**: 当前不支持 `requires_grad=false`。
+
+**当前状态**: 所有张量默认 `requires_grad=true`，无法禁用梯度计算。
+
+**影响**: 
+- 所有张量都会参与梯度计算，即使不需要梯度
+- 内存占用可能较大
+- 无法优化不需要梯度的计算图
+
+**例子:**
+```cpp
+// 当前行为：requires_grad 参数被忽略，总是为 true
+auto x = Tensor::ones({2, 2}, requires_grad(false));  // 实际上仍然是 true
+```
+
+#### 梯度类型
+
+**限制**: `grad()` 方法总是返回 `float32` 类型的梯度，而不是与输入张量相同的类型。
+
+**当前状态**: 即使输入张量是 `float64` 或其他类型，梯度也是 `float32`。
+
+**影响**: 可能影响高精度计算的准确性。
+
+**例子:**
+```cpp
+auto x = Tensor::ones({2, 2}, dtype(DataType::kFloat64));
+auto y = x * x;
+y.backward();
+auto g = x.grad();  // g.dtype() 是 kFloat32，而不是 kFloat64
+```
+
+### 形状操作限制
+
+#### 视图转置
+
+**限制**: Origin 后端不支持视图转置（view transpose）。
+
+**当前状态**: `transpose()` 总是创建新的张量，而不是返回视图。
+
+**影响**: 转置操作会复制数据，内存开销较大。
+
+**与 PyTorch 的差异**: PyTorch 的转置在某些情况下可以返回视图，不复制数据。
+
+### 反向传播中的类型提升
+
+**限制**: 某些算子的反向传播中尚未实现类型提升逻辑。
+
+**影响范围**: `add`, `sub`, `mul`, `div`, `mat_mul` 等算子的反向传播。
+
+**当前状态**: 如果前向传播中进行了类型提升，反向传播可能无法正确处理。
+
+**注意**: 前向传播中的类型提升是正常工作的。
+
+### 其他限制
+
+#### 布尔类型运算
+
+**限制**: 布尔类型张量的某些运算有特殊行为或限制。
+
+- **除法**: 布尔类型不支持除法操作，会抛出异常
+- **加法**: 布尔类型加法使用逻辑 OR 作为替代
+- **减法**: 布尔类型减法使用逻辑异或 (XOR) 作为替代
+- **乘法**: 布尔类型乘法使用逻辑 AND
+
+**例子:**
+```cpp
+auto a = Tensor({true, false}, Shape{2}, DataType::kBool);
+auto b = Tensor({true, true}, Shape{2}, DataType::kBool);
+auto c = a + b;   // 使用逻辑 OR: [true, true]
+auto d = a * b;   // 使用逻辑 AND: [true, false]
+auto e = a / b;   // 抛出异常: "Division is not supported for boolean tensors"
 ```
