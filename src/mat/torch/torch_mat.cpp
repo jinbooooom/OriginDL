@@ -609,6 +609,15 @@ torch::Scalar TorchMat::make_torch_scalar_from_scalar(const Scalar &scalar, Data
     return dispatch_supported(dtype, fn);
 }
 
+// === TorchMat数据访问方法实现 ===
+void *TorchMat::data_ptr()
+{
+    // TODO: 实现 TorchMat::data_ptr() 虚函数版本
+    // 需要根据数据类型分发到对应的 data_ptr<T>()
+    
+    THROW_RUNTIME_ERROR("TorchMat::data_ptr() not implemented yet");
+}
+
 // === TorchMat泛型方法实现 ===
 template <typename U>
 U *TorchMat::data_ptr()

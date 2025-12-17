@@ -207,6 +207,8 @@ public:
     std::unique_ptr<Mat> to_device(Device device) const override;
 
     // === 泛型数据访问方法 ===
+    void *data_ptr() override;
+
     template <typename U>
     U *data_ptr();
 

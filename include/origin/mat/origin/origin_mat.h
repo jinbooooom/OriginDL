@@ -118,6 +118,14 @@ public:
     std::unique_ptr<Mat> to_device(Device device) const override;
 
     // 数据访问
+    // 1. void* data_ptr() override: 虚函数版本，覆盖基类 Mat::data_ptr()，供 TensorImpl 通过基类指针调用
+    // 2. template <typename T> T *data_ptr(): 模板函数，供内部实现代码（如 cpu/ 和 cuda/ 目录下的文件）直接通过 OriginMat 对象调用，提供类型安全
+    // 3. template <typename T> const T *data_ptr() const: const 成员函数版本的模板函数，用于 const 对象的只读访问（通过 const 修饰符区分）
+    void *data_ptr() override
+    {
+        return storage_->data();
+    }
+
     template <typename T>
     T *data_ptr()
     {

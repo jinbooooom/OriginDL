@@ -139,8 +139,11 @@ public:
      */
     virtual Scalar scalar_value() const = 0;
 
-    template <typename T>
-    T *data_ptr();
+    /**
+     * @brief 获取数据指针
+     * @return 指向数据的void*指针
+     */
+    virtual void *data_ptr() = 0;
 
     template <typename T>
     std::vector<T> to_vector() const;
@@ -249,14 +252,6 @@ std::unique_ptr<Mat> create_mat(const std::vector<data_t> &data, const Shape &sh
  * @return Mat对象的智能指针
  */
 std::unique_ptr<Mat> create_mat(data_t value, const Shape &shape);
-
-template <typename T>
-T *Mat::data_ptr()
-{
-    // 对于泛型data_ptr，我们需要在子类中实现
-    // 这里先返回nullptr，子类需要重写这个方法
-    return nullptr;
-}
 
 template <typename T>
 std::vector<T> Mat::to_vector() const

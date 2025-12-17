@@ -212,14 +212,12 @@ std::vector<T> TensorImpl::to_vector() const
 template <typename T>
 T *TensorImpl::data_ptr()
 {
-    // 由于 Mat::data_ptr 是模板方法（非虚函数），需要动态转换到具体类型
-    // 目前只支持 OriginMat 后端
-    if (auto *origin_mat = dynamic_cast<OriginMat *>(data_.get()))
-    {
-        return origin_mat->data_ptr<T>();
-    }
-    // 对于其他后端（如 TorchMat），使用基类方法
-    return data_->data_ptr<T>();
+    // TensorImpl::data_ptr<T>() 调用 data_->data_ptr()（虚函数）
+    // 对于 OriginMat，会调用 OriginMat::data_ptr() 的虚函数版本，返回 void*
+    // 然后转换为 T*
+    // 这样 TensorImpl 使用的是虚函数版本，而不是模板版本。
+    // 模板版本 template <typename T> T *data_ptr() 保留给内部实现代码（如 cpu/ 和 cuda/ 目录下的文件）直接使用，提供类型安全。
+    return static_cast<T *>(data_->data_ptr());
 }
 
 // === 泛型标量操作实现 ===
