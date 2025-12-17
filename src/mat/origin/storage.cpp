@@ -110,7 +110,12 @@ std::shared_ptr<Storage> Storage::to_device(DeviceType target_device_type, int t
         if (device_type_ == DeviceType::kCUDA)
         {
 #ifdef WITH_CUDA
-            cudaMemcpy(cpu_storage->data(), data_, size_, cudaMemcpyDeviceToHost);
+            cudaError_t err = cudaMemcpy(cpu_storage->data(), data_, size_, cudaMemcpyDeviceToHost);
+            if (err != cudaSuccess)
+            {
+                THROW_RUNTIME_ERROR("CUDA memory copy failed: {}", cudaGetErrorString(err));
+            }
+            cudaDeviceSynchronize();
 #else
             THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif

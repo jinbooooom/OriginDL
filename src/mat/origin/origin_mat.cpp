@@ -494,7 +494,19 @@ DataType OriginMat::dtype() const
 
 std::unique_ptr<Mat> OriginMat::to(DataType target_type) const
 {
-    return cpu::convert_datatype(*this, target_type);
+    // 根据设备类型选择实现
+    if (device().type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::convert_datatype(*this, target_type);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        return cpu::convert_datatype(*this, target_type);
+    }
 }
 
 Device OriginMat::device() const

@@ -7,6 +7,7 @@
 #include "origin/core/tensor_options.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
+#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -211,6 +212,13 @@ std::vector<T> TensorImpl::to_vector() const
 template <typename T>
 T *TensorImpl::data_ptr()
 {
+    // 由于 Mat::data_ptr 是模板方法（非虚函数），需要动态转换到具体类型
+    // 目前只支持 OriginMat 后端
+    if (auto *origin_mat = dynamic_cast<OriginMat *>(data_.get()))
+    {
+        return origin_mat->data_ptr<T>();
+    }
+    // 对于其他后端（如 TorchMat），使用基类方法
     return data_->data_ptr<T>();
 }
 
@@ -235,7 +243,8 @@ void TensorImpl::print(const std::string &desc) const
 TensorImpl TensorImpl::to(const TensorOptions &options) const
 {
     auto converted_mat = data_->to(options.dtype());
-    if (options.device().type() != DeviceType::kCPU)
+    // 如果目标设备与当前设备不同，需要进行设备转换
+    if (converted_mat->device() != options.device())
     {
         converted_mat = converted_mat->to_device(options.device());
     }

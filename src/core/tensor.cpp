@@ -86,7 +86,7 @@ size_t Tensor::elements() const
 
 size_t Tensor::element_size() const
 {
-    return origin::element_size(dtype());
+    return origin::element_size(dtype()); // 返回单个元素占用的字节数
 }
 
 size_t Tensor::numel() const
@@ -151,7 +151,7 @@ Tensor Tensor::grad() const
 {
     if (!impl_->grad_)
     {
-        return Tensor::zeros(shape(), origin::dtype(DataType::kFloat32));  // TODO，创建与input同类型的gtad
+        return Tensor::zeros(shape(), origin::dtype(DataType::kFloat32).device(device()));  // TODO，创建与input同类型的gtad
     }
     // 通过TensorImpl创建，避免直接类型转换
     return Tensor(impl_->grad_->clone());

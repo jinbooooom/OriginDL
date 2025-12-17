@@ -50,6 +50,17 @@ template <typename T, typename Op>
 __global__ void unary_kernel(const T *__restrict__ a, T *__restrict__ c, size_t n, Op op);
 
 /**
+ * @brief 类型转换内核
+ * @tparam SrcT 源数据类型
+ * @tparam DstT 目标数据类型
+ * @param src 输入矩阵的设备指针
+ * @param dst 输出矩阵的设备指针
+ * @param n 元素总数
+ */
+template <typename SrcT, typename DstT>
+__global__ void type_conversion_kernel(const SrcT *__restrict__ src, DstT *__restrict__ dst, size_t n);
+
+/**
  * @brief 标量运算内核
  * @tparam T 数据类型
  * @tparam Op 操作函数对象类型
@@ -292,6 +303,18 @@ void launch_elementwise_kernel(const T *a, const T *b, T *c, size_t n, Op op, cu
  */
 template <typename T, typename Op>
 void launch_unary_kernel(const T *a, T *c, size_t n, Op op, cudaStream_t stream = 0);
+
+/**
+ * @brief 启动类型转换内核
+ * @tparam SrcT 源数据类型
+ * @tparam DstT 目标数据类型
+ * @param src 输入矩阵的设备指针
+ * @param dst 输出矩阵的设备指针
+ * @param n 元素总数
+ * @param stream CUDA流
+ */
+template <typename SrcT, typename DstT>
+void launch_type_conversion_kernel(const SrcT *src, DstT *dst, size_t n, cudaStream_t stream = 0);
 
 /**
  * @brief 启动标量运算内核

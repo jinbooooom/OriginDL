@@ -48,6 +48,21 @@ __global__ void unary_kernel(const T *__restrict__ a, T *__restrict__ c, size_t 
 }
 
 /**
+ * @brief 类型转换内核实现
+ * @details 在GPU上直接进行类型转换，避免CPU-CUDA数据传输
+ */
+template <typename SrcT, typename DstT>
+__global__ void type_conversion_kernel(const SrcT *__restrict__ src, DstT *__restrict__ dst, size_t n)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < n)
+    {
+        dst[idx] = static_cast<DstT>(src[idx]);
+    }
+}
+
+/**
  * @brief 标量运算内核实现
  */
 template <typename T, typename Op>
@@ -479,6 +494,18 @@ void launch_unary_kernel(const T *a, T *c, size_t n, Op op, cudaStream_t stream)
     dim3 grid  = get_optimal_grid_size(n, block);
 
     unary_kernel<T, Op><<<grid, block, 0, stream>>>(a, c, n, op);
+}
+
+/**
+ * @brief 启动类型转换内核
+ */
+template <typename SrcT, typename DstT>
+void launch_type_conversion_kernel(const SrcT *src, DstT *dst, size_t n, cudaStream_t stream)
+{
+    dim3 block = get_optimal_block_size(n);
+    dim3 grid  = get_optimal_grid_size(n, block);
+
+    type_conversion_kernel<SrcT, DstT><<<grid, block, 0, stream>>>(src, dst, n);
 }
 
 /**
@@ -2206,6 +2233,156 @@ template void launch_simple_broadcast_kernel<bool, DivideOp>(const bool *,
                                                              size_t,
                                                              DivideOp,
                                                              cudaStream_t);
+
+// ============================================================================
+// 类型转换内核的显式实例化
+// ============================================================================
+// 支持所有类型组合：11种类型 × 11种类型 = 121种组合
+// 按照 DataType 枚举顺序排列：float, double, int8_t, int16_t, int32_t, int64_t,
+//                              uint8_t, uint16_t, uint32_t, uint64_t, bool
+
+// float -> 所有类型
+template void launch_type_conversion_kernel<float, float>(const float *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, double>(const float *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, int8_t>(const float *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, int16_t>(const float *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, int32_t>(const float *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, int64_t>(const float *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, uint8_t>(const float *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, uint16_t>(const float *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, uint32_t>(const float *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, uint64_t>(const float *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<float, bool>(const float *, bool *, size_t, cudaStream_t);
+
+// double -> 所有类型
+template void launch_type_conversion_kernel<double, float>(const double *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, double>(const double *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, int8_t>(const double *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, int16_t>(const double *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, int32_t>(const double *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, int64_t>(const double *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, uint8_t>(const double *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, uint16_t>(const double *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, uint32_t>(const double *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, uint64_t>(const double *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<double, bool>(const double *, bool *, size_t, cudaStream_t);
+
+// int8_t -> 所有类型
+template void launch_type_conversion_kernel<int8_t, float>(const int8_t *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, double>(const int8_t *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, int8_t>(const int8_t *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, int16_t>(const int8_t *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, int32_t>(const int8_t *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, int64_t>(const int8_t *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, uint8_t>(const int8_t *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, uint16_t>(const int8_t *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, uint32_t>(const int8_t *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, uint64_t>(const int8_t *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int8_t, bool>(const int8_t *, bool *, size_t, cudaStream_t);
+
+// int16_t -> 所有类型
+template void launch_type_conversion_kernel<int16_t, float>(const int16_t *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, double>(const int16_t *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, int8_t>(const int16_t *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, int16_t>(const int16_t *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, int32_t>(const int16_t *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, int64_t>(const int16_t *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, uint8_t>(const int16_t *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, uint16_t>(const int16_t *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, uint32_t>(const int16_t *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, uint64_t>(const int16_t *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int16_t, bool>(const int16_t *, bool *, size_t, cudaStream_t);
+
+// int32_t -> 所有类型
+template void launch_type_conversion_kernel<int32_t, float>(const int32_t *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, double>(const int32_t *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, int8_t>(const int32_t *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, int16_t>(const int32_t *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, int32_t>(const int32_t *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, int64_t>(const int32_t *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, uint8_t>(const int32_t *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, uint16_t>(const int32_t *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, uint32_t>(const int32_t *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, uint64_t>(const int32_t *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int32_t, bool>(const int32_t *, bool *, size_t, cudaStream_t);
+
+// int64_t -> 所有类型
+template void launch_type_conversion_kernel<int64_t, float>(const int64_t *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, double>(const int64_t *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, int8_t>(const int64_t *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, int16_t>(const int64_t *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, int32_t>(const int64_t *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, int64_t>(const int64_t *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, uint8_t>(const int64_t *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, uint16_t>(const int64_t *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, uint32_t>(const int64_t *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, uint64_t>(const int64_t *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<int64_t, bool>(const int64_t *, bool *, size_t, cudaStream_t);
+
+// uint8_t -> 所有类型
+template void launch_type_conversion_kernel<uint8_t, float>(const uint8_t *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, double>(const uint8_t *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, int8_t>(const uint8_t *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, int16_t>(const uint8_t *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, int32_t>(const uint8_t *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, int64_t>(const uint8_t *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, uint8_t>(const uint8_t *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, uint16_t>(const uint8_t *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, uint32_t>(const uint8_t *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, uint64_t>(const uint8_t *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint8_t, bool>(const uint8_t *, bool *, size_t, cudaStream_t);
+
+// uint16_t -> 所有类型
+template void launch_type_conversion_kernel<uint16_t, float>(const uint16_t *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, double>(const uint16_t *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, int8_t>(const uint16_t *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, int16_t>(const uint16_t *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, int32_t>(const uint16_t *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, int64_t>(const uint16_t *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, uint8_t>(const uint16_t *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, uint16_t>(const uint16_t *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, uint32_t>(const uint16_t *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, uint64_t>(const uint16_t *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint16_t, bool>(const uint16_t *, bool *, size_t, cudaStream_t);
+
+// uint32_t -> 所有类型
+template void launch_type_conversion_kernel<uint32_t, float>(const uint32_t *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, double>(const uint32_t *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, int8_t>(const uint32_t *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, int16_t>(const uint32_t *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, int32_t>(const uint32_t *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, int64_t>(const uint32_t *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, uint8_t>(const uint32_t *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, uint16_t>(const uint32_t *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, uint32_t>(const uint32_t *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, uint64_t>(const uint32_t *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint32_t, bool>(const uint32_t *, bool *, size_t, cudaStream_t);
+
+// uint64_t -> 所有类型
+template void launch_type_conversion_kernel<uint64_t, float>(const uint64_t *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, double>(const uint64_t *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, int8_t>(const uint64_t *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, int16_t>(const uint64_t *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, int32_t>(const uint64_t *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, int64_t>(const uint64_t *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, uint8_t>(const uint64_t *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, uint16_t>(const uint64_t *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, uint32_t>(const uint64_t *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, uint64_t>(const uint64_t *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<uint64_t, bool>(const uint64_t *, bool *, size_t, cudaStream_t);
+
+// bool -> 所有类型
+template void launch_type_conversion_kernel<bool, float>(const bool *, float *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, double>(const bool *, double *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, int8_t>(const bool *, int8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, int16_t>(const bool *, int16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, int32_t>(const bool *, int32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, int64_t>(const bool *, int64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, uint8_t>(const bool *, uint8_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, uint16_t>(const bool *, uint16_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, uint32_t>(const bool *, uint32_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, uint64_t>(const bool *, uint64_t *, size_t, cudaStream_t);
+template void launch_type_conversion_kernel<bool, bool>(const bool *, bool *, size_t, cudaStream_t);
 
 }  // namespace cuda
 }  // namespace origin

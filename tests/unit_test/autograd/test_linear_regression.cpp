@@ -34,9 +34,9 @@ protected:
         auto diff       = x0 - x1;
         auto sum_result = origin::sum(origin::pow(diff, 2.0f));
         // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-        // 确保elements张量在正确的设备上
+        // 确保elements张量在正确的设备上（使用sum_result的设备，而不是deviceType()）
         auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(), 
-                                     dtype(DataType::kFloat32).device(deviceType()));
+                                     dtype(DataType::kFloat32).device(sum_result.device()));
         auto result   = sum_result / elements;
         return result;
     }

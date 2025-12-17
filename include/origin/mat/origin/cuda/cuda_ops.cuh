@@ -153,6 +153,14 @@ std::unique_ptr<Mat> broadcast_to(const OriginMat &mat, const Shape &target_shap
  */
 std::unique_ptr<Mat> sum_to(const OriginMat &mat, const Shape &target_shape);
 
+/**
+ * @brief CUDA类型转换算子
+ * @param mat 输入矩阵
+ * @param target_type 目标数据类型
+ * @return 类型转换后的矩阵
+ */
+std::unique_ptr<Mat> convert_datatype(const OriginMat &mat, DataType target_type);
+
 }  // namespace cuda
 }  // namespace origin
 

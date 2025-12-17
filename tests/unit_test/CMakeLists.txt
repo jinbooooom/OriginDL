@@ -87,6 +87,28 @@ set_target_properties(test_tensor_options PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+# 添加张量属性测试
+add_executable(test_tensor_attributes tensor/test_tensor_attributes.cpp)
+add_dependencies(test_tensor_attributes gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_tensor_attributes ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_tensor_attributes PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_tensor_attributes PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+# 添加张量操作方法测试
+add_executable(test_tensor_operations tensor/test_tensor_operations.cpp)
+add_dependencies(test_tensor_operations gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_tensor_operations ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_tensor_operations PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_tensor_operations PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 # 添加算子测试
 # 基础算术算子测试
 add_executable(test_add operator/test_add.cpp)
@@ -165,6 +187,17 @@ add_dependencies(test_pow gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_pow ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
 target_include_directories(test_pow PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_pow PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+# 添加类型提升测试
+add_executable(test_type_promotion operator/test_type_promotion.cpp)
+add_dependencies(test_type_promotion gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_type_promotion ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_type_promotion PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_type_promotion PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
@@ -252,6 +285,8 @@ enable_testing()
 add_test(NAME tensor_create_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_create)
 add_test(NAME multi_type_tensor_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_multi_type_tensor)
 add_test(NAME tensor_options_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_options)
+add_test(NAME tensor_attributes_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_attributes)
+add_test(NAME tensor_operations_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_operations)
 add_test(NAME add_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_add)
 add_test(NAME sub_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sub)
 add_test(NAME mul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_mul)
@@ -260,6 +295,7 @@ add_test(NAME neg_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_neg)
 add_test(NAME square_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_square)
 add_test(NAME exp_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_exp)
 add_test(NAME pow_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_pow)
+add_test(NAME type_promotion_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_type_promotion)
 add_test(NAME sum_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sum)
 add_test(NAME sum_to_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sum_to)
 add_test(NAME broadcast_to_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_broadcast_to)
@@ -272,6 +308,8 @@ add_test(NAME linear_regression_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_linear
 set_tests_properties(tensor_create_test PROPERTIES TIMEOUT 60)
 set_tests_properties(multi_type_tensor_test PROPERTIES TIMEOUT 60)
 set_tests_properties(tensor_options_test PROPERTIES TIMEOUT 60)
+set_tests_properties(tensor_attributes_test PROPERTIES TIMEOUT 60)
+set_tests_properties(tensor_operations_test PROPERTIES TIMEOUT 60)
 set_tests_properties(add_test PROPERTIES TIMEOUT 60)
 set_tests_properties(sub_test PROPERTIES TIMEOUT 60)
 set_tests_properties(mul_test PROPERTIES TIMEOUT 60)
@@ -280,6 +318,7 @@ set_tests_properties(neg_test PROPERTIES TIMEOUT 60)
 set_tests_properties(square_test PROPERTIES TIMEOUT 60)
 set_tests_properties(exp_test PROPERTIES TIMEOUT 60)
 set_tests_properties(pow_test PROPERTIES TIMEOUT 60)
+set_tests_properties(type_promotion_test PROPERTIES TIMEOUT 60)
 set_tests_properties(sum_test PROPERTIES TIMEOUT 60)
 set_tests_properties(sum_to_test PROPERTIES TIMEOUT 60)
 set_tests_properties(broadcast_to_test PROPERTIES TIMEOUT 60)
@@ -296,14 +335,14 @@ message(STATUS "GoogleTest include directories: ${GTEST_INCLUDE_DIRS}")
 # 添加自定义目标来运行所有测试
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMENT "Run all unit tests"
 )
 
 # 添加自定义目标来编译和运行测试
 add_custom_target(test_all
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMENT "Compile and run all unit tests"
 )

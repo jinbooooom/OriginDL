@@ -636,11 +636,11 @@ T item() const
 
 **例子:**
 ```cpp
-// 标量张量（0维）
-auto t1 = Tensor::full({1}, 3.14f);
+// 标量张量（0维，形状为 {}）
+auto t1 = Tensor::full({}, 3.14f);  // 或者 Tensor::full(Shape{}, 3.14f)
 float value1 = t1.item<float>();  // 3.14
 
-// 单元素张量（1维）
+// 单元素张量（1维，形状为 {1}）
 auto t2 = Tensor({3.14f}, {1});
 float value2 = t2.item<float>();  // 3.14
 
@@ -1863,13 +1863,7 @@ auto b = Tensor::ones({3, 2}, device(DeviceType::kCUDA));
 auto c = a + b;  // 可能抛出异常: "Complex broadcasting not yet implemented"
 ```
 
-#### 类型转换
 
-**限制**: `to(DataType)` 在 Origin 后端仅在 CPU 上实现类型转换。
-
-**行为**: CUDA 张量进行类型转换时，会先复制到 CPU，转换后再复制回 CUDA。
-
-**影响**: 性能开销较大，建议在创建张量时就指定正确的数据类型。
 
 ### 自动求导限制
 
