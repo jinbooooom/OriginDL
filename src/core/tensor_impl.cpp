@@ -144,9 +144,8 @@ void TensorImpl::backward()
             }
             else
             {
-                // 梯度不为空，累加（底层返回 unique_ptr，转换为 shared_ptr）
-                auto new_grad = *x.impl_->grad_ + *gx.impl_->data_;
-                x.impl_->grad_ = std::shared_ptr<Mat>(std::move(new_grad));
+                // 梯度不为空，原地累加（不创建新的 Mat，减少内存分配）
+                x.impl_->grad_->add_inplace(*gx.impl_->data_);
             }
 
             if (x.impl_->creator_)

@@ -57,6 +57,13 @@ public:
     virtual std::unique_ptr<Mat> operator+(const Mat &other) const = 0;
 
     /**
+     * @brief 原地矩阵加法（累加到当前矩阵）
+     * @param other 另一个矩阵
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void add_inplace(const Mat &other) = 0;
+
+    /**
      * @brief 矩阵减法
      * @param other 另一个矩阵
      * @return 减法结果

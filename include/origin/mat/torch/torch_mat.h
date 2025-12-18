@@ -158,6 +158,7 @@ public:
     // 兼容性方法
     std::unique_ptr<Mat> T() const { return transpose(); }
     std::unique_ptr<Mat> operator+(const Mat &other) const override;
+    void add_inplace(const Mat &other) override;
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;

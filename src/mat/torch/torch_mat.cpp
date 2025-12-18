@@ -149,6 +149,13 @@ std::unique_ptr<Mat> TorchMat::operator+(const Mat &other) const
     return std::make_unique<TorchMat>(data_ + other_torch.data_);
 }
 
+void TorchMat::add_inplace(const Mat &other)
+{
+    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
+    // PyTorch 的原地操作：data_.add_(other_torch.data_)
+    data_.add_(other_torch.data_);
+}
+
 std::unique_ptr<Mat> TorchMat::operator-(const Mat &other) const
 {
     const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);

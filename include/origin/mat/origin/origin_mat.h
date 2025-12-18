@@ -70,6 +70,7 @@ public:
     std::unique_ptr<Mat> reshape(const Shape &shape) const override;
     std::unique_ptr<Mat> transpose() const override;
     std::unique_ptr<Mat> operator+(const Mat &other) const override;
+    void add_inplace(const Mat &other) override;
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;

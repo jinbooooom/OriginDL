@@ -12,6 +12,7 @@ namespace cpu
 
 // === 基础运算 ===
 std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b);
+void add_inplace(OriginMat &a, const OriginMat &b);
 std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b);
 std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b);
 std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b);

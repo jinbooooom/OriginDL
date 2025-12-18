@@ -210,6 +210,29 @@ std::unique_ptr<Mat> OriginMat::operator+(const Mat &other) const
     }
 }
 
+void OriginMat::add_inplace(const Mat &other)
+{
+    const OriginMat &other_mat = static_cast<const OriginMat &>(other);
+
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        cpu::add_inplace(*this, other_mat);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        cuda::add_inplace(*this, other_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for add_inplace: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
 std::unique_ptr<Mat> OriginMat::operator-(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);

@@ -65,5 +65,38 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
     return result;
 }
 
+/**
+ * @brief CUDA原地加法算子实现（累加到目标矩阵）
+ * @param a 目标矩阵（会被修改）
+ * @param b 源矩阵（不会被修改）
+ * @note 要求 a 和 b 的形状相同
+ */
+void add_inplace(OriginMat &a, const OriginMat &b)
+{
+    // 验证输入
+    VALIDATE_SAME_DTYPE(a, b);
+    VALIDATE_SAME_CUDA_DEVICE(a, b);
+
+    // 验证形状必须相同（原地操作要求）
+    if (a.shape() != b.shape())
+    {
+        THROW_INVALID_ARG("add_inplace: shapes must match. a.shape() = {}, b.shape() = {}", a.shape().to_string(),
+                          b.shape().to_string());
+    }
+
+    // 获取数据指针
+    void *a_data       = a.storage()->data();
+    const void *b_data = b.storage()->data();
+
+    // 执行原地加法：a = a + b
+    device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+        launch_elementwise_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                            static_cast<T *>(a_data), a.elements(), AddOp{}, 0);
+    });
+
+    // 同步等待完成
+    cudaDeviceSynchronize();
+}
+
 }  // namespace cuda
 }  // namespace origin
