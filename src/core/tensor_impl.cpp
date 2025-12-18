@@ -46,13 +46,13 @@ TensorImpl TensorImpl::randn(const Shape &shape, const TensorOptions &options)
     return TensorImpl(std::move(mat));
 }
 
-// 赋值运算符实现
+// 赋值运算符实现 - clone data_ 和 grad_（保证值语义，赋值后独立）
 TensorImpl &TensorImpl::operator=(const TensorImpl &other)
 {
     if (this != &other)
     {
-        data_       = other.data_ ? other.data_->clone() : nullptr;
-        grad_       = other.grad_ ? other.grad_->clone() : nullptr;
+        data_       = other.data_ ? std::shared_ptr<Mat>(other.data_->clone()) : nullptr;
+        grad_       = other.grad_ ? std::shared_ptr<Mat>(other.grad_->clone()) : nullptr;
         creator_    = other.creator_;
         generation_ = other.generation_;
     }
@@ -85,7 +85,7 @@ void TensorImpl::backward()
     {
         auto data_device      = data_->device();
         TensorOptions options = TensorOptions(data_->dtype()).device(data_device);
-        grad_                 = Mat_t::from_scalar(1, data_->shape(), options);
+        grad_                 = std::shared_ptr<Mat>(Mat_t::from_scalar(1, data_->shape(), options));
     }
 
     auto funcs    = std::list<FunctionPtr>();
@@ -139,15 +139,14 @@ void TensorImpl::backward()
             // 梯度累积逻辑：如果梯度为空，直接赋值；否则累加
             if (!x.impl_->grad_)
             {
-                // 梯度为空，直接赋值
-                x.impl_->grad_ = gx.impl_->data_->clone();
+                // 梯度为空，直接共享（底层返回 unique_ptr，转换为 shared_ptr）
+                x.impl_->grad_ = gx.impl_->data_;
             }
             else
             {
-                // 梯度不为空，累加
-                auto current_grad = x.impl_->grad_->clone();
-                auto new_grad     = *current_grad + *gx.impl_->data_;
-                x.impl_->grad_    = std::move(new_grad);
+                // 梯度不为空，累加（底层返回 unique_ptr，转换为 shared_ptr）
+                auto new_grad = *x.impl_->grad_ + *gx.impl_->data_;
+                x.impl_->grad_ = std::shared_ptr<Mat>(std::move(new_grad));
             }
 
             if (x.impl_->creator_)
@@ -166,13 +165,13 @@ void TensorImpl::clear_grad()
 TensorImpl TensorImpl::reshape(const Shape &shape) const
 {
     auto new_mat = data_->reshape(shape);
-    return TensorImpl(std::move(new_mat));
+    return TensorImpl(std::move(new_mat));  // 构造函数会自动将 unique_ptr 转换为 shared_ptr
 }
 
 TensorImpl TensorImpl::transpose() const
 {
     auto new_mat = data_->transpose();
-    return TensorImpl(std::move(new_mat));
+    return TensorImpl(std::move(new_mat));  // 构造函数会自动将 unique_ptr 转换为 shared_ptr
 }
 
 // 访问器方法实现
@@ -246,7 +245,7 @@ TensorImpl TensorImpl::to(const TensorOptions &options) const
     {
         converted_mat = converted_mat->to_device(options.device());
     }
-    return TensorImpl(std::move(converted_mat));
+    return TensorImpl(std::move(converted_mat));  // 构造函数会自动将 unique_ptr 转换为 shared_ptr
 }
 
 // 移除所有私有辅助方法，直接实现核心逻辑

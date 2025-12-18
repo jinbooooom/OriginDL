@@ -23,10 +23,18 @@ public:
     virtual ~Mat() = default;
 
     /**
-     * @brief 克隆矩阵
+     * @brief 克隆矩阵（深拷贝，创建独立的数据副本）
      * @return 矩阵的副本
      */
     virtual std::unique_ptr<Mat> clone() const = 0;
+
+    /**
+     * @brief 创建视图（浅拷贝，共享底层存储，只改变形状）
+     * @param shape 新的形状
+     * @return 视图矩阵，共享底层存储
+     * @note view() 要求元素总数必须匹配，且张量必须是连续的
+     */
+    virtual std::unique_ptr<Mat> view(const Shape &shape) const = 0;
 
     /**
      * @brief 重塑矩阵形状

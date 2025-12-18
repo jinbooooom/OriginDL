@@ -66,6 +66,7 @@ public:
 
     // Mat interface implementations
     std::unique_ptr<Mat> clone() const override;
+    std::unique_ptr<Mat> view(const Shape &shape) const override;
     std::unique_ptr<Mat> reshape(const Shape &shape) const override;
     std::unique_ptr<Mat> transpose() const override;
     std::unique_ptr<Mat> operator+(const Mat &other) const override;

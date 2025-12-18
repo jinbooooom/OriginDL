@@ -91,6 +91,26 @@ std::unique_ptr<Mat> TorchMat::clone() const
     return std::make_unique<TorchMat>(data_.clone());
 }
 
+std::unique_ptr<Mat> TorchMat::view(const Shape &shape) const
+{
+    // 验证元素总数必须匹配
+    size_t current_elements = 1;
+    for (int64_t i = 0; i < data_.dim(); ++i)
+    {
+        current_elements *= data_.size(i);
+    }
+    if (shape.elements() != current_elements)
+    {
+        THROW_INVALID_ARG("View: total elements must match. Original: {}, Target: {}", current_elements,
+                          shape.elements());
+    }
+
+    // 确保张量是连续的（view() 的要求）
+    auto contiguous_data = data_.contiguous();
+    auto sizes           = TorchMat::convert_shape_to_torch_sizes(shape);
+    return std::make_unique<TorchMat>(contiguous_data.view(sizes));
+}
+
 std::unique_ptr<Mat> TorchMat::reshape(const Shape &shape) const
 {
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);

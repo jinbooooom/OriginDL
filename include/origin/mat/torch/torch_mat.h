@@ -151,6 +151,7 @@ public:
 
     // 实现Mat接口的所有虚函数
     std::unique_ptr<Mat> clone() const override;
+    std::unique_ptr<Mat> view(const Shape &shape) const override;
     std::unique_ptr<Mat> reshape(const Shape &shape) const override;
     std::unique_ptr<Mat> transpose() const override;
 

@@ -102,7 +102,48 @@ std::unique_ptr<Mat> OriginMat::from_memory(const void *data,
 // Mat interface implementations - 委托给CPU模块
 std::unique_ptr<Mat> OriginMat::clone() const
 {
-    return std::make_unique<OriginMat>(storage_, shape_, dtype_);
+    // 深拷贝：创建新的 Storage 并复制数据（真正的独立副本）
+    size_t data_size = shape_.elements() * element_size(dtype_);
+    auto new_storage = Storage::create(data_size, storage_->device_type(), storage_->device_index());
+
+    // 根据设备类型复制数据
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        std::memcpy(new_storage->data(), storage_->data(), data_size);
+    }
+    else
+    {
+#ifdef WITH_CUDA
+        cudaError_t err = cudaMemcpy(new_storage->data(), storage_->data(), data_size, cudaMemcpyDeviceToDevice);
+        if (err != cudaSuccess)
+        {
+            THROW_RUNTIME_ERROR("CUDA memory copy failed in clone: {}", cudaGetErrorString(err));
+        }
+        cudaDeviceSynchronize();
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+
+    // 创建新的 OriginMat，使用新的 Storage
+    return std::make_unique<OriginMat>(new_storage, shape_, dtype_);
+}
+
+std::unique_ptr<Mat> OriginMat::view(const Shape &new_shape) const
+{
+    // 验证元素总数必须匹配
+    if (new_shape.elements() != shape_.elements())
+    {
+        THROW_INVALID_ARG("View: total elements must match. Original: {}, Target: {}", shape_.elements(),
+                          new_shape.elements());
+    }
+
+    // 验证新形状是否有效
+    utils::validate_shape(new_shape);
+
+    // 创建视图：共享 Storage，只改变 shape 和 strides（零拷贝操作）
+    // 使用现有的构造函数，它会自动计算新的 strides
+    return std::make_unique<OriginMat>(storage_, new_shape, dtype_);
 }
 
 std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const

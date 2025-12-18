@@ -80,16 +80,16 @@ TEST_P(LinearRegressionTest, ConvergeToExpectedValues)
 
         // 打印结果
 #if 0
-        float loss_val = loss.to_vector<float>()[0];
-        float w_val = w.to_vector<float>()[0];
-        float b_val = b.to_vector<float>()[0];
+        float loss_val = loss.item<float>();
+        float w_val = w.item<float>();
+        float b_val = b.item<float>();
         logi("Iteration {}: loss = {:.6f}, w = {:.6f}, b = {:.6f}", i, loss_val, w_val, b_val);
 #endif
     }
 
     // 验证权重是否收敛到期望值
-    float final_w = w.to_vector<float>()[0];
-    float final_b = b.to_vector<float>()[0];
+    float final_w = w.item<float>();
+    float final_b = b.item<float>();
 
     EXPECT_NEAR(final_w, kExpectedW, kTolerance)
         << "Weight w should converge to " << kExpectedW << ", but got " << final_w;

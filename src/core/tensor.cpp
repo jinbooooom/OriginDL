@@ -153,8 +153,9 @@ Tensor Tensor::grad() const
     {
         return Tensor::zeros(shape(), origin::dtype(DataType::kFloat32).device(device()));  // TODO，创建与input同类型的gtad
     }
-    // 通过TensorImpl创建，避免直接类型转换
-    return Tensor(impl_->grad_->clone());
+    // 返回共享的梯度（与PyTorch行为一致）
+    auto grad_impl = std::make_shared<TensorImpl>(impl_->grad_);  // 使用 shared_ptr 构造函数，共享 grad_
+    return Tensor(grad_impl);
 }
 
 void Tensor::set_creator(const FunctionPtr &func)

@@ -487,13 +487,22 @@ auto bytes = t.nbytes();  // 16 (4个元素 × 4字节)
 Tensor grad() const
 ```
 
-获取张量的梯度。如果梯度未初始化，将返回一个全零张量。
+获取张量的梯度。如果未执行 backward()，将返回一个全零张量。
 
 **返回值:** Tensor – 梯度张量
 
+**注意:**
+- 如果梯度未初始化（未执行 `backward()`），将返回一个全零张量，形状和设备与原始张量相同
+- 这与 PyTorch 的行为不同：PyTorch 在梯度未初始化时返回 `None`
+- 返回的梯度类型始终为 `float32`，即使原始张量是其他类型（见[当前实现限制](#当前实现限制)）
+
 **例子:**
 ```cpp
-auto x = Tensor::ones({2, 2});
+auto x = Tensor::ones({2, 2}, requires_grad(true));
+
+// 未执行 backward() 时，grad() 返回全零张量
+auto grad_before = x.grad();  // 返回全零张量，形状为 {2, 2}
+
 auto y = x * x;
 y.backward();
 auto g = x.grad();  // 获取x的梯度
