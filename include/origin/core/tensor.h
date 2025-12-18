@@ -11,7 +11,6 @@ class Mat;
 
 namespace origin
 {
-
 /*
 Tensor 架构层次：
 Tensor (用户接口)
@@ -21,7 +20,57 @@ TensorImpl (核心实现)
 Mat (抽象接口)
     ↓ 具体实现
 TorchMat/OriginMat (具体后端)
+
+    Tensor (值语义包装)
+    └─> TensorImplPtr (shared_ptr<TensorImpl>)
+          └─> data_: shared_ptr<Mat>
+                └─> OriginMat::storage_: shared_ptr<Storage>
+                      └─> Storage::data_: void* (真正的数据)
+          
+          └─> grad_: shared_ptr<Mat>
+                └─> OriginMat::storage_: shared_ptr<Storage>
+                      └─> Storage::data_: void* (真正的数据)
+
+Storage 是数据拥有者，可以被多个 Mat 共享
+Mat 可以是数据拥有者或视图（view）
+TensorImpl 的 data_ 和 grad_ 应该直接共享，不需要 clone
+reshape 等操作应该创建视图，共享 Storage 
+
+数据流路径分析
+路径 1: 算子前向传播
+用户代码: Tensor y = x0 + x1;
+  ↓
+Add::forward(xs)
+  ↓
+mat(xs[0]) + mat(xs[1])  // 返回 unique_ptr<Mat>
+  ↓
+convert_mat_to_tensor(std::move(result))  // unique_ptr<Mat> -> Tensor
+  ↓
+Tensor(std::unique_ptr<Mat>)  // Tensor 构造函数
+  ↓
+TensorImpl(std::unique_ptr<Mat>)  // unique_ptr -> shared_ptr 转换
+  ↓
+OriginMat 持有新的 Storage (数据已计算)
+
+路径 2: 梯度反向传播
+backward()
+  ↓
+梯度计算: gx = gy * x  // 返回 unique_ptr<Mat>
+  ↓
+x.impl_->grad_ = gx.impl_->data_  // 共享或累加
+  ↓
+累加时: x.impl_->grad_->add_inplace(*gx.impl_->data_)  // 原地累加（已优化）
+
+路径 3: reshape/transpose
+Tensor::reshape(shape)
+  ↓
+TensorImpl::reshape(shape)
+  ↓
+data_->reshape(shape)  // 返回 unique_ptr<Mat>
+  ↓
+当前实现: 连续张量使用view()（零拷贝），非连续张量创建新Storage（已优化）
 */
+
 
 /**
  * @brief 张量类，深度学习计算的核心数据结构

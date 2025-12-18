@@ -223,7 +223,7 @@ std::unique_ptr<Mat> sum(const OriginMat &mat, int axis)
             launch_sum_reduce_kernel(mat.data_ptr<T>(), result->data_ptr<T>(), mat.elements());
         });
 
-        cudaDeviceSynchronize();
+        CUDA_CHECK_ASYNC();
         return result;
     }
     else
@@ -261,7 +261,7 @@ std::unique_ptr<Mat> sum(const OriginMat &mat, int axis)
             launch_sum_axis_kernel(mat.data_ptr<T>(), result->data_ptr<T>(), outer_size, inner_size, axis_size);
         });
 
-        cudaDeviceSynchronize();
+        CUDA_CHECK_ASYNC();
         return result;
     }
 }

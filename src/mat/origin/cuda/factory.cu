@@ -128,8 +128,7 @@ std::unique_ptr<origin::OriginMat> zeros(const Shape &shape, const TensorOptions
     device_common::TypeDispatcher::dispatch_void(options.dtype(),
                                                  [&]<typename T>() { launch_zeros_kernel(static_cast<T *>(data), n); });
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }
@@ -158,8 +157,7 @@ std::unique_ptr<origin::OriginMat> ones(const Shape &shape, const TensorOptions 
     device_common::TypeDispatcher::dispatch_void(options.dtype(),
                                                  [&]<typename T>() { launch_ones_kernel(static_cast<T *>(data), n); });
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }
@@ -188,8 +186,7 @@ std::unique_ptr<origin::OriginMat> full(const Shape &shape, const Scalar &scalar
     device_common::TypeDispatcher::dispatch_void(
         options.dtype(), [&]<typename T>() { launch_full_kernel(static_cast<T *>(data), n, scalar.to<T>()); });
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }

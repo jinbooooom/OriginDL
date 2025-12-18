@@ -189,7 +189,7 @@ std::unique_ptr<Mat> broadcast_to(const OriginMat &mat, const Shape &target_shap
         launch_broadcast_kernel(mat.data_ptr<T>(), result->data_ptr<T>(), mat.elements(), target_shape.elements());
     });
 
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
     return result;
 }
 

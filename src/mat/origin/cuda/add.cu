@@ -59,8 +59,7 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
         THROW_RUNTIME_ERROR("Complex broadcasting not yet implemented for CUDA add operation");
     }
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }
@@ -94,8 +93,7 @@ void add_inplace(OriginMat &a, const OriginMat &b)
                                             static_cast<T *>(a_data), a.elements(), AddOp{}, 0);
     });
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 }
 
 }  // namespace cuda

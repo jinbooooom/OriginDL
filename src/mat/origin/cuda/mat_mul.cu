@@ -277,8 +277,7 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
         launch_matmul_2d_kernel(a.data_ptr<T>(), b.data_ptr<T>(), result->data_ptr<T>(), M, N, K);
     });
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }

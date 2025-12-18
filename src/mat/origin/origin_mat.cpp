@@ -145,12 +145,14 @@ std::unique_ptr<Mat> OriginMat::clone() const
     else
     {
 #ifdef WITH_CUDA
+        // 先同步，确保所有之前的异步kernel操作完成
+        // 然后再复制数据，确保复制的是最新的数据
+        cudaDeviceSynchronize();
         cudaError_t err = cudaMemcpy(new_storage->data(), storage_->data(), data_size, cudaMemcpyDeviceToDevice);
         if (err != cudaSuccess)
         {
             THROW_RUNTIME_ERROR("CUDA memory copy failed in clone: {}", cudaGetErrorString(err));
         }
-        cudaDeviceSynchronize();
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif

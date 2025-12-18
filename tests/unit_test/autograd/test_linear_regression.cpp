@@ -46,7 +46,7 @@ protected:
 TEST_P(LinearRegressionTest, ConvergeToExpectedValues)
 {
     // 生成随机数据
-    size_t input_size = 100;
+    size_t input_size = 256; // 数据量足够大，cuda才有优势，如 256000，不然 cuda 的耗时都花在 launch kernel 上了
     auto x            = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(deviceType()));
     // 设置一个噪声，使真实值在预测结果附近
     auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(deviceType())) * 0.1f;

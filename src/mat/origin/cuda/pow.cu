@@ -175,7 +175,8 @@ auto pow(const OriginMat &base, const Scalar &exponent) -> std::unique_ptr<Mat>
         }
     });
 
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
+
     return result;
 }
 

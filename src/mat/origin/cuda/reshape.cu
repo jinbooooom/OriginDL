@@ -106,8 +106,7 @@ std::unique_ptr<Mat> reshape(const OriginMat &mat, const Shape &new_shape)
         THROW_RUNTIME_ERROR("CUDA memory copy failed in reshape: {}", cudaGetErrorString(err));
     }
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }

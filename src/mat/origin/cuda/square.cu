@@ -37,8 +37,7 @@ std::unique_ptr<Mat> square(const OriginMat &mat)
                                          SquareOp{}, 0);
     });
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }

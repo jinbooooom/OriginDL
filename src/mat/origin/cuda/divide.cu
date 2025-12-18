@@ -59,8 +59,7 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b)
         THROW_RUNTIME_ERROR("Complex broadcasting not yet implemented for CUDA divide operation");
     }
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }

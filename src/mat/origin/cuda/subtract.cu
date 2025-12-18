@@ -58,8 +58,7 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b)
         THROW_RUNTIME_ERROR("Complex broadcasting not yet implemented for CUDA subtract operation");
     }
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }

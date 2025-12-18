@@ -199,8 +199,7 @@ std::unique_ptr<Mat> transpose(const OriginMat &mat)
                                        static_cast<int>(mat.shape()[1]));
         });
 
-        // 同步等待完成
-        cudaDeviceSynchronize();
+        CUDA_CHECK_ASYNC();
 
         return result;
     }
@@ -224,8 +223,7 @@ std::unique_ptr<Mat> transpose(const OriginMat &mat)
                                        static_cast<int>(second_last_dim), static_cast<int>(outer_elements));
         });
 
-        // 同步等待完成
-        cudaDeviceSynchronize();
+        CUDA_CHECK_ASYNC();
 
         return result;
     }

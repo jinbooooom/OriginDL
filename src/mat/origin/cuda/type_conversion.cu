@@ -65,8 +65,7 @@ std::unique_ptr<Mat> convert_datatype(const OriginMat &mat, DataType target_type
         });
     });
 
-    // 同步等待完成
-    cudaDeviceSynchronize();
+    CUDA_CHECK_ASYNC();
 
     return result;
 }

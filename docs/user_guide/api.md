@@ -1637,6 +1637,25 @@ OriginDL 提供了 CUDA 支持，允许在 GPU 上进行张量计算。使用 CU
 2. 编译时启用 CUDA 支持（使用 `--cuda` 标志）
 3. 运行时系统有可用的 CUDA 设备
 
+### CUDA 异步执行策略
+
+OriginDL 采用与 PyTorch 类似的异步执行策略，以最大化 GPU 利用率：
+
+- **算子操作（异步）**：所有 CUDA 算子（如 `add`、`multiply`、`mat_mul` 等）在启动 kernel 后立即返回，不等待 GPU 完成计算。这允许 CPU 和 GPU 并行工作，提高整体性能。
+
+- **关键同步点**：仅在以下关键位置进行同步（调用 `cudaDeviceSynchronize()`）：
+  - `item()` 调用时：需要从 GPU 读取标量值到 CPU
+  - `to_vector()` 调用时：需要从 GPU 复制数据到 CPU
+  - `to_device()` 从 GPU 复制到 CPU 时：确保数据复制前所有 GPU 操作已完成
+  - 数据复制操作（如 `clone()`）：确保复制的是最新的数据
+
+这种设计允许：
+- 多个算子操作可以流水线执行
+- CPU 可以在 GPU 计算时继续执行其他任务
+- 减少不必要的同步开销，提高性能
+
+**注意**：由于 CUDA 操作的异步特性，如果需要在 CPU 上访问 GPU 张量的数据，必须通过 `item()` 或 `to_vector()` 等方法，这些方法会自动处理必要的同步。
+
 ### origin::cuda::is_available
 
 ```cpp
