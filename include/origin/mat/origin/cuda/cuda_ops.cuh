@@ -28,14 +28,6 @@ namespace cuda
 std::unique_ptr<Mat> add(const origin::OriginMat &a, const origin::OriginMat &b);
 
 /**
- * @brief CUDA原地加法算子（累加到目标矩阵）
- * @param a 目标矩阵（会被修改）
- * @param b 源矩阵（不会被修改）
- * @note 要求 a 和 b 的形状相同
- */
-void add_inplace(origin::OriginMat &a, const origin::OriginMat &b);
-
-/**
  * @brief CUDA减法算子
  * @param a 输入矩阵A
  * @param b 输入矩阵B

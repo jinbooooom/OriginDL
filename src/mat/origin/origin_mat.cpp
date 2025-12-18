@@ -21,6 +21,25 @@
 #    include "origin/mat/origin/cuda/factory.cuh"
 #endif
 
+// 前向声明
+class OriginMat;
+
+// 前向声明 add_inplace 函数（在 add.cpp 和 add.cu 中定义）
+namespace origin
+{
+namespace cpu
+{
+void add_inplace(::origin::OriginMat &a, const ::origin::OriginMat &b);
+}
+#ifdef WITH_CUDA
+namespace cuda
+{
+void add_inplace(::origin::OriginMat &a, const ::origin::OriginMat &b);
+}
+#endif
+}
+
+
 namespace origin
 {
 
@@ -30,6 +49,18 @@ OriginMat::OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, DataT
 {
     utils::validate_shape(shape);
     strides_ = utils::compute_strides(shape);
+}
+
+// 视图构造函数实现（用于创建视图，共享Storage）
+OriginMat::OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, const std::vector<size_t> &strides, DataType dtype)
+    : storage_(storage), shape_(shape), dtype_(dtype), strides_(strides)
+{
+    utils::validate_shape(shape);
+    // 验证strides大小与shape匹配
+    if (strides.size() != shape.size())
+    {
+        THROW_INVALID_ARG("Strides size {} must match shape size {}", strides.size(), shape.size());
+    }
 }
 
 // 为了向后兼容，保留一些构造函数
@@ -146,28 +177,73 @@ std::unique_ptr<Mat> OriginMat::view(const Shape &new_shape) const
     return std::make_unique<OriginMat>(storage_, new_shape, dtype_);
 }
 
+bool OriginMat::is_contiguous() const
+{
+    // 检查strides是否是标准的C风格连续（row-major）
+    // 对于连续张量：strides[i] * shape[i] == strides[i-1] (对于i > 0)，且strides[ndim-1] == 1
+    if (shape_.size() == 0)
+    {
+        return true;  // 标量张量总是连续的
+    }
+
+    // 计算标准的连续strides
+    auto expected_strides = utils::compute_strides(shape_);
+
+    // 比较实际strides和期望strides
+    if (strides_.size() != expected_strides.size())
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < strides_.size(); ++i)
+    {
+        if (strides_[i] != expected_strides[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+std::unique_ptr<Mat> OriginMat::contiguous() const
+{
+    // 如果已经是连续的，返回视图（共享Storage）
+    if (is_contiguous())
+    {
+        return view(shape_);
+    }
+
+    // 如果不是连续的，创建连续副本（深拷贝）
+    return clone();
+}
+
 std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const
 {
-    if (storage_->device_type() == DeviceType::kCPU)
+    // 验证元素总数必须匹配
+    if (new_shape.elements() != shape_.elements())
     {
-        return cpu::reshape(*this, new_shape);
+        THROW_INVALID_ARG("Reshape: total elements must match. Original: {}, Target: {}", shape_.elements(),
+                          new_shape.elements());
     }
-    else if (storage_->device_type() == DeviceType::kCUDA)
+
+    // 如果张量是连续的，使用view()创建视图（零拷贝）
+    if (is_contiguous())
     {
-#ifdef WITH_CUDA
-        return cuda::reshape(*this, new_shape);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
+        return view(new_shape);
     }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for reshape: {}", static_cast<int>(storage_->device_type()));
-    }
+
+    // 如果张量不是连续的，需要创建连续副本后再reshape
+    // 先创建连续副本，然后对连续副本使用view
+    auto contiguous_mat = contiguous();
+    return contiguous_mat->view(new_shape);
 }
 
 std::unique_ptr<Mat> OriginMat::transpose() const
 {
+    // 注意：当前实现使用数据转置（真正重新排列数据），而不是视图转置
+    // 视图转置需要修改所有数据访问方法以支持strides，这是一个大工程
+    // 未来可以优化为视图转置，但需要重构数据访问逻辑
     if (storage_->device_type() == DeviceType::kCPU)
     {
         return cpu::transpose(*this);

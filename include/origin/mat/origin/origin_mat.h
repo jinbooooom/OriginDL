@@ -53,6 +53,15 @@ public:
      */
     OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, DataType dtype);
 
+    /**
+     * @brief 视图构造函数（用于创建视图，共享Storage）
+     * @param storage 存储对象
+     * @param shape 张量形状
+     * @param strides 步长信息
+     * @param dtype 数据类型
+     */
+    OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, const std::vector<size_t> &strides, DataType dtype);
+
     // 为了向后兼容，保留一些构造函数
     OriginMat(const Shape &shape, DataType dtype);
     OriginMat(const Shape &shape, DataType dtype, Device device);
@@ -67,6 +76,8 @@ public:
     // Mat interface implementations
     std::unique_ptr<Mat> clone() const override;
     std::unique_ptr<Mat> view(const Shape &shape) const override;
+    bool is_contiguous() const override;
+    std::unique_ptr<Mat> contiguous() const override;
     std::unique_ptr<Mat> reshape(const Shape &shape) const override;
     std::unique_ptr<Mat> transpose() const override;
     std::unique_ptr<Mat> operator+(const Mat &other) const override;

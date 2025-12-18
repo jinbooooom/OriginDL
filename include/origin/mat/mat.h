@@ -37,9 +37,22 @@ public:
     virtual std::unique_ptr<Mat> view(const Shape &shape) const = 0;
 
     /**
+     * @brief 检查矩阵是否在内存中连续存储
+     * @return 如果矩阵是连续的返回true，否则返回false
+     */
+    virtual bool is_contiguous() const = 0;
+
+    /**
+     * @brief 创建连续存储的矩阵副本（如果已经是连续的则返回视图）
+     * @return 连续存储的矩阵
+     */
+    virtual std::unique_ptr<Mat> contiguous() const = 0;
+
+    /**
      * @brief 重塑矩阵形状
      * @param shape 新的形状
      * @return 重塑后的矩阵
+     * @note 如果矩阵是连续的，会使用view()创建视图；否则会创建新存储并复制数据
      */
     virtual std::unique_ptr<Mat> reshape(const Shape &shape) const = 0;
 

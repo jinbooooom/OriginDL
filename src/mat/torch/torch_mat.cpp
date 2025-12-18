@@ -111,6 +111,24 @@ std::unique_ptr<Mat> TorchMat::view(const Shape &shape) const
     return std::make_unique<TorchMat>(contiguous_data.view(sizes));
 }
 
+bool TorchMat::is_contiguous() const
+{
+    return data_.is_contiguous();
+}
+
+std::unique_ptr<Mat> TorchMat::contiguous() const
+{
+    // 如果已经是连续的，返回视图（共享Storage）
+    if (is_contiguous())
+    {
+        auto sizes = TorchMat::convert_shape_to_torch_sizes(shape());
+        return std::make_unique<TorchMat>(data_.view(sizes));
+    }
+
+    // 如果不是连续的，创建连续副本
+    return std::make_unique<TorchMat>(data_.contiguous());
+}
+
 std::unique_ptr<Mat> TorchMat::reshape(const Shape &shape) const
 {
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
