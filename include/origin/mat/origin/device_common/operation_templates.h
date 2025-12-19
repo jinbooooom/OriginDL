@@ -310,7 +310,7 @@ class BroadcastToCompute
 {
 public:
     /**
-     * @brief 执行广播到指定形状操作
+     * @brief 执行广播到指定形状操作（维度感知版本）
      * @tparam T 数据类型
      * @param src 输入矩阵
      * @param dst 结果矩阵
@@ -321,12 +321,61 @@ public:
         const T *src_data = src.data_ptr<T>();
         T *dst_data       = dst.data_ptr<T>();
 
-        const size_t src_elements = src.elements();
-        const size_t dst_elements = dst.elements();
+        const Shape &src_shape = src.shape();
+        const Shape &dst_shape = dst.shape();
 
-        for (size_t i = 0; i < dst_elements; ++i)
+        // 计算源和目标的 strides（用于多维索引）
+        std::vector<size_t> src_strides(src_shape.size());
+        std::vector<size_t> dst_strides(dst_shape.size());
+        
+        size_t src_stride = 1;
+        size_t dst_stride = 1;
+        for (int i = static_cast<int>(src_shape.size()) - 1; i >= 0; --i)
         {
-            dst_data[i] = src_data[i % src_elements];
+            src_strides[i] = src_stride;
+            src_stride *= src_shape[i];
+        }
+        for (int i = static_cast<int>(dst_shape.size()) - 1; i >= 0; --i)
+        {
+            dst_strides[i] = dst_stride;
+            dst_stride *= dst_shape[i];
+        }
+
+        // 对齐维度：从右到左对齐
+        int src_ndim = static_cast<int>(src_shape.size());
+        int dst_ndim = static_cast<int>(dst_shape.size());
+        
+        // 对每个输出元素计算对应的源索引
+        for (size_t dst_idx = 0; dst_idx < dst_shape.elements(); ++dst_idx)
+        {
+            // 将线性索引转换为多维索引
+            std::vector<size_t> dst_indices(dst_ndim);
+            size_t temp = dst_idx;
+            for (int i = dst_ndim - 1; i >= 0; --i)
+            {
+                dst_indices[i] = temp % dst_shape[i];
+                temp /= dst_shape[i];
+            }
+
+            // 计算对应的源索引
+            // 从右到左对齐维度（NumPy/PyTorch 广播规则）
+            size_t src_idx = 0;
+            for (int i = 0; i < dst_ndim; ++i)
+            {
+                // 从右到左对齐：dst 的最后一个维度对应 src 的最后一个维度
+                int dst_dim_idx = dst_ndim - 1 - i;
+                int src_dim_idx = src_ndim - 1 - i;  // 从右到左对齐
+                
+                if (src_dim_idx >= 0 && src_dim_idx < src_ndim)
+                {
+                    // 如果源维度大小为1，则索引为0（广播）
+                    size_t src_dim_size = src_shape[src_dim_idx];
+                    size_t src_index = (src_dim_size == 1) ? 0 : dst_indices[dst_dim_idx];
+                    src_idx += src_index * src_strides[src_dim_idx];
+                }
+            }
+
+            dst_data[dst_idx] = src_data[src_idx];
         }
     }
 };
