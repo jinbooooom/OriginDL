@@ -20,6 +20,7 @@ file(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/data/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operators/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operators/**/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/*.cpp

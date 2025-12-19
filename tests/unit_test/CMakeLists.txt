@@ -55,6 +55,26 @@ set_target_properties(test_no_grad PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_dataset data/test_dataset.cpp)
+add_dependencies(test_dataset gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_dataset ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_dataset PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_dataset PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_dataloader data/test_dataloader.cpp)
+add_dependencies(test_dataloader gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_dataloader ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_dataloader PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_dataloader PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 # 添加多类型张量测试
 add_executable(test_multi_type_tensor tensor/test_multi_type_tensor.cpp)
 add_dependencies(test_multi_type_tensor gtest gtest_main origindl test_utils gtest_utils)
@@ -374,6 +394,8 @@ enable_testing()
 # 添加测试
 add_test(NAME tensor_create_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_create)
 add_test(NAME no_grad_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_no_grad)
+add_test(NAME dataset_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_dataset)
+add_test(NAME dataloader_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_dataloader)
 add_test(NAME multi_type_tensor_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_multi_type_tensor)
 add_test(NAME tensor_options_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_options)
 add_test(NAME tensor_attributes_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_attributes)
