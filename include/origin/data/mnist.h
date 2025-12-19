@@ -23,14 +23,6 @@ private:
     std::string root_;                          // 数据存储根目录
 
     /**
-     * @brief 下载 MNIST 数据集文件
-     * @param url 文件 URL
-     * @param filepath 保存路径
-     * @return 是否下载成功
-     */
-    bool download_file(const std::string &url, const std::string &filepath);
-
-    /**
      * @brief 读取 MNIST 图像文件
      * @param filepath 文件路径
      * @return 是否读取成功

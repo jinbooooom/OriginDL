@@ -7,6 +7,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 namespace origin
 {
@@ -29,16 +30,42 @@ MNIST::MNIST(const std::string &root, bool train) : train_(train), root_(root)
         labels_file = root_ + "/t10k-labels-idx1-ubyte";
     }
 
-    // 如果文件不存在，尝试下载（简化版本：提示用户手动下载）
+    // 如果文件不存在，自动调用下载脚本
     if (!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file))
     {
-        THROW_RUNTIME_ERROR(
-            "MNIST data files not found. Please download them from:\n"
-            "  Training images: http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz\n"
-            "  Training labels: http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz\n"
-            "  Test images: http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz\n"
-            "  Test labels: http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz\n"
-            "Extract the files and place them in: {}", root_);
+        std::cout << "MNIST data files not found. Running download script..." << std::endl;
+        
+        // 获取脚本路径（相对于当前工作目录）
+        std::filesystem::path script_path = std::filesystem::current_path() / "scripts" / "download_mnist.sh";
+        
+        // 检查脚本是否存在
+        if (!std::filesystem::exists(script_path))
+        {
+            THROW_RUNTIME_ERROR(
+                "MNIST data files not found and download script not found at: {}\n"
+                "Please ensure the script exists or download the data manually.", script_path.string());
+        }
+        
+        // 调用下载脚本
+        std::string cmd = "bash " + script_path.string();
+        int ret = std::system(cmd.c_str());
+        
+        if (ret != 0)
+        {
+            THROW_RUNTIME_ERROR(
+                "Failed to download MNIST dataset. Download script returned error code: {}\n"
+                "Please run the script manually: bash scripts/download_mnist.sh", ret);
+        }
+        
+        // 再次检查文件是否存在
+        if (!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file))
+        {
+            THROW_RUNTIME_ERROR(
+                "MNIST data files still not found after running download script.\n"
+                "Expected files: {} and {}", images_file, labels_file);
+        }
+        
+        std::cout << "MNIST dataset downloaded successfully." << std::endl;
     }
 
     // 加载数据
