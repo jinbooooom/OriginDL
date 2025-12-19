@@ -49,9 +49,10 @@ std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
         outer_size *= x_dims[i];
     }
 
-    // 创建最大值张量（形状为去掉最后一个维度）
+    // 创建最大值张量（形状为去掉最后一个维度，但保留维度数）
+    // 例如：对于 (2, 3)，max_shape 应该是 (2, 1) 而不是 (2,)
     std::vector<size_t> max_shape_dims = x_dims;
-    max_shape_dims.pop_back();
+    max_shape_dims.back() = 1;  // 将最后一个维度设为 1，而不是删除
     Shape max_shape(max_shape_dims);
     
     std::vector<float> max_values(outer_size);
