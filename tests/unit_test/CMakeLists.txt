@@ -182,6 +182,16 @@ set_target_properties(test_exp PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_log operator/test_log.cpp)
+add_dependencies(test_log gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_log ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_log PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_log PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_pow operator/test_pow.cpp)
 add_dependencies(test_pow gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_pow ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
@@ -294,6 +304,7 @@ add_test(NAME div_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_div)
 add_test(NAME neg_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_neg)
 add_test(NAME square_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_square)
 add_test(NAME exp_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_exp)
+add_test(NAME log_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_log)
 add_test(NAME pow_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_pow)
 add_test(NAME type_promotion_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_type_promotion)
 add_test(NAME sum_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sum)
@@ -317,6 +328,7 @@ set_tests_properties(div_test PROPERTIES TIMEOUT 60)
 set_tests_properties(neg_test PROPERTIES TIMEOUT 60)
 set_tests_properties(square_test PROPERTIES TIMEOUT 60)
 set_tests_properties(exp_test PROPERTIES TIMEOUT 60)
+set_tests_properties(log_test PROPERTIES TIMEOUT 60)
 set_tests_properties(pow_test PROPERTIES TIMEOUT 60)
 set_tests_properties(type_promotion_test PROPERTIES TIMEOUT 60)
 set_tests_properties(sum_test PROPERTIES TIMEOUT 60)
@@ -335,7 +347,7 @@ message(STATUS "GoogleTest include directories: ${GTEST_INCLUDE_DIRS}")
 # 添加自定义目标来运行所有测试
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMENT "Run all unit tests"
 )
 
@@ -343,6 +355,6 @@ add_custom_target(run_unit_tests
 add_custom_target(test_all
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMENT "Compile and run all unit tests"
 )

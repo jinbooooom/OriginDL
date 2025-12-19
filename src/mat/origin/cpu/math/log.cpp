@@ -14,9 +14,9 @@ namespace cpu
 {
 
 /**
- * @brief CPU对数运算实现
+ * @brief CPU自然对数运算实现（以 e 为底）
  * @param mat 输入矩阵
- * @return 对数运算结果矩阵
+ * @return 自然对数运算结果矩阵
  */
 std::unique_ptr<Mat> log(const OriginMat &mat)
 {

@@ -608,7 +608,23 @@ std::unique_ptr<Mat> OriginMat::exp() const
 
 std::unique_ptr<Mat> OriginMat::log() const
 {
-    return cpu::log(*this);
+    // 自然对数运算（以 e 为底）
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::log(*this);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::log(*this);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for log: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::sin() const
