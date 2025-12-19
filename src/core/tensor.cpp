@@ -173,6 +173,20 @@ void Tensor::clear_grad()
     impl_->clear_grad();
 }
 
+void Tensor::accumulate_grad(const Tensor &grad_to_add)
+{
+    // 如果梯度为空，直接赋值；否则累加（类似backward()中的实现）
+    if (!impl_->grad_)
+    {
+        impl_->grad_ = grad_to_add.impl_->data_;
+    }
+    else
+    {
+        // 梯度不为空，原地累加（不创建新的 Mat，减少内存分配）
+        impl_->grad_->add_inplace(*grad_to_add.impl_->data_);
+    }
+}
+
 // === 张量操作实现 ===
 
 Tensor Tensor::reshape(const Shape &shape) const

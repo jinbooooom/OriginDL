@@ -242,6 +242,16 @@ set_target_properties(test_adam PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_weight_decay optim/test_weight_decay.cpp)
+add_dependencies(test_weight_decay gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_weight_decay ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_weight_decay PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_weight_decay PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_pow operator/test_pow.cpp)
 add_dependencies(test_pow gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_pow ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
@@ -360,6 +370,7 @@ add_test(NAME relu_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_relu)
 add_test(NAME softmax_cross_entropy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_softmax_cross_entropy)
 add_test(NAME accuracy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_accuracy)
 add_test(NAME adam_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_adam)
+add_test(NAME weight_decay_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_weight_decay)
 add_test(NAME pow_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_pow)
 add_test(NAME type_promotion_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_type_promotion)
 add_test(NAME sum_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sum)

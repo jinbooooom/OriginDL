@@ -222,6 +222,7 @@ public:
     void set_creator(const FunctionPtr &func);
     void backward();
     void clear_grad();
+    void accumulate_grad(const Tensor &grad_to_add);
 
     // === 张量操作 ===
     Tensor reshape(const Shape &shape) const;
