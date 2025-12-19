@@ -173,6 +173,14 @@ void Tensor::clear_grad()
     impl_->clear_grad();
 }
 
+Tensor Tensor::detach() const
+{
+    // 创建一个新的TensorImpl，只复制data_，不复制creator_和grad_
+    // 这样新tensor就不会参与计算图，可以安全释放
+    auto new_impl = std::make_shared<TensorImpl>(impl_->data_);
+    return Tensor(new_impl);
+}
+
 void Tensor::accumulate_grad(const Tensor &grad_to_add)
 {
     // 如果梯度为空，直接赋值；否则累加（类似backward()中的实现）

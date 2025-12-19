@@ -48,7 +48,16 @@ public:
     // 4. 反向传播失败：TensorImpl::backward() 无法访问已失效的输出张量
     // 5. 解决方案：使用 shared_ptr 确保输出张量在反向传播期间仍然有效
     // 6. 权衡：虽然违背了原始的所有权模型，但确保了实际运行时的正确性
-    // 7. 未来改进：理想情况下应该重新设计 Tensor 的生命周期管理，恢复 weak_ptr 的使用
+    // 7. 问题：导致循环引用（Operator -> outputs_ -> Tensor -> creator_ -> Operator），造成内存泄漏
+    //
+    // TODO: 未来改进（解决循环引用问题）：
+    // 1. 修改 Operator 设计：使用 weak_ptr 而不是 shared_ptr
+    //    - 需要确保在 backward() 时 outputs_ 仍然有效
+    //    - 可以通过在 backward() 前检查 weak_ptr 是否有效，如果失效则重新创建
+    // 2. 重新设计 Tensor 的生命周期管理：让 Operator 不持有 Tensor 的强引用
+    //    - 可以考虑使用引用计数或其他机制来管理生命周期
+    //    - 或者让用户代码使用 TensorPtr 而不是 Tensor
+    // 3. 实现更智能的弱引用管理
     std::vector<std::shared_ptr<Tensor>> outputs_;  // 前向传播的输出，考虑多输出
 
     int generation_;  // 对于复杂的计算图，用来区分哪个先计算

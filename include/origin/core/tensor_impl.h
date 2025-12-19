@@ -75,6 +75,13 @@ public:
     void set_creator(const FunctionPtr &func);
     void backward();
     void clear_grad();
+    
+    // 计算图管理
+    /**
+     * @brief 断开tensor与计算图的连接
+     * @details 将creator_设置为nullptr，断开与Operator的连接，帮助释放计算图内存
+     */
+    void detach();
 
     // 张量操作
     TensorImpl reshape(const Shape &shape) const;

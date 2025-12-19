@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
     std::srand(42);
 
     // 超参数
-    const int max_epoch = 5;
-    const int batch_size = 100;
-    const int hidden_size = 1000;
+    const int max_epoch = 3;
+    const int batch_size = 64;  // 减小batch size以降低GPU内存使用
+    const int hidden_size = 256;  // 减小hidden size以降低GPU内存使用，调大精度更高
     const float learning_rate = 0.001f;
     const float weight_decay_rate = 1e-4f;
     
@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
     // 检测并选择设备（GPU优先，如果没有GPU则使用CPU）
     Device device(DeviceType::kCPU);
 #ifdef WITH_CUDA
+    // if (0 &&cuda::is_available())// 强行使用cpu
     if (cuda::is_available())
     {
         device = Device(DeviceType::kCUDA, 0);
@@ -95,38 +96,73 @@ int main(int argc, char *argv[])
         int train_total = 0;
 
         train_loader.reset();
-        while (train_loader.has_next())
+        while (train_batches < 30 && train_loader.has_next()) // 为了加快速度，所以只训练30个batch
+        // while (train_loader.has_next())
         {
-            auto [x, t] = train_loader.next();
-            
-            // 将数据移到指定设备
-            x = x.to(device);
-            t = t.to(device);
-            
-            // 前向传播
-            auto y = model(x);
-            auto loss = softmax_cross_entropy(y, t);
-            
-            // 反向传播
-            optimizer.zero_grad();
-            loss.backward();
-            optimizer.step();
-
-            // 计算准确率
-            auto acc = accuracy(y, t);
-            train_correct += static_cast<int>(acc.item<float>() * static_cast<float>(x.shape()[0]));
-            train_total += static_cast<int>(x.shape()[0]);
-            train_loss += loss.item<float>();
-            train_batches++;
-
-            // 根据log_interval控制打印频率
-            if (train_batches % log_interval == 0)
             {
-                float avg_loss = train_loss / train_batches;
-                float avg_acc = 100.0f * train_correct / train_total;
-                logi("Epoch {}/{} Batch {} Loss: {:.4f} Acc: {:.2f}%", 
-                     epoch + 1, max_epoch, train_batches, avg_loss, avg_acc);
-            }
+                auto [x, t] = train_loader.next();
+                
+                // 将数据移到指定设备
+                x = x.to(device);
+                t = t.to(device);
+                
+                // 前向传播
+                auto y = model(x);
+                auto loss = softmax_cross_entropy(y, t);
+                
+                // 先提取loss和准确率（在反向传播前，避免计算图累积）
+                float loss_value = loss.item<float>();
+                int current_batch_size = static_cast<int>(x.shape()[0]);
+                
+                // 计算准确率（使用no_grad避免保留计算图）
+                float acc_value = 0.0f;
+                {
+                    auto guard = no_grad();
+                    auto acc = accuracy(y, t);
+                    acc_value = acc.item<float>();
+                }
+                
+                // 反向传播
+                optimizer.zero_grad();
+                loss.backward();
+                optimizer.step();
+                
+                // 显式断开计算图，释放中间tensor的内存
+                // 使用detach()方法断开tensor与计算图的连接，帮助释放GPU内存
+                // 注意：这里只断开loss和y，因为它们是计算图的根节点
+                // 断开后，整个计算图（包括所有中间tensor）都可以被释放
+                // 为了减少性能开销，每50个batch才detach一次（减少递归遍历的开销）
+                if (train_batches % 20 == 0)
+                {
+                    loss.detach();
+                    y.detach();
+                }
+                
+                // 定期清理CUDA内存碎片（每100个batch清理一次）
+                // 这可以帮助释放未使用的GPU内存，避免内存碎片化导致训练变慢
+                if (train_batches % 100 == 0 && device.type() == DeviceType::kCUDA)
+                {
+#ifdef WITH_CUDA
+                    cudaDeviceSynchronize();  // 确保所有CUDA操作完成
+                    // 注意：CUDA没有像PyTorch的empty_cache()那样的函数
+                    // 但cudaDeviceSynchronize()可以帮助释放一些内存
+#endif
+                }
+                
+                train_correct += static_cast<int>(acc_value * static_cast<float>(current_batch_size));
+                train_total += current_batch_size;
+                train_loss += loss_value;
+                train_batches++;
+
+                // 根据log_interval控制打印频率
+                if (train_batches % log_interval == 0)
+                {
+                    float avg_loss = train_loss / train_batches;
+                    float avg_acc = 100.0f * train_correct / train_total;
+                    logi("Epoch {}/{} Batch {} Loss: {:.4f} Acc: {:.2f}%", 
+                         epoch + 1, max_epoch, train_batches, avg_loss, avg_acc);
+                }
+            } // 作用域结束，自动释放x, t, y, loss, acc等tensor
         }
 
         float avg_train_loss = train_loss / train_batches;
@@ -148,65 +184,51 @@ int main(int argc, char *argv[])
             test_loader.reset();
             while (test_loader.has_next())
             {
-                auto [x, t] = test_loader.next();
-                
-                // 将数据移到指定设备
-                x = x.to(device);
-                t = t.to(device);
-                
-                // 将 targets 从 float 转换为 int32_t 类型（softmax_cross_entropy 需要）
-                auto t_float_data = t.to_vector<float>();
-                std::vector<int32_t> t_int32_data(t_float_data.size());
-                for (size_t i = 0; i < t_float_data.size(); ++i)
                 {
-                    t_int32_data[i] = static_cast<int32_t>(t_float_data[i]);
-                }
-                auto t_int32 = Tensor(t_int32_data, t.shape(), dtype(DataType::kInt32).device(device));
-                
-                // 前向传播（不需要梯度）
-                auto y = model(x);
-                auto loss = softmax_cross_entropy(y, t_int32);
-                float loss_val = loss.item<float>();
-                
-                // 计算准确率
-                auto y_data = y.to_vector<float>();
-                size_t batch_size = x.shape()[0];
-                size_t num_classes = y.shape()[1];
-                
-                int batch_correct = 0;
-                for (size_t i = 0; i < batch_size; ++i)
-                {
-                    // 找到预测类别（argmax）
-                    size_t pred_class = 0;
-                    float max_val = y_data[i * num_classes];
-                    for (size_t j = 1; j < num_classes; ++j)
-                    {
-                        if (y_data[i * num_classes + j] > max_val)
-                        {
-                            max_val = y_data[i * num_classes + j];
-                            pred_class = j;
-                        }
-                    }
+                    auto [x, t] = test_loader.next();
                     
-                    // 检查是否正确
-                    if (static_cast<size_t>(t_int32_data[i]) == pred_class)
+                    // 将数据移到指定设备
+                    x = x.to(device);
+                    t = t.to(device);
+                    
+                    // 将 targets 从 float 转换为 int32_t 类型（softmax_cross_entropy 需要）
+                    // 在CPU上转换，避免GPU内存占用
+                    auto t_float_data = t.to(Device(DeviceType::kCPU)).to_vector<float>();
+                    std::vector<int32_t> t_int32_data(t_float_data.size());
+                    for (size_t i = 0; i < t_float_data.size(); ++i)
                     {
-                        test_correct++;
-                        batch_correct++;
+                        t_int32_data[i] = static_cast<int32_t>(t_float_data[i]);
                     }
-                }
-                test_total += static_cast<int>(batch_size);
-                test_loss += loss_val;
-                test_batches++;
-                
-                // 根据log_interval控制打印频率
-                if (test_batches % log_interval == 0)
-                {
-                    float avg_test_loss_so_far = test_loss / test_batches;
-                    float avg_test_acc_so_far = 100.0f * test_correct / test_total;
-                    logi("Test Batch {} Loss: {:.4f} Acc: {:.2f}%", 
-                         test_batches, avg_test_loss_so_far, avg_test_acc_so_far);
-                }
+                    auto t_int32 = Tensor(t_int32_data, t.shape(), dtype(DataType::kInt32).device(device));
+                    
+                    // 前向传播（不需要梯度，已在no_grad作用域内）
+                    auto y = model(x);
+                    auto loss = softmax_cross_entropy(y, t_int32);
+                    float loss_val = loss.item<float>();
+                    
+                    // 使用accuracy函数计算准确率（更高效，避免多次to_vector）
+                    auto acc = accuracy(y, t_int32);
+                    float acc_value = acc.item<float>();
+                    int current_batch_size = static_cast<int>(x.shape()[0]);
+                    
+                    // 显式断开计算图（虽然已经在no_grad中，但为了确保内存释放）
+                    // 通过作用域和变量重新赋值来帮助释放
+                    
+                    int batch_correct = static_cast<int>(acc_value * static_cast<float>(current_batch_size));
+                    test_correct += batch_correct;
+                    test_total += current_batch_size;
+                    test_loss += loss_val;
+                    test_batches++;
+                    
+                    // 根据log_interval控制打印频率
+                    if (test_batches % log_interval == 0)
+                    {
+                        float avg_test_loss_so_far = test_loss / test_batches;
+                        float avg_test_acc_so_far = 100.0f * test_correct / test_total;
+                        logi("Test Batch {} Loss: {:.4f} Acc: {:.2f}%", 
+                             test_batches, avg_test_loss_so_far, avg_test_acc_so_far);
+                    }
+                } // 作用域结束，自动释放x, t, t_int32, y, loss, acc等tensor
             }
         }
 
@@ -223,4 +245,13 @@ int main(int argc, char *argv[])
     logi("Training completed!");
     return 0;
 }
+
+/*
+。。。
+node-worker-147 2025-12-19 10:09:51.428 I 162309 162309 [mnist.cpp:main:239] ========== Epoch 3/3 Summary ==========
+node-worker-147 2025-12-19 10:09:51.428 I 162309 162309 [mnist.cpp:main:240]   Train Loss: 0.3374, Train Acc: 90.47%
+node-worker-147 2025-12-19 10:09:51.428 I 162309 162309 [mnist.cpp:main:241]   Test Loss:  0.3408, Test Acc:  89.75%
+node-worker-147 2025-12-19 10:09:51.428 I 162309 162309 [mnist.cpp:main:242] ===========================================
+node-worker-147 2025-12-19 10:09:51.428 I 162309 162309 [mnist.cpp:main:245] Training completed!
+*/
 

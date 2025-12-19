@@ -31,12 +31,16 @@ void Operator::setup_computation_graph(const std::vector<Tensor> &inputs, const 
         // 1. 创建新的 shared_ptr<Tensor> 副本
         // 2. 延长输出张量的生命周期
         // 3. 确保反向传播时输出仍然有效
-        // 4. 代价：违背了原始的所有权模型
+        // 4. 代价：违背了原始的所有权模型，导致循环引用和内存泄漏
         //
-        // 未来改进方向：
-        // - 重新设计 Tensor 的生命周期管理
-        // - 或者让用户代码使用 TensorPtr 而不是 Tensor
-        // - 或者实现更智能的弱引用管理
+        // TODO: 未来改进方向（解决循环引用问题）：
+        // 1. 修改 Operator 设计：使用 weak_ptr 而不是 shared_ptr
+        //    - 需要确保在 backward() 时 outputs_ 仍然有效
+        //    - 可以通过在 backward() 前检查 weak_ptr 是否有效，如果失效则重新创建
+        // 2. 重新设计 Tensor 的生命周期管理：让 Operator 不持有 Tensor 的强引用
+        //    - 可以考虑使用引用计数或其他机制来管理生命周期
+        //    - 或者让用户代码使用 TensorPtr 而不是 Tensor
+        // 3. 实现更智能的弱引用管理
         auto tensor_ptr = std::make_shared<Tensor>(output);
         this->outputs_.push_back(tensor_ptr);
     }

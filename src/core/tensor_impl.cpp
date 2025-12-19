@@ -1,4 +1,5 @@
 #include "origin/core/tensor_impl.h"
+#include <functional>
 #include <list>
 #include <set>
 #include <stdexcept>
@@ -161,11 +162,92 @@ void TensorImpl::backward()
             }
         }
     }
+    
+    // TODO: 解决循环引用导致的内存泄漏问题
+    // 当前问题：Operator中保存了shared_ptr<Tensor>，导致循环引用（Operator -> outputs_ -> Tensor -> creator_ -> Operator）
+    // 这导致计算图无法自动释放，造成GPU内存泄漏
+    //
+    // 临时解决方案：用户可以在backward()后调用detach()来显式断开计算图
+    // 根本解决方案：
+    // 1. 修改Operator设计：使用weak_ptr而不是shared_ptr（但需要确保在backward()时outputs_仍然有效）
+    // 2. 重新设计Tensor的生命周期管理：让Operator不持有Tensor的强引用
+    // 3. 在backward()完成后，清理Operator的outputs_和inputs_（但需要确保不会影响后续的backward()调用）
 }
 
 void TensorImpl::clear_grad()
 {
     grad_ = nullptr;
+}
+
+void TensorImpl::detach()
+{
+    // 断开与计算图的连接，递归清理整个计算图
+    // 这样可以彻底断开循环引用，释放GPU内存
+    if (!creator_)
+    {
+        return;  // 已经detach过了
+    }
+    
+    // 收集所有相关的Operator和tensor，递归清理整个计算图
+    std::set<FunctionPtr> processed_ops;
+    std::set<TensorImplPtr> processed_tensors;
+    
+    std::function<void(const FunctionPtr &)> collect_ops = [&](const FunctionPtr &op) {
+        if (!op || processed_ops.find(op) != processed_ops.end())
+        {
+            return;
+        }
+        processed_ops.insert(op);
+        
+        // 收集所有输出tensor
+        for (const auto &output_ptr : op->outputs_)
+        {
+            if (output_ptr && output_ptr->impl_)
+            {
+                processed_tensors.insert(output_ptr->impl_);
+            }
+        }
+        
+        // 递归收集输入tensor的creator
+        for (const auto &input : op->inputs_)
+        {
+            if (input.impl_)
+            {
+                processed_tensors.insert(input.impl_);
+                if (input.impl_->creator_)
+                {
+                    collect_ops(input.impl_->creator_);
+                }
+            }
+        }
+    };
+    
+    // 从当前tensor的creator开始收集
+    collect_ops(creator_);
+    
+    // 清理所有收集到的Operator的outputs_和inputs_，断开循环引用
+    for (const auto &op : processed_ops)
+    {
+        op->outputs_.clear();
+        op->inputs_.clear();
+    }
+    
+    // 清理所有相关tensor的creator_，彻底断开循环引用
+    for (const auto &tensor_impl : processed_tensors)
+    {
+        if (tensor_impl)
+        {
+            tensor_impl->creator_ = nullptr;
+            tensor_impl->generation_ = 0;
+            // 也清理grad_，释放梯度内存
+            tensor_impl->grad_ = nullptr;
+        }
+    }
+    
+    // 断开当前tensor的creator_
+    creator_ = nullptr;
+    generation_ = 0;
+    grad_ = nullptr;  // 也清理当前tensor的梯度
 }
 
 TensorImpl TensorImpl::reshape(const Shape &shape) const
