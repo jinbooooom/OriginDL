@@ -41,9 +41,13 @@ endfunction()
 # 检测CUDA架构
 detect_cuda_architecture()
 
-# 收集CUDA/CPP源文件（目录自动发现）
-file(GLOB CUDA_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cu)
-file(GLOB CUDA_CPP_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+# 收集CUDA/CPP源文件（支持子目录）
+file(GLOB_RECURSE CUDA_SRCS CONFIGURE_DEPENDS 
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.cu
+)
+file(GLOB_RECURSE CUDA_CPP_SRCS CONFIGURE_DEPENDS 
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+)
 
 # 创建CUDA库（包含本目录下所有 .cu 与 .cpp 文件）
 add_library(originmat_cuda SHARED ${CUDA_SRCS} ${CUDA_CPP_SRCS})

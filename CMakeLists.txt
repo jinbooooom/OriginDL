@@ -21,6 +21,7 @@ file(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/operators/*.cpp 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/operators/**/*.cpp 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/**/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/optim/*.cpp
@@ -32,7 +33,10 @@ if(MAT_BACKEND STREQUAL "TORCH")
     list(APPEND MY_LIB_SRCS ${TORCH_SRCS})
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
     file(GLOB ORIGIN_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/*.cpp)
-    file(GLOB ORIGIN_CPU_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/cpu/*.cpp)
+    # 使用 GLOB_RECURSE 收集 CPU 算子（支持子目录）
+    file(GLOB_RECURSE ORIGIN_CPU_SRCS 
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/cpu/*.cpp
+    )
     list(APPEND MY_LIB_SRCS ${ORIGIN_SRCS})
     list(APPEND MY_LIB_SRCS ${ORIGIN_CPU_SRCS})
     
