@@ -5,6 +5,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/core/tensor_options.h"
+#include "origin/core/config.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/origin_mat.h"
@@ -79,6 +80,12 @@ void TensorImpl::set_creator(const FunctionPtr &func)
 
 void TensorImpl::backward()
 {
+    // 检查是否启用反向传播
+    if (!Config::enable_backprop)
+    {
+        return;  // 禁用梯度计算，直接返回
+    }
+
     // 如果梯度为空，初始化为全1（输出张量的梯度）
     // 梯度类型应与数据类型一致，设备应与数据设备一致
     if (!grad_)

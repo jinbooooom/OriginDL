@@ -45,6 +45,16 @@ set_target_properties(test_tensor_create PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_no_grad core/test_no_grad.cpp)
+add_dependencies(test_no_grad gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_no_grad ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_no_grad PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_no_grad PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 # 添加多类型张量测试
 add_executable(test_multi_type_tensor tensor/test_multi_type_tensor.cpp)
 add_dependencies(test_multi_type_tensor gtest gtest_main origindl test_utils gtest_utils)
@@ -363,6 +373,7 @@ enable_testing()
 
 # 添加测试
 add_test(NAME tensor_create_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_create)
+add_test(NAME no_grad_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_no_grad)
 add_test(NAME multi_type_tensor_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_multi_type_tensor)
 add_test(NAME tensor_options_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_options)
 add_test(NAME tensor_attributes_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_attributes)
