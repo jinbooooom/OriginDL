@@ -41,24 +41,16 @@ public:
 public:
     std::vector<Tensor> inputs_;  // 前向传播的入参，考虑多输入
 
-    // 使用 shared_ptr 而不是 weak_ptr 的原因：
+    // 根本解决方案：使用 weak_ptr 避免循环引用
     // 1. 原始设计理念：算子不拥有输出张量，只观察它们（使用 weak_ptr 避免循环引用）
-    // 2. 实际问题：当前使用值语义的 Tensor 对象，用户代码中 Tensor 的生命周期与算子存储的引用不一致
-    // 3. 生命周期问题：当用户代码中的 Tensor 对象超出作用域时，weak_ptr 会失效
-    // 4. 反向传播失败：TensorImpl::backward() 无法访问已失效的输出张量
-    // 5. 解决方案：使用 shared_ptr 确保输出张量在反向传播期间仍然有效
-    // 6. 权衡：虽然违背了原始的所有权模型，但确保了实际运行时的正确性
-    // 7. 问题：导致循环引用（Operator -> outputs_ -> Tensor -> creator_ -> Operator），造成内存泄漏
+    // 2. 生命周期问题：当用户代码中的 Tensor 对象超出作用域时，weak_ptr 会失效
+    // 3. 解决方案：在 backward() 时，将 weak_ptr 转换为 shared_ptr（如果有效）
+    // 4. 如果 weak_ptr 失效，说明用户代码中的 tensor 已经超出作用域，这是正常的
+    // 5. 这样可以避免循环引用（Operator -> outputs_ -> Tensor -> creator_ -> Operator），解决内存泄漏
     //
-    // TODO: 未来改进（解决循环引用问题）：
-    // 1. 修改 Operator 设计：使用 weak_ptr 而不是 shared_ptr
-    //    - 需要确保在 backward() 时 outputs_ 仍然有效
-    //    - 可以通过在 backward() 前检查 weak_ptr 是否有效，如果失效则重新创建
-    // 2. 重新设计 Tensor 的生命周期管理：让 Operator 不持有 Tensor 的强引用
-    //    - 可以考虑使用引用计数或其他机制来管理生命周期
-    //    - 或者让用户代码使用 TensorPtr 而不是 Tensor
-    // 3. 实现更智能的弱引用管理
-    std::vector<std::shared_ptr<Tensor>> outputs_;  // 前向传播的输出，考虑多输出
+    // 注意：outputs_ 存储的是 TensorImpl 的 weak_ptr，而不是 Tensor 的 weak_ptr
+    // 因为 Tensor 是值语义的，而 TensorImpl 是引用语义的（通过 shared_ptr 管理）
+    std::vector<std::weak_ptr<TensorImpl>> outputs_;  // 前向传播的输出，考虑多输出（使用weak_ptr避免循环引用）
 
     int generation_;  // 对于复杂的计算图，用来区分哪个先计算
 

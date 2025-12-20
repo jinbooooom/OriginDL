@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
     std::srand(42);
 
     // 超参数
-    const int max_epoch = 3;
-    const int batch_size = 64;  // 减小batch size以降低GPU内存使用
-    const int hidden_size = 256;  // 减小hidden size以降低GPU内存使用，调大精度更高
+    const int max_epoch = 10;
+    const int batch_size = 256;  // 减小batch size以降低GPU内存使用
+    const int hidden_size = 1000;  // 减小hidden size以降低GPU内存使用，调大精度更高
     const float learning_rate = 0.001f;
     const float weight_decay_rate = 1e-4f;
     
