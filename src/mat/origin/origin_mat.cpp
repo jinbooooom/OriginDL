@@ -761,4 +761,100 @@ std::unique_ptr<Mat> OriginMat::full(const Shape &shape, data_t value, const Ten
 
 // 移除模板实例化，使用工厂方法替代
 
+// === 卷积相关操作实现 ===
+
+std::unique_ptr<Mat> OriginMat::im2col(std::pair<int, int> kernel_size, std::pair<int, int> stride,
+                                       std::pair<int, int> pad, bool to_matrix) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::im2col(*this, kernel_size, stride, pad, to_matrix);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // TODO: 实现 CUDA 版本的 im2col
+        THROW_RUNTIME_ERROR("CUDA im2col not yet implemented");
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for im2col: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::col2im(const Shape &input_shape, std::pair<int, int> kernel_size,
+                                       std::pair<int, int> stride, std::pair<int, int> pad, bool to_matrix) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::col2im(*this, input_shape, kernel_size, stride, pad, to_matrix);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // TODO: 实现 CUDA 版本的 col2im
+        THROW_RUNTIME_ERROR("CUDA col2im not yet implemented");
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for col2im: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::conv2d(const OriginMat &W, const OriginMat *b, std::pair<int, int> stride,
+                                      std::pair<int, int> pad) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::conv2d(*this, W, b, stride, pad);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // TODO: 实现 CUDA 版本的 conv2d
+        THROW_RUNTIME_ERROR("CUDA conv2d not yet implemented");
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for conv2d: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::vector<std::unique_ptr<Mat>> OriginMat::conv2d_backward(const OriginMat &gy, const OriginMat &x, const OriginMat &W,
+                                                              const OriginMat *b, std::pair<int, int> stride,
+                                                              std::pair<int, int> pad) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::conv2d_backward(gy, x, W, b, stride, pad);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        // TODO: 实现 CUDA 版本的 conv2d_backward
+        THROW_RUNTIME_ERROR("CUDA conv2d_backward not yet implemented");
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for conv2d_backward: {}",
+                            static_cast<int>(storage_->device_type()));
+    }
+}
+
 }  // namespace origin

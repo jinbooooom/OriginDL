@@ -38,6 +38,39 @@ std::unique_ptr<Mat> sum_to(const OriginMat &mat, const Shape &target_shape);
 // === 类型转换 ===
 std::unique_ptr<Mat> convert_datatype(const OriginMat &mat, DataType target_type);
 
+// === 卷积相关 ===
+// 注意：im2col 和 col2im 是 conv2d 的内部实现，仅供 OriginMat::im2col/col2im 使用
+std::unique_ptr<Mat> im2col(const OriginMat &img, std::pair<int, int> kernel_size, std::pair<int, int> stride,
+                            std::pair<int, int> pad, bool to_matrix);
+std::unique_ptr<Mat> col2im(const OriginMat &col, const Shape &input_shape, std::pair<int, int> kernel_size,
+                            std::pair<int, int> stride, std::pair<int, int> pad, bool to_matrix);
+
+/**
+ * @brief 完整的卷积操作（前向传播）
+ * @param x 输入张量 (N, C, H, W)
+ * @param W 卷积核 (OC, C, KH, KW)
+ * @param b 偏置 (OC,)，可选，如果为 nullptr 则不添加偏置
+ * @param stride 步长 (SH, SW)
+ * @param pad 填充 (PH, PW)
+ * @return 输出张量 (N, OC, OH, OW)
+ */
+std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const OriginMat *b, std::pair<int, int> stride,
+                            std::pair<int, int> pad);
+
+/**
+ * @brief 完整的卷积反向传播
+ * @param gy 输出梯度 (N, OC, OH, OW)
+ * @param x 输入张量 (N, C, H, W)
+ * @param W 卷积核 (OC, C, KH, KW)
+ * @param b 偏置 (OC,)，可选
+ * @param stride 步长 (SH, SW)
+ * @param pad 填充 (PH, PW)
+ * @return 梯度向量：{gx, gW, [gb]}
+ */
+std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const OriginMat &x, const OriginMat &W,
+                                                    const OriginMat *b, std::pair<int, int> stride,
+                                                    std::pair<int, int> pad);
+
 }  // namespace cpu
 }  // namespace origin
 

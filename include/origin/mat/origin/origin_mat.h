@@ -95,6 +95,55 @@ public:
     std::unique_ptr<Mat> sum_to(const Shape &target_shape) const override;
     bool can_broadcast_to(const Shape &target_shape) const;
 
+    // === 卷积相关操作（OriginMat 特有，不在 Mat 接口中）===
+    /**
+     * @brief im2col：将图像转换为列矩阵
+     * @param kernel_size 卷积核大小
+     * @param stride 步长
+     * @param pad 填充
+     * @param to_matrix 是否转换为矩阵形式
+     * @return 列矩阵
+     */
+    std::unique_ptr<Mat> im2col(std::pair<int, int> kernel_size, std::pair<int, int> stride, std::pair<int, int> pad,
+                                bool to_matrix = true) const;
+
+    /**
+     * @brief col2im：将列矩阵转换回图像形状
+     * @param input_shape 原始输入形状 (N, C, H, W)
+     * @param kernel_size 卷积核大小
+     * @param stride 步长
+     * @param pad 填充
+     * @param to_matrix 是否从矩阵形式转换
+     * @return 图像矩阵
+     */
+    std::unique_ptr<Mat> col2im(const Shape &input_shape, std::pair<int, int> kernel_size, std::pair<int, int> stride,
+                                std::pair<int, int> pad, bool to_matrix = true) const;
+
+    /**
+     * @brief conv2d：完整的二维卷积操作
+     * @param W 卷积核 (OC, C, KH, KW)
+     * @param b 偏置 (OC,)，可选，如果为 nullptr 则不添加偏置
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @return 输出张量 (N, OC, OH, OW)
+     */
+    std::unique_ptr<Mat> conv2d(const OriginMat &W, const OriginMat *b, std::pair<int, int> stride,
+                                std::pair<int, int> pad) const;
+
+    /**
+     * @brief conv2d_backward：卷积反向传播
+     * @param gy 输出梯度 (N, OC, OH, OW)
+     * @param x 输入张量 (N, C, H, W)
+     * @param W 卷积核 (OC, C, KH, KW)
+     * @param b 偏置 (OC,)，可选
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @return 梯度向量：{gx, gW, [gb]}
+     */
+    std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const OriginMat &x, const OriginMat &W,
+                                                        const OriginMat *b, std::pair<int, int> stride,
+                                                        std::pair<int, int> pad) const;
+
     // 形状和维度
     Shape shape() const override;
     size_t elements() const override;

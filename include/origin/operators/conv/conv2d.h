@@ -3,8 +3,6 @@
 
 #include "../../core/operator.h"
 #include "../../utils/conv_utils.h"
-#include "im2col.h"
-#include "col2im.h"
 
 namespace origin
 {
