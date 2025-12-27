@@ -71,6 +71,29 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
                                                     const OriginMat *b, std::pair<int, int> stride,
                                                     std::pair<int, int> pad);
 
+/**
+ * @brief 平均池化操作（前向传播）
+ * @param x 输入张量 (N, C, H, W)
+ * @param kernel_size 池化核大小 (KH, KW)
+ * @param stride 步长 (SH, SW)
+ * @param pad 填充 (PH, PW)
+ * @return 输出张量 (N, C, OH, OW)
+ */
+std::unique_ptr<Mat> avg_pool2d(const OriginMat &x, std::pair<int, int> kernel_size, std::pair<int, int> stride,
+                                std::pair<int, int> pad);
+
+/**
+ * @brief 平均池化反向传播
+ * @param gy 输出梯度 (N, C, OH, OW)
+ * @param x 输入张量 (N, C, H, W)
+ * @param kernel_size 池化核大小 (KH, KW)
+ * @param stride 步长 (SH, SW)
+ * @param pad 填充 (PH, PW)
+ * @return 输入梯度 (N, C, H, W)
+ */
+std::unique_ptr<Mat> avg_pool2d_backward(const OriginMat &gy, const OriginMat &x, std::pair<int, int> kernel_size,
+                                         std::pair<int, int> stride, std::pair<int, int> pad);
+
 }  // namespace cpu
 }  // namespace origin
 

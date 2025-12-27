@@ -853,4 +853,49 @@ std::vector<std::unique_ptr<Mat>> OriginMat::conv2d_backward(const OriginMat &gy
     }
 }
 
+std::unique_ptr<Mat> OriginMat::avg_pool2d(std::pair<int, int> kernel_size, std::pair<int, int> stride,
+                                           std::pair<int, int> pad) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::avg_pool2d(*this, kernel_size, stride, pad);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::avg_pool2d(*this, kernel_size, stride, pad);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for avg_pool2d: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::avg_pool2d_backward(const OriginMat &gy, std::pair<int, int> kernel_size,
+                                                     std::pair<int, int> stride, std::pair<int, int> pad) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::avg_pool2d_backward(gy, *this, kernel_size, stride, pad);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::avg_pool2d_backward(gy, *this, kernel_size, stride, pad);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for avg_pool2d_backward: {}",
+                            static_cast<int>(storage_->device_type()));
+    }
+}
+
 }  // namespace origin
