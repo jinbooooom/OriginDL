@@ -242,6 +242,16 @@ set_target_properties(test_relu PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_sigmoid operator/test_sigmoid.cpp)
+add_dependencies(test_sigmoid gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_sigmoid ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_sigmoid PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_sigmoid PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_softmax_cross_entropy operator/test_softmax_cross_entropy.cpp)
 add_dependencies(test_softmax_cross_entropy gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_softmax_cross_entropy ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)

@@ -282,6 +282,28 @@ public:
 extern Tensor relu(const Tensor &x);
 
 /**
+ * @brief Sigmoid 激活函数算子
+ * 
+ * 计算 Sigmoid 激活函数，用于神经网络
+ * 公式：sigmoid(x) = 1 / (1 + exp(-x))
+ */
+class Sigmoid : public Operator
+{
+public:
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+};
+
+/**
+ * @brief 计算张量的 Sigmoid 激活函数
+ * 
+ * @param x 输入张量
+ * @return Sigmoid 激活结果，sigmoid(x) = 1 / (1 + exp(-x))
+ */
+extern Tensor sigmoid(const Tensor &x);
+
+/**
  * @brief SoftmaxCrossEntropy 损失函数算子
  * 
  * 计算 softmax 交叉熵损失，用于多分类任务
