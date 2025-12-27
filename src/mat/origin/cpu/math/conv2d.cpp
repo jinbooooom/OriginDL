@@ -503,22 +503,7 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
 
     std::vector<std::unique_ptr<Mat>> grads;
 
-    // 1. 计算 gb (偏置梯度)
-    if (b != nullptr)
-    {
-        // gb = gy.sum(axis=(0, 2, 3))
-        // gy 形状: (N, OC, OH, OW)
-        auto gy_sum_h = gy.sum(2);  // sum over OH (axis 2), shape: (N, OC, OW)
-        const OriginMat &gy_sum_h_mat = static_cast<const OriginMat &>(*gy_sum_h);
-        auto gy_sum_w = gy_sum_h_mat.sum(2);  // sum over OW (axis 2), shape: (N, OC)
-        const OriginMat &gy_sum_w_mat = static_cast<const OriginMat &>(*gy_sum_w);
-        auto gb_mat = gy_sum_w_mat.sum(0);  // sum over N (axis 0), shape: (OC,)
-        // sum 返回的是 std::unique_ptr<Mat>，需要转换为 OriginMat
-        auto gb = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(gb_mat.release()));
-        grads.push_back(std::move(gb));
-    }
-
-    // 2. 计算 gW (卷积核梯度)
+    // 1. 计算 gW (卷积核梯度)
     // gy 形状: (N, OC, OH, OW) -> reshape 为 (N*OH*OW, OC)
     auto gy_reshaped = gy.reshape(Shape{N * OH * OW, OC});
     // 转置为 (OC, N*OH*OW)
@@ -536,6 +521,23 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
     const OriginMat &gW_flat_mat = static_cast<const OriginMat &>(*gW_flat);
     auto gW = gW_flat_mat.reshape(Shape{OC, C, KH, KW});
     grads.push_back(std::move(gW));
+
+    // 2. 计算 gb (偏置梯度)
+    if (b != nullptr)
+    {
+        // gb = gy.sum(axis=(0, 2, 3))
+        // gy 形状: (N, OC, OH, OW)
+        // 方法：依次对维度2(OH), 2(OW), 0(N)求和
+        auto gy_sum_h = gy.sum(2);  // sum over OH, shape: (N, OC, OW)
+        const OriginMat &gy_sum_h_mat = static_cast<const OriginMat &>(*gy_sum_h);
+        auto gy_sum_w = gy_sum_h_mat.sum(2);  // sum over OW, shape: (N, OC)
+        const OriginMat &gy_sum_w_mat = static_cast<const OriginMat &>(*gy_sum_w);
+        auto gb_mat = gy_sum_w_mat.sum(0);  // sum over N, shape: (OC,)
+        auto gb = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(gb_mat.release()));
+        // 强制reshape到(OC,)，确保形状正确
+        auto gb_reshaped = gb->reshape(Shape{OC});
+        grads.push_back(std::move(gb_reshaped));
+    }
 
     // 3. 计算 gx (输入梯度)
     // 将卷积核 reshape

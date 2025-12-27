@@ -774,8 +774,7 @@ std::unique_ptr<Mat> OriginMat::im2col(std::pair<int, int> kernel_size, std::pai
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // TODO: 实现 CUDA 版本的 im2col
-        THROW_RUNTIME_ERROR("CUDA im2col not yet implemented");
+        return cuda::im2col(*this, kernel_size, stride, pad, to_matrix);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -797,8 +796,7 @@ std::unique_ptr<Mat> OriginMat::col2im(const Shape &input_shape, std::pair<int, 
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // TODO: 实现 CUDA 版本的 col2im
-        THROW_RUNTIME_ERROR("CUDA col2im not yet implemented");
+        return cuda::col2im(*this, input_shape, kernel_size, stride, pad, to_matrix);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -820,8 +818,7 @@ std::unique_ptr<Mat> OriginMat::conv2d(const OriginMat &W, const OriginMat *b, s
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // TODO: 实现 CUDA 版本的 conv2d
-        THROW_RUNTIME_ERROR("CUDA conv2d not yet implemented");
+        return cuda::conv2d(*this, W, b, stride, pad);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -844,8 +841,7 @@ std::vector<std::unique_ptr<Mat>> OriginMat::conv2d_backward(const OriginMat &gy
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // TODO: 实现 CUDA 版本的 conv2d_backward
-        THROW_RUNTIME_ERROR("CUDA conv2d_backward not yet implemented");
+        return cuda::conv2d_backward(gy, x, W, b, stride, pad);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif

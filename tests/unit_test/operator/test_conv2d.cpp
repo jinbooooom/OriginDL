@@ -199,6 +199,14 @@ TEST_P(Conv2dOperatorTest, BackwardWithBias)
     auto y = conv2d(x, W, &b, 1, 0);
     y.backward();
 
+    // 验证梯度形状
+    Shape expected_gx_shape{1, 1, 2, 2};
+    Shape expected_gW_shape{1, 1, 2, 2};
+    Shape expected_gb_shape{1};
+    EXPECT_EQ(x.grad().shape(), expected_gx_shape);
+    EXPECT_EQ(W.grad().shape(), expected_gW_shape);
+    EXPECT_EQ(b.grad().shape(), expected_gb_shape);
+
     // 验证偏置梯度不为零
     auto gb_data = b.grad().to_vector<float>();
     EXPECT_EQ(gb_data.size(), 1U);
