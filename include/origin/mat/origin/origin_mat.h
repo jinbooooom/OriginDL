@@ -165,6 +165,30 @@ public:
     std::unique_ptr<Mat> avg_pool2d_backward(const OriginMat &gy, std::pair<int, int> kernel_size,
                                              std::pair<int, int> stride, std::pair<int, int> pad) const;
 
+    /**
+     * @brief max_pool2d：最大池化操作
+     * @param kernel_size 池化核大小 (KH, KW)
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @param indices 输出参数：保存每个最大值在窗口内的索引
+     * @return 输出张量 (N, C, OH, OW)
+     */
+    std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size, std::pair<int, int> stride,
+                                    std::pair<int, int> pad, std::vector<size_t> &indices) const;
+
+    /**
+     * @brief max_pool2d_backward：最大池化反向传播
+     * @param gy 输出梯度 (N, C, OH, OW)
+     * @param kernel_size 池化核大小 (KH, KW)
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @param indices 前向传播时保存的索引
+     * @return 输入梯度 (N, C, H, W)
+     */
+    std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy, std::pair<int, int> kernel_size,
+                                             std::pair<int, int> stride, std::pair<int, int> pad,
+                                             const std::vector<size_t> &indices) const;
+
     // 形状和维度
     Shape shape() const override;
     size_t elements() const override;

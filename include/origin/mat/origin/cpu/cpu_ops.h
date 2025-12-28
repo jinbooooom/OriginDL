@@ -94,6 +94,32 @@ std::unique_ptr<Mat> avg_pool2d(const OriginMat &x, std::pair<int, int> kernel_s
 std::unique_ptr<Mat> avg_pool2d_backward(const OriginMat &gy, const OriginMat &x, std::pair<int, int> kernel_size,
                                          std::pair<int, int> stride, std::pair<int, int> pad);
 
+/**
+ * @brief 最大池化操作（前向传播）
+ * @param x 输入张量 (N, C, H, W)
+ * @param kernel_size 池化核大小 (KH, KW)
+ * @param stride 步长 (SH, SW)
+ * @param pad 填充 (PH, PW)
+ * @param indices 输出参数：保存每个最大值在窗口内的索引
+ * @return 输出张量 (N, C, OH, OW)
+ */
+std::unique_ptr<Mat> max_pool2d(const OriginMat &x, std::pair<int, int> kernel_size, std::pair<int, int> stride,
+                                std::pair<int, int> pad, std::vector<size_t> &indices);
+
+/**
+ * @brief 最大池化反向传播
+ * @param gy 输出梯度 (N, C, OH, OW)
+ * @param x 输入张量 (N, C, H, W)
+ * @param kernel_size 池化核大小 (KH, KW)
+ * @param stride 步长 (SH, SW)
+ * @param pad 填充 (PH, PW)
+ * @param indices 前向传播时保存的索引
+ * @return 输入梯度 (N, C, H, W)
+ */
+std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy, const OriginMat &x, std::pair<int, int> kernel_size,
+                                         std::pair<int, int> stride, std::pair<int, int> pad,
+                                         const std::vector<size_t> &indices);
+
 }  // namespace cpu
 }  // namespace origin
 
