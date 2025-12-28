@@ -322,6 +322,16 @@ set_target_properties(test_mlp PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_conv2d_layer nn/test_conv2d_layer.cpp)
+add_dependencies(test_conv2d_layer gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_conv2d_layer ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_conv2d_layer PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_conv2d_layer PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_pow operator/test_pow.cpp)
 add_dependencies(test_pow gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_pow ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
@@ -455,6 +465,7 @@ add_test(NAME accuracy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_accuracy)
 add_test(NAME adam_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_adam)
 add_test(NAME weight_decay_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_weight_decay)
 add_test(NAME mlp_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_mlp)
+add_test(NAME conv2d_layer_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_conv2d_layer)
 add_test(NAME pow_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_pow)
 add_test(NAME type_promotion_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_type_promotion)
 add_test(NAME sum_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sum)
@@ -498,7 +509,7 @@ message(STATUS "GoogleTest include directories: ${GTEST_INCLUDE_DIRS}")
 # 添加自定义目标来运行所有测试
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_conv2d test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_conv2d test_mlp test_conv2d_layer test_linear_regression
     COMMENT "Run all unit tests"
 )
 
@@ -506,6 +517,6 @@ add_custom_target(run_unit_tests
 add_custom_target(test_all
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_conv2d test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_conv2d test_mlp test_conv2d_layer test_linear_regression
     COMMENT "Compile and run all unit tests"
 )

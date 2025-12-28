@@ -9,7 +9,7 @@
 namespace origin
 {
 
-std::vector<Tensor> Conv2d::forward(const std::vector<Tensor> &xs)
+std::vector<Tensor> Conv2dOp::forward(const std::vector<Tensor> &xs)
 {
     // xs[0] = x (输入), xs[1] = W (卷积核), xs[2] = b (偏置，可选)
     if (xs.size() < 2 || xs.size() > 3)
@@ -58,7 +58,7 @@ std::vector<Tensor> Conv2d::forward(const std::vector<Tensor> &xs)
     return outputs;
 }
 
-std::vector<Tensor> Conv2d::backward(const std::vector<Tensor> &gys)
+std::vector<Tensor> Conv2dOp::backward(const std::vector<Tensor> &gys)
 {
     if (gys.size() != 1)
     {
@@ -91,7 +91,7 @@ std::vector<Tensor> Conv2d::backward(const std::vector<Tensor> &gys)
 
 Tensor conv2d(const Tensor &x, const Tensor &W, const Tensor *b, std::pair<int, int> stride, std::pair<int, int> pad)
 {
-    auto op = std::make_shared<Conv2d>(stride, pad);
+    auto op = std::make_shared<Conv2dOp>(stride, pad);
     if (b != nullptr)
     {
         return (*op)({x, W, *b})[0];
