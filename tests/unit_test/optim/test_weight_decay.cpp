@@ -9,6 +9,8 @@
 #include "test_utils.h"
 
 using namespace origin;
+// 使用命名空间别名，语法类似 PyTorch
+namespace nn = origin::nn;
 
 class WeightDecayHookTest : public ::testing::TestWithParam<DeviceType>
 {
@@ -20,7 +22,7 @@ TEST_P(WeightDecayHookTest, BasicHook)
 {
     // 测试基本的权重衰减Hook
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(1, 1, false));
+    model.add(std::make_unique<nn::Linear>(1, 1, false));
     
     auto optimizer = SGD(model, 0.01f, 0.0f, 0.0f, false);  // 不使用内置的weight_decay
     
@@ -28,7 +30,7 @@ TEST_P(WeightDecayHookTest, BasicHook)
     WeightDecay weight_decay(0.1f);
     optimizer.register_hook(weight_decay.hook());
     
-    auto &linear = dynamic_cast<Linear &>(model[0]);
+    auto &linear = dynamic_cast<nn::Linear &>(model[0]);
     *linear.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     
     // 确保模型在正确的设备上
@@ -53,7 +55,7 @@ TEST_P(WeightDecayHookTest, HookModifiesGradient)
 {
     // 测试Hook是否正确修改梯度
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(1, 1, false));
+    model.add(std::make_unique<nn::Linear>(1, 1, false));
     
     auto optimizer = SGD(model, 0.01f, 0.0f, 0.0f, false);
     
@@ -61,7 +63,7 @@ TEST_P(WeightDecayHookTest, HookModifiesGradient)
     WeightDecay weight_decay(0.1f);
     optimizer.register_hook(weight_decay.hook());
     
-    auto &linear = dynamic_cast<Linear &>(model[0]);
+    auto &linear = dynamic_cast<nn::Linear &>(model[0]);
     *linear.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     
     // 确保模型在正确的设备上
@@ -94,9 +96,9 @@ TEST_P(WeightDecayHookTest, DifferentRates)
 {
     // 测试不同权重衰减率的影响
     auto model1 = Sequential();
-    model1.add(std::make_unique<Linear>(1, 1, false));
+    model1.add(std::make_unique<nn::Linear>(1, 1, false));
     auto model2 = Sequential();
-    model2.add(std::make_unique<Linear>(1, 1, false));
+    model2.add(std::make_unique<nn::Linear>(1, 1, false));
     
     auto optimizer1 = SGD(model1, 0.01f, 0.0f, 0.0f, false);
     auto optimizer2 = SGD(model2, 0.01f, 0.0f, 0.0f, false);
@@ -107,8 +109,8 @@ TEST_P(WeightDecayHookTest, DifferentRates)
     optimizer1.register_hook(weight_decay1.hook());
     optimizer2.register_hook(weight_decay2.hook());
     
-    auto &linear1 = dynamic_cast<Linear &>(model1[0]);
-    auto &linear2 = dynamic_cast<Linear &>(model2[0]);
+    auto &linear1 = dynamic_cast<nn::Linear &>(model1[0]);
+    auto &linear2 = dynamic_cast<nn::Linear &>(model2[0]);
     
     *linear1.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     *linear2.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
@@ -149,8 +151,8 @@ TEST_P(WeightDecayHookTest, MultipleParameters)
 {
     // 测试多个参数的情况
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(2, 3, true));
-    model.add(std::make_unique<Linear>(3, 1, true));
+    model.add(std::make_unique<nn::Linear>(2, 3, true));
+    model.add(std::make_unique<nn::Linear>(3, 1, true));
     
     auto optimizer = SGD(model, 0.01f, 0.0f, 0.0f, false);
     
@@ -158,8 +160,8 @@ TEST_P(WeightDecayHookTest, MultipleParameters)
     WeightDecay weight_decay(0.1f);
     optimizer.register_hook(weight_decay.hook());
     
-    auto &linear1 = dynamic_cast<Linear &>(model[0]);
-    auto &linear2 = dynamic_cast<Linear &>(model[1]);
+    auto &linear1 = dynamic_cast<nn::Linear &>(model[0]);
+    auto &linear2 = dynamic_cast<nn::Linear &>(model[1]);
     
     // 确保模型在正确的设备上
     model.to(Device(deviceType()));

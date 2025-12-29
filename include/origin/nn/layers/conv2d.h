@@ -9,6 +9,8 @@
 
 namespace origin
 {
+namespace nn
+{
 
 /**
  * @brief 二维卷积层
@@ -92,6 +94,7 @@ private:
     void init_parameters();
 };
 
+}  // namespace nn
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_CONV2D_LAYER_H__

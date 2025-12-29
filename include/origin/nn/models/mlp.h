@@ -10,6 +10,8 @@
 
 namespace origin
 {
+namespace nn
+{
 
 /**
  * @brief 多层感知机（MLP）模型
@@ -52,6 +54,7 @@ public:
     void to(Device device) override;
 };
 
+}  // namespace nn
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_MLP_H__

@@ -8,6 +8,8 @@
 
 namespace origin
 {
+namespace nn
+{
 
 Conv2d::Conv2d(int in_channels, int out_channels, std::pair<int, int> kernel_size,
                std::pair<int, int> stride, std::pair<int, int> pad, bool bias)
@@ -158,4 +160,5 @@ void Conv2d::reset_parameters()
     init_parameters();
 }
 
+}  // namespace nn
 }  // namespace origin

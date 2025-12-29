@@ -15,6 +15,8 @@
 
 using namespace origin;
 
+namespace nn = origin::nn;
+
 int main(int argc, char *argv[])
 {
     // 设置随机种子（可选）
@@ -71,7 +73,7 @@ int main(int argc, char *argv[])
 
     // 创建模型
     logi("Creating MLP model...");
-    MLP model({784, hidden_size, hidden_size, 10});  // 输入784维，两个隐藏层，输出10维
+    nn::MLP model({784, hidden_size, hidden_size, 10});  // 输入784维，两个隐藏层，输出10维
     model.to(device);  // 将模型移到指定设备
     logi("Model created with {} parameters", model.parameters().size());
 

@@ -5,6 +5,8 @@
 #include "test_utils.h"
 
 using namespace origin;
+// 使用命名空间别名，语法类似 PyTorch
+namespace nn = origin::nn;
 
 class MLPTest : public ::testing::TestWithParam<DeviceType>
 {
@@ -16,7 +18,7 @@ TEST_P(MLPTest, BasicForward)
 {
     // 测试基本的MLP前向传播
     // 创建一个简单的MLP: 输入2维，隐藏层3维，输出1维
-    MLP mlp({2, 3, 1});
+    nn::MLP mlp({2, 3, 1});
     
     // 确保模型在正确的设备上
     mlp.to(Device(deviceType()));
@@ -37,7 +39,7 @@ TEST_P(MLPTest, MultipleLayers)
 {
     // 测试多层MLP
     // 创建一个3层MLP: 输入4维，隐藏层8维和6维，输出2维
-    MLP mlp({4, 8, 6, 2});
+    nn::MLP mlp({4, 8, 6, 2});
     
     // 创建输入
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{1, 4}, dtype(DataType::kFloat32).device(deviceType()));
@@ -57,7 +59,7 @@ TEST_P(MLPTest, MultipleLayers)
 TEST_P(MLPTest, BatchProcessing)
 {
     // 测试批处理
-    MLP mlp({3, 5, 2});
+    nn::MLP mlp({3, 5, 2});
     
     // 创建批量输入 (batch_size=2, input_size=3)
     std::vector<float> batch_data = {
@@ -82,7 +84,7 @@ TEST_P(MLPTest, CustomActivation)
 {
     // 测试自定义激活函数（使用identity，即不使用激活函数）
     auto identity = [](const Tensor &x) { return x; };
-    MLP mlp({2, 3, 1}, identity);
+    nn::MLP mlp({2, 3, 1}, identity);
     
     auto x = Tensor({1.0f, 2.0f}, Shape{1, 2}, dtype(DataType::kFloat32).device(deviceType()));
     
@@ -100,7 +102,7 @@ TEST_P(MLPTest, CustomActivation)
 TEST_P(MLPTest, ParametersCollection)
 {
     // 测试参数收集
-    MLP mlp({2, 3, 1});
+    nn::MLP mlp({2, 3, 1});
     
     // 确保模型在正确的设备上
     mlp.to(Device(deviceType()));
@@ -119,12 +121,12 @@ TEST_P(MLPTest, InvalidLayerSizes)
     // 测试无效的层大小
     // 只有1个层大小（至少需要2个：输入和输出）
     EXPECT_THROW({
-        MLP mlp({10});
+        nn::MLP mlp({10});
     }, std::invalid_argument);
     
     // 空层大小列表
     EXPECT_THROW({
-        MLP mlp({});
+        nn::MLP mlp({});
     }, std::invalid_argument);
 }
 

@@ -10,12 +10,16 @@
 #include "origin/utils/log.h"
 #include "origin/nn/layers/linear.h"
 #include "origin/nn/layers/conv2d.h"
-#include "origin/operators/conv/max_pool2d.h"
+#include "origin/nn/layers/relu.h"
+#include "origin/nn/layers/max_pool2d.h"
+#include "origin/nn/layers/flatten.h"
 #ifdef WITH_CUDA
 #include "origin/cuda/cuda.h"
 #endif
 
 using namespace origin;
+
+namespace nn = origin::nn;
 
 /**
  * @brief 简单的CNN模型类
@@ -25,23 +29,47 @@ class SimpleCNN : public Module
 {
 private:
     // 第一层卷积：1通道 -> 64通道，3x3卷积核
-    std::unique_ptr<Conv2d> conv1_;
+    std::unique_ptr<nn::Conv2d> conv1_;
+    
+    // ReLU 激活层
+    std::unique_ptr<nn::ReLU> relu1_;
+    
+    // MaxPool2d 池化层
+    std::unique_ptr<nn::MaxPool2d> maxpool1_;
     
     // 第二层卷积：64通道 -> 128通道，3x3卷积核
-    std::unique_ptr<Conv2d> conv2_;
+    std::unique_ptr<nn::Conv2d> conv2_;
+    
+    // ReLU 激活层
+    std::unique_ptr<nn::ReLU> relu2_;
+    
+    // MaxPool2d 池化层
+    std::unique_ptr<nn::MaxPool2d> maxpool2_;
+    
+    // Flatten 层
+    std::unique_ptr<nn::Flatten> flatten_;
     
     // 全连接层1：7*7*128 -> 128
-    std::unique_ptr<Linear> fc1_;
+    std::unique_ptr<nn::Linear> fc1_;
+    
+    // ReLU 激活层
+    std::unique_ptr<nn::ReLU> relu3_;
     
     // 全连接层2：128 -> 10
-    std::unique_ptr<Linear> fc2_;
+    std::unique_ptr<nn::Linear> fc2_;
 
 public:
     SimpleCNN()
-        : conv1_(std::make_unique<Conv2d>(1, 64, std::make_pair(3, 3), std::make_pair(1, 1), std::make_pair(1, 1), true)),
-          conv2_(std::make_unique<Conv2d>(64, 128, std::make_pair(3, 3), std::make_pair(1, 1), std::make_pair(1, 1), true)),
-          fc1_(std::make_unique<Linear>(7 * 7 * 128, 128, true)),
-          fc2_(std::make_unique<Linear>(128, 10, true))
+        : conv1_(std::make_unique<nn::Conv2d>(1, 64, std::make_pair(3, 3), std::make_pair(1, 1), std::make_pair(1, 1), true)),
+          relu1_(std::make_unique<nn::ReLU>()),
+          maxpool1_(std::make_unique<nn::MaxPool2d>(std::make_pair(2, 2), std::make_pair(2, 2), std::make_pair(0, 0))),
+          conv2_(std::make_unique<nn::Conv2d>(64, 128, std::make_pair(3, 3), std::make_pair(1, 1), std::make_pair(1, 1), true)),
+          relu2_(std::make_unique<nn::ReLU>()),
+          maxpool2_(std::make_unique<nn::MaxPool2d>(std::make_pair(2, 2), std::make_pair(2, 2), std::make_pair(0, 0))),
+          flatten_(std::make_unique<nn::Flatten>()),
+          fc1_(std::make_unique<nn::Linear>(7 * 7 * 128, 128, true)),
+          relu3_(std::make_unique<nn::ReLU>()),
+          fc2_(std::make_unique<nn::Linear>(128, 10, true))
     {
         // Conv2d 和 Linear 层的参数已经通过 register_parameter 注册了
         // 由于它们继承自 Layer，Layer 继承自 Module，参数会自动被 Module 收集
@@ -54,22 +82,22 @@ public:
         
         // 第一层：Conv2d(1, 64, 3x3, pad=1) -> ReLU -> MaxPool2d(2x2)
         x = conv1_->forward(x);
-        x = relu(x);
-        x = max_pool2d(x, {2, 2}, {2, 2}, {0, 0});
+        x = relu1_->forward(x);
+        x = maxpool1_->forward(x);
         // 形状: (N, 64, 14, 14)
         
         // 第二层：Conv2d(64, 128, 3x3, pad=1) -> ReLU -> MaxPool2d(2x2)
         x = conv2_->forward(x);
-        x = relu(x);
-        x = max_pool2d(x, {2, 2}, {2, 2}, {0, 0});
+        x = relu2_->forward(x);
+        x = maxpool2_->forward(x);
         // 形状: (N, 128, 7, 7)
         
         // Flatten: (N, 128, 7, 7) -> (N, 128*7*7) = (N, 6272)
-        x = reshape(x, Shape{x.shape()[0], 128 * 7 * 7});
+        x = flatten_->forward(x);
         
         // 全连接层1：6272 -> 128
         x = fc1_->forward(x);
-        x = relu(x);
+        x = relu3_->forward(x);
         // 形状: (N, 128)
         
         // 全连接层2：128 -> 10
@@ -98,6 +126,8 @@ public:
         params.insert(params.end(), fc1_params.begin(), fc1_params.end());
         params.insert(params.end(), fc2_params.begin(), fc2_params.end());
         
+        // 注意：ReLU、MaxPool2d、Flatten 层没有参数，不需要收集
+        
         return params;
     }
 
@@ -108,8 +138,14 @@ public:
         
         // 迁移所有层到指定设备
         conv1_->to(device);
+        relu1_->to(device);
+        maxpool1_->to(device);
         conv2_->to(device);
+        relu2_->to(device);
+        maxpool2_->to(device);
+        flatten_->to(device);
         fc1_->to(device);
+        relu3_->to(device);
         fc2_->to(device);
     }
 };

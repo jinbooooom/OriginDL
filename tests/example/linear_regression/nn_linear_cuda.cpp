@@ -8,6 +8,8 @@
 
 using namespace origin;
 
+namespace nn = origin::nn;
+
 /**
  * @brief Neural network linear regression training demo (CUDA version)
  * @details Uses the same data as linear_regression.cpp to verify the framework with GPU
@@ -31,7 +33,7 @@ int main()
 
     // 2. Creating model
     Sequential model;
-    model.add(std::make_unique<Linear>(1, 1, true));
+    model.add(std::make_unique<nn::Linear>(1, 1, true));
 
     // 3. Creating optimizer (before moving to GPU, so optimizer can collect parameters)
     float learning_rate = 0.1f;
@@ -67,7 +69,7 @@ int main()
             float loss_val = loss.item<float>();
 
             // 直接通过 Linear 层访问参数，确保顺序正确
-            auto &linear_layer = dynamic_cast<Linear &>(model[0]);
+            auto &linear_layer = dynamic_cast<nn::Linear &>(model[0]);
             float w_val = 0.0f, b_val = 0.0f;
 
             w_val = linear_layer.weight()->item<float>();

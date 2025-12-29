@@ -8,6 +8,8 @@
 
 namespace origin
 {
+namespace nn
+{
 
 /**
  * @brief 全连接层（线性层）
@@ -72,6 +74,7 @@ private:
     void init_parameters();
 };
 
+}  // namespace nn
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_LINEAR_H__

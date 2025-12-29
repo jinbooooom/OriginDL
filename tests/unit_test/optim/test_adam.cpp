@@ -10,6 +10,8 @@
 #include "../../common/test_utils.h"
 
 using namespace origin;
+// 使用命名空间别名，语法类似 PyTorch
+namespace nn = origin::nn;
 
 /**
  * @brief Adam 优化器测试类（参数化版本）
@@ -24,12 +26,12 @@ TEST_P(AdamOptimizerTest, BasicStep)
 {
     // 测试基本的参数更新
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(1, 1, true));
+    model.add(std::make_unique<nn::Linear>(1, 1, true));
     
     auto optimizer = Adam(model, 0.01f, 0.9f, 0.999f, 1e-8f);
     
     // 设置初始参数
-    auto &linear = dynamic_cast<Linear &>(model[0]);
+    auto &linear = dynamic_cast<nn::Linear &>(model[0]);
     *linear.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     if (linear.bias() != nullptr)
     {
@@ -55,11 +57,11 @@ TEST_P(AdamOptimizerTest, MultipleSteps)
 {
     // 测试多步更新
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(1, 1, true));
+    model.add(std::make_unique<nn::Linear>(1, 1, true));
     
     auto optimizer = Adam(model, 0.01f);
     
-    auto &linear = dynamic_cast<Linear &>(model[0]);
+    auto &linear = dynamic_cast<nn::Linear &>(model[0]);
     *linear.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     
     auto x = Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()));
@@ -87,11 +89,11 @@ TEST_P(AdamOptimizerTest, StateBuffers)
 {
     // 测试状态缓冲区是否正确维护
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(2, 1, true));
+    model.add(std::make_unique<nn::Linear>(2, 1, true));
     
     auto optimizer = Adam(model, 0.01f, 0.9f, 0.999f, 1e-8f);
     
-    auto &linear = dynamic_cast<Linear &>(model[0]);
+    auto &linear = dynamic_cast<nn::Linear &>(model[0]);
     // Linear(2, 1) 的权重形状是 (2, 1)，不是 (1, 2)
     *linear.weight() = Parameter(Tensor({1.0f, 2.0f}, Shape{2, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     
@@ -126,15 +128,15 @@ TEST_P(AdamOptimizerTest, DifferentLearningRates)
 {
     // 测试不同学习率的影响
     auto model1 = Sequential();
-    model1.add(std::make_unique<Linear>(1, 1, false));
+    model1.add(std::make_unique<nn::Linear>(1, 1, false));
     auto model2 = Sequential();
-    model2.add(std::make_unique<Linear>(1, 1, false));
+    model2.add(std::make_unique<nn::Linear>(1, 1, false));
     
     auto optimizer1 = Adam(model1, 0.01f);
     auto optimizer2 = Adam(model2, 0.1f);
     
-    auto &linear1 = dynamic_cast<Linear &>(model1[0]);
-    auto &linear2 = dynamic_cast<Linear &>(model2[0]);
+    auto &linear1 = dynamic_cast<nn::Linear &>(model1[0]);
+    auto &linear2 = dynamic_cast<nn::Linear &>(model2[0]);
     
     *linear1.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     *linear2.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
@@ -169,10 +171,10 @@ TEST_P(AdamOptimizerTest, DefaultParameters)
 {
     // 测试默认参数
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(1, 1, false));
+    model.add(std::make_unique<nn::Linear>(1, 1, false));
     auto optimizer = Adam(model, 0.01f);  // 使用默认的 beta1, beta2, eps
     
-    auto &linear = dynamic_cast<Linear &>(model[0]);
+    auto &linear = dynamic_cast<nn::Linear &>(model[0]);
     *linear.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     
     // 确保模型在正确的设备上
@@ -195,10 +197,10 @@ TEST_P(AdamOptimizerTest, ZeroGradient)
 {
     // 测试零梯度的情况（完美预测）
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(1, 1, false));
+    model.add(std::make_unique<nn::Linear>(1, 1, false));
     auto optimizer = Adam(model, 0.01f);
     
-    auto &linear = dynamic_cast<Linear &>(model[0]);
+    auto &linear = dynamic_cast<nn::Linear &>(model[0]);
     *linear.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     
     // 确保模型在正确的设备上
@@ -224,10 +226,10 @@ TEST_P(AdamOptimizerTest, BiasCorrection)
     // 测试偏差修正（bias correction）
     // 第一步时，m_hat 和 v_hat 应该被放大
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(1, 1, false));
+    model.add(std::make_unique<nn::Linear>(1, 1, false));
     auto optimizer = Adam(model, 0.01f, 0.9f, 0.999f, 1e-8f);
     
-    auto &linear = dynamic_cast<Linear &>(model[0]);
+    auto &linear = dynamic_cast<nn::Linear &>(model[0]);
     *linear.weight() = Parameter(Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true)));
     
     // 确保模型在正确的设备上
@@ -260,8 +262,8 @@ TEST_P(AdamOptimizerTest, MultipleParameters)
 {
     // 测试多个参数的情况
     auto model = Sequential();
-    model.add(std::make_unique<Linear>(2, 3, true));
-    model.add(std::make_unique<Linear>(3, 1, true));
+    model.add(std::make_unique<nn::Linear>(2, 3, true));
+    model.add(std::make_unique<nn::Linear>(3, 1, true));
     
     auto optimizer = Adam(model, 0.01f);
     
@@ -269,8 +271,8 @@ TEST_P(AdamOptimizerTest, MultipleParameters)
     model.to(Device(deviceType()));
     
     // 设置参数需要梯度
-    auto &linear1 = dynamic_cast<Linear &>(model[0]);
-    auto &linear2 = dynamic_cast<Linear &>(model[1]);
+    auto &linear1 = dynamic_cast<nn::Linear &>(model[0]);
+    auto &linear2 = dynamic_cast<nn::Linear &>(model[1]);
     
     // 通过计算图设置梯度
     auto x = Tensor({1.0f, 1.0f}, Shape{1, 2}, dtype(DataType::kFloat32).device(deviceType()));

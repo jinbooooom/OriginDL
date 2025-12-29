@@ -7,6 +7,8 @@
 
 namespace origin
 {
+namespace nn
+{
 
 Linear::Linear(int in_features, int out_features, bool bias)
     : in_features_(in_features), out_features_(out_features), use_bias_(bias)
@@ -112,4 +114,5 @@ void Linear::reset_parameters()
     init_parameters();
 }
 
+}  // namespace nn
 }  // namespace origin

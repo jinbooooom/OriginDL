@@ -4,6 +4,8 @@
 
 namespace origin
 {
+namespace nn
+{
 
 MLP::MLP(const std::vector<int> &hidden_sizes, 
          std::function<Tensor(const Tensor &)> activation)
@@ -84,5 +86,6 @@ void MLP::to(Device device)
     }
 }
 
+}  // namespace nn
 }  // namespace origin
 
