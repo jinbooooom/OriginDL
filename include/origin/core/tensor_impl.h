@@ -32,8 +32,10 @@ public:
     int generation_;
 
     // 核心构造函数 - 接受 unique_ptr 并转换为 shared_ptr（底层返回 unique_ptr，上层转换为 shared_ptr）
-    TensorImpl(std::unique_ptr<Mat> data) : data_(std::shared_ptr<Mat>(std::move(data))), grad_(nullptr), creator_(nullptr), generation_(0) {}
-    
+    TensorImpl(std::unique_ptr<Mat> data)
+        : data_(std::shared_ptr<Mat>(std::move(data))), grad_(nullptr), creator_(nullptr), generation_(0)
+    {}
+
     // 核心构造函数 - 接受 shared_ptr（用于内部共享）
     TensorImpl(std::shared_ptr<Mat> data) : data_(data), grad_(nullptr), creator_(nullptr), generation_(0) {}
 
@@ -75,7 +77,7 @@ public:
     void set_creator(const FunctionPtr &func);
     void backward();
     void clear_grad();
-    
+
     // 计算图管理
     /**
      * @brief 断开tensor与计算图的连接

@@ -1,18 +1,17 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief 指数算子测试类（参数化版本）
  */
 class ExpOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -49,7 +48,7 @@ TEST_P(ExpOperatorTest, ForwardNegativeValues)
     auto result = exp(x);
 
     std::vector<float> expected_data = {static_cast<float>(std::exp(-1.0)), static_cast<float>(std::exp(-2.0))};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -61,7 +60,7 @@ TEST_P(ExpOperatorTest, ForwardLargeValues)
     auto result = exp(x);
 
     std::vector<float> expected_data = {static_cast<float>(std::exp(5.0)), static_cast<float>(std::exp(10.0))};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e3);
 }
 
@@ -140,22 +139,24 @@ TEST_P(ExpOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     float expected_val = static_cast<float>(std::exp(1.0));
-    auto expected = Tensor(std::vector<float>(100, expected_val), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor(std::vector<float>(100, expected_val), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(ExpOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x = Tensor({0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f}, Shape{2, 2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = exp(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data;
     for (int i = 0; i < 8; ++i)
     {
@@ -175,7 +176,7 @@ TEST_P(ExpOperatorTest, NumericalStability)
     auto result = exp(x);
 
     std::vector<float> expected_data = {static_cast<float>(std::exp(-10.0)), 1.0f, static_cast<float>(std::exp(10.0))};
-    auto expected = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e3);
 }
 
@@ -187,7 +188,7 @@ TEST_P(ExpOperatorTest, PrecisionTest)
     auto result = exp(x);
 
     std::vector<float> expected_data = {static_cast<float>(std::exp(0.1)), static_cast<float>(std::exp(0.2))};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -201,7 +202,7 @@ TEST_P(ExpOperatorTest, SmallValues)
     auto result = exp(x);
 
     std::vector<float> expected_data = {static_cast<float>(std::exp(1e-3)), static_cast<float>(std::exp(2e-6))};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "origin/data/dataset.h"
 #include "origin/core/tensor.h"
+#include "origin/data/dataset.h"
 #include "test_utils.h"
 
 using namespace origin;
@@ -21,7 +21,7 @@ public:
             throw std::out_of_range("Index out of range");
         }
         // 返回简单的测试数据
-        auto input = Tensor({static_cast<float>(index)}, Shape{1}, dtype(DataType::kFloat32));
+        auto input  = Tensor({static_cast<float>(index)}, Shape{1}, dtype(DataType::kFloat32));
         auto target = Tensor({static_cast<float>(index % 10)}, Shape{}, dtype(DataType::kFloat32));
         return std::make_pair(input, target);
     }
@@ -30,8 +30,7 @@ public:
 };
 
 class DatasetTest : public ::testing::Test
-{
-};
+{};
 
 TEST_F(DatasetTest, BasicInterface)
 {
@@ -59,4 +58,3 @@ TEST_F(DatasetTest, GetItemOutOfRange)
 
     EXPECT_THROW(dataset.get_item(5), std::out_of_range);
 }
-

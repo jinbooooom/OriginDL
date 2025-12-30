@@ -7,8 +7,7 @@ namespace origin
 namespace nn
 {
 
-MLP::MLP(const std::vector<int> &hidden_sizes, 
-         std::function<Tensor(const Tensor &)> activation)
+MLP::MLP(const std::vector<int> &hidden_sizes, std::function<Tensor(const Tensor &)> activation)
     : activation_(activation)
 {
     if (hidden_sizes.size() < 2)
@@ -19,11 +18,11 @@ MLP::MLP(const std::vector<int> &hidden_sizes,
     // 创建线性层
     for (size_t i = 0; i < hidden_sizes.size() - 1; ++i)
     {
-        int in_features = hidden_sizes[i];
+        int in_features  = hidden_sizes[i];
         int out_features = hidden_sizes[i + 1];
-        auto layer = std::make_unique<Linear>(in_features, out_features, true);  // 使用偏置
+        auto layer       = std::make_unique<Linear>(in_features, out_features, true);  // 使用偏置
         layers_.push_back(std::move(layer));
-        
+
         // Linear层的参数已经通过register_parameter注册了
         // 由于Linear继承自Layer，Layer继承自Module，参数会自动被Module收集
         // 我们不需要额外注册，只需要确保layers_中的模块能被访问到
@@ -39,20 +38,20 @@ MLP::MLP(const std::vector<int> &hidden_sizes,
 Tensor MLP::forward(const Tensor &input)
 {
     Tensor x = input;
-    
+
     // 逐层前向传播
     for (size_t i = 0; i < layers_.size(); ++i)
     {
         // 线性变换
         x = layers_[i]->forward(x);
-        
+
         // 除了最后一层，都应用激活函数
         if (i < layers_.size() - 1)
         {
             x = activation_(x);
         }
     }
-    
+
     return x;
 }
 
@@ -88,4 +87,3 @@ void MLP::to(Device device)
 
 }  // namespace nn
 }  // namespace origin
-

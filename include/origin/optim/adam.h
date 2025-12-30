@@ -11,7 +11,7 @@ namespace origin
 /**
  * @brief Adam优化器
  * @details 实现自适应矩估计（Adam）优化算法
- * 
+ *
  * Adam算法：
  * - m = beta1 * m + (1 - beta1) * grad
  * - v = beta2 * v + (1 - beta2) * grad^2
@@ -22,10 +22,10 @@ namespace origin
 class Adam : public Optimizer
 {
 private:
-    float lr_;      // 学习率
-    float beta1_;   // 一阶矩估计的衰减率，默认为0.9
-    float beta2_;   // 二阶矩估计的衰减率，默认为0.999
-    float eps_;     // 数值稳定性常数，默认为1e-8
+    float lr_;     // 学习率
+    float beta1_;  // 一阶矩估计的衰减率，默认为0.9
+    float beta2_;  // 二阶矩估计的衰减率，默认为0.999
+    float eps_;    // 数值稳定性常数，默认为1e-8
 
     // 状态字典
     std::unordered_map<Parameter *, Tensor> m_buffers_;  // 一阶矩估计
@@ -54,4 +54,3 @@ protected:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_ADAM_H__
-

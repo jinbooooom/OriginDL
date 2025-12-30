@@ -208,7 +208,7 @@ extern Tensor exp(const Tensor &x);
 
 /**
  * @brief 自然对数算子（以 e 为底的对数）
- * 
+ *
  * 计算输入张量的自然对数，即 log_e(x) = ln(x)
  * 与 PyTorch 的 torch.log() 行为一致
  */
@@ -222,17 +222,17 @@ public:
 
 /**
  * @brief 计算张量的自然对数（以 e 为底）
- * 
+ *
  * @param x 输入张量，必须为正数
  * @return 自然对数结果，log_e(x) = ln(x)
- * 
+ *
  * @note 与 PyTorch 的 torch.log() 行为一致
  */
 extern Tensor log(const Tensor &x);
 
 /**
  * @brief Softmax 算子
- * 
+ *
  * 计算 softmax 归一化，用于多分类任务
  * 公式：softmax(x) = exp(x - max(x)) / sum(exp(x - max(x)))
  * 注意数值稳定性：先减去最大值再计算
@@ -252,7 +252,7 @@ public:
 
 /**
  * @brief 计算张量的 softmax 归一化
- * 
+ *
  * @param x 输入张量
  * @param axis 计算 softmax 的轴，默认为 -1（最后一个维度）
  * @return softmax 归一化结果
@@ -261,7 +261,7 @@ extern Tensor softmax(const Tensor &x, int axis = -1);
 
 /**
  * @brief ReLU 激活函数算子
- * 
+ *
  * 计算 ReLU 激活函数，用于神经网络
  * 公式：ReLU(x) = max(0, x)
  */
@@ -275,7 +275,7 @@ public:
 
 /**
  * @brief 计算张量的 ReLU 激活函数
- * 
+ *
  * @param x 输入张量
  * @return ReLU 激活结果，ReLU(x) = max(0, x)
  */
@@ -283,7 +283,7 @@ extern Tensor relu(const Tensor &x);
 
 /**
  * @brief Sigmoid 激活函数算子
- * 
+ *
  * 计算 Sigmoid 激活函数，用于神经网络
  * 公式：sigmoid(x) = 1 / (1 + exp(-x))
  */
@@ -297,7 +297,7 @@ public:
 
 /**
  * @brief 计算张量的 Sigmoid 激活函数
- * 
+ *
  * @param x 输入张量
  * @return Sigmoid 激活结果，sigmoid(x) = 1 / (1 + exp(-x))
  */
@@ -305,14 +305,14 @@ extern Tensor sigmoid(const Tensor &x);
 
 /**
  * @brief SoftmaxCrossEntropy 损失函数算子
- * 
+ *
  * 计算 softmax 交叉熵损失，用于多分类任务
  * 公式：loss = -mean(log(softmax(x)[target]))
- * 
+ *
  * 输入：
  * - x: (N, C) 形状，N 是 batch size，C 是类别数
  * - target: (N,) 形状，每个元素是类别索引（0 到 C-1）
- * 
+ *
  * 输出：
  * - loss: 标量
  */
@@ -326,7 +326,7 @@ public:
 
 /**
  * @brief 计算 softmax 交叉熵损失
- * 
+ *
  * @param x 输入 logits，形状为 (N, C)，N 是 batch size，C 是类别数
  * @param target 目标类别索引，形状为 (N,)，每个元素是类别索引（0 到 C-1）
  * @return 交叉熵损失，标量

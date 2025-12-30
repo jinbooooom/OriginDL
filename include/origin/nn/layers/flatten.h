@@ -40,4 +40,3 @@ public:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_FLATTEN_LAYER_H__
-

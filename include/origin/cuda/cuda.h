@@ -67,4 +67,3 @@ inline void device_info()
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_CUDA_H__
-

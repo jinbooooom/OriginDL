@@ -1,17 +1,16 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief 除法算子测试类（参数化版本）
  */
 class DivOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -99,10 +98,10 @@ TEST_P(DivOperatorTest, BackwardBasic)
     // 除法算子的梯度：∂y/∂x0 = 1/x1, ∂y/∂x1 = -x0/x1²
     auto x0_data = x0.to_vector<float>();
     auto x1_data = x1.to_vector<float>();
-    
+
     auto expected_gx0 = Tensor({1.0f / 2.0f, 1.0f / 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto expected_gx1 = Tensor({-6.0f / 4.0f, -8.0f / 16.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0.grad(), expected_gx0, origin::test::TestTolerance::kDefault);
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1.grad(), expected_gx1, origin::test::TestTolerance::kDefault);
 }
@@ -118,11 +117,11 @@ TEST_P(DivOperatorTest, BackwardWithGradient)
 
     auto x0_data = x0.to_vector<float>();
     auto x1_data = x1.to_vector<float>();
-    
+
     // 梯度会累积，所以需要计算累积后的值
     auto expected_gx0 = Tensor({1.0f / 2.0f, 1.0f / 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto expected_gx1 = Tensor({-4.0f / 4.0f, -6.0f / 9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0.grad(), expected_gx0, origin::test::TestTolerance::kDefault);
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1.grad(), expected_gx1, origin::test::TestTolerance::kDefault);
 }
@@ -178,22 +177,25 @@ TEST_P(DivOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
-    auto expected = Tensor(std::vector<float>(100, 3.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto expected =
+        Tensor(std::vector<float>(100, 3.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(DivOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x0 = Tensor({2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f, 14.0f, 16.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    auto x1 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x0 = Tensor({2.0f, 4.0f, 6.0f, 8.0f, 10.0f, 12.0f, 14.0f, 16.0f}, Shape{2, 2, 2},
+                     dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                     dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = div(x0, x1);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     auto expected = Tensor(std::vector<float>(8, 2.0f), Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }

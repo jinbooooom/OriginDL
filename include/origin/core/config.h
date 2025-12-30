@@ -9,16 +9,16 @@ namespace origin
  */
 namespace Config
 {
-    /**
-     * @brief 是否启用反向传播
-     * @details 当为false时，backward()不会构建计算图
-     */
-    extern bool enable_backprop;
-}
+/**
+ * @brief 是否启用反向传播
+ * @details 当为false时，backward()不会构建计算图
+ */
+extern bool enable_backprop;
+}  // namespace Config
 
 /**
  * @brief no_grad() 返回的RAII guard对象
- * 
+ *
  * 用于在作用域内禁用梯度计算
  * 用法：
  * {
@@ -43,20 +43,20 @@ public:
     ~NoGradGuard();
 
     // 禁止拷贝，允许移动
-    NoGradGuard(const NoGradGuard &) = delete;
+    NoGradGuard(const NoGradGuard &)            = delete;
     NoGradGuard &operator=(const NoGradGuard &) = delete;
-    NoGradGuard(NoGradGuard &&) = default;
-    NoGradGuard &operator=(NoGradGuard &&) = default;
+    NoGradGuard(NoGradGuard &&)                 = default;
+    NoGradGuard &operator=(NoGradGuard &&)      = default;
 };
 
 /**
  * @brief 禁用梯度计算的上下文管理器
- * 
+ *
  * 返回一个RAII guard对象，在作用域内禁用梯度计算
  * 与 PyTorch 的 torch.no_grad() 行为一致
- * 
+ *
  * @return NoGradGuard对象，析构时自动恢复
- * 
+ *
  * @example
  * {
  *     auto guard = no_grad();
@@ -69,6 +69,3 @@ NoGradGuard no_grad();
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_CONFIG_H__
-
-
-

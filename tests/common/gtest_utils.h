@@ -25,8 +25,7 @@ public:
      * @param tolerance 容忍度，默认使用TestTolerance::kDefault
      * @details 如果断言失败，会输出详细的错误信息
      */
-    static void EXPECT_TENSORS_EQ(const Tensor &a, const Tensor &b,
-                                   double tolerance = TestTolerance::kDefault);
+    static void EXPECT_TENSORS_EQ(const Tensor &a, const Tensor &b, double tolerance = TestTolerance::kDefault);
 
     /**
      * @brief 张量近似相等断言（使用相对误差和绝对误差）
@@ -35,8 +34,7 @@ public:
      * @param rtol 相对误差容忍度，默认1e-5
      * @param atol 绝对误差容忍度，默认1e-8
      */
-    static void EXPECT_TENSORS_NEAR(const Tensor &a, const Tensor &b, double rtol = 1e-5,
-                                    double atol = 1e-8);
+    static void EXPECT_TENSORS_NEAR(const Tensor &a, const Tensor &b, double rtol = 1e-5, double atol = 1e-8);
 
     /**
      * @brief 张量形状断言
@@ -64,4 +62,3 @@ public:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_GTEST_UTILS_H__
-

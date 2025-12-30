@@ -31,4 +31,3 @@ Tensor Dropout::forward(const Tensor &input)
 
 }  // namespace nn
 }  // namespace origin
-

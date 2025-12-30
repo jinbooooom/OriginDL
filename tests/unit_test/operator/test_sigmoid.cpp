@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../../common/device_test_base.h"
 #include "../../common/gtest_utils.h"
 #include "../../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 
@@ -12,8 +12,7 @@ using namespace origin;
  * @brief Sigmoid 算子测试类（参数化版本）
  */
 class SigmoidOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -59,7 +58,7 @@ TEST_P(SigmoidOperatorTest, ForwardExtremeValues)
     std::vector<float> expected_data = {1.0f / (1.0f + std::exp(-10.0f)), 1.0f / (1.0f + std::exp(10.0f))};
     auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
-    
+
     // 验证极值特性：大正数接近1，大负数接近0
     auto result_data = result.to_vector<float>();
     EXPECT_GT(result_data[0], 0.999f);
@@ -75,12 +74,8 @@ TEST_P(SigmoidOperatorTest, ForwardTwoDimensional)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    std::vector<float> expected_data = {
-        0.5f,
-        1.0f / (1.0f + std::exp(-1.0f)),
-        1.0f / (1.0f + std::exp(1.0f)),
-        1.0f / (1.0f + std::exp(-2.0f))
-    };
+    std::vector<float> expected_data = {0.5f, 1.0f / (1.0f + std::exp(-1.0f)), 1.0f / (1.0f + std::exp(1.0f)),
+                                        1.0f / (1.0f + std::exp(-2.0f))};
     auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
@@ -89,13 +84,13 @@ TEST_P(SigmoidOperatorTest, ForwardThreeDimensional)
 {
     // 测试三维张量
     std::vector<float> input_data = {0.0f, 1.0f, -1.0f, 2.0f, -2.0f, 3.0f, -3.0f, 0.5f};
-    auto x = Tensor(input_data, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                        = Tensor(input_data, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = sigmoid(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data;
     for (float val : input_data)
     {
@@ -176,7 +171,7 @@ TEST_P(SigmoidOperatorTest, RangeProperty)
         EXPECT_GE(val, 0.0f);
         EXPECT_LE(val, 1.0f);
     }
-    
+
     // 对于非极值，应该在 (0, 1) 范围内
     // result_data[0] 是 sigmoid(-100)，可能接近0，允许等于0
     // result_data[1] 是 sigmoid(-10)，应该在 (0, 1) 范围内
@@ -192,17 +187,16 @@ TEST_P(SigmoidOperatorTest, RangeProperty)
 TEST_P(SigmoidOperatorTest, SymmetryProperty)
 {
     // 测试对称性质：sigmoid(-x) = 1 - sigmoid(x)
-    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x     = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     auto neg_x = Tensor({-1.0f, -2.0f, -3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto sigmoid_x = sigmoid(x);
+    auto sigmoid_x     = sigmoid(x);
     auto sigmoid_neg_x = sigmoid(neg_x);
-    auto ones = Tensor::ones(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
-    auto expected = ones - sigmoid_x;
+    auto ones          = Tensor::ones(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected      = ones - sigmoid_x;
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(sigmoid_neg_x, expected, origin::test::TestTolerance::kDefault);
 }
 
 // Instantiate test suite: automatically generate tests for CPU and available CUDA
 INSTANTIATE_DEVICE_TEST_SUITE_P(SigmoidOperatorTest);
-

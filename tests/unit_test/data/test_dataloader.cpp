@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "origin/data/dataset.h"
-#include "origin/data/dataloader.h"
 #include "origin/core/tensor.h"
+#include "origin/data/dataloader.h"
+#include "origin/data/dataset.h"
 #include "test_utils.h"
 
 using namespace origin;
@@ -22,7 +22,7 @@ public:
             throw std::out_of_range("Index out of range");
         }
         // 返回简单的测试数据
-        auto input = Tensor({static_cast<float>(index)}, Shape{1}, dtype(DataType::kFloat32));
+        auto input  = Tensor({static_cast<float>(index)}, Shape{1}, dtype(DataType::kFloat32));
         auto target = Tensor({static_cast<float>(index % 10)}, Shape{}, dtype(DataType::kFloat32));
         return std::make_pair(input, target);
     }
@@ -31,8 +31,7 @@ public:
 };
 
 class DataLoaderTest : public ::testing::Test
-{
-};
+{};
 
 TEST_F(DataLoaderTest, BasicIteration)
 {
@@ -89,7 +88,7 @@ TEST_F(DataLoaderTest, Shuffle)
 {
     TestDataset dataset(10);
     DataLoader loader1(dataset, 10, false);  // 不打乱
-    DataLoader loader2(dataset, 10, true);    // 打乱
+    DataLoader loader2(dataset, 10, true);   // 打乱
 
     // 获取两个批次（应该不同，因为打乱了）
     auto [inputs1, targets1] = loader1.next();
@@ -126,4 +125,3 @@ TEST_F(DataLoaderTest, EmptyDataset)
     // 对于空数据集，调用 next() 应该抛出异常
     EXPECT_THROW(loader.next(), std::runtime_error);
 }
-

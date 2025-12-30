@@ -1,8 +1,8 @@
-#include "origin/core/operator.h"
-#include "origin/utils/exception.h"
-#include "origin/mat/mat.h"
 #include <random>
 #include <vector>
+#include "origin/core/operator.h"
+#include "origin/mat/mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -34,7 +34,7 @@ std::vector<Tensor> Dropout::forward(const std::vector<Tensor> &xs)
 
     // 训练模式：生成 dropout mask
     auto x_shape = x.shape();
-    auto x_data = x.to_vector<float>();
+    auto x_data  = x.to_vector<float>();
 
     // 生成随机 mask：值为 0 或 1/(1-p)
     std::random_device rd;
@@ -51,12 +51,12 @@ std::vector<Tensor> Dropout::forward(const std::vector<Tensor> &xs)
         if (dist(gen) < p_)
         {
             mask_data[i] = 0.0f;
-            y_data[i] = 0.0f;
+            y_data[i]    = 0.0f;
         }
         else
         {
             mask_data[i] = scale;
-            y_data[i] = x_data[i] * scale;
+            y_data[i]    = x_data[i] * scale;
         }
     }
 
@@ -88,9 +88,9 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
     }
 
     // 训练模式：根据 mask 计算梯度
-    auto gy_data = gy.to_vector<float>();
+    auto gy_data   = gy.to_vector<float>();
     auto mask_data = mask_.to_vector<float>();
-    auto gy_shape = gy.shape();
+    auto gy_shape  = gy.shape();
 
     std::vector<float> gx_data(gy_data.size());
     for (size_t i = 0; i < gy_data.size(); ++i)
@@ -106,4 +106,3 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
 }
 
 }  // namespace origin
-
