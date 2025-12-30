@@ -203,6 +203,54 @@ TEST_P(SumOperatorTest, ThreeDimensionalWithAxis)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result2, expected2, origin::test::TestTolerance::kDefault);
 }
 
+TEST_P(SumOperatorTest, ForwardOneByOneSumAxis0)
+{
+    // 测试 (1,1) 形状的张量，对轴0求和
+    // 这个测试用于验证conv2d_backward中gb计算的问题
+    auto x = Tensor({5.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    // 沿轴0求和，应该得到 (1,) 形状
+    auto result = sum(x, 0);
+    Shape expected_shape{1};
+    EXPECT_EQ(result.shape(), expected_shape);
+    EXPECT_NEAR(result.item<float>(), 5.0f, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumOperatorTest, ForwardOneByOneSumAxis1)
+{
+    // 测试 (1,1) 形状的张量，对轴1求和
+    auto x = Tensor({5.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    // 沿轴1求和，应该得到 (1,) 形状
+    auto result = sum(x, 1);
+    Shape expected_shape{1};
+    EXPECT_EQ(result.shape(), expected_shape);
+    EXPECT_NEAR(result.item<float>(), 5.0f, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumOperatorTest, ForwardMultipleSumsOnOneByOne)
+{
+    // 测试对 (1,1) 形状连续求和，模拟conv2d_backward中gb的计算过程
+    // gy形状: (1, 1, 1, 1) -> sum(2) -> (1, 1, 1) -> sum(2) -> (1, 1) -> sum(0) -> (1,)
+    auto gy = Tensor({1.0f}, Shape{1, 1, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    // 第一步：sum(2) on (1,1,1,1) -> (1,1,1)
+    auto step1 = sum(gy, 2);
+    Shape expected_shape1{1, 1, 1};
+    EXPECT_EQ(step1.shape(), expected_shape1);
+    
+    // 第二步：sum(2) on (1,1,1) -> (1,1)
+    auto step2 = sum(step1, 2);
+    Shape expected_shape2{1, 1};
+    EXPECT_EQ(step2.shape(), expected_shape2);
+    
+    // 第三步：sum(0) on (1,1) -> (1,)
+    auto step3 = sum(step2, 0);
+    Shape expected_shape3{1};
+    EXPECT_EQ(step3.shape(), expected_shape3);
+    EXPECT_NEAR(step3.item<float>(), 1.0f, origin::test::TestTolerance::kDefault);
+}
+
 // ==================== 数值稳定性测试 ====================
 
 TEST_P(SumOperatorTest, NumericalStability)

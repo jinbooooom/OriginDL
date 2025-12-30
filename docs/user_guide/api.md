@@ -542,6 +542,51 @@ x.clear_grad();  // 清除x的梯度
 // 之后x.grad()将返回全零张量
 ```
 
+#### detach
+
+```cpp
+Tensor detach() const
+```
+
+断开张量与计算图的连接，创建一个不参与梯度计算的新张量。类似于 PyTorch 的 `detach()` 方法。
+
+**返回值:** Tensor – 新的张量，与原始张量共享数据但不参与梯度计算
+
+**注意:**
+- 返回的新张量不包含 `creator_` 和 `grad_`，因此不会参与反向传播
+- 调用 `detach()` 会递归清理整个计算图，断开所有相关的 Operator 引用，帮助释放 GPU 内存
+- 这对于解决循环引用导致的内存泄漏问题非常有用
+- 在训练循环中，可以在 `backward()` 和 `step()` 之后调用 `detach()` 来显式释放计算图内存
+
+**例子:**
+```cpp
+auto x = Tensor::ones({2, 2}, requires_grad(true));
+auto y = x * x;
+auto loss = sum(y);
+
+// 反向传播
+loss.backward();
+
+// 断开计算图，释放内存
+auto detached_loss = loss.detach();
+// detached_loss 与 loss 共享数据，但不参与梯度计算
+// 调用 detach() 后，整个计算图（包括所有中间 tensor）都可以被释放
+
+// 在训练循环中的典型用法
+for (int i = 0; i < epochs; ++i) {
+    auto y = model(x);
+    auto loss = compute_loss(y, target);
+    
+    optimizer.zero_grad();
+    loss.backward();
+    optimizer.step();
+    
+    // 显式断开计算图，释放 GPU 内存
+    loss.detach();
+    y.detach();
+}
+```
+
 ---
 
 ## 张量操作

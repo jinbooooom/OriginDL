@@ -260,5 +260,71 @@ TEST_P(SumToOperatorTest, CommutativeProperty)
     EXPECT_NEAR(result1.item<float>(), result2.item<float>(), origin::test::TestTolerance::kDefault);
 }
 
+// ==================== 更多测试用例（新增） ====================
+
+TEST_P(SumToOperatorTest, ForwardMultipleAxes)
+{
+    // 测试沿多个轴求和
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    Shape target_shape{1, 1, 1};
+
+    auto result = sum_to(x, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    EXPECT_NEAR(result.item<float>(), 36.0f, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumToOperatorTest, ForwardPartialReduction)
+{
+    // 测试部分归约：从 (2, 3) 到 (2, 1)
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    Shape target_shape{2, 1};
+
+    auto result = sum_to(x, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    auto expected = Tensor({6.0f, 15.0f}, Shape{2, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumToOperatorTest, ForwardNegativeValues)
+{
+    // 测试负值
+    auto x = Tensor({-1.0f, -2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    Shape target_shape{1, 1};
+
+    auto result = sum_to(x, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    EXPECT_NEAR(result.item<float>(), 4.0f, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumToOperatorTest, ForwardHighPrecision)
+{
+    // 测试高精度值
+    auto x = Tensor({1e-6f, 2e-6f, 3e-6f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    Shape target_shape{1};
+
+    auto result = sum_to(x, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    EXPECT_NEAR(result.item<float>(), 6e-6f, 1e-8f);
+}
+
+TEST_P(SumToOperatorTest, BackwardPartialReduction)
+{
+    // 测试部分归约的反向传播
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    Shape target_shape{2, 1};
+
+    auto y = sum_to(x, target_shape);
+    y.backward();
+
+    // 梯度应该广播回原始形状
+    EXPECT_EQ(x.grad().shape(), x.shape());
+    auto expected_grad = Tensor::ones(Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, origin::test::TestTolerance::kDefault);
+}
+
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(SumToOperatorTest);

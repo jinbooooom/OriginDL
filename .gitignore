@@ -94,3 +94,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Plan documents
+docs/plan/*

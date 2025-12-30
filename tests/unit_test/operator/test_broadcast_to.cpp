@@ -290,5 +290,73 @@ TEST_P(BroadcastToOperatorTest, CommutativeProperty)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, result2, origin::test::TestTolerance::kDefault);
 }
 
+// ==================== 维度感知广播测试（新增） ====================
+
+TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcast2DTo2D)
+{
+    // 测试维度感知广播：从 (2, 1) 到 (2, 2)
+    // 应该得到 [[1, 1], [2, 2]] = [1, 1, 2, 2]
+    auto x = Tensor({1.0f, 2.0f}, Shape{2, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    Shape target_shape{2, 2};
+
+    auto result = broadcast_to(x, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    auto expected = Tensor({1.0f, 1.0f, 2.0f, 2.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcast1DTo2D)
+{
+    // 测试维度感知广播：从 (3,) 到 (2, 3)
+    // 应该得到 [[1, 2, 3], [1, 2, 3]] = [1, 2, 3, 1, 2, 3]
+    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    Shape target_shape{2, 3};
+
+    auto result = broadcast_to(x, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    auto expected = Tensor({1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcast3D)
+{
+    // 测试维度感知广播：从 (1, 2, 1) 到 (3, 2, 4)
+    auto x = Tensor({1.0f, 2.0f}, Shape{1, 2, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    Shape target_shape{3, 2, 4};
+
+    auto result = broadcast_to(x, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    // 验证每个 (2,) 切片都是 [1, 1, 1, 1] 或 [2, 2, 2, 2]
+    auto result_data = result.to_vector<float>();
+    for (int i = 0; i < 3; ++i)
+    {
+        for (int j = 0; j < 2; ++j)
+        {
+            float expected_val = (j == 0) ? 1.0f : 2.0f;
+            for (int k = 0; k < 4; ++k)
+            {
+                size_t idx = i * 8 + j * 4 + k;
+                EXPECT_NEAR(result_data[idx], expected_val, origin::test::TestTolerance::kDefault);
+            }
+        }
+    }
+}
+
+TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcastComplex)
+{
+    // 测试复杂维度感知广播：从 (1, 3) 到 (2, 3)
+    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    Shape target_shape{2, 3};
+
+    auto result = broadcast_to(x, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    auto expected = Tensor({1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(BroadcastToOperatorTest);

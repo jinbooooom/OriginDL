@@ -41,15 +41,16 @@ public:
 public:
     std::vector<Tensor> inputs_;  // 前向传播的入参，考虑多输入
 
-    // 使用 shared_ptr 而不是 weak_ptr 的原因：
+    // 根本解决方案：使用 weak_ptr 避免循环引用
     // 1. 原始设计理念：算子不拥有输出张量，只观察它们（使用 weak_ptr 避免循环引用）
-    // 2. 实际问题：当前使用值语义的 Tensor 对象，用户代码中 Tensor 的生命周期与算子存储的引用不一致
-    // 3. 生命周期问题：当用户代码中的 Tensor 对象超出作用域时，weak_ptr 会失效
-    // 4. 反向传播失败：TensorImpl::backward() 无法访问已失效的输出张量
-    // 5. 解决方案：使用 shared_ptr 确保输出张量在反向传播期间仍然有效
-    // 6. 权衡：虽然违背了原始的所有权模型，但确保了实际运行时的正确性
-    // 7. 未来改进：理想情况下应该重新设计 Tensor 的生命周期管理，恢复 weak_ptr 的使用
-    std::vector<std::shared_ptr<Tensor>> outputs_;  // 前向传播的输出，考虑多输出
+    // 2. 生命周期问题：当用户代码中的 Tensor 对象超出作用域时，weak_ptr 会失效
+    // 3. 解决方案：在 backward() 时，将 weak_ptr 转换为 shared_ptr（如果有效）
+    // 4. 如果 weak_ptr 失效，说明用户代码中的 tensor 已经超出作用域，这是正常的
+    // 5. 这样可以避免循环引用（Operator -> outputs_ -> Tensor -> creator_ -> Operator），解决内存泄漏
+    //
+    // 注意：outputs_ 存储的是 TensorImpl 的 weak_ptr，而不是 Tensor 的 weak_ptr
+    // 因为 Tensor 是值语义的，而 TensorImpl 是引用语义的（通过 shared_ptr 管理）
+    std::vector<std::weak_ptr<TensorImpl>> outputs_;  // 前向传播的输出，考虑多输出（使用weak_ptr避免循环引用）
 
     int generation_;  // 对于复杂的计算图，用来区分哪个先计算
 
@@ -205,6 +206,133 @@ public:
 
 extern Tensor exp(const Tensor &x);
 
+/**
+ * @brief 自然对数算子（以 e 为底的对数）
+ * 
+ * 计算输入张量的自然对数，即 log_e(x) = ln(x)
+ * 与 PyTorch 的 torch.log() 行为一致
+ */
+class Log : public Operator
+{
+public:
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+};
+
+/**
+ * @brief 计算张量的自然对数（以 e 为底）
+ * 
+ * @param x 输入张量，必须为正数
+ * @return 自然对数结果，log_e(x) = ln(x)
+ * 
+ * @note 与 PyTorch 的 torch.log() 行为一致
+ */
+extern Tensor log(const Tensor &x);
+
+/**
+ * @brief Softmax 算子
+ * 
+ * 计算 softmax 归一化，用于多分类任务
+ * 公式：softmax(x) = exp(x - max(x)) / sum(exp(x - max(x)))
+ * 注意数值稳定性：先减去最大值再计算
+ */
+class Softmax : public Operator
+{
+public:
+    int axis_;  // 计算 softmax 的轴，默认为 -1（最后一个维度）
+
+    Softmax() : axis_(-1) {}
+    Softmax(int axis) : axis_(axis) {}
+
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+};
+
+/**
+ * @brief 计算张量的 softmax 归一化
+ * 
+ * @param x 输入张量
+ * @param axis 计算 softmax 的轴，默认为 -1（最后一个维度）
+ * @return softmax 归一化结果
+ */
+extern Tensor softmax(const Tensor &x, int axis = -1);
+
+/**
+ * @brief ReLU 激活函数算子
+ * 
+ * 计算 ReLU 激活函数，用于神经网络
+ * 公式：ReLU(x) = max(0, x)
+ */
+class ReLU : public Operator
+{
+public:
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+};
+
+/**
+ * @brief 计算张量的 ReLU 激活函数
+ * 
+ * @param x 输入张量
+ * @return ReLU 激活结果，ReLU(x) = max(0, x)
+ */
+extern Tensor relu(const Tensor &x);
+
+/**
+ * @brief Sigmoid 激活函数算子
+ * 
+ * 计算 Sigmoid 激活函数，用于神经网络
+ * 公式：sigmoid(x) = 1 / (1 + exp(-x))
+ */
+class Sigmoid : public Operator
+{
+public:
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+};
+
+/**
+ * @brief 计算张量的 Sigmoid 激活函数
+ * 
+ * @param x 输入张量
+ * @return Sigmoid 激活结果，sigmoid(x) = 1 / (1 + exp(-x))
+ */
+extern Tensor sigmoid(const Tensor &x);
+
+/**
+ * @brief SoftmaxCrossEntropy 损失函数算子
+ * 
+ * 计算 softmax 交叉熵损失，用于多分类任务
+ * 公式：loss = -mean(log(softmax(x)[target]))
+ * 
+ * 输入：
+ * - x: (N, C) 形状，N 是 batch size，C 是类别数
+ * - target: (N,) 形状，每个元素是类别索引（0 到 C-1）
+ * 
+ * 输出：
+ * - loss: 标量
+ */
+class SoftmaxCrossEntropy : public Operator
+{
+public:
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+};
+
+/**
+ * @brief 计算 softmax 交叉熵损失
+ * 
+ * @param x 输入 logits，形状为 (N, C)，N 是 batch size，C 是类别数
+ * @param target 目标类别索引，形状为 (N,)，每个元素是类别索引（0 到 C-1）
+ * @return 交叉熵损失，标量
+ */
+extern Tensor softmax_cross_entropy(const Tensor &x, const Tensor &target);
+
 class Reshape : public Operator
 {
 public:
@@ -282,6 +410,42 @@ public:
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 extern Tensor mat_mul(const Tensor &x, const Tensor &w);
+
+class BatchNorm : public Operator
+{
+public:
+    bool training_;
+    float eps_;
+    float momentum_;
+    int num_dims_;
+
+    BatchNorm(bool training, float eps, float momentum, int num_dims);
+
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+
+private:
+    Tensor saved_mean_;
+    Tensor saved_var_;
+    Tensor saved_x_norm_;
+};
+
+class Dropout : public Operator
+{
+public:
+    float p_;  // dropout 概率
+    bool training_;
+
+    Dropout(float p, bool training);
+
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+
+private:
+    Tensor mask_;
+};
 
 }  // namespace origin
 

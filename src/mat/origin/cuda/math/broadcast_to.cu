@@ -81,43 +81,63 @@ namespace cuda
  */
 
 /**
- * @brief 广播CUDA内核（简化版本，参考CPU实现）
+ * @brief 维度感知广播CUDA内核
  * @tparam T 数据类型
  * @param input 输入数据
  * @param output 输出数据
- * @param src_elements 输入元素总数
+ * @param src_strides 输入 strides
+ * @param dst_strides 输出 strides
+ * @param src_shape 输入形状
+ * @param dst_shape 输出形状
+ * @param src_ndim 输入维度数
+ * @param dst_ndim 输出维度数
  * @param dst_elements 输出元素总数
  */
 template <typename T>
 __global__ void broadcast_kernel(const T *__restrict__ input,
                                  T *__restrict__ output,
-                                 size_t src_elements,
+                                 const int *src_strides,
+                                 const int *dst_strides,
+                                 const int *src_shape,
+                                 const int *dst_shape,
+                                 int src_ndim,
+                                 int dst_ndim,
                                  size_t dst_elements)
 {
     size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < dst_elements)
     {
-        // 使用模运算实现循环复制，与CPU版本保持一致
-        output[idx] = input[idx % src_elements];
+        // 将线性索引转换为多维索引
+        int dst_indices[8];  // 假设最大8维
+        int temp = idx;
+        for (int i = dst_ndim - 1; i >= 0; --i)
+        {
+            dst_indices[i] = temp % dst_shape[i];
+            temp /= dst_shape[i];
+        }
+
+        // 计算对应的源索引
+        // 从右到左对齐维度（NumPy/PyTorch 广播规则）
+        int src_idx = 0;
+        for (int i = 0; i < dst_ndim; ++i)
+        {
+            // 从右到左对齐：dst 的最后一个维度对应 src 的最后一个维度
+            int dst_dim_idx = dst_ndim - 1 - i;
+            int src_dim_idx = src_ndim - 1 - i;  // 从右到左对齐
+            
+            if (src_dim_idx >= 0 && src_dim_idx < src_ndim)
+            {
+                // 如果源维度大小为1，则索引为0（广播）
+                int src_dim_size = src_shape[src_dim_idx];
+                int src_index = (src_dim_size == 1) ? 0 : dst_indices[dst_dim_idx];
+                src_idx += src_index * src_strides[src_dim_idx];
+            }
+        }
+
+        output[idx] = input[src_idx];
     }
 }
 
-/**
- * @brief 启动广播内核
- * @tparam T 数据类型
- * @param input 输入数据
- * @param output 输出数据
- * @param src_elements 输入元素总数
- * @param dst_elements 输出元素总数
- */
-template <typename T>
-void launch_broadcast_kernel(const T *input, T *output, size_t src_elements, size_t dst_elements)
-{
-    const int block_size = 256;
-    const int grid_size  = (dst_elements + block_size - 1) / block_size;
-
-    broadcast_kernel<T><<<grid_size, block_size>>>(input, output, src_elements, dst_elements);
-}
 
 /**
  * @brief 验证广播兼容性
@@ -184,12 +204,66 @@ std::unique_ptr<Mat> broadcast_to(const OriginMat &mat, const Shape &target_shap
     // 创建输出矩阵
     auto result = std::make_unique<OriginMat>(target_shape, mat.dtype(), mat.device());
 
-    // 使用类型分发器执行广播（简化版本，参考CPU实现）
+    // 计算 strides
+    std::vector<int> src_strides(input_shape.size());
+    std::vector<int> dst_strides(target_shape.size());
+    std::vector<int> src_shape_vec(input_shape.size());
+    std::vector<int> dst_shape_vec(target_shape.size());
+    
+    int src_stride = 1;
+    int dst_stride = 1;
+    for (int i = static_cast<int>(input_shape.size()) - 1; i >= 0; --i)
+    {
+        src_strides[i] = src_stride;
+        src_stride *= static_cast<int>(input_shape[i]);
+        src_shape_vec[i] = static_cast<int>(input_shape[i]);
+    }
+    for (int i = static_cast<int>(target_shape.size()) - 1; i >= 0; --i)
+    {
+        dst_strides[i] = dst_stride;
+        dst_stride *= static_cast<int>(target_shape[i]);
+        dst_shape_vec[i] = static_cast<int>(target_shape[i]);
+    }
+
+    // 将 strides 和 shapes 复制到 GPU
+    int *d_src_strides, *d_dst_strides, *d_src_shape, *d_dst_shape;
+    size_t src_strides_size = src_strides.size() * sizeof(int);
+    size_t dst_strides_size = dst_strides.size() * sizeof(int);
+    size_t src_shape_size = src_shape_vec.size() * sizeof(int);
+    size_t dst_shape_size = dst_shape_vec.size() * sizeof(int);
+    
+    CUDA_CHECK(cudaMalloc(&d_src_strides, src_strides_size));
+    CUDA_CHECK(cudaMalloc(&d_dst_strides, dst_strides_size));
+    CUDA_CHECK(cudaMalloc(&d_src_shape, src_shape_size));
+    CUDA_CHECK(cudaMalloc(&d_dst_shape, dst_shape_size));
+    
+    CUDA_CHECK(cudaMemcpy(d_src_strides, src_strides.data(), src_strides_size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_dst_strides, dst_strides.data(), dst_strides_size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_src_shape, src_shape_vec.data(), src_shape_size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_dst_shape, dst_shape_vec.data(), dst_shape_size, cudaMemcpyHostToDevice));
+
+    // 使用类型分发器执行维度感知广播
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-        launch_broadcast_kernel(mat.data_ptr<T>(), result->data_ptr<T>(), mat.elements(), target_shape.elements());
+        const int block_size = 256;
+        const int grid_size = (target_shape.elements() + block_size - 1) / block_size;
+        broadcast_kernel<T><<<grid_size, block_size>>>(
+            mat.data_ptr<T>(), result->data_ptr<T>(),
+            d_src_strides, d_dst_strides,
+            d_src_shape, d_dst_shape,
+            static_cast<int>(input_shape.size()),
+            static_cast<int>(target_shape.size()),
+            target_shape.elements()
+        );
     });
 
     CUDA_CHECK_ASYNC();
+    
+    // 清理 GPU 内存
+    CUDA_CHECK(cudaFree(d_src_strides));
+    CUDA_CHECK(cudaFree(d_dst_strides));
+    CUDA_CHECK(cudaFree(d_src_shape));
+    CUDA_CHECK(cudaFree(d_dst_shape));
+    
     return result;
 }
 

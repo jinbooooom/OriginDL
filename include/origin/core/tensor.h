@@ -222,6 +222,15 @@ public:
     void set_creator(const FunctionPtr &func);
     void backward();
     void clear_grad();
+    void accumulate_grad(const Tensor &grad_to_add);
+    
+    // === 计算图管理 ===
+    /**
+     * @brief 断开tensor与计算图的连接，创建一个不参与梯度计算的新tensor
+     * @return 新的tensor，与原始tensor共享数据但不参与梯度计算
+     * @details 类似于PyTorch的detach()方法，用于显式断开计算图，帮助释放内存
+     */
+    Tensor detach() const;
 
     // === 张量操作 ===
     Tensor reshape(const Shape &shape) const;

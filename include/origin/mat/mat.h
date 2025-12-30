@@ -196,8 +196,11 @@ public:
     virtual std::unique_ptr<Mat> exp() const = 0;
 
     /**
-     * @brief 对数函数
-     * @return 对数运算结果
+     * @brief 自然对数运算（以 e 为底）
+     * 
+     * 计算矩阵的自然对数，即 log(x) = ln(x)
+     * 
+     * @return 自然对数运算结果
      */
     virtual std::unique_ptr<Mat> log() const = 0;
 
