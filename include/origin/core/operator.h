@@ -411,6 +411,42 @@ public:
 };
 extern Tensor mat_mul(const Tensor &x, const Tensor &w);
 
+class BatchNorm : public Operator
+{
+public:
+    bool training_;
+    float eps_;
+    float momentum_;
+    int num_dims_;
+
+    BatchNorm(bool training, float eps, float momentum, int num_dims);
+
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+
+private:
+    Tensor saved_mean_;
+    Tensor saved_var_;
+    Tensor saved_x_norm_;
+};
+
+class Dropout : public Operator
+{
+public:
+    float p_;  // dropout 概率
+    bool training_;
+
+    Dropout(float p, bool training);
+
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+
+private:
+    Tensor mask_;
+};
+
 }  // namespace origin
 
 #endif
