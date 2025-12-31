@@ -22,7 +22,7 @@ namespace nn
 class MLP : public Module
 {
 private:
-    std::vector<std::unique_ptr<Linear>> layers_;       // 线性层列表
+    std::vector<Linear *> layers_;  // 线性层指针列表（用于保持顺序，所有权在 modules_ 中）
     std::function<Tensor(const Tensor &)> activation_;  // 激活函数
 
 public:

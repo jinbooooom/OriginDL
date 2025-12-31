@@ -7,6 +7,7 @@
 #include "origin/core/operator.h"
 #include "origin/data/dataloader.h"
 #include "origin/data/mnist.h"
+#include "origin/io/checkpoint.h"
 #include "origin/io/model_io.h"
 #include "origin/nn/layers/batch_norm2d.h"
 #include "origin/nn/layers/conv2d.h"
@@ -301,7 +302,26 @@ struct TrainingConfig
     float weight_decay_rate = 1e-4f;
     int log_interval        = 50;
     std::string model_path  = "model/mnist_model.odl";
+    int checkpoint_interval = 5;
     int random_seed         = 42;
+
+    /**
+     * @brief 获取 checkpoint 目录（从 model_path 的目录派生）
+     * @return checkpoint 目录路径
+     */
+    std::string checkpoint_dir() const
+    {
+        // 从 model_path 提取目录，然后添加 "checkpoints" 子目录
+        size_t last_slash = model_path.find_last_of('/');
+        if (last_slash != std::string::npos)
+        {
+            return model_path.substr(0, last_slash + 1) + "checkpoints";
+        }
+        else
+        {
+            return "checkpoints";
+        }
+    }
 
     /**
      * @brief 打印配置信息
@@ -315,10 +335,31 @@ struct TrainingConfig
         logi("Weight decay: {}", weight_decay_rate);
         logi("Log interval: {}", log_interval);
         logi("Model path: {}", model_path);
+        logi("Checkpoint dir: {}", checkpoint_dir());
+        logi("Checkpoint interval: {} epochs", checkpoint_interval);
         logi("Random seed: {}", random_seed);
         logi("==============================");
     }
 };
+
+/**
+ * @brief 打印使用说明
+ * @param program_name 程序名称
+ */
+void usage(const char *program_name)
+{
+    logi("Usage: {} [OPTIONS]", program_name);
+    logi("Options:");
+    logi("  -e, --epochs EPOCHS          Maximum number of epochs (default: 10)");
+    logi("  -b, --batch-size SIZE        Batch size (default: 256)");
+    logi("  -l, --learning-rate LR       Learning rate (default: 0.0005)");
+    logi("  -w, --weight-decay RATE      Weight decay rate (default: 1e-4)");
+    logi("  -i, --log-interval INTERVAL  Log interval in batches (default: 50)");
+    logi("  -m, --model-path PATH        Path to save model (default: model/mnist_model.odl)");
+    logi("  -c, --checkpoint-interval N  Save checkpoint every N epochs (default: 5)");
+    logi("  -s, --seed SEED              Random seed (default: 42)");
+    logi("  -h, --help                   Show this help message");
+}
 
 /**
  * @brief 解析命令行参数
@@ -337,6 +378,7 @@ TrainingConfig parse_args(int argc, char *argv[])
                                            {"weight-decay", required_argument, 0, 'w'},
                                            {"log-interval", required_argument, 0, 'i'},
                                            {"model-path", required_argument, 0, 'm'},
+                                           {"checkpoint-interval", required_argument, 0, 'c'},
                                            {"seed", required_argument, 0, 's'},
                                            {"help", no_argument, 0, 'h'},
                                            {0, 0, 0, 0}};
@@ -344,7 +386,7 @@ TrainingConfig parse_args(int argc, char *argv[])
     int option_index = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "e:b:l:w:i:m:s:h", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "e:b:l:w:i:m:c:s:h", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -391,20 +433,19 @@ TrainingConfig parse_args(int argc, char *argv[])
             case 'm':
                 config.model_path = optarg;
                 break;
+            case 'c':
+                config.checkpoint_interval = std::atoi(optarg);
+                if (config.checkpoint_interval <= 0)
+                {
+                    logw("Invalid checkpoint_interval: {}. Using default: 5", optarg);
+                    config.checkpoint_interval = 5;
+                }
+                break;
             case 's':
                 config.random_seed = std::atoi(optarg);
                 break;
             case 'h':
-                logi("Usage: {} [OPTIONS]", argv[0]);
-                logi("Options:");
-                logi("  -e, --epochs EPOCHS          Maximum number of epochs (default: 10)");
-                logi("  -b, --batch-size SIZE        Batch size (default: 256)");
-                logi("  -l, --learning-rate LR        Learning rate (default: 0.0005)");
-                logi("  -w, --weight-decay RATE       Weight decay rate (default: 1e-4)");
-                logi("  -i, --log-interval INTERVAL   Log interval in batches (default: 50)");
-                logi("  -m, --model-path PATH         Path to save model (default: mnist_model.odl)");
-                logi("  -s, --seed SEED               Random seed (default: 42)");
-                logi("  -h, --help                    Show this help message");
+                usage(argv[0]);
                 std::exit(0);
             case '?':
                 // getopt_long 已经打印了错误信息
@@ -486,9 +527,7 @@ int main(int argc, char *argv[])
         int train_total   = 0;
 
         train_loader.reset();
-        // 快速测试模式（已注释，恢复完整训练）
-        // int train_iter_count = 0;
-        // const int max_train_iters = 10;  // 快速测试：只训练10次迭代
+        // while (train_loader.has_next() && train_batches < 10)
         while (train_loader.has_next())  // 完整训练：训练整个 epoch
         {
             {
@@ -626,6 +665,38 @@ int main(int argc, char *argv[])
         logi("  Train Loss: {:.4f}, Train Acc: {:.2f}%", avg_train_loss, train_acc);
         logi("  Test Loss:  {:.4f}, Test Acc:  {:.2f}%", avg_test_loss, test_acc);
         logi("===========================================");
+
+        // 保存 Checkpoint（每 N 个 epoch 或最后一个 epoch）
+        if ((epoch + 1) % config.checkpoint_interval == 0 || (epoch + 1) == config.max_epoch)
+        {
+            try
+            {
+                // 确保 checkpoint 目录存在（忽略返回值）
+                std::string ckpt_dir = config.checkpoint_dir();
+                (void)system(("mkdir -p " + ckpt_dir).c_str());
+
+                std::string checkpoint_path = ckpt_dir + "/checkpoint_epoch_" + std::to_string(epoch + 1) + ".ckpt";
+
+                Checkpoint checkpoint;
+                checkpoint.model_state_dict             = model.state_dict();
+                checkpoint.optimizer_state_dict["adam"] = optimizer.state_dict();
+                checkpoint.epoch                        = epoch + 1;
+                checkpoint.step                         = train_batches;  // 当前总步数
+                checkpoint.loss                         = avg_test_loss;
+                checkpoint.optimizer_type               = "Adam";
+                checkpoint.optimizer_config["lr"]       = config.learning_rate;
+                checkpoint.optimizer_config["beta1"]    = 0.9f;
+                checkpoint.optimizer_config["beta2"]    = 0.999f;
+                checkpoint.optimizer_config["eps"]      = 1e-8f;
+
+                save(checkpoint, checkpoint_path);
+                logi("Checkpoint saved to {}", checkpoint_path);
+            }
+            catch (const std::exception &e)
+            {
+                logw("Failed to save checkpoint: {}", e.what());
+            }
+        }
     }
 
     logi("Training completed!");
@@ -634,8 +705,8 @@ int main(int argc, char *argv[])
     logi("Saving model to {}...", config.model_path);
     try
     {
-        // 确保 model 目录存在
-        system("mkdir -p model");
+        // 确保 model 目录存在（忽略返回值）
+        (void)system("mkdir -p model");
 
         model.eval();  // 设置为评估模式
         save(model.state_dict(), config.model_path);

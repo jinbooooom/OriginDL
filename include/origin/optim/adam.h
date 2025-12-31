@@ -43,6 +43,38 @@ public:
      */
     Adam(Module &target, float lr, float beta1 = 0.9f, float beta2 = 0.999f, float eps = 1e-8f);
 
+    /**
+     * @brief 获取优化器的状态字典
+     * @return 优化器状态字典
+     */
+    std::unordered_map<std::string, std::any> state_dict() const override;
+
+    /**
+     * @brief 从状态字典加载优化器状态
+     * @param state_dict 优化器状态字典
+     */
+    void load_state_dict(const std::unordered_map<std::string, std::any> &state_dict) override;
+
+    /**
+     * @brief 获取学习率
+     */
+    float learning_rate() const { return lr_; }
+
+    /**
+     * @brief 获取 beta1
+     */
+    float beta1() const { return beta1_; }
+
+    /**
+     * @brief 获取 beta2
+     */
+    float beta2() const { return beta2_; }
+
+    /**
+     * @brief 获取 eps
+     */
+    float eps() const { return eps_; }
+
 protected:
     /**
      * @brief 更新单个参数
