@@ -97,3 +97,6 @@ dkms.conf
 
 # Plan documents
 docs/plan/*
+
+# Model files
+model/
