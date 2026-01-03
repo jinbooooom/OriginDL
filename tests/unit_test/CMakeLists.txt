@@ -252,6 +252,36 @@ set_target_properties(test_sigmoid PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_silu operator/test_silu.cpp)
+add_dependencies(test_silu gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_silu ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_silu PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_silu PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_upsample operator/test_upsample.cpp)
+add_dependencies(test_upsample gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_upsample ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_upsample PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_upsample PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_cat operator/test_cat.cpp)
+add_dependencies(test_cat gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_cat ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_cat PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_cat PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_avg_pool2d operator/test_avg_pool2d.cpp)
 add_dependencies(test_avg_pool2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_avg_pool2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
@@ -480,6 +510,10 @@ add_test(NAME exp_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_exp)
 add_test(NAME log_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_log)
 add_test(NAME softmax_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_softmax)
 add_test(NAME relu_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_relu)
+add_test(NAME sigmoid_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sigmoid)
+add_test(NAME silu_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_silu)
+add_test(NAME upsample_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_upsample)
+add_test(NAME cat_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_cat)
 add_test(NAME softmax_cross_entropy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_softmax_cross_entropy)
 add_test(NAME accuracy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_accuracy)
 add_test(NAME adam_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_adam)
