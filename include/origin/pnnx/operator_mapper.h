@@ -56,6 +56,11 @@ private:
     static std::shared_ptr<Operator> create_cat(std::shared_ptr<PNNXNode> node);
 
     /**
+     * @brief 创建 YOLO Detect 算子
+     */
+    static std::shared_ptr<Operator> create_yolo_detect(std::shared_ptr<PNNXNode> node);
+
+    /**
      * @brief 从参数中获取整数值
      */
     static int get_int_param(const std::map<std::string, Parameter> &params,

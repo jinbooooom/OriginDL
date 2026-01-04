@@ -7,6 +7,7 @@
 #include "origin/operators/nn/upsample.h"
 #include "origin/operators/nn/cat.h"
 #include "origin/operators/nn/identity.h"
+#include "origin/operators/custom/yolo_detect.h"
 #include "origin/core/operator.h"
 #include "origin/utils/exception.h"
 #include <memory>
@@ -47,9 +48,7 @@ std::shared_ptr<Operator> OperatorMapper::create_operator(std::shared_ptr<PNNXNo
     }
     else if (type == "models.yolo.Detect")
     {
-        // YOLO 检测层：暂时使用 Identity 算子，直接传递输入
-        // TODO: 实现完整的 YOLO 后处理（NMS 等）
-        return std::make_shared<Identity>();
+        return create_yolo_detect(node);
     }
     else
     {
@@ -190,9 +189,128 @@ std::pair<int, int> OperatorMapper::get_int_pair_param(const std::map<std::strin
 Tensor OperatorMapper::load_weight_tensor(const Attribute &attr)
 {
     // 从 Attribute 加载权重 Tensor
-    // TODO: 实现权重加载
-    THROW_RUNTIME_ERROR("Weight loading not implemented yet");
-    return Tensor();
+    if (attr.data.empty() || attr.shape.empty())
+    {
+        THROW_RUNTIME_ERROR("Attribute data or shape is empty");
+    }
+    
+    std::vector<size_t> shape_vec;
+    for (int dim : attr.shape)
+    {
+        shape_vec.push_back(static_cast<size_t>(dim));
+    }
+    Shape weight_shape(shape_vec);
+    
+    // 使用 CPU 设备（权重通常在 CPU 上）
+    Device device(DeviceType::kCPU);
+    
+    return Tensor(attr.data, weight_shape, dtype(DataType::kFloat32).device(device));
+}
+
+std::shared_ptr<Operator> OperatorMapper::create_yolo_detect(std::shared_ptr<PNNXNode> node)
+{
+    auto &attrs = node->attributes;
+    
+    // 读取 strides (pnnx_5)
+    if (attrs.find("pnnx_5") == attrs.end())
+    {
+        THROW_RUNTIME_ERROR("YoloDetect: cannot find pnnx_5 (strides) attribute");
+    }
+    auto &strides_attr = attrs.at("pnnx_5");
+    std::vector<float> strides = strides_attr.data;
+    int32_t stages = static_cast<int32_t>(strides.size());
+    
+    if (stages != 3)
+    {
+        THROW_RUNTIME_ERROR("YoloDetect: only supports 3 stages, but got {}", stages);
+    }
+    
+    // 读取 anchor_grids (pnnx_0, pnnx_2, pnnx_4)
+    std::vector<Tensor> anchor_grids;
+    std::vector<int> anchor_indices = {0, 2, 4};
+    for (int idx : anchor_indices)
+    {
+        std::string attr_name = "pnnx_" + std::to_string(idx);
+        if (attrs.find(attr_name) == attrs.end())
+        {
+            THROW_RUNTIME_ERROR("YoloDetect: cannot find {} (anchor_grid) attribute", attr_name);
+        }
+        anchor_grids.push_back(load_weight_tensor(attrs.at(attr_name)));
+    }
+    
+    // 读取 grids (pnnx_6, pnnx_3, pnnx_1)
+    std::vector<Tensor> grids;
+    std::vector<int> grid_indices = {6, 3, 1};
+    for (int idx : grid_indices)
+    {
+        std::string attr_name = "pnnx_" + std::to_string(idx);
+        if (attrs.find(attr_name) == attrs.end())
+        {
+            THROW_RUNTIME_ERROR("YoloDetect: cannot find {} (grid) attribute", attr_name);
+        }
+        grids.push_back(load_weight_tensor(attrs.at(attr_name)));
+    }
+    
+    // 读取卷积权重和偏置 (m.0.weight/bias, m.1.weight/bias, m.2.weight/bias)
+    std::vector<Tensor> conv_weights;
+    std::vector<Tensor> conv_biases;
+    int32_t num_classes = -1;
+    int32_t num_anchors = -1;
+    
+    for (int32_t i = 0; i < stages; ++i)
+    {
+        std::string weight_name = "m." + std::to_string(i) + ".weight";
+        std::string bias_name = "m." + std::to_string(i) + ".bias";
+        
+        if (attrs.find(weight_name) == attrs.end())
+        {
+            THROW_RUNTIME_ERROR("YoloDetect: cannot find {} attribute", weight_name);
+        }
+        if (attrs.find(bias_name) == attrs.end())
+        {
+            THROW_RUNTIME_ERROR("YoloDetect: cannot find {} attribute", bias_name);
+        }
+        
+        Tensor weight = load_weight_tensor(attrs.at(weight_name));
+        Tensor bias = load_weight_tensor(attrs.at(bias_name));
+        
+        conv_weights.push_back(weight);
+        conv_biases.push_back(bias);
+        
+        // 从第一个权重推断 num_classes 和 num_anchors
+        if (i == 0)
+        {
+            auto weight_shape = weight.shape();
+            if (weight_shape.size() != 4)
+            {
+                THROW_RUNTIME_ERROR("YoloDetect: conv weight must be 4D, but got shape {}", 
+                                   weight_shape.to_string());
+            }
+            int32_t out_channels = static_cast<int32_t>(weight_shape[0]);
+            if (num_anchors == -1)
+            {
+                // 假设 num_anchors = 3（YOLOv5 标准）
+                num_anchors = 3;
+                if (out_channels % num_anchors != 0)
+                {
+                    THROW_RUNTIME_ERROR("YoloDetect: out_channels ({}) must be divisible by num_anchors ({})", 
+                                       out_channels, num_anchors);
+                }
+                num_classes = out_channels / num_anchors - 5;  // 5 = 4(bbox) + 1(objectness)
+                if (num_classes <= 0)
+                {
+                    THROW_RUNTIME_ERROR("YoloDetect: invalid num_classes ({})", num_classes);
+                }
+            }
+        }
+    }
+    
+    return std::make_shared<YoloDetect>(stages, num_classes, num_anchors,
+                                       std::move(strides),
+                                       std::move(anchor_grids),
+                                       std::move(grids),
+                                       std::move(conv_weights),
+                                       std::move(conv_biases));
 }
 
 }  // namespace pnnx
