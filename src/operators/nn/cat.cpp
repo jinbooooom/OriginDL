@@ -21,25 +21,6 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
     {
         return xs;  // 只有一个输入，直接返回
     }
-    
-    // 调试：打印 cat 操作的输入信息
-    static int cat_call_count = 0;
-    cat_call_count++;
-    if (cat_call_count == 2) {  // torch.cat_1
-        std::cout << "\n=== DEBUG: origindl Cat Input (torch.cat_1) ===" << std::endl;
-        std::cout << "dim_ = " << dim_ << std::endl;
-        std::cout << "Number of inputs: " << xs.size() << std::endl;
-        for (size_t i = 0; i < xs.size(); ++i) {
-            auto shape = xs[i].shape();
-            auto data = xs[i].to_vector<float>();
-            std::cout << "Input " << i << " shape: " << shape.to_string() << std::endl;
-            std::cout << "Input " << i << " first 10 values: ";
-            for (size_t j = 0; j < std::min(size_t(10), data.size()); ++j) {
-                std::cout << data[j] << " ";
-            }
-            std::cout << std::endl;
-        }
-    }
 
     // 检查所有输入的形状（除了 dim_ 维度外应该相同）
     auto first_shape = xs[0].shape();
