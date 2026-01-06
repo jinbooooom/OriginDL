@@ -120,6 +120,8 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         std::vector<float> output_data(target_shape.elements());
         
         // 重新排列数据：从 (N, num_anchors, classes_info, H, W) 到 (N, num_anchors * H * W, classes_info)
+        // 对于行主序数据布局，索引计算应该是：
+        // input_idx = b * num_anchors * classes_info * H * W + na * classes_info * H * W + c * H * W + h * W + w
         for (size_t b = 0; b < batch_size; ++b)
         {
             for (size_t na = 0; na < static_cast<size_t>(num_anchors_); ++na)
@@ -130,17 +132,20 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
                     {
                         size_t output_idx = b * num_boxes * classes_info + 
                                           (na * H * W + h * W + w) * classes_info;
-                        size_t input_idx = b * num_anchors_ * classes_info * H * W +
-                                        na * classes_info * H * W +
-                                        h * W * classes_info +
-                                        w * classes_info;
                         
                         for (size_t c = 0; c < static_cast<size_t>(classes_info); ++c)
                         {
-                            output_data[output_idx + c] = reshaped_data[input_idx + c];
+                            // 行主序索引：b * num_anchors * classes_info * H * W + na * classes_info * H * W + c * H * W + h * W + w
+                            size_t input_idx = b * num_anchors_ * classes_info * H * W +
+                                              na * classes_info * H * W +
+                                              c * H * W +
+                                              h * W +
+                                              w;
+                            output_data[output_idx + c] = reshaped_data[input_idx];
                         }
                     }
                 }
+
             }
         }
         
@@ -239,4 +244,5 @@ std::vector<Tensor> YoloDetect::backward(const std::vector<Tensor> &gys)
 }
 
 }  // namespace origin
+
 

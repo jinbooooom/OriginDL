@@ -1,5 +1,6 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/cuda/cublas_wrapper.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
@@ -272,8 +273,11 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     Shape output_shape(output_dims);
     auto result = std::make_unique<OriginMat>(output_shape, a.dtype(), a.device());
 
+    // 临时禁用 cuBLAS，使用 CPU 实现进行对比测试
     // 使用类型分发器执行矩阵乘法
     device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+        // 临时禁用 cuBLAS，使用自定义 kernel（行主序）
+        // 对于所有类型，使用自定义 kernel，不使用 cuBLAS
         launch_matmul_2d_kernel(a.data_ptr<T>(), b.data_ptr<T>(), result->data_ptr<T>(), M, N, K);
     });
 

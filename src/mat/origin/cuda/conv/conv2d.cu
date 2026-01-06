@@ -1,5 +1,10 @@
 #include "origin/mat/origin/cuda/cuda_ops.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/cuda/cublas_wrapper.h"
+#ifdef HAVE_CUDNN
+#include "origin/mat/origin/cuda/cudnn_wrapper.h"
+#include <cudnn.h>
+#endif
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
 #include "origin/utils/conv_utils.h"
@@ -8,6 +13,13 @@
 #include <cstring>
 #include <type_traits>
 #include <cuda_runtime.h>
+
+// 前向声明 GPU matmul 函数
+namespace origin {
+namespace cuda {
+std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
+}  // namespace cuda
+}  // namespace origin
 
 namespace origin
 {
@@ -49,6 +61,16 @@ __global__ void im2col_kernel(const T *__restrict__ img, T *__restrict__ col, si
             int kh = kh_kw / KW;
             int kw = kh_kw % KW;
 
+            // h_idx 和 w_idx 的计算：对于输出位置 (oh, ow)，卷积核覆盖的输入区域是
+            // h_start = oh * SH - PH (相对于原始输入图像，可能为负数)
+            // w_start = ow * SW - PW
+            // 卷积核内的位置 (kh, kw) 对应的输入位置是：
+            // h = h_start + kh = oh * SH - PH + kh (相对于原始输入图像，可能为负数)
+            // w = w_start + kw = ow * SW - PW + kw
+            // 在 padded_img 中，原始图像从 (PH, PW) 开始，所以：
+            // padded_h = h + PH = oh * SH - PH + kh + PH = oh * SH + kh
+            // padded_w = w + PW = ow * SW - PW + kw + PW = ow * SW + kw
+            // 所以 h_idx = kh + SH * oh = oh * SH + kh 已经是 padded_img 中的索引了
             int h_idx = kh + SH * oh;
             int w_idx = kw + SW * ow;
 
@@ -80,6 +102,16 @@ __global__ void im2col_kernel(const T *__restrict__ img, T *__restrict__ col, si
             int oh = rem / OW;
             int ow = rem % OW;
 
+            // h_idx 和 w_idx 的计算：对于输出位置 (oh, ow)，卷积核覆盖的输入区域是
+            // h_start = oh * SH - PH (相对于原始输入图像，可能为负数)
+            // w_start = ow * SW - PW
+            // 卷积核内的位置 (kh, kw) 对应的输入位置是：
+            // h = h_start + kh = oh * SH - PH + kh (相对于原始输入图像，可能为负数)
+            // w = w_start + kw = ow * SW - PW + kw
+            // 在 padded_img 中，原始图像从 (PH, PW) 开始，所以：
+            // padded_h = h + PH = oh * SH - PH + kh + PH = oh * SH + kh
+            // padded_w = w + PW = ow * SW - PW + kw + PW = ow * SW + kw
+            // 所以 h_idx = kh + SH * oh = oh * SH + kh 已经是 padded_img 中的索引了
             int h_idx = kh + SH * oh;
             int w_idx = kw + SW * ow;
 
@@ -220,6 +252,39 @@ __global__ void pad_image_kernel(const T *__restrict__ src, T *__restrict__ dst,
 }
 
 /**
+ * @brief 转换权重从行主序到列主序（用于 cuDNN）
+ * @tparam T 数据类型
+ * @param src 源数据（行主序）
+ * @param dst 目标数据（列主序）
+ * @param OC 输出通道数
+ * @param C 输入通道数
+ * @param KH 卷积核高度
+ * @param KW 卷积核宽度
+ */
+template <typename T>
+__global__ void convert_filter_row_to_col_major_kernel(const T *__restrict__ src, T *__restrict__ dst,
+                                                       size_t OC, size_t C, int KH, int KW)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t total_elements = OC * C * KH * KW;
+
+    if (idx < total_elements)
+    {
+        // 计算列主序索引 (oc, c, kh, kw)
+        size_t oc = idx % OC;
+        size_t rem = idx / OC;
+        size_t c = rem % C;
+        rem = rem / C;
+        int kh = rem % KH;
+        int kw = rem / KH;
+
+        // 行主序索引: oc * (C*KH*KW) + c * (KH*KW) + kh * KW + kw
+        size_t row_major_idx = oc * (C * KH * KW) + c * (KH * KW) + kh * KW + kw;
+        dst[idx] = src[row_major_idx];
+    }
+}
+
+/**
  * @brief 转置 CUDA kernel：从 (N, OH, OW, OC) 到 (N, OC, OH, OW)
  * @tparam T 数据类型
  */
@@ -317,8 +382,14 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
     }
 
     // 创建填充后的图像
-    size_t padded_H = H + 2 * PH + SH - 1;
-    size_t padded_W = W + 2 * PW + SW - 1;
+    // 标准公式：padded_H = H + 2 * PH
+    // 但是，为了确保 stride>1 时所有输出位置都能正确访问，需要额外的空间
+    // 对于 stride>1，最后一个输出位置可能需要访问到 H + PH + (OH-1)*SH + KH - 1
+    // 所以需要：padded_H >= H + 2*PH + (OH-1)*SH + KH - 1 - (H + PH) = PH + (OH-1)*SH + KH - 1
+    // 但是，这太复杂了。实际上，标准的 padded_H = H + 2 * PH 应该就足够了。
+    // 让我先尝试使用标准公式，看看是否能解决问题。
+    size_t padded_H = H + 2 * PH;
+    size_t padded_W = W + 2 * PW;
     auto padded_img = std::make_unique<OriginMat>(Shape{N, C, padded_H, padded_W}, img.dtype(), img.device());
 
     // 在 GPU 上填充图像
@@ -402,8 +473,9 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
     int OW = get_conv_outsize(static_cast<int>(W), KW, SW, PW);
 
     // 创建输出图像（带填充）
-    size_t padded_H = H + 2 * PH + SH - 1;
-    size_t padded_W = W + 2 * PW + SW - 1;
+    // 标准公式：padded_H = H + 2 * PH
+    size_t padded_H = H + 2 * PH;
+    size_t padded_W = W + 2 * PW;
     auto padded_img = std::make_unique<OriginMat>(Shape{N, C, padded_H, padded_W}, col.dtype(), col.device());
 
     // 初始化填充图像为0
@@ -518,18 +590,645 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
     Shape out_shape{N, OC, static_cast<size_t>(OH), static_cast<size_t>(OW)};
     auto result = std::make_unique<OriginMat>(out_shape, x.dtype(), x.device());
 
-    // 使用 im2col + matmul 实现卷积
+#ifdef HAVE_CUDNN
+    // cuDNN 和 cuBLAS 已禁用，避免行列主序转换问题
+    // 直接使用 im2col + CPU matmul 实现
+    // if (x.dtype() == DataType::kFloat32)
+    // {
+    //     // cuDNN 代码已注释，避免数据布局转换问题
+    // }
+#endif
+
+    // 回退到 im2col + cuBLAS GEMM 实现（当 cuDNN 不可用或数据类型不支持时）
     // 1. im2col: (N, C, H, W) -> (N*OH*OW, C*KH*KW)
     auto col = im2col_impl(x, std::make_pair(static_cast<int>(KH), static_cast<int>(KW)), stride, pad, true);
 
-    // 2. 将卷积核 reshape 为 (OC, C*KH*KW) 并转置为 (C*KH*KW, OC)
-    auto W_reshaped = W.reshape(Shape{OC, C * KH * KW});
-    auto W_T = W_reshaped->transpose();
-    const OriginMat &W_T_mat = static_cast<const OriginMat &>(*W_T);
+    // 调试：检查 im2col 的输入和输出（仅对 model.0.conv: N=4, C=3, OC=16, OH=160, OW=160, stride=2）
+    if (N == 4 && C == 3 && OC == 16 && OH == 160 && OW == 160 && stride.first == 2 && stride.second == 2) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.0.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        
+        // 检查 im2col 输出
+        const OriginMat &col_mat_debug = static_cast<const OriginMat &>(*col);
+        auto col_cpu = col_mat_debug.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &col_cpu_mat = static_cast<const OriginMat &>(*col_cpu);
+        auto col_data = col_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: im2col output (model.0.conv) ===" << std::endl;
+        std::cout << "Shape: " << col_mat_debug.shape().to_string() << " (expected: {102400, 108})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), col_data.size()); ++i) {
+            std::cout << col_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 col[0,0] 到 col[9,0] (第一列的前10个值)
+        size_t col_cols = col_mat_debug.shape()[1];
+        std::cout << "col[0,0] to col[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * col_cols + 0;
+            if (idx < col_data.size()) {
+                std::cout << col_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        // 检查 col[0,1] 到 col[9,1] (第二列的前10个值)
+        std::cout << "col[0,1] to col[9,1] (col=1): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * col_cols + 1;
+            if (idx < col_data.size()) {
+                std::cout << col_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        // 检查 col[0,2] 到 col[9,2] (第三列的前10个值)
+        std::cout << "col[0,2] to col[9,2] (col=2): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * col_cols + 2;
+            if (idx < col_data.size()) {
+                std::cout << col_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        // 检查 col[0,:] 的前20个值
+        std::cout << "col[0,:] first 20 values: ";
+        for (int col_idx = 0; col_idx < 20; ++col_idx) {
+            size_t idx = 0 * col_cols + col_idx;
+            if (idx < col_data.size()) {
+                std::cout << col_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        // 检查 col[1,:] 的前20个值
+        std::cout << "col[1,:] first 20 values: ";
+        for (int col_idx = 0; col_idx < 20; ++col_idx) {
+            size_t idx = 1 * col_cols + col_idx;
+            if (idx < col_data.size()) {
+                std::cout << col_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        // 检查 col[2,:] 的前20个值
+        std::cout << "col[2,:] first 20 values: ";
+        for (int col_idx = 0; col_idx < 20; ++col_idx) {
+            size_t idx = 2 * col_cols + col_idx;
+            if (idx < col_data.size()) {
+                std::cout << col_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.1.conv: N=4, C=16, OC=32, OH=80, OW=80, stride=2）
+    if (N == 4 && C == 16 && OC == 32 && OH == 80 && OW == 80 && stride.first == 2 && stride.second == 2) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.1.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.2.cv1.conv: N=4, C=32, OC=16, OH=80, OW=80, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 16 && OH == 80 && OW == 80 && KH == 1 && KW == 1 && pad.first == 0 && pad.second == 0) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.2.cv1.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.2.cv2.conv: N=4, C=32, OC=16, OH=80, OW=80, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 16 && OH == 80 && OW == 80 && KH == 1 && KW == 1) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.2.cv2.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.2.cv3.conv: N=4, C=32, OC=32, OH=80, OW=80, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 32 && OH == 80 && OW == 80 && KH == 1 && KW == 1) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.2.cv3.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.3.conv: N=4, C=32, OC=64, OH=40, OW=40, stride=2）
+    if (N == 4 && C == 32 && OC == 64 && OH == 40 && OW == 40 && stride.first == 2 && stride.second == 2) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.3.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.2.cv2.conv: N=4, C=32, OC=16, OH=80, OW=80, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 16 && OH == 80 && OW == 80 && KH == 1 && KW == 1) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.2.cv2.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        std::cout << "Conv params: kernel=(" << KH << "," << KW << "), stride=(" << stride.first << "," << stride.second << "), padding=(" << pad.first << "," << pad.second << ")" << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.4.m.1.cv1.conv: N=4, C=32, OC=32, OH=40, OW=40, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 32 && OH == 40 && OW == 40 && KH == 1 && KW == 1) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.4.m.1.cv1.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.4.m.1.cv2.conv: N=4, C=32, OC=32, OH=40, OW=40, kernel=3x3）
+    if (N == 4 && C == 32 && OC == 32 && OH == 40 && OW == 40 && KH == 3 && KW == 3) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.4.m.1.cv2.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w_idx = 0; w_idx < 10; ++w_idx) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w_idx);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 im2col 的输入和输出（仅对 model.4.cv1.conv: N=4, C=64, OC=32, OH=40, OW=40）
+    if (N == 4 && C == 64 && OC == 32 && OH == 40 && OW == 40) {
+        // 检查输入数据
+        auto x_cpu = x.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &x_cpu_mat = static_cast<const OriginMat &>(*x_cpu);
+        auto x_data = x_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: conv2d input (model.4.cv1.conv) ===" << std::endl;
+        std::cout << "Input shape: " << x.shape().to_string() << std::endl;
+        std::cout << "Input first 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), x_data.size()); ++i) {
+            std::cout << x_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查输入 [0,0,0,0] 到 [0,0,0,9]
+        std::cout << "Input [0,0,0,0] to [0,0,0,9]: ";
+        for (int w = 0; w < 10; ++w) {
+            size_t idx = static_cast<size_t>(0) * C * H * W_in + static_cast<size_t>(0) * H * W_in + static_cast<size_t>(0) * W_in + static_cast<size_t>(w);
+            if (idx < x_data.size()) {
+                std::cout << x_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        
+        // 检查 im2col 输出
+        const OriginMat &col_mat_debug = static_cast<const OriginMat &>(*col);
+        auto col_cpu = col_mat_debug.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &col_cpu_mat = static_cast<const OriginMat &>(*col_cpu);
+        auto col_data = col_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: im2col output (model.4.cv1.conv) ===" << std::endl;
+        std::cout << "Shape: " << col_mat_debug.shape().to_string() << " (expected: {6400, C*KH*KW})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), col_data.size()); ++i) {
+            std::cout << col_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 col[0,0] 到 col[9,0] (第一列的前10个值)
+        size_t col_cols = col_mat_debug.shape()[1];
+        std::cout << "col[0,0] to col[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * col_cols + 0;
+            if (idx < col_data.size()) {
+                std::cout << col_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        // 分析：col[0,0] 对应 (n=0, oh=0, ow=0, c=0, kh=0, kw=0) -> h_idx=0, w_idx=0
+        // col[1,0] 对应 (n=0, oh=0, ow=1, c=0, kh=0, kw=0) -> h_idx=0, w_idx=SW
+        // 如果 SW=1，那么 col[0,0] 访问输入 [0,0,0,0]，col[1,0] 访问输入 [0,0,0,1]
+        std::cout << "Analysis: col[0,0] accesses input [0,0,0,0], col[1,0] accesses input [0,0,0,SW]" << std::endl;
+    }
 
-    // 3. 矩阵乘法: col @ W_T -> (N*OH*OW, OC)
+    // 2. 将卷积核 reshape 为 (OC, C*KH*KW)
+    auto W_reshaped = W.reshape(Shape{OC, C * KH * KW});
+    const OriginMat &W_reshaped_mat = static_cast<const OriginMat &>(*W_reshaped);
     const OriginMat &col_mat = static_cast<const OriginMat &>(*col);
-    auto y_flat = col_mat.matmul(W_T_mat);
+
+    // 3. 直接使用 cuBLAS GEMM 进行矩阵乘法: col @ W^T -> (N*OH*OW, OC)
+    // col: (N*OH*OW, C*KH*KW), W: (OC, C*KH*KW), 需要计算 col @ W^T
+    // 在列主序中，这等价于计算 C^T = W^T @ col^T
+    size_t M = N * OH * OW;  // col 的行数
+    size_t K = C * KH * KW;  // 公共维度
+    size_t N_out = OC;       // 输出通道数
+    
+    Shape y_flat_shape{M, N_out};
+    auto y_flat = std::make_unique<OriginMat>(y_flat_shape, x.dtype(), x.device());
+    
+    // 使用 GPU matmul 实现（避免 cuBLAS 的行列主序转换问题）
+    // 计算: y_flat = col @ W^T
+        auto W_T = W_reshaped_mat.transpose();
+        const OriginMat &W_T_mat = static_cast<const OriginMat &>(*W_T);
+    
+    // 使用 GPU matmul
+    if (col_mat.device().type() == DeviceType::kCUDA && W_T_mat.device().type() == DeviceType::kCUDA)
+    {
+        auto y_flat_matmul = cuda::matmul(col_mat, W_T_mat);
+        y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat*>(y_flat_matmul.release()));
+    }
+    else
+    {
+        // 回退到 CPU matmul
+        auto y_flat_matmul = col_mat.matmul(W_T_mat);
+        y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat*>(y_flat_matmul.release()));
+    }
+
+    // 调试：检查 matmul 的输出（仅对 model.0.conv: N=4, C=3, OC=16, OH=160, OW=160, stride=2）
+    if (N == 4 && C == 3 && OC == 16 && OH == 160 && OW == 160 && stride.first == 2 && stride.second == 2) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.0.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {102400, 16})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.1.conv: N=4, C=16, OC=32, OH=80, OW=80, stride=2）
+    if (N == 4 && C == 16 && OC == 32 && OH == 80 && OW == 80 && stride.first == 2 && stride.second == 2) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.1.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {25600, 32})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.2.cv1.conv: N=4, C=32, OC=16, OH=80, OW=80, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 16 && OH == 80 && OW == 80 && KH == 1 && KW == 1 && pad.first == 0 && pad.second == 0) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.2.cv1.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {25600, 16})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.2.cv2.conv: N=4, C=32, OC=16, OH=80, OW=80, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 16 && OH == 80 && OW == 80 && KH == 1 && KW == 1) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.2.cv2.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {25600, 16})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.2.cv3.conv: N=4, C=32, OC=32, OH=80, OW=80, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 32 && OH == 80 && OW == 80 && KH == 1 && KW == 1) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.2.cv3.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {25600, 32})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.3.conv: N=4, C=32, OC=64, OH=40, OW=40, stride=2）
+    if (N == 4 && C == 32 && OC == 64 && OH == 40 && OW == 40 && stride.first == 2 && stride.second == 2) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.3.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {6400, 64})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.2.cv2.conv: N=4, C=16, OC=16, OH=80, OW=80）
+    if (N == 4 && C == 16 && OC == 16 && OH == 80 && OW == 80) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.2.cv2.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {25600, 16})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        // 检查 matmul[9,0] 到 matmul[9,15] (row=9, all cols)
+        std::cout << "matmul[9,0] to matmul[9,15] (row=9, all cols): ";
+        for (int col = 0; col < 16; ++col) {
+            size_t idx = 9 * OC + col;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.4.m.1.cv1.conv: N=4, C=32, OC=32, OH=40, OW=40, kernel=1x1）
+    if (N == 4 && C == 32 && OC == 32 && OH == 40 && OW == 40 && KH == 1 && KW == 1) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.4.m.1.cv1.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {6400, 32})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.4.m.1.cv2.conv: N=4, C=32, OC=32, OH=40, OW=40, kernel=3x3）
+    if (N == 4 && C == 32 && OC == 32 && OH == 40 && OW == 40 && KH == 3 && KW == 3) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.4.m.1.cv2.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {6400, 32})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0] 到 matmul[9,0] (col=0)
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
+    
+    // 调试：检查 matmul 的输出（仅对 model.4.cv1.conv: N=4, C=64, OC=32, OH=40, OW=40）
+    if (N == 4 && C == 64 && OC == 32 && OH == 40 && OW == 40) {
+        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto y_flat_cpu = y_flat_mat.to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_flat_cpu_mat = static_cast<const OriginMat &>(*y_flat_cpu);
+        auto y_flat_data = y_flat_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: matmul output (model.4.cv1.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_flat_mat.shape().to_string() << " (expected: {6400, 32})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_flat_data.size()); ++i) {
+            std::cout << y_flat_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,0], matmul[1,0], matmul[2,0], ..., matmul[9,0]
+        std::cout << "matmul[0,0] to matmul[9,0] (col=0): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 0;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+        // 检查 matmul[0,1], matmul[1,1], matmul[2,1], ..., matmul[9,1]
+        std::cout << "matmul[0,1] to matmul[9,1] (col=1): ";
+        for (int row = 0; row < 10; ++row) {
+            size_t idx = row * OC + 1;
+            if (idx < y_flat_data.size()) {
+                std::cout << y_flat_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
 
     // 4. 添加偏置（如果存在）
     if (b != nullptr)
@@ -538,12 +1237,36 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
         auto b_broadcast = b->broadcast_to(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
         const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
         const OriginMat &b_broadcast_mat = static_cast<const OriginMat &>(*b_broadcast);
-        y_flat = y_flat_mat.operator+(b_broadcast_mat);
+        auto y_flat_with_bias = y_flat_mat.operator+(b_broadcast_mat);
+        y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat*>(y_flat_with_bias.release()));
     }
 
     // 5. Reshape 并转置: (N*OH*OW, OC) -> (N, OH, OW, OC) -> (N, OC, OH, OW)
     const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
     auto y_reshaped = y_flat_mat.reshape(Shape{N, static_cast<size_t>(OH), static_cast<size_t>(OW), OC});
+    
+    // 调试：检查 reshape 后的数据（仅对 model.4.cv1.conv: N=4, C=64, OC=32, OH=40, OW=40）
+    if (N == 4 && C == 64 && OC == 32 && OH == 40 && OW == 40) {
+        auto y_reshaped_cpu = y_reshaped->to_device(Device(DeviceType::kCPU, 0));
+        const OriginMat &y_reshaped_cpu_mat = static_cast<const OriginMat &>(*y_reshaped_cpu);
+        auto y_reshaped_data = y_reshaped_cpu_mat.to_vector<float>();
+        std::cout << "\n=== DEBUG: reshape output (model.4.cv1.conv) ===" << std::endl;
+        std::cout << "Shape: " << y_reshaped->shape().to_string() << " (expected: {4, 40, 40, 32})" << std::endl;
+        std::cout << "First 20 values: ";
+        for (size_t i = 0; i < std::min(size_t(20), y_reshaped_data.size()); ++i) {
+            std::cout << y_reshaped_data[i] << " ";
+        }
+        std::cout << std::endl;
+        // 检查 [0,0,0,0], [0,0,0,1], [0,0,0,2], ..., [0,0,0,9]
+        std::cout << "[0,0,0,0] to [0,0,0,9]: ";
+        for (int ow = 0; ow < 10; ++ow) {
+            size_t idx = 0 * OH*OW*OC + 0 * OW*OC + ow * OC + 0;
+            if (idx < y_reshaped_data.size()) {
+                std::cout << y_reshaped_data[idx] << " ";
+            }
+        }
+        std::cout << std::endl;
+    }
 
     // 使用 CUDA kernel 进行转置
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {

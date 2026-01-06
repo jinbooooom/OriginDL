@@ -19,6 +19,7 @@
 #include <chrono>
 #include <iostream>
 #include <iomanip>
+#include <numeric>
 
 namespace origin
 {
@@ -328,6 +329,17 @@ void PNNXGraph::forward(bool debug)
         {
             logi("Collecting inputs for node {} (type: {})", node->name, node->type);
         }
+        // 调试：打印 torch.cat_1 的输入收集过程
+        if (node->name == "torch.cat_1")
+        {
+            std::cout << "\n=== DEBUG: origindl Collecting inputs for torch.cat_1 ===" << std::endl;
+            std::cout << "Input names: ";
+            for (const auto &name : node->input_names) {
+                std::cout << name << " ";
+            }
+            std::cout << std::endl;
+            std::cout << "Number of input_names: " << node->input_names.size() << std::endl;
+        }
         for (const auto &input_name : node->input_names)
         {
             auto it = node->input_tensors.find(input_name);
@@ -348,14 +360,33 @@ void PNNXGraph::forward(bool debug)
                     {
                         input_tensors.push_back(prev_node->output_tensors[output_idx]);
                         node->input_tensors[input_name] = prev_node->output_tensors[output_idx];
+                        
+                        // 调试：打印 torch.cat_1 的输入来源
+                        if (node->name == "torch.cat_1")
+                        {
+                            auto &tensor = prev_node->output_tensors[output_idx];
+                            std::cout << "  Input from node: " << prev_node->name 
+                                      << ", output_idx: " << output_idx
+                                      << ", shape: " << tensor.shape().to_string() << std::endl;
+                        }
                     }
                 }
             }
         }
         
+        // 调试：打印 torch.cat_1 收集到的所有输入
+        if (node->name == "torch.cat_1")
+        {
+            std::cout << "Collected " << input_tensors.size() << " input tensors:" << std::endl;
+            for (size_t i = 0; i < input_tensors.size(); ++i) {
+                std::cout << "  Input " << i << " shape: " << input_tensors[i].shape().to_string() << std::endl;
+            }
+            std::cout << "===================================\n" << std::endl;
+        }
         
-        // 对于需要权重的算子（如 Conv2d），添加权重和偏置
-        if (node->type == "nn.Conv2d")
+        
+        // 对于需要权重的算子（如 Conv2d, Linear），添加权重和偏置
+        if (node->type == "nn.Conv2d" || node->type == "nn.Linear")
         {
             // Conv2d 需要：x, weight, [bias]
             // 注意：input_tensors[0] 是输入 x，需要在其后插入 weight 和 bias
@@ -392,10 +423,160 @@ void PNNXGraph::forward(bool debug)
                     Tensor weight_tensor(weight_attr.data, weight_shape, 
                                         dtype(DataType::kFloat32).device(device));
                     
+                    // 调试：检查第一个卷积层的输入和权重
+                    // 检查 model.3.conv 的输入
+                    if (node->name == "model.3.conv" && input_tensors.size() > 0)
+                    {
+                        auto &x = input_tensors[0];
+                        auto x_shape = x.shape();
+                        auto x_data = x.to_vector<float>();
+                        
+                        std::cout << "\n=== DEBUG: origindl model.3.conv Input ===" << std::endl;
+                        std::cout << "Input shape: " << x_shape.to_string() << std::endl;
+                        std::cout << "Input data stats: min=" << *std::min_element(x_data.begin(), x_data.end())
+                                  << ", max=" << *std::max_element(x_data.begin(), x_data.end())
+                                  << ", mean=" << std::accumulate(x_data.begin(), x_data.end(), 0.0f) / x_data.size() << std::endl;
+                        std::cout << "Input first 10 values: ";
+                        for (size_t i = 0; i < std::min(size_t(10), x_data.size()); ++i) {
+                            std::cout << x_data[i] << " ";
+                        }
+                        std::cout << std::endl;
+                        std::cout << "===================================\n" << std::endl;
+                    }
+                    if (node->name == "model.0.conv" && input_tensors.size() > 0)
+                    {
+                        // 检查权重布局：打印前几个权重值，分析是否是列主序
+                        std::cout << "[Weight Layout Check] First conv layer weight:" << std::endl;
+                        std::cout << "  Shape: (";
+                        for (size_t i = 0; i < weight_attr.shape.size(); ++i) {
+                            std::cout << weight_attr.shape[i];
+                            if (i < weight_attr.shape.size() - 1) std::cout << ", ";
+                        }
+                        std::cout << ")" << std::endl;
+                        
+                        if (weight_attr.shape.size() == 4) {
+                            int OC = weight_attr.shape[0];
+                            int IC = weight_attr.shape[1];
+                            int KH = weight_attr.shape[2];
+                            int KW = weight_attr.shape[3];
+                            
+                            // 行主序索引: (0,0,0,0) 和 (0,0,0,1) 应该相邻
+                            int row_idx1 = 0 * (IC * KH * KW) + 0 * (KH * KW) + 0 * KW + 0;
+                            int row_idx2 = 0 * (IC * KH * KW) + 0 * (KH * KW) + 0 * KW + 1;
+                            
+                            // 列主序索引: (0,0,0,0) 和 (1,0,0,0) 应该相邻
+                            int col_idx1 = 0 * (KH * IC * OC) + 0 * (IC * OC) + 0 * OC + 0;
+                            int col_idx2 = 0 * (KH * IC * OC) + 0 * (IC * OC) + 0 * OC + 1;
+                            
+                            std::cout << "  Row-major check: idx(" << row_idx1 << ")=" << weight_attr.data[row_idx1]
+                                      << ", idx(" << row_idx2 << ")=" << weight_attr.data[row_idx2] << std::endl;
+                            std::cout << "  Col-major check: idx(" << col_idx1 << ")=" << weight_attr.data[col_idx1]
+                                      << ", idx(" << col_idx2 << ")=" << weight_attr.data[col_idx2] << std::endl;
+                            
+                            // 如果 row_idx2 - row_idx1 == 1，说明是行主序
+                            // 如果 col_idx2 - col_idx1 == 1，说明是列主序
+                            if (row_idx2 - row_idx1 == 1) {
+                                std::cout << "  -> Likely ROW-MAJOR (adjacent kw indices are consecutive)" << std::endl;
+                            } else if (col_idx2 - col_idx1 == 1) {
+                                std::cout << "  -> Likely COLUMN-MAJOR (adjacent oc indices are consecutive)" << std::endl;
+                            }
+                        }
+                    }
+                    if (node->name == "model.0.conv" && input_tensors.size() > 0)
+                    {
+                        auto &x = input_tensors[0];
+                        auto x_shape = x.shape();
+                        auto x_data = x.to_vector<float>();
+                        
+                        std::cout << "\n=== DEBUG: First Conv2d Layer (model.0.conv) ===" << std::endl;
+                        std::cout << "Input shape: " << x_shape.to_string() << std::endl;
+                        std::cout << "Input data stats: min=" << *std::min_element(x_data.begin(), x_data.end())
+                                  << ", max=" << *std::max_element(x_data.begin(), x_data.end())
+                                  << ", mean=" << std::accumulate(x_data.begin(), x_data.end(), 0.0f) / x_data.size() << std::endl;
+                        std::cout << "Input first 10 values: ";
+                        for (size_t i = 0; i < std::min(size_t(10), x_data.size()); ++i) {
+                            std::cout << x_data[i] << " ";
+                        }
+                        std::cout << std::endl;
+                        
+                        std::cout << "Weight shape: " << weight_shape.to_string() << std::endl;
+                        auto weight_data = weight_attr.data;
+                        std::cout << "Weight data stats: min=" << *std::min_element(weight_data.begin(), weight_data.end())
+                                  << ", max=" << *std::max_element(weight_data.begin(), weight_data.end())
+                                  << ", mean=" << std::accumulate(weight_data.begin(), weight_data.end(), 0.0f) / weight_data.size() << std::endl;
+                        std::cout << "Weight first 10 values: ";
+                        for (size_t i = 0; i < std::min(size_t(10), weight_data.size()); ++i) {
+                            std::cout << weight_data[i] << " ";
+                        }
+                        std::cout << std::endl;
+                    }
+                    
                     // 在 x 之后插入 weight
                     if (input_tensors.size() > 0)
                     {
                         // 保存 x
+                        Tensor x = input_tensors[0];
+                        input_tensors.clear();
+                        input_tensors.push_back(x);
+                        input_tensors.push_back(weight_tensor);
+                        
+                        // 如果有偏置，也添加
+                        if (node->attributes.find("bias") != node->attributes.end())
+                        {
+                            auto &bias_attr = node->attributes["bias"];
+                            if (!bias_attr.data.empty() && !bias_attr.shape.empty())
+                            {
+                                std::vector<size_t> bias_shape_vec;
+                                for (int dim : bias_attr.shape)
+                                {
+                                    bias_shape_vec.push_back(static_cast<size_t>(dim));
+                                }
+                                Shape bias_shape(bias_shape_vec);
+                                Tensor bias_tensor(bias_attr.data, bias_shape, 
+                                                 dtype(DataType::kFloat32).device(device));
+                                input_tensors.push_back(bias_tensor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 对于 Linear 算子，需要特殊处理权重加载
+        if (node->type == "nn.Linear")
+        {
+            // Linear 需要：x, weight, [bias]
+            if (node->attributes.find("weight") != node->attributes.end())
+            {
+                auto &weight_attr = node->attributes["weight"];
+                if (!weight_attr.data.empty() && !weight_attr.shape.empty())
+                {
+                    std::vector<size_t> weight_shape_vec;
+                    for (int dim : weight_attr.shape)
+                    {
+                        weight_shape_vec.push_back(static_cast<size_t>(dim));
+                    }
+                    Shape weight_shape(weight_shape_vec);
+                    
+                    // 确定设备类型（从输入 tensor 获取）
+                    Device device(DeviceType::kCPU);
+                    if (input_tensors.size() > 0)
+                    {
+                        device = input_tensors[0].device();
+                    }
+#ifdef WITH_CUDA
+                    else if (cuda::is_available())
+                    {
+                        device = Device(DeviceType::kCUDA, 0);
+                    }
+#endif
+                    
+                    Tensor weight_tensor(weight_attr.data, weight_shape, 
+                                        dtype(DataType::kFloat32).device(device));
+                    
+                    // 在 x 之后插入 weight
+                    if (input_tensors.size() > 0)
+                    {
                         Tensor x = input_tensors[0];
                         input_tensors.clear();
                         input_tensors.push_back(x);
@@ -437,6 +618,204 @@ void PNNXGraph::forward(bool debug)
                 auto start_time = std::chrono::high_resolution_clock::now();
                 
                 node->output_tensors = (*node->op)(input_tensors);
+                
+                // 调试：输出关键层的输出数据
+                if (debug && !node->output_tensors.empty())
+                {
+                    // pnnx.Expression 操作（add）
+                    if (node->name == "pnnx_expr_19" || node->name == "pnnx_expr_21")
+                    {
+                        // 打印输入
+                        if (input_tensors.size() >= 2) {
+                            auto input0_data = input_tensors[0].to_vector<float>();
+                            auto input1_data = input_tensors[1].to_vector<float>();
+                            std::cout << "\n=== DEBUG: origindl Expression Input (pnnx_expr_19) ===" << std::endl;
+                            std::cout << "Input 0 shape: " << input_tensors[0].shape().to_string() << std::endl;
+                            std::cout << "Input 0 first 10 values: ";
+                            for (size_t i = 0; i < std::min(size_t(10), input0_data.size()); ++i) {
+                                std::cout << input0_data[i] << " ";
+                            }
+                            std::cout << std::endl;
+                            std::cout << "Input 1 shape: " << input_tensors[1].shape().to_string() << std::endl;
+                            std::cout << "Input 1 first 10 values: ";
+                            for (size_t i = 0; i < std::min(size_t(10), input1_data.size()); ++i) {
+                                std::cout << input1_data[i] << " ";
+                            }
+                            std::cout << std::endl;
+                        }
+                        
+                        auto &output = node->output_tensors[0];
+                        auto output_shape = output.shape();
+                        auto output_data = output.to_vector<float>();
+                        
+                        std::cout << "\n=== DEBUG: origindl Expression Output (" << node->name << ") ===" << std::endl;
+                        std::cout << "Output shape: " << output_shape.to_string() << std::endl;
+                        std::cout << "Output data stats: min=" << *std::min_element(output_data.begin(), output_data.end())
+                                  << ", max=" << *std::max_element(output_data.begin(), output_data.end())
+                                  << ", mean=" << std::accumulate(output_data.begin(), output_data.end(), 0.0f) / output_data.size() << std::endl;
+                        std::cout << "Output first 10 values: ";
+                        for (size_t i = 0; i < std::min(size_t(10), output_data.size()); ++i) {
+                            std::cout << output_data[i] << " ";
+                        }
+                        std::cout << std::endl;
+                        std::cout << "===================================\n" << std::endl;
+                    }
+                    // torch.cat 操作
+                    else if (node->type == "torch.cat" && (node->name.find("cat") != std::string::npos || node->name.find("torch.cat") != std::string::npos))
+                    {
+                        auto &output = node->output_tensors[0];
+                        auto output_shape = output.shape();
+                        auto output_data = output.to_vector<float>();
+                        
+                        std::cout << "\n=== DEBUG: origindl Cat Output (" << node->name << ") ===" << std::endl;
+                        std::cout << "Output shape: " << output_shape.to_string() << std::endl;
+                        std::cout << "Output data stats: min=" << *std::min_element(output_data.begin(), output_data.end())
+                                  << ", max=" << *std::max_element(output_data.begin(), output_data.end())
+                                  << ", mean=" << std::accumulate(output_data.begin(), output_data.end(), 0.0f) / output_data.size() << std::endl;
+                        std::cout << "Output first 10 values: ";
+                        for (size_t i = 0; i < std::min(size_t(10), output_data.size()); ++i) {
+                            std::cout << output_data[i] << " ";
+                        }
+                        std::cout << std::endl;
+                        std::cout << "===================================\n" << std::endl;
+                    }
+                    // 卷积层
+                    else if (node->name == "model.0.conv" || node->name == "model.1.conv" || 
+                        node->name == "model.2.cv1.conv" || node->name == "model.2.cv2.conv" || 
+                        node->name == "model.2.cv3.conv" || node->name == "model.3.conv" ||
+                        node->name == "model.4.cv1.conv" || node->name == "model.4.cv2.conv" ||
+                        node->name == "model.4.m.1.cv1.conv" || node->name == "model.4.m.1.cv2.conv" ||
+                        node->name == "model.5.conv" ||
+                        node->name == "model.6.cv1.conv" || node->name == "model.7.conv" ||
+                        node->name == "model.8.cv1.conv" || node->name == "model.9.conv" ||
+                        node->name == "model.10.cv1.conv" || node->name == "model.11.conv")
+                    {
+                        auto &output = node->output_tensors[0];
+                        auto output_shape = output.shape();
+                        auto output_data = output.to_vector<float>();
+                        
+                        std::cout << "\n=== DEBUG: origindl Conv2d Output (" << node->name << ") ===" << std::endl;
+                        std::cout << "Output shape: " << output_shape.to_string() << std::endl;
+                        std::cout << "Output data stats: min=" << *std::min_element(output_data.begin(), output_data.end())
+                                  << ", max=" << *std::max_element(output_data.begin(), output_data.end())
+                                  << ", mean=" << std::accumulate(output_data.begin(), output_data.end(), 0.0f) / output_data.size() << std::endl;
+                        std::cout << "Output first 10 values: ";
+                        for (size_t i = 0; i < std::min(size_t(10), output_data.size()); ++i) {
+                            std::cout << output_data[i] << " ";
+                        }
+                        std::cout << std::endl;
+                        
+                        // 打印特定位置的数据（用于与 KuiperInferGitee 对比）
+                        // origindl shape: {N, C, H, W} = {4, 16, 160, 160}，行主序
+                        // 打印 batch 0 的特定位置：(0, 0, 0, 0), (0, 0, 0, 1), (0, 0, 1, 0), (0, 1, 0, 0), (0, 1, 0, 1)
+                        if (output_shape.size() == 4) {
+                            size_t N = output_shape[0];
+                            size_t C = output_shape[1];
+                            size_t H = output_shape[2];
+                            size_t W = output_shape[3];
+                            std::cout << "Output specific positions (batch 0, row-major indexing):" << std::endl;
+                            std::vector<std::tuple<size_t, size_t, size_t, size_t>> positions = {
+                                {0, 0, 0, 0}, {0, 0, 0, 1}, {0, 0, 1, 0}, {0, 1, 0, 0}, {0, 1, 0, 1},
+                                {0, 0, 0, 2}, {0, 0, 1, 1}, {0, 1, 0, 2}, {0, 2, 0, 0}, {0, 2, 0, 1}
+                            };
+                            for (const auto& pos : positions) {
+                                size_t n = std::get<0>(pos);
+                                size_t c = std::get<1>(pos);
+                                size_t h = std::get<2>(pos);
+                                size_t w = std::get<3>(pos);
+                                if (n < N && c < C && h < H && w < W) {
+                                    // 行主序索引: n * (C*H*W) + c * (H*W) + h * W + w
+                                    size_t idx = n * (C * H * W) + c * (H * W) + h * W + w;
+                                    std::cout << "  [" << n << "," << c << "," << h << "," << w << "] = " << output_data[idx] << std::endl;
+                                }
+                            }
+                        }
+                        std::cout << "===================================\n" << std::endl;
+                    }
+                    // 激活函数（SiLU）
+                    else if (node->name == "model.0.act" || node->name == "model.1.act" ||
+                             node->name == "model.2.cv1.act" || node->name == "model.2.cv2.act" ||
+                             node->name == "model.2.cv3.act" || node->name == "model.3.act" ||
+                             node->name == "model.4.cv1.act" || node->name == "model.4.cv2.act" ||
+                             node->name == "model.4.m.1.cv1.act" || node->name == "model.4.m.1.cv2.act" ||
+                             node->name == "model.5.act" ||
+                             node->name == "model.6.cv1.act" || node->name == "model.7.act" ||
+                             node->name == "model.8.cv1.act" || node->name == "model.9.act" ||
+                             node->name == "model.10.cv1.act" || node->name == "model.11.act" ||
+                             node->type == "nn.SiLU" || node->type == "F.silu")
+                    {
+                        // 打印输入（SiLU 的输入应该是前一层卷积的输出）
+                        if (!input_tensors.empty()) {
+                            auto input_data = input_tensors[0].to_vector<float>();
+                            auto input_shape = input_tensors[0].shape();
+                            std::cout << "\n=== DEBUG: origindl SiLU Input (" << node->name << ", type: " << node->type << ") ===" << std::endl;
+                            std::cout << "Input shape: " << input_shape.to_string() << std::endl;
+                            std::cout << "Input data stats: min=" << *std::min_element(input_data.begin(), input_data.end())
+                                      << ", max=" << *std::max_element(input_data.begin(), input_data.end())
+                                      << ", mean=" << std::accumulate(input_data.begin(), input_data.end(), 0.0f) / input_data.size() << std::endl;
+                            std::cout << "Input first 10 values: ";
+                            for (size_t i = 0; i < std::min(size_t(10), input_data.size()); ++i) {
+                                std::cout << input_data[i] << " ";
+                            }
+                            std::cout << std::endl;
+                        }
+                        
+                        auto &output = node->output_tensors[0];
+                        auto output_shape = output.shape();
+                        auto output_data = output.to_vector<float>();
+                        
+                        std::cout << "\n=== DEBUG: origindl SiLU Output (" << node->name << ", type: " << node->type << ") ===" << std::endl;
+                        std::cout << "Output shape: " << output_shape.to_string() << std::endl;
+                        std::cout << "Output data stats: min=" << *std::min_element(output_data.begin(), output_data.end())
+                                  << ", max=" << *std::max_element(output_data.begin(), output_data.end())
+                                  << ", mean=" << std::accumulate(output_data.begin(), output_data.end(), 0.0f) / output_data.size() << std::endl;
+                        std::cout << "Output first 10 values: ";
+                        for (size_t i = 0; i < std::min(size_t(10), output_data.size()); ++i) {
+                            std::cout << output_data[i] << " ";
+                        }
+                        std::cout << std::endl;
+                        
+                        // 验证 SiLU 计算：SiLU(x) = x * sigmoid(x)
+                        // 对于第一层，对比输入和输出，验证 SiLU 是否正确计算
+                        if (node->name == "model.0.act" && !input_tensors.empty()) {
+                            auto input_data = input_tensors[0].to_vector<float>();
+                            std::cout << "SiLU verification (first 5 values):" << std::endl;
+                            for (size_t i = 0; i < std::min(size_t(5), output_data.size()); ++i) {
+                                float x = input_data[i];
+                                float sigmoid_x = 1.0f / (1.0f + std::exp(-x));
+                                float expected_silu = x * sigmoid_x;
+                                float actual_silu = output_data[i];
+                                std::cout << "  [" << i << "] x=" << x << ", sigmoid(x)=" << sigmoid_x 
+                                          << ", expected SiLU=" << expected_silu 
+                                          << ", actual SiLU=" << actual_silu
+                                          << ", diff=" << std::abs(expected_silu - actual_silu) << std::endl;
+                            }
+                        }
+                        std::cout << "===================================\n" << std::endl;
+                    }
+                    // YoloDetect 层输入
+                    else if (node->name.find("yolo") != std::string::npos || node->name.find("Detect") != std::string::npos)
+                    {
+                        if (!input_tensors.empty())
+                        {
+                            auto &input = input_tensors[0];
+                            auto input_shape = input.shape();
+                            auto input_data = input.to_vector<float>();
+                            
+                            std::cout << "\n=== DEBUG: origindl YoloDetect Input (" << node->name << ") ===" << std::endl;
+                            std::cout << "Input shape: " << input_shape.to_string() << std::endl;
+                            std::cout << "Input data stats: min=" << *std::min_element(input_data.begin(), input_data.end())
+                                      << ", max=" << *std::max_element(input_data.begin(), input_data.end())
+                                      << ", mean=" << std::accumulate(input_data.begin(), input_data.end(), 0.0f) / input_data.size() << std::endl;
+                            std::cout << "Input first 10 values: ";
+                            for (size_t i = 0; i < std::min(size_t(10), input_data.size()); ++i) {
+                                std::cout << input_data[i] << " ";
+                            }
+                            std::cout << std::endl;
+                            std::cout << "===================================\n" << std::endl;
+                        }
+                    }
+                }
                 
                 // 记录执行结束时间
                 auto end_time = std::chrono::high_resolution_clock::now();

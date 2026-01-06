@@ -14,6 +14,59 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 # 查找CUDA（使用现代方式）
 find_package(CUDAToolkit REQUIRED)
 
+# 查找 cuDNN
+# 优先查找 cuDNN（支持多种安装路径）
+find_path(CUDNN_INCLUDE_DIR cudnn.h
+    PATHS
+    $ENV{CUDNN_ROOT}/include
+    $ENV{CUDNN_HOME}/include
+    /usr/local/cuda/include
+    /usr/include
+    /usr/local/include
+    $ENV{CUDA_PATH}/include
+    $ENV{CUDA_HOME}/include
+    NO_DEFAULT_PATH
+)
+
+# 如果第一次没找到，再尝试默认路径
+if(NOT CUDNN_INCLUDE_DIR)
+    find_path(CUDNN_INCLUDE_DIR cudnn.h)
+endif()
+
+find_library(CUDNN_LIBRARY
+    NAMES cudnn libcudnn.so.8 libcudnn.so.7 libcudnn.so
+    PATHS
+    $ENV{CUDNN_ROOT}/lib
+    $ENV{CUDNN_ROOT}/lib64
+    $ENV{CUDNN_HOME}/lib
+    $ENV{CUDNN_HOME}/lib64
+    /usr/local/cuda/lib64
+    /usr/local/cuda/lib
+    /usr/lib/x86_64-linux-gnu
+    /usr/lib
+    /usr/local/lib
+    $ENV{CUDA_PATH}/lib64
+    $ENV{CUDA_HOME}/lib64
+    NO_DEFAULT_PATH
+)
+
+# 如果第一次没找到，再尝试默认路径
+if(NOT CUDNN_LIBRARY)
+    find_library(CUDNN_LIBRARY NAMES cudnn libcudnn.so.8 libcudnn.so.7 libcudnn.so)
+endif()
+
+if(CUDNN_INCLUDE_DIR AND CUDNN_LIBRARY)
+    message(STATUS "Found cuDNN:")
+    message(STATUS "  Include: ${CUDNN_INCLUDE_DIR}")
+    message(STATUS "  Library: ${CUDNN_LIBRARY}")
+    set(HAVE_CUDNN ON)
+else()
+    message(WARNING "cuDNN not found, convolution will use im2col + cuBLAS GEMM")
+    message(WARNING "  To enable cuDNN, set CUDNN_ROOT environment variable to cuDNN installation directory")
+    message(WARNING "  Example: export CUDNN_ROOT=/usr/local/cuda")
+    set(HAVE_CUDNN OFF)
+endif()
+
 # 自动检测CUDA架构
 function(detect_cuda_architecture)
     # 尝试使用nvidia-smi检测GPU架构
@@ -77,8 +130,16 @@ set_target_properties(originmat_cuda PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
 )
 
-# 链接CUDA库
-target_link_libraries(originmat_cuda CUDA::cudart CUDA::curand)
+# 链接CUDA库（包括cuBLAS）
+target_link_libraries(originmat_cuda CUDA::cudart CUDA::curand CUDA::cublas)
+
+# 如果找到 cuDNN，链接它
+if(HAVE_CUDNN)
+    target_include_directories(originmat_cuda PRIVATE ${CUDNN_INCLUDE_DIR})
+    target_link_libraries(originmat_cuda ${CUDNN_LIBRARY})
+    target_compile_definitions(originmat_cuda PRIVATE HAVE_CUDNN)
+    message(STATUS "cuDNN enabled for convolution operations")
+endif()
 
 # 设置输出目录
 set_target_properties(originmat_cuda PROPERTIES

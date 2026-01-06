@@ -1,7 +1,11 @@
 #include "origin/operators/nn/cat.h"
 #include "origin/core/tensor.h"
+#include "origin/core/operator.h"
 #include "origin/utils/exception.h"
 #include "origin/mat/origin/origin_mat.h"
+#ifdef WITH_CUDA
+#include "origin/mat/origin/cuda/factory.cuh"
+#endif
 
 namespace origin
 {
@@ -17,9 +21,31 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
     {
         return xs;  // 只有一个输入，直接返回
     }
+    
+    // 调试：打印 cat 操作的输入信息
+    static int cat_call_count = 0;
+    cat_call_count++;
+    if (cat_call_count == 2) {  // torch.cat_1
+        std::cout << "\n=== DEBUG: origindl Cat Input (torch.cat_1) ===" << std::endl;
+        std::cout << "dim_ = " << dim_ << std::endl;
+        std::cout << "Number of inputs: " << xs.size() << std::endl;
+        for (size_t i = 0; i < xs.size(); ++i) {
+            auto shape = xs[i].shape();
+            auto data = xs[i].to_vector<float>();
+            std::cout << "Input " << i << " shape: " << shape.to_string() << std::endl;
+            std::cout << "Input " << i << " first 10 values: ";
+            for (size_t j = 0; j < std::min(size_t(10), data.size()); ++j) {
+                std::cout << data[j] << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
 
     // 检查所有输入的形状（除了 dim_ 维度外应该相同）
     auto first_shape = xs[0].shape();
+    Device device = xs[0].device();
+    bool all_cuda = (device.type() == DeviceType::kCUDA);
+    
     for (size_t i = 1; i < xs.size(); ++i)
     {
         auto shape = xs[i].shape();
@@ -36,9 +62,14 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
                                    d, shape[d], first_shape[d]);
             }
         }
+        
+        // 检查是否所有输入都在 CUDA 上
+        if (xs[i].device().type() != DeviceType::kCUDA)
+        {
+            all_cuda = false;
+        }
     }
 
-    // 实现 cat 操作：在指定维度上拼接
     // 计算输出形状
     Shape output_shape = first_shape;
     int total_dim_size = 0;
@@ -48,11 +79,29 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
     }
     output_shape[dim_] = total_dim_size;
     
-    // 优化：先一次性将所有输入复制到 CPU，避免在循环中多次复制
-    // 确定设备类型（使用第一个输入的设备）
-    Device device = xs[0].device();
+    // 如果所有输入都在 CUDA 上，使用 GPU 版本的 cat（避免 CPU-GPU 传输）
+#ifdef WITH_CUDA
+    if (all_cuda)
+    {
+        // 收集所有输入的 OriginMat 指针
+        std::vector<const OriginMat *> input_mats;
+        for (const auto &x : xs)
+        {
+            const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+            input_mats.push_back(&x_mat);
+        }
+        
+        // 调用 CUDA 版本的 cat
+        auto result_mat = cuda::cat(input_mats, dim_);
+        
+        // 转换为 Tensor（使用 Operator 的 convert_mat_to_tensor 方法）
+        Tensor result_tensor = convert_mat_to_tensor(std::move(result_mat));
+        return {result_tensor};
+    }
+#endif
     
-    // 预先将所有输入数据复制到 CPU（无论原始设备是什么，都在 CPU 上进行拼接）
+    // CPU 版本：回退到原来的实现（逐元素循环）
+    // 预先将所有输入数据复制到 CPU
     std::vector<std::vector<float>> input_data_vecs;
     for (const auto &x : xs)
     {

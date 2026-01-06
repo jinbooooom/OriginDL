@@ -7,6 +7,9 @@
 #include "origin/operators/nn/upsample.h"
 #include "origin/operators/nn/cat.h"
 #include "origin/operators/nn/identity.h"
+#include "origin/operators/conv/adaptive_avg_pool2d.h"
+#include "origin/operators/nn/flatten.h"
+#include "origin/operators/custom/linear.h"
 #include "origin/operators/custom/yolo_detect.h"
 #include "origin/core/operator.h"
 #include "origin/utils/exception.h"
@@ -30,6 +33,10 @@ std::shared_ptr<Operator> OperatorMapper::create_operator(std::shared_ptr<PNNXNo
     {
         return create_silu(node);
     }
+    else if (type == "nn.ReLU")
+    {
+        return create_relu(node);
+    }
     else if (type == "nn.Upsample")
     {
         return create_upsample(node);
@@ -45,6 +52,18 @@ std::shared_ptr<Operator> OperatorMapper::create_operator(std::shared_ptr<PNNXNo
     else if (type == "torch.cat")
     {
         return create_cat(node);
+    }
+    else if (type == "nn.AdaptiveAvgPool2d")
+    {
+        return create_adaptive_avg_pool2d(node);
+    }
+    else if (type == "torch.flatten")
+    {
+        return create_flatten(node);
+    }
+    else if (type == "nn.Linear")
+    {
+        return create_linear(node);
     }
     else if (type == "models.yolo.Detect")
     {
@@ -74,6 +93,60 @@ std::shared_ptr<Operator> OperatorMapper::create_silu(std::shared_ptr<PNNXNode> 
 {
     // SiLU 激活函数：x * sigmoid(x)
     return std::make_shared<SiLU>();
+}
+
+std::shared_ptr<Operator> OperatorMapper::create_relu(std::shared_ptr<PNNXNode> node)
+{
+    // ReLU 激活函数：max(0, x)
+    return std::make_shared<ReLU>();
+}
+
+std::shared_ptr<Operator> OperatorMapper::create_adaptive_avg_pool2d(std::shared_ptr<PNNXNode> node)
+{
+    auto &params = node->params;
+    
+    // 获取 output_size 参数，例如 output_size=(1,1)
+    std::pair<int, int> output_size = get_int_pair_param(params, "output_size", {1, 1});
+    
+    return std::make_shared<AdaptiveAvgPool2d>(output_size);
+}
+
+std::shared_ptr<Operator> OperatorMapper::create_flatten(std::shared_ptr<PNNXNode> node)
+{
+    auto &params = node->params;
+    
+    // 获取 start_dim 和 end_dim 参数
+    int start_dim = get_int_param(params, "start_dim", 1);
+    int end_dim = get_int_param(params, "end_dim", -1);
+    
+    return std::make_shared<FlattenOp>(start_dim, end_dim);
+}
+
+std::shared_ptr<Operator> OperatorMapper::create_linear(std::shared_ptr<PNNXNode> node)
+{
+    auto &params = node->params;
+    
+    // 获取 in_features 和 out_features 参数
+    int in_features = get_int_param(params, "in_features", 0);
+    int out_features = get_int_param(params, "out_features", 0);
+    
+    // 检查是否有 bias 参数
+    bool use_bias = true;
+    if (params.find("bias") != params.end())
+    {
+        // bias 可能是 bool 类型
+        if (params.at("bias").type == 0)  // bool type
+        {
+            use_bias = params.at("bias").b;
+        }
+    }
+    
+    if (in_features == 0 || out_features == 0)
+    {
+        THROW_RUNTIME_ERROR("Linear operator: in_features and out_features must be specified");
+    }
+    
+    return std::make_shared<LinearOp>(in_features, out_features, use_bias);
 }
 
 std::shared_ptr<Operator> OperatorMapper::create_upsample(std::shared_ptr<PNNXNode> node)

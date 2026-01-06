@@ -36,6 +36,26 @@ private:
     static std::shared_ptr<Operator> create_silu(std::shared_ptr<PNNXNode> node);
 
     /**
+     * @brief 创建 ReLU 算子
+     */
+    static std::shared_ptr<Operator> create_relu(std::shared_ptr<PNNXNode> node);
+
+    /**
+     * @brief 创建 AdaptiveAvgPool2d 算子
+     */
+    static std::shared_ptr<Operator> create_adaptive_avg_pool2d(std::shared_ptr<PNNXNode> node);
+
+    /**
+     * @brief 创建 Flatten 算子
+     */
+    static std::shared_ptr<Operator> create_flatten(std::shared_ptr<PNNXNode> node);
+
+    /**
+     * @brief 创建 Linear 算子
+     */
+    static std::shared_ptr<Operator> create_linear(std::shared_ptr<PNNXNode> node);
+
+    /**
      * @brief 创建 Upsample 算子
      */
     static std::shared_ptr<Operator> create_upsample(std::shared_ptr<PNNXNode> node);

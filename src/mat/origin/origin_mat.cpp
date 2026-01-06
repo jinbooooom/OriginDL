@@ -641,7 +641,23 @@ std::unique_ptr<Mat> OriginMat::cos() const
 
 std::unique_ptr<Mat> OriginMat::sqrt() const
 {
-    return cpu::sqrt(*this);
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::sqrt(*this);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::sqrt(*this);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for sqrt: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 // 类型和设备

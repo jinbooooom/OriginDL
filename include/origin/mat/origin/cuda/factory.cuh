@@ -51,6 +51,14 @@ std::unique_ptr<origin::OriginMat> from_memory(const void *data,
                                                const Shape &shape,
                                                const TensorOptions &options);
 
+/**
+ * @brief 在CUDA设备上拼接多个张量
+ * @param inputs 输入矩阵列表
+ * @param dim 拼接维度
+ * @return 拼接结果矩阵
+ */
+std::unique_ptr<origin::Mat> cat(const std::vector<const origin::OriginMat *> &inputs, int dim);
+
 }  // namespace cuda
 }  // namespace origin
 
