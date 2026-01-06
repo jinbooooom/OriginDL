@@ -10,6 +10,7 @@
 #include <sstream>
 #include <iomanip>
 #include <getopt.h>
+#include <filesystem>
 #include "origin.h"
 #include "origin/pnnx/pnnx_graph.h"
 #include "origin/utils/log.h"
@@ -31,8 +32,8 @@ using namespace origin::pnnx;
 struct UserCfg {
     std::string param_path;         // PNNX param 文件路径
     std::string bin_path;            // PNNX bin 文件路径
-    std::string image_path;          // 输入图像路径
-    std::string output_path;         // 输出图像路径
+    std::string image_dir;           // 输入图像目录路径
+    std::string output_dir;          // 输出图像目录路径
     float confidence_thresh = 0.25f; // 置信度阈值（与 KuiperInferGitee 保持一致）
     float iou_thresh = 0.25f;        // IOU 阈值（与 KuiperInferGitee 保持一致）
     int gpu_device = 0;              // GPU 设备 ID（默认使用 gpu0）
@@ -115,6 +116,40 @@ bool get_input_shape_from_param_file(const std::string& param_path,
 }
 
 /**
+ * @brief 从目录中获取所有图像文件路径
+ * @param dir_path 目录路径
+ * @return 图像文件路径列表（已排序）
+ */
+std::vector<std::string> get_image_files_from_directory(const std::string& dir_path) {
+    std::vector<std::string> image_files;
+    
+    if (!std::filesystem::exists(dir_path) || !std::filesystem::is_directory(dir_path)) {
+        logw("Directory does not exist or is not a directory: {}", dir_path);
+        return image_files;
+    }
+    
+    // 支持的图像扩展名
+    std::vector<std::string> image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP"};
+    
+    for (const auto& entry : std::filesystem::directory_iterator(dir_path)) {
+        if (entry.is_regular_file()) {
+            std::string file_path = entry.path().string();
+            std::string extension = entry.path().extension().string();
+            
+            // 检查是否是图像文件
+            if (std::find(image_extensions.begin(), image_extensions.end(), extension) != image_extensions.end()) {
+                image_files.push_back(file_path);
+            }
+        }
+    }
+    
+    // 按文件名排序，保证处理顺序一致
+    std::sort(image_files.begin(), image_files.end());
+    
+    return image_files;
+}
+
+/**
  * @brief 解析命令行参数
  */
 UserCfg parse_args(int argc, char *argv[]) {
@@ -145,10 +180,10 @@ UserCfg parse_args(int argc, char *argv[]) {
                 cfg.bin_path = optarg;
                 break;
             case 'i':
-                cfg.image_path = optarg;
+                cfg.image_dir = optarg;
                 break;
             case 'o':
-                cfg.output_path = optarg;
+                cfg.output_dir = optarg;
                 break;
             case 'c':
                 cfg.confidence_thresh = std::stof(optarg);
@@ -180,8 +215,8 @@ UserCfg parse_args(int argc, char *argv[]) {
     if (cfg.bin_path.empty() && optind < argc) {
         cfg.bin_path = argv[optind++];
     }
-    if (cfg.image_path.empty() && optind < argc) {
-        cfg.image_path = argv[optind++];
+    if (cfg.image_dir.empty() && optind < argc) {
+        cfg.image_dir = argv[optind++];
     }
     
     return cfg;
@@ -198,8 +233,8 @@ void print_help(const char *program_name) {
               << "  -b, --bin PATH        PNNX bin file path\n"
               << "\n"
               << "Optional options:\n"
-              << "  -i, --image PATH      Input image path (default: use test input)\n"
-              << "  -o, --output PATH     Output image path (default: output_detection.jpg)\n"
+              << "  -i, --image DIR       Input image directory path (default: use test input)\n"
+              << "  -o, --output DIR      Output image directory path (default: ./tmp)\n"
               << "  -c, --confidence FLOAT Confidence threshold (default: 0.25)\n"
               << "  -u, --iou FLOAT       IOU threshold for NMS (default: 0.45)\n"
               << "  -g, --gpu INT         GPU device ID (default: 0)\n"
@@ -207,9 +242,8 @@ void print_help(const char *program_name) {
               << "  -h, --help            Show this help message\n"
               << "\n"
               << "Examples:\n"
-              << "  " << program_name << " -p model.pnnx.param -b model.pnnx.bin -i image.jpg\n"
-              << "  " << program_name << " -p model.pnnx.param -b model.pnnx.bin -i image.jpg -c 0.5 -u 0.5\n"
-              << "  " << program_name << " model.pnnx.param model.pnnx.bin image.jpg  (legacy format)\n"
+              << "  " << program_name << " -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output\n"
+              << "  " << program_name << " -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output -c 0.5 -u 0.5\n"
               << std::endl;
 }
 
@@ -390,6 +424,146 @@ Tensor create_test_input(const Device& device, int batch_size = 1, int channels 
     return Tensor(input_data, input_shape, dtype(DataType::kFloat32).device(device));
 }
 
+#ifdef OPENCV_FOUND
+/**
+ * @brief 处理单张图像的检测结果并保存
+ * @param output_data 模型输出数据
+ * @param output_shape 输出形状
+ * @param batch_idx batch索引
+ * @param image 原始图像
+ * @param image_path 原始图像路径
+ * @param output_path 输出图像路径
+ * @param cfg 配置参数
+ */
+void process_and_save_detection(const std::vector<float>& output_data,
+                                 const Shape& output_shape,
+                                 size_t batch_idx,
+                                 const cv::Mat& image,
+                                 const std::string& image_path,
+                                 const std::string& output_path,
+                                 const UserCfg& cfg) {
+    const int32_t origin_input_h = image.rows;
+    const int32_t origin_input_w = image.cols;
+    const int32_t input_h = cfg.input_h;
+    const int32_t input_w = cfg.input_w;
+    
+    // 输出形状可能是 (batch_size, 25200, 85) 或 (25200, 85)
+    const size_t elements = (output_shape.size() == 3) ? output_shape[1] : output_shape[0];  // 25200
+    const size_t num_info = (output_shape.size() == 3) ? output_shape[2] : output_shape[1];  // 85
+    
+    // 计算当前 batch 的起始索引
+    size_t batch_offset = (output_shape.size() == 3) ? batch_idx * elements * num_info : 0;
+    
+    std::vector<cv::Rect> boxes;
+    std::vector<float> confs;
+    std::vector<int> class_ids;
+    
+    const float confidence_thresh = cfg.confidence_thresh;
+    const float iou_thresh = cfg.iou_thresh;
+    
+    // 解析检测结果
+    // 注意：YOLOv5 输出格式为 [x_center, y_center, width, height, objectness, class1, class2, ...]
+    for (size_t e = 0; e < elements; ++e) {
+        size_t base_idx = batch_offset + e * num_info;
+        float cls_conf = output_data[base_idx + 4];  // objectness
+        
+        // 使用 objectness 进行过滤（与 KuiperInferGitee 保持一致）
+        if (cls_conf >= confidence_thresh) {
+            // 读取坐标（已经是模型输入尺寸下的坐标）
+            int center_x = (int)(output_data[base_idx + 0]);
+            int center_y = (int)(output_data[base_idx + 1]);
+            int width = (int)(output_data[base_idx + 2]);
+            int height = (int)(output_data[base_idx + 3]);
+            int left = center_x - width / 2;
+            int top = center_y - height / 2;
+            
+            // 找到最佳类别
+            int best_class_id = -1;
+            float best_conf = -1.f;
+            for (size_t j = 5; j < num_info; ++j) {
+                if (output_data[base_idx + j] > best_conf) {
+                    best_conf = output_data[base_idx + j];
+                    best_class_id = int(j - 5);
+                }
+            }
+            
+            // 计算最终置信度（类别分数 * objectness）
+            float final_conf = best_conf * cls_conf;
+            
+            // 使用最终置信度进行二次过滤
+            if (final_conf < confidence_thresh) {
+                continue;
+            }
+            
+            // 过滤掉太小的检测框
+            const int kMinBoxSize = 5;
+            if (width < kMinBoxSize || height < kMinBoxSize) {
+                continue;
+            }
+            
+            // 同时过滤掉面积太小的检测框
+            if (width * height < 25) {
+                continue;
+            }
+            
+            // 裁剪检测框坐标到有效范围
+            left = std::max(0, std::min(left, input_w - 1));
+            top = std::max(0, std::min(top, input_h - 1));
+            width = std::max(1, std::min(width, input_w - left));
+            height = std::max(1, std::min(height, input_h - top));
+            
+            // 验证检测框坐标是否有效
+            if (width > 0 && height > 0) {
+                boxes.emplace_back(left, top, width, height);
+                confs.emplace_back(final_conf);
+                class_ids.emplace_back(best_class_id);
+            }
+        }
+    }
+    
+    logi("Image {}: Before NMS: {} boxes (confidence >= {})", 
+         std::filesystem::path(image_path).filename().string(), boxes.size(), confidence_thresh);
+    
+    // NMS
+    std::vector<int> indices;
+    cv::dnn::NMSBoxes(boxes, confs, confidence_thresh, iou_thresh, indices);
+    
+    logi("Image {}: After NMS: {} boxes", 
+         std::filesystem::path(image_path).filename().string(), indices.size());
+    
+    // 绘制检测框
+    cv::Mat result_image = image.clone();
+    std::vector<Detection> detections;
+    for (int idx : indices) {
+        Detection det;
+        det.box = cv::Rect(boxes[idx]);
+        scale_coords(cv::Size{input_w, input_h}, det.box, 
+                   cv::Size{origin_input_w, origin_input_h});
+        det.conf = confs[idx];
+        det.class_id = class_ids[idx];
+        detections.emplace_back(det);
+    }
+    
+    int font_face = cv::FONT_HERSHEY_COMPLEX;
+    double font_scale = 1.0;
+    int thickness = 2;
+    
+    for (const auto& detection : detections) {
+        cv::rectangle(result_image, detection.box, cv::Scalar(0, 255, 0), thickness);
+        std::string label = "Class " + std::to_string(detection.class_id) + 
+                           " (" + std::to_string(detection.conf).substr(0, 4) + ")";
+        cv::putText(result_image, label,
+                   cv::Point(detection.box.x, detection.box.y - 5), 
+                   font_face, font_scale,
+                   cv::Scalar(0, 255, 0), thickness);
+    }
+    
+    // 保存结果
+    cv::imwrite(output_path, result_image);
+    logi("Detection results saved to: {} (Found {} objects)", output_path, detections.size());
+}
+#endif  // OPENCV_FOUND
+
 /**
  * @brief YOLOv5 推理示例
  */
@@ -421,8 +595,11 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
     logi("  Confidence threshold: {}", cfg.confidence_thresh);
     logi("  IOU threshold: {}", cfg.iou_thresh);
     logi("  Device: {}", device.to_string());
-    if (!cfg.image_path.empty()) {
-        logi("  Input image: {}", cfg.image_path);
+    if (!cfg.image_dir.empty()) {
+        logi("  Input image directory: {}", cfg.image_dir);
+    }
+    if (!cfg.output_dir.empty()) {
+        logi("  Output image directory: {}", cfg.output_dir);
     }
     
     try
@@ -435,234 +612,152 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
         graph.build();
         logi("Graph built successfully!");
         
-        // 创建输入（支持 batch size）
-        Tensor input;
+        // 获取图像文件列表
+        std::vector<std::string> image_files;
 #ifdef OPENCV_FOUND
-        if (!cfg.image_path.empty()) {
-            logi("Loading image: {}", cfg.image_path);
-            cv::Mat image = cv::imread(cfg.image_path);
-            if (image.empty()) {
-                loge("Cannot load image from {}", cfg.image_path);
+        if (!cfg.image_dir.empty()) {
+            image_files = get_image_files_from_directory(cfg.image_dir);
+            if (image_files.empty()) {
+                loge("No image files found in directory: {}", cfg.image_dir);
                 return;
             }
-            logi("Image size: {}x{}", image.cols, image.rows);
-            
-            // 创建单个输入，然后复制到 batch（使用解析出的输入尺寸）
-            Tensor single_input = preprocess_image(image, device, cfg.input_h, cfg.input_w);
-            if (batch_size == 1) {
-                input = single_input;
-            } else {
-                // 将单个输入复制 batch_size 次
-                Shape single_shape = single_input.shape();
-                size_t single_size = single_shape.elements();
-                std::vector<float> batch_data(batch_size * single_size);
-                auto single_data = single_input.to_vector<float>();
-                for (int i = 0; i < batch_size; ++i) {
-                    std::copy(single_data.begin(), single_data.end(), 
-                             batch_data.begin() + i * single_size);
-                }
-                std::vector<size_t> batch_dims = single_shape.dims();
-                batch_dims[0] = static_cast<size_t>(batch_size);
-                input = Tensor(batch_data, Shape(batch_dims), 
-                              dtype(DataType::kFloat32).device(device));
-            }
-        } else {
-            logi("No image path provided, using test input...");
-            input = create_test_input(device, batch_size, 3, cfg.input_h, cfg.input_w);
+            logi("Found {} image files in directory", image_files.size());
         }
-#else
-        logi("OpenCV not available, using test input...");
-        input = create_test_input(device, batch_size, 3, cfg.input_h, cfg.input_w);
 #endif
-        logi("Input shape: {}", input.shape().to_string());
-        logi("Batch size: {}", batch_size);
         
-        // 设置输入
-        logi("Setting inputs...");
-        graph.set_inputs("pnnx_input_0", {input});
+        // 创建输出目录
+        std::string output_dir = cfg.output_dir.empty() ? "./tmp" : cfg.output_dir;
+        std::filesystem::create_directories(output_dir);
+        logi("Output directory: {}", output_dir);
         
-        // 执行推理
-        logi("Running inference...");
-        graph.forward(cfg.debug);  // 根据配置决定是否输出调试信息
-        
-        // 获取输出
-        logi("Getting outputs...");
-        auto outputs = graph.get_outputs("pnnx_output_0");
-        
-        if (outputs.empty())
-        {
-            logw("No outputs received!");
-            return;
-        }
-        
-        logi("Inference successful! Output count: {}", outputs.size());
-        
+        // 如果没有图像文件，使用测试输入
+        if (image_files.empty()) {
+            logi("No image directory provided, using test input...");
+            Tensor input = create_test_input(device, batch_size, 3, cfg.input_h, cfg.input_w);
+            logi("Input shape: {}", input.shape().to_string());
+            logi("Batch size: {}", batch_size);
+            
+            graph.set_inputs("pnnx_input_0", {input});
+            logi("Running inference...");
+            graph.forward(cfg.debug);
+            
+            auto outputs = graph.get_outputs("pnnx_output_0");
+            if (outputs.empty()) {
+                logw("No outputs received!");
+                return;
+            }
+            logi("Inference successful! Output count: {}", outputs.size());
+        } else {
+            // 批量处理图像
 #ifdef OPENCV_FOUND
-        // 后处理和绘制检测框
-        if (!cfg.image_path.empty()) {
-            cv::Mat image = cv::imread(cfg.image_path);
-            if (!image.empty()) {
-                const int32_t origin_input_h = image.rows;
-                const int32_t origin_input_w = image.cols;
-                const int32_t input_h = cfg.input_h;
-                const int32_t input_w = cfg.input_w;
+            // 按 batch_size 分批处理
+            for (size_t batch_start = 0; batch_start < image_files.size(); batch_start += batch_size) {
+                size_t batch_end = std::min(batch_start + batch_size, image_files.size());
+                size_t actual_batch_size = batch_end - batch_start;
                 
-                auto output = outputs[0];
-                auto output_shape = output.shape();
+                logi("Processing batch: images {} to {} ({} images)", 
+                     batch_start + 1, batch_end, actual_batch_size);
                 
-                // 处理 batch 输出：如果 batch_size > 1，只处理第一个 batch 的结果
-                // 输出形状可能是 (batch_size, 25200, 85) 或 (25200, 85)
-                size_t batch_idx = 0;  // 只处理第一个 batch
+                // 加载当前批次的图像
+                std::vector<cv::Mat> batch_images;
+                std::vector<std::string> batch_image_paths;
+                for (size_t i = batch_start; i < batch_end; ++i) {
+                    cv::Mat image = cv::imread(image_files[i]);
+                    if (image.empty()) {
+                        logw("Cannot load image: {}, skipping", image_files[i]);
+                        continue;
+                    }
+                    batch_images.push_back(image);
+                    batch_image_paths.push_back(image_files[i]);
+                }
                 
-                const size_t elements = (output_shape.size() == 3) ? output_shape[1] : output_shape[0];  // 25200
-                const size_t num_info = (output_shape.size() == 3) ? output_shape[2] : output_shape[1];  // 85
+                // 如果当前批次没有有效图像，跳过
+                if (batch_images.empty()) {
+                    logw("No valid images in current batch, skipping");
+                    continue;
+                }
                 
-                auto output_data = output.to_vector<float>();
-                
-                // 计算当前 batch 的起始索引
-                size_t batch_offset = (output_shape.size() == 3) ? batch_idx * elements * num_info : 0;
-                
-                std::vector<cv::Rect> boxes;
-                std::vector<float> confs;
-                std::vector<int> class_ids;
-                
-                const float confidence_thresh = cfg.confidence_thresh;
-                const float iou_thresh = cfg.iou_thresh;
-                
-                // 解析检测结果（只处理第一个 batch）
-                // 注意：YOLOv5 输出格式为 [x_center, y_center, width, height, objectness, class1, class2, ...]
-                for (size_t e = 0; e < elements; ++e) {
-                    size_t base_idx = batch_offset + e * num_info;
-                    float cls_conf = output_data[base_idx + 4];  // objectness
-                    
-                    // 使用 objectness 进行过滤（与 KuiperInferGitee 保持一致）
-                    if (cls_conf >= confidence_thresh) {
-                        // 读取坐标（已经是模型输入尺寸下的坐标）
-                        // 注意：与 KuiperInferGitee 保持一致，直接使用 int 类型转换
-                        int center_x = (int)(output_data[base_idx + 0]);
-                        int center_y = (int)(output_data[base_idx + 1]);
-                        int width = (int)(output_data[base_idx + 2]);
-                        int height = (int)(output_data[base_idx + 3]);
-                        int left = center_x - width / 2;
-                        int top = center_y - height / 2;
-                        
-                        // 找到最佳类别
-                        int best_class_id = -1;
-                        float best_conf = -1.f;
-                        for (size_t j = 5; j < num_info; ++j) {
-                            if (output_data[base_idx + j] > best_conf) {
-                                best_conf = output_data[base_idx + j];
-                                best_class_id = int(j - 5);
-                            }
-                        }
-                        
-                        // 计算最终置信度（类别分数 * objectness）
-                        float final_conf = best_conf * cls_conf;
-                        
-                        // 使用最终置信度进行二次过滤（与 KuiperInferGitee 保持一致）
-                        // KuiperInferGitee 在 NMSBoxes 中使用 conf_thresh 作为 score_threshold
-                        if (final_conf < confidence_thresh) {
-                            continue;
-                        }
-                        
-                        // 过滤掉太小的检测框（可能是误检）
-                        // 在输入尺寸（320x320）下，最小检测框应该至少 5x5 像素
-                        const int kMinBoxSize = 5;  // 最小检测框尺寸
-                        if (width < kMinBoxSize || height < kMinBoxSize) {
-                            continue;
-                        }
-                        
-                        // 同时过滤掉面积太小的检测框（面积 < 25 像素）
-                        if (width * height < 25) {
-                            continue;
-                        }
-                        
-                        // 裁剪检测框坐标到有效范围（与 KuiperInferGitee 保持一致）
-                        // 注意：KuiperInferGitee 不进行有效性检查，直接添加检测框
-                        // 但我们需要确保坐标在有效范围内
-                        left = std::max(0, std::min(left, input_w - 1));
-                        top = std::max(0, std::min(top, input_h - 1));
-                        width = std::max(1, std::min(width, input_w - left));
-                        height = std::max(1, std::min(height, input_h - top));
-                        
-                        // 验证检测框坐标是否有效
-                        if (width > 0 && height > 0) {
-                            boxes.emplace_back(left, top, width, height);
-                            confs.emplace_back(final_conf);
-                            class_ids.emplace_back(best_class_id);
-                        }
+                // 如果实际图像数量小于 batch_size，用最后一张图像填充
+                size_t current_batch_size = batch_images.size();
+                if (current_batch_size < static_cast<size_t>(batch_size)) {
+                    logi("Padding batch from {} to {} images (using last image)", 
+                         current_batch_size, batch_size);
+                    cv::Mat last_image = batch_images.back();
+                    std::string last_path = batch_image_paths.back();
+                    for (size_t i = current_batch_size; i < static_cast<size_t>(batch_size); ++i) {
+                        batch_images.push_back(last_image.clone());
+                        batch_image_paths.push_back(last_path);  // 用于填充，但不会保存输出
                     }
                 }
                 
-                logi("Before NMS: {} boxes (confidence >= {})", boxes.size(), confidence_thresh);
-                
-                // if (cfg.debug && boxes.size() > 0 && boxes.size() <= 5) {
-                //     for (size_t i = 0; i < boxes.size(); ++i) {
-                //         logd("Box {}: left={}, top={}, width={}, height={}, conf={}, class={}", 
-                //              i, boxes[i].x, boxes[i].y, boxes[i].width, boxes[i].height, confs[i], class_ids[i]);
-                //     }
-                // }
-
-                // NMS: score_threshold 用于过滤低置信度的检测框
-                // 与 KuiperInferGitee 保持一致，使用 confidence_thresh 作为 score_threshold
-                // 这样可以在 NMS 阶段进一步过滤低置信度的检测框
-                std::vector<int> indices;
-                cv::dnn::NMSBoxes(boxes, confs, confidence_thresh, iou_thresh, indices);
-                
-                logi("After NMS: {} boxes", indices.size());
-                
-                // 绘制检测框
-                std::vector<Detection> detections;
-                // if (cfg.debug) {
-                //     logd("Detection Boxes After NMS: Input image size: {}x{}, Original image size: {}x{}", 
-                //          input_w, input_h, origin_input_w, origin_input_h);
-                // }
-                for (int idx : indices) {
-                    Detection det;
-                    det.box = cv::Rect(boxes[idx]);
-                    // if (cfg.debug) {
-                    //     logd("Box {} (before scale_coords): left={}, top={}, width={}, height={}, conf={}, class={}", 
-                    //          idx, det.box.x, det.box.y, det.box.width, det.box.height, confs[idx], class_ids[idx]);
-                    // }
-                    scale_coords(cv::Size{input_w, input_h}, det.box, 
-                               cv::Size{origin_input_w, origin_input_h});
-                    // if (cfg.debug) {
-                    //     logd("Box {} (after scale_coords): left={}, top={}, width={}, height={}", 
-                    //          idx, det.box.x, det.box.y, det.box.width, det.box.height);
-                    // }
-                    det.conf = confs[idx];
-                    det.class_id = class_ids[idx];
-                    detections.emplace_back(det);
+                // 预处理所有图像并合并为 batch
+                std::vector<Tensor> preprocessed_images;
+                for (const auto& image : batch_images) {
+                    Tensor preprocessed = preprocess_image(image, device, cfg.input_h, cfg.input_w);
+                    preprocessed_images.push_back(preprocessed);
                 }
                 
-                int font_face = cv::FONT_HERSHEY_COMPLEX;
-                double font_scale = 1.0;
-                int thickness = 2;
-                
-                for (const auto& detection : detections) {
-                    cv::rectangle(image, detection.box, cv::Scalar(0, 255, 0), thickness);
-                    std::string label = "Class " + std::to_string(detection.class_id) + 
-                                       " (" + std::to_string(detection.conf).substr(0, 4) + ")";
-                    cv::putText(image, label,
-                               cv::Point(detection.box.x, detection.box.y - 5), 
-                               font_face, font_scale,
-                               cv::Scalar(0, 255, 0), thickness);
+                // 合并为 batch tensor
+                if (preprocessed_images.empty()) {
+                    continue;
                 }
                 
-                // 输出路径：如果未指定，保存到 tmp 目录
-                std::string output_path = cfg.output_path.empty() ? "./output_detection.jpg" : cfg.output_path;
-                // 确保 tmp 目录存在
-                if (output_path.find("tmp/") == 0 || output_path.find("./tmp/") == 0) {
-                    std::string cmd = "mkdir -p tmp";
-                    int ret = std::system(cmd.c_str());
-                    (void)ret;  // 忽略返回值
+                Shape single_shape = preprocessed_images[0].shape();
+                size_t single_size = single_shape.elements();
+                std::vector<float> batch_data(static_cast<size_t>(batch_size) * single_size);
+                
+                for (size_t i = 0; i < static_cast<size_t>(batch_size); ++i) {
+                    auto single_data = preprocessed_images[i].to_vector<float>();
+                    std::copy(single_data.begin(), single_data.end(), 
+                             batch_data.begin() + i * single_size);
                 }
-                cv::imwrite(output_path, image);
-                logi("Detection results saved to: {}", output_path);
-                logi("Found {} objects", detections.size());
+                
+                std::vector<size_t> batch_dims = single_shape.dims();
+                batch_dims[0] = static_cast<size_t>(batch_size);
+                Tensor input = Tensor(batch_data, Shape(batch_dims), 
+                                      dtype(DataType::kFloat32).device(device));
+                
+                logi("Input shape: {}", input.shape().to_string());
+                
+                // 设置输入并执行推理
+                graph.set_inputs("pnnx_input_0", {input});
+                logi("Running inference...");
+                graph.forward(cfg.debug);
+                
+                // 获取输出
+                auto outputs = graph.get_outputs("pnnx_output_0");
+                if (outputs.empty()) {
+                    logw("No outputs received for batch!");
+                    continue;
+                }
+                
+                logi("Inference successful! Output count: {}", outputs.size());
+                
+                // 处理每个 batch 中的每张图像
+                auto output = outputs[0];
+                auto output_shape = output.shape();
+                auto output_data = output.to_vector<float>();
+                
+                // 只处理实际图像（不包括填充的图像）
+                for (size_t i = 0; i < current_batch_size; ++i) {
+                    size_t image_idx = batch_start + i;
+                    std::string image_path = image_files[image_idx];
+                    cv::Mat image = batch_images[i];
+                    
+                    // 生成输出文件名：output_ + 原始文件名
+                    std::filesystem::path input_path(image_path);
+                    std::string output_filename = "output_" + input_path.filename().string();
+                    std::string output_path = (std::filesystem::path(output_dir) / output_filename).string();
+                    
+                    // 处理并保存检测结果
+                    process_and_save_detection(output_data, output_shape, i, 
+                                              image, image_path, output_path, cfg);
+                }
             }
+            
+            logi("Processed {} images in total", image_files.size());
+#endif  // OPENCV_FOUND
         }
-#endif
         
         logi("=== YOLOv5 Inference Complete ===");
     }
