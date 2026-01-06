@@ -152,6 +152,21 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         Tensor stage_tensor(output_data, target_shape, 
                           dtype(DataType::kFloat32).device(input.device()));
 
+        // 调试：在 sigmoid 前输出第一个检测框的值
+        static bool debug_sigmoid_before = false;
+        if (stage == 0 && !debug_sigmoid_before) {
+            size_t batch_idx = 0;
+            size_t box_idx = 0;
+            size_t base_idx = batch_idx * num_boxes * classes_info + box_idx * classes_info;
+            std::cout << "\n=== DEBUG: origindl YoloDetect Stage " << stage << " Before Sigmoid ===" << std::endl;
+            std::cout << "First box (batch 0, box 0) raw values (first 5): ";
+            for (size_t c = 0; c < 5; ++c) {
+                std::cout << output_data[base_idx + c] << " ";
+            }
+            std::cout << std::endl;
+            debug_sigmoid_before = true;
+        }
+
         // 步骤3：应用 sigmoid 到坐标部分（前4个通道：x, y, w, h）
         // 注意：这里只对前4个通道应用 sigmoid，objectness 和类别分数保持原样
         // 但实际上，根据 YOLOv5 的实现，前4个通道需要 sigmoid，第5个通道（objectness）也需要 sigmoid
@@ -166,6 +181,22 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         auto sigmoid_outputs = sigmoid_op->forward(sigmoid_inputs);
         Tensor sigmoid_output = sigmoid_outputs[0];
         
+        // 调试：在 sigmoid 后输出第一个检测框的值
+        static bool debug_sigmoid_after = false;
+        if (stage == 0 && !debug_sigmoid_after) {
+            auto sigmoid_data = sigmoid_output.to_vector<float>();
+            size_t batch_idx = 0;
+            size_t box_idx = 0;
+            size_t base_idx = batch_idx * num_boxes * classes_info + box_idx * classes_info;
+            std::cout << "\n=== DEBUG: origindl YoloDetect Stage " << stage << " After Sigmoid ===" << std::endl;
+            std::cout << "First box (batch 0, box 0) sigmoid values (first 5): ";
+            for (size_t c = 0; c < 5; ++c) {
+                std::cout << sigmoid_data[base_idx + c] << " ";
+            }
+            std::cout << std::endl;
+            debug_sigmoid_after = true;
+        }
+        
         // 步骤4：进行坐标变换
         // xy = (xy * 2 + grid) * stride
         // wh = (wh * 2)^2 * anchor_grid
@@ -174,11 +205,16 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         auto sigmoid_data = sigmoid_output.to_vector<float>();
         
         // 获取 grid 和 anchor_grid 数据
+        auto grid_shape = grids_[stage].shape();
+        auto anchor_grid_shape = anchor_grids_[stage].shape();
         auto grid_data = grids_[stage].to_vector<float>();
         auto anchor_grid_data = anchor_grids_[stage].to_vector<float>();
         float stride = strides_[stage];
         
         // 进行坐标变换
+        // 调试：输出第一个检测框的变换信息（仅第一个 batch，第一个 box）
+        static bool debug_printed = false;
+        
         for (size_t b = 0; b < batch_size; ++b)
         {
             for (size_t i = 0; i < num_boxes; ++i)
@@ -198,10 +234,77 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
                 float grid_x = (grid_base < grid_data.size()) ? grid_data[grid_base] : 0.0f;
                 float grid_y = (grid_base + 1 < grid_data.size()) ? grid_data[grid_base + 1] : 0.0f;
                 
-                // 获取 anchor_grid 值（anchor_grid 形状为 (1, num_anchors, H, W, 2)）
-                size_t anchor_grid_base = anchor_idx * H * W * 2 + h_idx * W * 2 + w_idx * 2;
+                // 获取 anchor_grid 值
+                // anchor_grid 的形状是 (1, num_anchors, anchor_H, anchor_W, 2)
+                // 其中 anchor_H 和 anchor_W 可能小于输入特征图的 H 和 W
+                // 需要根据 anchor_grid 的实际形状计算索引
+                auto anchor_grid_shape = anchor_grids_[stage].shape();
+                size_t anchor_H = (anchor_grid_shape.size() >= 3) ? anchor_grid_shape[2] : H;
+                size_t anchor_W = (anchor_grid_shape.size() >= 4) ? anchor_grid_shape[3] : W;
+                
+                // 计算 anchor_grid 中的索引（需要缩放）
+                size_t scale_h = (anchor_H > 0 && H > anchor_H) ? H / anchor_H : 1;
+                size_t scale_w = (anchor_W > 0 && W > anchor_W) ? W / anchor_W : 1;
+                size_t anchor_h_idx = h_idx / scale_h;
+                size_t anchor_w_idx = w_idx / scale_w;
+                
+                // 确保索引在有效范围内
+                anchor_h_idx = std::min(anchor_h_idx, anchor_H - 1);
+                anchor_w_idx = std::min(anchor_w_idx, anchor_W - 1);
+                
+                // 计算 anchor_grid 的索引（行主序）
+                size_t anchor_grid_base = anchor_idx * anchor_H * anchor_W * 2 + 
+                                        anchor_h_idx * anchor_W * 2 + 
+                                        anchor_w_idx * 2;
                 float anchor_w = (anchor_grid_base < anchor_grid_data.size()) ? anchor_grid_data[anchor_grid_base] : 1.0f;
                 float anchor_h = (anchor_grid_base + 1 < anchor_grid_data.size()) ? anchor_grid_data[anchor_grid_base + 1] : 1.0f;
+                
+                // 调试：输出第一个检测框的变换信息
+                if (b == 0 && i == 0 && !debug_printed && stage == 0) {
+                    std::cout << "\n=== DEBUG: YoloDetect Coordinate Transform (stage " << stage << ", box 0) ===" << std::endl;
+                    std::cout << "H=" << H << ", W=" << W << ", num_anchors=" << num_anchors_ << std::endl;
+                    std::cout << "grid_shape: " << grid_shape.to_string() << ", grid_data.size()=" << grid_data.size() << std::endl;
+                    std::cout << "anchor_grid_shape: " << anchor_grid_shape.to_string() << ", anchor_grid_data.size()=" << anchor_grid_data.size() << std::endl;
+                    std::cout << "box_idx=" << box_idx << ", anchor_idx=" << anchor_idx 
+                              << ", spatial_idx=" << spatial_idx << ", h_idx=" << h_idx << ", w_idx=" << w_idx << std::endl;
+                    std::cout << "grid_base=" << grid_base << ", grid_data.size()=" << grid_data.size() << std::endl;
+                    std::cout << "grid_x=" << grid_x << ", grid_y=" << grid_y << std::endl;
+                    std::cout << "anchor_grid_shape: anchor_H=" << anchor_H << ", anchor_W=" << anchor_W << std::endl;
+                    std::cout << "scale_h=" << scale_h << ", scale_w=" << scale_w << std::endl;
+                    std::cout << "anchor_h_idx=" << anchor_h_idx << ", anchor_w_idx=" << anchor_w_idx << std::endl;
+                    std::cout << "anchor_grid_base=" << anchor_grid_base << ", anchor_grid_data.size()=" << anchor_grid_data.size() << std::endl;
+                    std::cout << "anchor_w=" << anchor_w << ", anchor_h=" << anchor_h << std::endl;
+                    std::cout << "stride=" << stride << std::endl;
+                    std::cout << "grid first 10 values: ";
+                    for (size_t j = 0; j < std::min(size_t(10), grid_data.size()); ++j) {
+                        std::cout << grid_data[j] << " ";
+                    }
+                    std::cout << std::endl;
+                    std::cout << "anchor_grid first 10 values: ";
+                    for (size_t j = 0; j < std::min(size_t(10), anchor_grid_data.size()); ++j) {
+                        std::cout << anchor_grid_data[j] << " ";
+                    }
+                    std::cout << std::endl;
+                    std::cout << "anchor_grid values at different positions:" << std::endl;
+                    // 检查不同位置的 anchor_grid 值
+                    for (size_t test_h = 0; test_h < std::min(size_t(3), anchor_H); ++test_h) {
+                        for (size_t test_w = 0; test_w < std::min(size_t(3), anchor_W); ++test_w) {
+                            size_t test_anchor_idx = 0;
+                            size_t test_base = test_anchor_idx * anchor_H * anchor_W * 2 + 
+                                              test_h * anchor_W * 2 + 
+                                              test_w * 2;
+                            if (test_base + 1 < anchor_grid_data.size()) {
+                                std::cout << "  anchor_grid[na=0, h=" << test_h << ", w=" << test_w 
+                                          << "] = (" << anchor_grid_data[test_base] 
+                                          << ", " << anchor_grid_data[test_base + 1] << ")" << std::endl;
+                            }
+                        }
+                    }
+                    std::cout << "Before transform: sigmoid_x=" << sigmoid_data[base_idx + 0] 
+                              << ", sigmoid_y=" << sigmoid_data[base_idx + 1]
+                              << ", sigmoid_w=" << sigmoid_data[base_idx + 2]
+                              << ", sigmoid_h=" << sigmoid_data[base_idx + 3] << std::endl;
+                }
                 
                 // 变换坐标
                 // x = (sigmoid_x * 2 + grid_x) * stride
@@ -215,6 +318,16 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
                 float sigmoid_h = sigmoid_data[base_idx + 3];
                 sigmoid_data[base_idx + 2] = std::pow(sigmoid_w * 2.0f, 2.0f) * anchor_w;
                 sigmoid_data[base_idx + 3] = std::pow(sigmoid_h * 2.0f, 2.0f) * anchor_h;
+                
+                // 调试：输出第一个检测框的变换后结果
+                if (b == 0 && i == 0 && !debug_printed && stage == 0) {
+                    std::cout << "After transform: x=" << sigmoid_data[base_idx + 0] 
+                              << ", y=" << sigmoid_data[base_idx + 1]
+                              << ", w=" << sigmoid_data[base_idx + 2]
+                              << ", h=" << sigmoid_data[base_idx + 3] << std::endl;
+                    std::cout << "===================================\n" << std::endl;
+                    debug_printed = true;
+                }
             }
         }
         

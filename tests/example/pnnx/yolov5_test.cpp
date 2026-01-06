@@ -33,8 +33,8 @@ struct UserCfg {
     std::string bin_path;            // PNNX bin 文件路径
     std::string image_path;          // 输入图像路径
     std::string output_path;         // 输出图像路径
-    float confidence_thresh = 0.25f; // 置信度阈值
-    float iou_thresh = 0.45f;        // IOU 阈值
+    float confidence_thresh = 0.25f; // 置信度阈值（与 KuiperInferGitee 保持一致）
+    float iou_thresh = 0.25f;        // IOU 阈值（与 KuiperInferGitee 保持一致）
     int gpu_device = 0;              // GPU 设备 ID（默认使用 gpu0）
     int batch_size = 1;              // Batch size（默认 1，对于 batch4 模型应设置为 4）
     int input_h = 640;               // 输入图像高度（默认 640，会从 param 文件自动解析）
@@ -340,15 +340,26 @@ Tensor preprocess_image(const cv::Mat& image, const Device& device, int input_h 
     std::vector<float> input_data(input_c * input_h * input_w);
     
     // 将 OpenCV Mat 数据转换为 Tensor 格式
-    // Tensor 格式：CHW (Channel, Height, Width)
+    // Tensor 格式：NCHW (Batch, Channel, Height, Width) - 行主序
     // OpenCV Mat 格式：HWC (Height, Width, Channel)
+    // KuiperInferGitee 使用列主序，转置后直接 memcpy
+    // origindl 使用行主序，需要按行主序存储（与 ResNet 预处理保持一致）
     for (int c = 0; c < input_c; ++c) {
         const cv::Mat& channel = split_images[c];
-        // 转置：从 (H, W) 到 (W, H)，然后按行存储
+        // 转置：从 (H, W) 到 (W, H)
+        // KuiperInferGitee 使用列主序，转置后直接 memcpy
+        // origindl 使用行主序，需要按行主序存储
         cv::Mat transposed = channel.t();
-        memcpy(input_data.data() + c * input_h * input_w, 
-               transposed.data, 
-               sizeof(float) * input_h * input_w);
+        
+        // 对于行主序，我们需要按 (H, W) 顺序存储
+        // 转置后的 Mat 是 (W, H)，我们需要按行主序存储为 (H, W)
+        // 行主序索引：c * H * W + h * W + w
+        for (int h = 0; h < input_h; ++h) {
+            for (int w = 0; w < input_w; ++w) {
+                // 转置后的 Mat: (W, H)，访问 transposed(w, h) 得到原始 channel(h, w)
+                input_data[c * input_h * input_w + h * input_w + w] = transposed.at<float>(w, h);
+            }
+        }
     }
     
     Shape input_shape{1, static_cast<size_t>(input_c), 
@@ -512,6 +523,26 @@ void YoloDemo(const UserCfg &cfg)
         auto output_data = output.to_vector<float>();
         auto output_shape = output.shape();
         
+        // 保存 YoloDetect 层的输出到文件，用于与 KuiperInferGitee 对比
+        {
+            std::ofstream out_file("tmp/output/origindl_yolo_output.txt");
+            if (out_file.is_open()) {
+                out_file << std::fixed << std::setprecision(8);
+                out_file << "Output shape: " << output_shape.to_string() << "\n";
+                out_file << "Total elements: " << output_data.size() << "\n\n";
+                
+                // 保存所有数据
+                for (size_t i = 0; i < output_data.size(); ++i) {
+                    out_file << output_data[i];
+                    if ((i + 1) % 10 == 0) out_file << "\n";
+                    else out_file << " ";
+                }
+                out_file << "\n";
+                out_file.close();
+                std::cout << "YoloDetect output saved to: tmp/output/origindl_yolo_output.txt" << std::endl;
+            }
+        }
+        
         std::cout << "\n=== Inference Output Statistics ===" << std::endl;
         std::cout << "Output total elements: " << output_data.size() << std::endl;
         
@@ -618,6 +649,24 @@ void YoloDemo(const UserCfg &cfg)
                         // 计算最终置信度（类别分数 * objectness）
                         float final_conf = best_conf * cls_conf;
                         
+                        // 使用最终置信度进行二次过滤（与 KuiperInferGitee 保持一致）
+                        // KuiperInferGitee 在 NMSBoxes 中使用 conf_thresh 作为 score_threshold
+                        if (final_conf < confidence_thresh) {
+                            continue;
+                        }
+                        
+                        // 过滤掉太小的检测框（可能是误检）
+                        // 在输入尺寸（320x320）下，最小检测框应该至少 5x5 像素
+                        const int min_box_size = 5;  // 最小检测框尺寸
+                        if (width < min_box_size || height < min_box_size) {
+                            continue;
+                        }
+                        
+                        // 同时过滤掉面积太小的检测框（面积 < 25 像素）
+                        if (width * height < 25) {
+                            continue;
+                        }
+                        
                         // 裁剪检测框坐标到有效范围（与 KuiperInferGitee 保持一致）
                         // 注意：KuiperInferGitee 不进行有效性检查，直接添加检测框
                         // 但我们需要确保坐标在有效范围内
@@ -648,10 +697,10 @@ void YoloDemo(const UserCfg &cfg)
                 }
 
                 // NMS: score_threshold 用于过滤低置信度的检测框
-                // 注意：NMS 的 score_threshold 应该使用最终置信度（final_conf），而不是 objectness
-                // 但由于我们已经用 confidence_thresh 过滤过了，这里可以传入 0.0 或 confidence_thresh
+                // 与 KuiperInferGitee 保持一致，使用 confidence_thresh 作为 score_threshold
+                // 这样可以在 NMS 阶段进一步过滤低置信度的检测框
                 std::vector<int> indices;
-                cv::dnn::NMSBoxes(boxes, confs, 0.0f, iou_thresh, indices);
+                cv::dnn::NMSBoxes(boxes, confs, confidence_thresh, iou_thresh, indices);
                 
                 logi("After NMS: {} boxes", indices.size());
                 

@@ -298,9 +298,16 @@ std::shared_ptr<Operator> OperatorMapper::create_yolo_detect(std::shared_ptr<PNN
         THROW_RUNTIME_ERROR("YoloDetect: only supports 3 stages, but got {}", stages);
     }
     
-    // 读取 anchor_grids (pnnx_0, pnnx_2, pnnx_4)
+    // 读取 anchor_grids (pnnx_4, pnnx_2, pnnx_0) - 倒序，与 KuiperInferGitee 一致
+    // 
+    // 说明：
+    // 1. 通过修正 anchor_grid 的加载顺序，修复了 YOLOv5 检测框绘制不正确的问题
+    // 2. 将加载顺序从 [pnnx_0, pnnx_2, pnnx_4] 改为 [pnnx_4, pnnx_2, pnnx_0]，与 KuiperInferGitee 保持一致
+    // 
+    // 原因：KuiperInferGitee 使用倒序加载 anchor_grid，如果 origindl 使用正序会导致坐标变换时使用错误的 anchor 值，
+    // 从而产生不正确的检测框坐标（宽高值错误），最终导致检测框绘制位置不正确。
     std::vector<Tensor> anchor_grids;
-    std::vector<int> anchor_indices = {0, 2, 4};
+    std::vector<int> anchor_indices = {4, 2, 0};
     for (int idx : anchor_indices)
     {
         std::string attr_name = "pnnx_" + std::to_string(idx);
