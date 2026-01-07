@@ -12,6 +12,7 @@
 #include "origin/utils/log.h"
 #include "origin/core/config.h"
 #include "origin/core/operator.h"
+#include "class_labels.h"
 #ifdef WITH_CUDA
 #include "origin/cuda/cuda.h"
 #endif
@@ -220,7 +221,14 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    std::cout << "class with max prob is " << max_prob << " index " << max_index << std::endl;
+    // 显示类别名称（如果可用）
+    std::string class_name = "Unknown";
+    if (max_index >= 0 && static_cast<size_t>(max_index) < IMAGENET_CLASSES.size()) {
+        class_name = IMAGENET_CLASSES[max_index];
+    }
+    
+    std::cout << "Class with max probability: " << class_name 
+              << " (index: " << max_index << ", probability: " << max_prob << ")" << std::endl;
     
     return 0;
 #else

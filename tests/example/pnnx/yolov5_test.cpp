@@ -15,6 +15,7 @@
 #include "origin/pnnx/pnnx_graph.h"
 #include "origin/utils/log.h"
 #include "origin/core/config.h"
+#include "class_labels.h"
 #ifdef WITH_CUDA
 #include "origin/cuda/cuda.h"
 #endif
@@ -34,8 +35,8 @@ struct UserCfg {
     std::string bin_path;            // PNNX bin 文件路径
     std::string image_dir;           // 输入图像目录路径
     std::string output_dir;          // 输出图像目录路径
-    float confidence_thresh = 0.25f; // 置信度阈值（与 KuiperInferGitee 保持一致）
-    float iou_thresh = 0.25f;        // IOU 阈值（与 KuiperInferGitee 保持一致）
+    float confidence_thresh = 0.25f; // 置信度阈值
+    float iou_thresh = 0.25f;        // IOU 阈值
     int gpu_device = 0;              // GPU 设备 ID（默认使用 gpu0）
     int input_h = 640;               // 输入图像高度（默认 640，会从 param 文件自动解析）
     int input_w = 640;               // 输入图像宽度（默认 640，会从 param 文件自动解析）
@@ -371,7 +372,6 @@ Tensor preprocess_image(const cv::Mat& image, const Device& device, int input_h 
     for (int c = 0; c < input_c; ++c) {
         const cv::Mat& channel = split_images[c];
         // 转置：从 (H, W) 到 (W, H)
-        // KuiperInferGitee 使用列主序，转置后直接 memcpy
         // origindl 使用行主序，需要按行主序存储
         cv::Mat transposed = channel.t();
         
@@ -434,6 +434,7 @@ Tensor create_test_input(const Device& device, int batch_size = 1, int channels 
  * @param image_path 原始图像路径
  * @param output_path 输出图像路径
  * @param cfg 配置参数
+ * @param class_names 类别名称列表（如果为空则使用数字ID）
  */
 void process_and_save_detection(const std::vector<float>& output_data,
                                  const Shape& output_shape,
@@ -441,7 +442,8 @@ void process_and_save_detection(const std::vector<float>& output_data,
                                  const cv::Mat& image,
                                  const std::string& image_path,
                                  const std::string& output_path,
-                                 const UserCfg& cfg) {
+                                 const UserCfg& cfg,
+                                 const std::vector<std::string>& class_names) {
     const int32_t origin_input_h = image.rows;
     const int32_t origin_input_w = image.cols;
     const int32_t input_h = cfg.input_h;
@@ -544,18 +546,105 @@ void process_and_save_detection(const std::vector<float>& output_data,
         detections.emplace_back(det);
     }
     
-    int font_face = cv::FONT_HERSHEY_COMPLEX;
-    double font_scale = 1.0;
+    // 定义10种颜色（BGR格式）：用于不同类别的检测框
+    // 颜色ID: 0-9，类别ID % 10 = 颜色ID
+    const std::vector<cv::Scalar> colors = {
+        cv::Scalar(0, 255, 0),      // 0: 绿色
+        cv::Scalar(255, 0, 0),      // 1: 蓝色
+        cv::Scalar(0, 0, 255),      // 2: 红色
+        cv::Scalar(255, 255, 0),    // 3: 青色
+        cv::Scalar(255, 0, 255),    // 4: 洋红色
+        cv::Scalar(0, 255, 255),    // 5: 黄色
+        cv::Scalar(128, 0, 128),    // 6: 紫色
+        cv::Scalar(255, 165, 0),    // 7: 橙色
+        cv::Scalar(0, 128, 255),    // 8: 橙红色
+        cv::Scalar(128, 255, 0)     // 9: 黄绿色
+    };
+    
+    int font_face = cv::FONT_HERSHEY_SIMPLEX;
+    const double default_font_scale = 0.6;
     int thickness = 2;
+    int baseline = 0;
+    const int text_padding = 3;
     
     for (const auto& detection : detections) {
-        cv::rectangle(result_image, detection.box, cv::Scalar(0, 255, 0), thickness);
-        std::string label = "Class " + std::to_string(detection.class_id) + 
-                           " (" + std::to_string(detection.conf).substr(0, 4) + ")";
+        // 根据类别ID选择颜色：类别ID % 10 = 颜色ID
+        int color_id = detection.class_id % 10;
+        cv::Scalar box_color = colors[color_id];
+        
+        cv::rectangle(result_image, detection.box, box_color, thickness);
+        
+        // 构建标签：使用类别名称（如果可用）或数字ID
+        std::string label;
+        if (!class_names.empty() && detection.class_id >= 0 && 
+            static_cast<size_t>(detection.class_id) < class_names.size()) {
+            label = class_names[detection.class_id] + " " + 
+                   std::to_string(detection.conf).substr(0, 4);
+        } else {
+            label = "Class " + std::to_string(detection.class_id) + 
+                   " (" + std::to_string(detection.conf).substr(0, 4) + ")";
+        }
+        
+        // 为当前检测框计算合适的字体大小
+        double current_font_scale = default_font_scale;
+        cv::Size text_size = cv::getTextSize(label, font_face, current_font_scale, thickness, &baseline);
+        
+        // 计算文字位置：框内左上角，留出一些边距
+        int text_x = detection.box.x + text_padding;
+        int text_y = detection.box.y + text_size.height + text_padding;
+        
+        // 如果文字会超出检测框，调整字体大小或截断文字
+        int max_width = detection.box.width - 2 * text_padding;
+        if (max_width > 0 && text_size.width > max_width) {
+            // 文字太宽，尝试缩小字体
+            while (text_size.width > max_width && current_font_scale > 0.3) {
+                current_font_scale -= 0.1;
+                text_size = cv::getTextSize(label, font_face, current_font_scale, thickness, &baseline);
+            }
+            
+            // 如果还是太宽，截断文字
+            if (text_size.width > max_width) {
+                // 估算能显示的字符数
+                double char_width = text_size.width / static_cast<double>(label.length());
+                int max_chars = static_cast<int>(max_width / char_width) - 3;
+                if (max_chars > 0 && max_chars < static_cast<int>(label.length())) {
+                    label = label.substr(0, max_chars) + "...";
+                    text_size = cv::getTextSize(label, font_face, current_font_scale, thickness, &baseline);
+                }
+            }
+        }
+        
+        // 确保文字不会超出检测框的下边界
+        if (text_y > detection.box.y + detection.box.height) {
+            text_y = detection.box.y + detection.box.height - text_padding;
+        }
+        
+        // 绘制文字背景框（半透明背景）
+        cv::Rect text_bg_rect(
+            text_x - text_padding,
+            text_y - text_size.height - text_padding,
+            text_size.width + 2 * text_padding,
+            text_size.height + baseline + 2 * text_padding
+        );
+        
+        // 确保背景框在检测框内
+        text_bg_rect.x = std::max(text_bg_rect.x, detection.box.x);
+        text_bg_rect.y = std::max(text_bg_rect.y, detection.box.y);
+        text_bg_rect.width = std::min(text_bg_rect.width, 
+                                      detection.box.x + detection.box.width - text_bg_rect.x);
+        text_bg_rect.height = std::min(text_bg_rect.height,
+                                       detection.box.y + detection.box.height - text_bg_rect.y);
+        
+        // 绘制半透明背景
+        cv::Mat overlay = result_image.clone();
+        cv::rectangle(overlay, text_bg_rect, cv::Scalar(0, 0, 0), -1);
+        cv::addWeighted(overlay, 0.5, result_image, 0.5, 0, result_image);
+        
+        // 绘制文字（在框内左上角），使用与检测框相同的颜色
         cv::putText(result_image, label,
-                   cv::Point(detection.box.x, detection.box.y - 5), 
-                   font_face, font_scale,
-                   cv::Scalar(0, 255, 0), thickness);
+                   cv::Point(text_x, text_y), 
+                   font_face, current_font_scale,
+                   box_color, thickness);
     }
     
     // 保存结果
@@ -629,6 +718,9 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
         std::string output_dir = cfg.output_dir.empty() ? "./tmp" : cfg.output_dir;
         std::filesystem::create_directories(output_dir);
         logi("Output directory: {}", output_dir);
+        
+        // 使用COCO类别名称（从class_labels.h）
+        const std::vector<std::string>& class_names = COCO_CLASSES;
         
         // 如果没有图像文件，使用测试输入
         if (image_files.empty()) {
@@ -751,7 +843,7 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
                     
                     // 处理并保存检测结果
                     process_and_save_detection(output_data, output_shape, i, 
-                                              image, image_path, output_path, cfg);
+                                              image, image_path, output_path, cfg, class_names);
                 }
             }
             
