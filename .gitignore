@@ -5,7 +5,11 @@
 .specstory/*
 .cursor/*
 .cursorindexingignore
+
 data/*
+model/*
+!model/README.md
+
 **/exec
 **/.vs/*
 **/*.i

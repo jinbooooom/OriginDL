@@ -1,4 +1,8 @@
-// YOLOv5 推理示例（使用 PNNX 模型）
+/* 
+YOLOv5 推理示例（使用 PNNX 模型）
+用法示例：
+./build/bin/example/example_yolov5 -i data/imgs/ -o data/outputs/ -p model/yolo/yolov5n_small.pnnx.param -b model/yolo/yolov5n_small.pnnx.bin 
+*/
 #include <iostream>
 #include <vector>
 #include <string>

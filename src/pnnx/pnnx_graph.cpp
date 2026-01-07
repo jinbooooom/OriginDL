@@ -502,10 +502,10 @@ void PNNXGraph::forward(bool debug)
                 
                 // 记录执行结束时间
                 auto end_time = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
                 
                 // 输出每个层的执行时间
-                logi("Layer name: {}\tlayer type: {}\ttime cost: {}ms", 
+                logi("Layer name: {}\tlayer type: {}\ttime cost: {}us", 
                      node->name, node->type, duration.count());
                 
                 // 将输出传播到下游节点（包括输出节点）
@@ -540,8 +540,8 @@ void PNNXGraph::forward(bool debug)
     
     // 输出总执行时间
     auto total_end_time = std::chrono::high_resolution_clock::now();
-    auto total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(total_end_time - total_start_time);
-    logi("Forward completed: {} nodes executed in {}ms", total_nodes, total_duration.count());
+    auto total_duration = std::chrono::duration_cast<std::chrono::microseconds>(total_end_time - total_start_time);
+    logi("Forward completed: {} nodes executed in {}us", total_nodes, total_duration.count());
     
 #ifdef WITH_CUDA
     // 确保 CUDA 操作完成（同步所有 CUDA 流）
