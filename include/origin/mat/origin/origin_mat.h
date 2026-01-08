@@ -179,6 +179,22 @@ public:
                                              std::pair<int, int> pad) const;
 
     /**
+     * @brief adaptive_avg_pool2d：自适应平均池化操作
+     * @param output_size 输出尺寸 (OH, OW)
+     * @return 输出张量 (N, C, OH, OW)
+     */
+    std::unique_ptr<Mat> adaptive_avg_pool2d(std::pair<int, int> output_size) const;
+
+    /**
+     * @brief adaptive_avg_pool2d_backward：自适应平均池化反向传播
+     * @param gy 输出梯度 (N, C, OH, OW)
+     * @param output_size 输出尺寸 (OH, OW)
+     * @return 输入梯度 (N, C, H, W)
+     */
+    std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
+                                                       std::pair<int, int> output_size) const;
+
+    /**
      * @brief max_pool2d：最大池化操作
      * @param kernel_size 池化核大小 (KH, KW)
      * @param stride 步长 (SH, SW)
