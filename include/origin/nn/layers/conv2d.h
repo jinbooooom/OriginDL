@@ -1,11 +1,11 @@
 #ifndef __ORIGIN_DL_CONV2D_LAYER_H__
 #define __ORIGIN_DL_CONV2D_LAYER_H__
 
+#include <utility>
 #include "../../core/operator.h"
 #include "../../core/parameter.h"
 #include "../../core/tensor.h"
 #include "../layer.h"
-#include <utility>
 
 namespace origin
 {
@@ -38,8 +38,12 @@ public:
      * @param pad 填充，默认为 (0, 0)
      * @param bias 是否使用偏置，默认为true
      */
-    Conv2d(int in_channels, int out_channels, std::pair<int, int> kernel_size, 
-           std::pair<int, int> stride = {1, 1}, std::pair<int, int> pad = {0, 0}, bool bias = true);
+    Conv2d(int in_channels,
+           int out_channels,
+           std::pair<int, int> kernel_size,
+           std::pair<int, int> stride = {1, 1},
+           std::pair<int, int> pad    = {0, 0},
+           bool bias                  = true);
 
     /**
      * @brief 构造函数（单值版本，kernel_size, stride, pad 为单个值）
@@ -50,8 +54,7 @@ public:
      * @param pad 填充，默认为 0
      * @param bias 是否使用偏置，默认为true
      */
-    Conv2d(int in_channels, int out_channels, int kernel_size, 
-           int stride = 1, int pad = 0, bool bias = true);
+    Conv2d(int in_channels, int out_channels, int kernel_size, int stride = 1, int pad = 0, bool bias = true);
 
     /**
      * @brief 前向传播

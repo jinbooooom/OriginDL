@@ -1,6 +1,6 @@
 #include "gtest_utils.h"
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 #include <string>
 
@@ -15,8 +15,7 @@ void GTestUtils::EXPECT_TENSORS_EQ(const Tensor &a, const Tensor &b, double tole
     if (a.shape() != b.shape())
     {
         std::ostringstream oss;
-        oss << "Tensor shapes do not match: " << a.shape().to_string() << " vs "
-            << b.shape().to_string();
+        oss << "Tensor shapes do not match: " << a.shape().to_string() << " vs " << b.shape().to_string();
         ADD_FAILURE() << oss.str();
         return;
     }
@@ -27,13 +26,12 @@ void GTestUtils::EXPECT_TENSORS_EQ(const Tensor &a, const Tensor &b, double tole
 
     if (data_a.size() != data_b.size())
     {
-        ADD_FAILURE() << "Tensor data sizes do not match: " << data_a.size() << " vs "
-                      << data_b.size();
+        ADD_FAILURE() << "Tensor data sizes do not match: " << data_a.size() << " vs " << data_b.size();
         return;
     }
 
     // 逐元素比较
-    bool all_equal = true;
+    bool all_equal        = true;
     size_t first_mismatch = 0;
     for (size_t i = 0; i < data_a.size(); ++i)
     {
@@ -51,8 +49,8 @@ void GTestUtils::EXPECT_TENSORS_EQ(const Tensor &a, const Tensor &b, double tole
     {
         std::ostringstream oss;
         oss << "Tensors are not equal within tolerance " << tolerance << ". "
-            << "First mismatch at index " << first_mismatch << ": " << data_a[first_mismatch]
-            << " vs " << data_b[first_mismatch];
+            << "First mismatch at index " << first_mismatch << ": " << data_a[first_mismatch] << " vs "
+            << data_b[first_mismatch];
         ADD_FAILURE() << oss.str();
     }
 }
@@ -63,8 +61,7 @@ void GTestUtils::EXPECT_TENSORS_NEAR(const Tensor &a, const Tensor &b, double rt
     if (a.shape() != b.shape())
     {
         std::ostringstream oss;
-        oss << "Tensor shapes do not match: " << a.shape().to_string() << " vs "
-            << b.shape().to_string();
+        oss << "Tensor shapes do not match: " << a.shape().to_string() << " vs " << b.shape().to_string();
         ADD_FAILURE() << oss.str();
         return;
     }
@@ -75,19 +72,18 @@ void GTestUtils::EXPECT_TENSORS_NEAR(const Tensor &a, const Tensor &b, double rt
 
     if (data_a.size() != data_b.size())
     {
-        ADD_FAILURE() << "Tensor data sizes do not match: " << data_a.size() << " vs "
-                      << data_b.size();
+        ADD_FAILURE() << "Tensor data sizes do not match: " << data_a.size() << " vs " << data_b.size();
         return;
     }
 
     // 逐元素比较
-    bool all_near = true;
+    bool all_near         = true;
     size_t first_mismatch = 0;
-    double max_diff = 0.0;
+    double max_diff       = 0.0;
     for (size_t i = 0; i < data_a.size(); ++i)
     {
-        double diff    = std::abs(data_a[i] - data_b[i]);
-        double max_val = std::max(std::abs(data_a[i]), std::abs(data_b[i]));
+        double diff      = std::abs(data_a[i] - data_b[i]);
+        double max_val   = std::max(std::abs(data_a[i]), std::abs(data_b[i]));
         double threshold = atol + rtol * max_val;
 
         if (diff > threshold)
@@ -104,10 +100,9 @@ void GTestUtils::EXPECT_TENSORS_NEAR(const Tensor &a, const Tensor &b, double rt
     if (!all_near)
     {
         std::ostringstream oss;
-        oss << "Tensors are not near within tolerance (rtol=" << rtol << ", atol=" << atol
-            << "). "
-            << "First mismatch at index " << first_mismatch << ": " << data_a[first_mismatch]
-            << " vs " << data_b[first_mismatch] << " (diff=" << max_diff << ")";
+        oss << "Tensors are not near within tolerance (rtol=" << rtol << ", atol=" << atol << "). "
+            << "First mismatch at index " << first_mismatch << ": " << data_a[first_mismatch] << " vs "
+            << data_b[first_mismatch] << " (diff=" << max_diff << ")";
         ADD_FAILURE() << oss.str();
     }
 }
@@ -129,8 +124,7 @@ void GTestUtils::EXPECT_TENSOR_DEVICE(const Tensor &tensor, DeviceType expected_
     {
         std::ostringstream oss;
         std::string expected_str = (expected_device == DeviceType::kCPU) ? "CPU" : "CUDA";
-        oss << "Tensor device mismatch: expected " << expected_str << ", got "
-            << tensor.device().to_string();
+        oss << "Tensor device mismatch: expected " << expected_str << ", got " << tensor.device().to_string();
         ADD_FAILURE() << oss.str();
     }
 }
@@ -148,4 +142,3 @@ void GTestUtils::EXPECT_TENSOR_DEVICE(const Tensor &tensor, const Device &expect
 
 }  // namespace test
 }  // namespace origin
-

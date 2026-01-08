@@ -63,4 +63,3 @@ public:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_BATCH_NORM2D_LAYER_H__
-

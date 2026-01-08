@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../../common/device_test_base.h"
 #include "../../common/gtest_utils.h"
 #include "../../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 
@@ -12,8 +12,7 @@ using namespace origin;
  * @brief 对数算子测试类（参数化版本）
  */
 class LogOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -50,7 +49,7 @@ TEST_P(LogOperatorTest, ForwardSmallValues)
     auto result = log(x);
 
     std::vector<float> expected_data = {static_cast<float>(std::log(0.1)), static_cast<float>(std::log(0.5))};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -62,7 +61,7 @@ TEST_P(LogOperatorTest, ForwardLargeValues)
     auto result = log(x);
 
     std::vector<float> expected_data = {5.0f, 10.0f};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e3);
 }
 
@@ -138,8 +137,9 @@ TEST_P(LogOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
-    auto expected = Tensor(std::vector<float>(100, 1.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto expected =
+        Tensor(std::vector<float>(100, 1.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -157,7 +157,7 @@ TEST_P(LogOperatorTest, ThreeDimensional)
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data;
     for (int i = 0; i < 8; ++i)
     {
@@ -177,7 +177,7 @@ TEST_P(LogOperatorTest, PrecisionTest)
     auto result = log(x);
 
     std::vector<float> expected_data = {0.1f, 0.2f};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -186,7 +186,7 @@ TEST_P(LogOperatorTest, IdentityProperty)
     // 测试恒等性质：log(exp(x)) = x
     auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto exp_x = exp(x);
+    auto exp_x  = exp(x);
     auto result = log(exp_x);
 
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, x, 1e-5, 1e5);
@@ -206,4 +206,3 @@ TEST_P(LogOperatorTest, MonotonicProperty)
 
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(LogOperatorTest);
-

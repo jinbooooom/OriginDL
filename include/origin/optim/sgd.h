@@ -34,6 +34,18 @@ public:
      */
     SGD(Module &target, float lr, float momentum = 0.0f, float weight_decay = 0.0f, bool nesterov = false);
 
+    /**
+     * @brief 获取优化器的状态字典
+     * @return 优化器状态字典
+     */
+    std::unordered_map<std::string, std::any> state_dict() const override;
+
+    /**
+     * @brief 从状态字典加载优化器状态
+     * @param state_dict 优化器状态字典
+     */
+    void load_state_dict(const std::unordered_map<std::string, std::any> &state_dict) override;
+
 protected:
     /**
      * @brief 更新单个参数

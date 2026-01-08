@@ -14,4 +14,3 @@ Tensor ReLU::forward(const Tensor &input)
 
 }  // namespace nn
 }  // namespace origin
-

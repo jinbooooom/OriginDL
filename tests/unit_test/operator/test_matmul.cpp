@@ -1,18 +1,17 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief 矩阵乘法算子测试类（参数化版本）
  */
 class MatMulOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -27,7 +26,8 @@ TEST_P(MatMulOperatorTest, ForwardBasic)
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
     // 结果应该是 [[1*5+2*7, 1*6+2*8], [3*5+4*7, 3*6+4*8]] = [[19, 22], [43, 50]]
-    auto expected = Tensor({19.0f, 22.0f, 43.0f, 50.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({19.0f, 22.0f, 43.0f, 50.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -48,7 +48,8 @@ TEST_P(MatMulOperatorTest, ForwardDifferentSizes)
 {
     // 测试不同大小的矩阵乘法
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
-    auto w = Tensor({7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto w =
+        Tensor({7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mat_mul(x, w);
 
@@ -56,7 +57,8 @@ TEST_P(MatMulOperatorTest, ForwardDifferentSizes)
     EXPECT_EQ(result.shape(), expected_shape);
     // 结果应该是 [[1*7+2*9+3*11, 1*8+2*10+3*12], [4*7+5*9+6*11, 4*8+5*10+6*12]]
     // = [[58, 64], [139, 154]]
-    auto expected = Tensor({58.0f, 64.0f, 139.0f, 154.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({58.0f, 64.0f, 139.0f, 154.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -88,8 +90,10 @@ TEST_P(MatMulOperatorTest, ForwardZeroMatrix)
 TEST_P(MatMulOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
-    auto w = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto w = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = mat_mul(x, w);
     y.backward();
@@ -114,8 +118,10 @@ TEST_P(MatMulOperatorTest, BackwardBasic)
 TEST_P(MatMulOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
-    auto w = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto w = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = mat_mul(x, w);
     y.backward();
@@ -126,7 +132,8 @@ TEST_P(MatMulOperatorTest, BackwardWithGradient)
 
     // 验证梯度计算正确（libtorch行为）
     // x.grad = gy @ w^T = [[1,1],[1,1]] @ [[5,7],[6,8]] = [[11,15],[11,15]]
-    auto expected_gx = Tensor({11.0f, 15.0f, 11.0f, 15.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected_gx =
+        Tensor({11.0f, 15.0f, 11.0f, 15.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     // w.grad = x^T @ gy = [[1,3],[2,4]] @ [[1,1],[1,1]] = [[4,4],[6,6]]
     auto expected_gw = Tensor({4.0f, 4.0f, 6.0f, 6.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
@@ -137,8 +144,10 @@ TEST_P(MatMulOperatorTest, BackwardWithGradient)
 TEST_P(MatMulOperatorTest, BackwardDifferentSizes)
 {
     // 测试不同大小的矩阵乘法反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
-    auto w = Tensor({7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto w = Tensor({7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f}, Shape{3, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = mat_mul(x, w);
     y.backward();
@@ -163,8 +172,10 @@ TEST_P(MatMulOperatorTest, BackwardDifferentSizes)
 TEST_P(MatMulOperatorTest, BackwardIdentityMatrix)
 {
     // 测试单位矩阵乘法的反向传播
-    auto x        = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
-    auto identity = Tensor({1.0f, 0.0f, 0.0f, 1.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x        = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                           dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto identity = Tensor({1.0f, 0.0f, 0.0f, 1.0f}, Shape{2, 2},
+                           dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = mat_mul(x, identity);
     y.backward();
@@ -177,8 +188,10 @@ TEST_P(MatMulOperatorTest, BackwardIdentityMatrix)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_gx, origin::test::TestTolerance::kDefault);
 
     // identity的梯度应该是x^T @ gy = [[1,3],[2,4]] @ [[1,1],[1,1]] = [[4,4],[6,6]]
-    auto expected_gidentity = Tensor({4.0f, 4.0f, 6.0f, 6.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    origin::test::GTestUtils::EXPECT_TENSORS_EQ(identity.grad(), expected_gidentity, origin::test::TestTolerance::kDefault);
+    auto expected_gidentity =
+        Tensor({4.0f, 4.0f, 6.0f, 6.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(identity.grad(), expected_gidentity,
+                                                origin::test::TestTolerance::kDefault);
 }
 
 // ==================== 边界情况测试 ====================
@@ -209,7 +222,8 @@ TEST_P(MatMulOperatorTest, LargeMatrix)
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
     // 每行都是10个1.0乘以10个2.0的和 = 10 * 2 = 20
-    auto expected = Tensor(std::vector<float>(100, 20.0f), expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor(std::vector<float>(100, 20.0f), expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -222,7 +236,8 @@ TEST_P(MatMulOperatorTest, ThreeDimensional)
         GTEST_SKIP() << "CUDA matmul does not support complex broadcasting yet";
     }
 
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()));
     auto w = Tensor({1.0f, 0.0f, 0.0f, 1.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     // libtorch支持三维张量矩阵乘法，结果形状为[2, 2, 2]
@@ -267,7 +282,8 @@ TEST_P(MatMulOperatorTest, PrecisionTest)
     EXPECT_EQ(result.shape(), expected_shape);
     // 结果应该是 [[0.1*0.5+0.2*0.7, 0.1*0.6+0.2*0.8], [0.3*0.5+0.4*0.7, 0.3*0.6+0.4*0.8]]
     // = [[0.19, 0.22], [0.43, 0.50]]
-    auto expected = Tensor({0.19f, 0.22f, 0.43f, 0.50f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({0.19f, 0.22f, 0.43f, 0.50f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -328,7 +344,8 @@ TEST_P(MatMulOperatorTest, DimensionValidation)
 
     // 测试真正不匹配的维度
     auto x2 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    auto w2 = Tensor({5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto w2 =
+        Tensor({5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 维度不匹配应该抛出异常
     EXPECT_THROW(mat_mul(x2, w2), std::exception);

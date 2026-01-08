@@ -1,17 +1,16 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief 平方算子测试类（参数化版本）
  */
 class SquareOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -138,21 +137,23 @@ TEST_P(SquareOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
-    auto expected = Tensor(std::vector<float>(100, 9.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto expected =
+        Tensor(std::vector<float>(100, 9.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(SquareOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = square(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data;
     for (int i = 1; i <= 8; ++i)
     {

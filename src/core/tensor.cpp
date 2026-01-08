@@ -86,7 +86,7 @@ size_t Tensor::elements() const
 
 size_t Tensor::element_size() const
 {
-    return origin::element_size(dtype()); // 返回单个元素占用的字节数
+    return origin::element_size(dtype());  // 返回单个元素占用的字节数
 }
 
 size_t Tensor::numel() const
@@ -151,7 +151,8 @@ Tensor Tensor::grad() const
 {
     if (!impl_->grad_)
     {
-        return Tensor::zeros(shape(), origin::dtype(DataType::kFloat32).device(device()));  // TODO，创建与input同类型的gtad
+        return Tensor::zeros(shape(),
+                             origin::dtype(DataType::kFloat32).device(device()));  // TODO，创建与input同类型的gtad
     }
     // 返回共享的梯度（与PyTorch行为一致）
     auto grad_impl = std::make_shared<TensorImpl>(impl_->grad_);  // 使用 shared_ptr 构造函数，共享 grad_

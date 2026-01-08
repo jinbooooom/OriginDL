@@ -3,10 +3,10 @@
 
 #include <functional>
 #include <vector>
-#include "../module.h"
-#include "../layers/linear.h"
-#include "../../core/tensor.h"
 #include "../../core/operator.h"
+#include "../../core/tensor.h"
+#include "../layers/linear.h"
+#include "../module.h"
 
 namespace origin
 {
@@ -15,14 +15,14 @@ namespace nn
 
 /**
  * @brief 多层感知机（MLP）模型
- * 
+ *
  * 支持自定义隐藏层大小和激活函数
  * 例如：MLP({784, 100, 100, 10}, relu) 创建一个3层MLP，输入784维，两个隐藏层各100维，输出10维
  */
 class MLP : public Module
 {
 private:
-    std::vector<std::unique_ptr<Linear>> layers_;  // 线性层列表
+    std::vector<Linear *> layers_;  // 线性层指针列表（用于保持顺序，所有权在 modules_ 中）
     std::function<Tensor(const Tensor &)> activation_;  // 激活函数
 
 public:
@@ -31,8 +31,7 @@ public:
      * @param hidden_sizes 隐藏层大小列表，例如 {784, 100, 100, 10} 表示输入784，隐藏层100和100，输出10
      * @param activation 激活函数，默认为relu
      */
-    MLP(const std::vector<int> &hidden_sizes, 
-        std::function<Tensor(const Tensor &)> activation = nullptr);
+    MLP(const std::vector<int> &hidden_sizes, std::function<Tensor(const Tensor &)> activation = nullptr);
 
     /**
      * @brief 前向传播
@@ -58,4 +57,3 @@ public:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_MLP_H__
-

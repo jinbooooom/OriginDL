@@ -34,4 +34,3 @@ public:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_RELU_LAYER_H__
-

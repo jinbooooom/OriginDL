@@ -1,18 +1,17 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief broadcast_to算子测试类（参数化版本）
  */
 class BroadcastToOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -63,7 +62,8 @@ TEST_P(BroadcastToOperatorTest, ForwardToLargerShape)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 2.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 2.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -77,7 +77,7 @@ TEST_P(BroadcastToOperatorTest, ForwardTo3D)
 
     EXPECT_EQ(result.shape(), target_shape);
     auto result_data = result.to_vector<float>();
-    
+
     // 验证广播的正确性
     for (size_t i = 0; i < result_data.size(); i += 2)
     {
@@ -181,7 +181,7 @@ TEST_P(BroadcastToOperatorTest, LargeTensor)
 
     EXPECT_EQ(result.shape(), target_shape);
     auto result_data = result.to_vector<float>();
-    
+
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], 1.0f, origin::test::TestTolerance::kDefault);
@@ -217,7 +217,8 @@ TEST_P(BroadcastToOperatorTest, NumericalStability)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1e10f, 1e-10f, 1e10f, 1e-10f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1e10f, 1e-10f, 1e10f, 1e-10f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e7);
 }
 
@@ -316,7 +317,8 @@ TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcast1DTo2D)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -354,7 +356,8 @@ TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcastComplex)
     auto result = broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1.0f, 2.0f, 3.0f, 1.0f, 2.0f, 3.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 

@@ -28,9 +28,9 @@ std::vector<Tensor> Log::backward(const std::vector<Tensor> &gys)
 
     // ln(x) 的梯度：∂y/∂x = 1/x
     // 所以 gx = gy / x
-    auto &x        = mat(this->inputs_[0]);
-    auto &gy       = mat(gys[0]);
-    
+    auto &x  = mat(this->inputs_[0]);
+    auto &gy = mat(gys[0]);
+
     auto gx_result = gy / x;
     auto gx        = convert_mat_to_tensor(std::move(gx_result));
     std::vector<Tensor> outputs;
@@ -52,4 +52,3 @@ Tensor log(const Tensor &x)
 }
 
 }  // namespace origin
-

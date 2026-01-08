@@ -8,6 +8,7 @@
 #include "../core/parameter.h"
 #include "../core/tensor.h"
 #include "../core/tensor_options.h"
+#include "../io/model_io.h"
 #include "../utils/exception.h"
 
 namespace origin
@@ -76,6 +77,51 @@ public:
      * @param module 子模块
      */
     void register_module(const std::string &name, std::unique_ptr<Module> module);
+
+    // === State Dict 接口（PyTorch 风格）===
+
+    /**
+     * @brief State Dict 类型定义
+     */
+    using StateDict = std::unordered_map<std::string, Tensor>;
+
+    /**
+     * @brief 获取模型的状态字典（参数）
+     * @return 状态字典，键为参数名称（包含模块路径），值为参数张量
+     * @note 类似 PyTorch 的 model.state_dict()
+     */
+    virtual StateDict state_dict() const;
+
+    /**
+     * @brief 从状态字典加载参数
+     * @param state_dict 状态字典
+     * @param strict 是否严格匹配（默认true），如果为false，允许部分参数缺失
+     * @note 类似 PyTorch 的 model.load_state_dict(state_dict, strict=True)
+     */
+    virtual void load_state_dict(const StateDict &state_dict, bool strict = true);
+
+    /**
+     * @brief 从文件加载模型参数（便捷方法）
+     * @param filepath 文件路径（.odl 格式）
+     * @param strict 是否严格匹配（默认true）
+     * @note 内部调用 load_state_dict(load(filepath), strict)
+     *       类似 PyTorch 的便捷用法，但 PyTorch 没有这个方法，需要手动两步
+     */
+    void load(const std::string &filepath, bool strict = true);
+
+    /**
+     * @brief 获取命名参数（递归，包含模块路径）
+     * @param prefix 参数名称前缀（用于递归调用）
+     * @return 参数名称和参数的映射
+     */
+    std::unordered_map<std::string, Parameter *> named_parameters(const std::string &prefix = "");
+
+    /**
+     * @brief 获取命名参数（const 版本，用于 state_dict）
+     * @param prefix 参数名称前缀（用于递归调用）
+     * @return 参数名称和参数的映射
+     */
+    std::unordered_map<std::string, const Parameter *> named_parameters(const std::string &prefix) const;
 
     // === 状态管理===
 

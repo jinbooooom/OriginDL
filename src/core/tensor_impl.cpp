@@ -3,10 +3,10 @@
 #include <list>
 #include <set>
 #include <stdexcept>
+#include "origin/core/config.h"
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/core/tensor_options.h"
-#include "origin/core/config.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/origin_mat.h"
@@ -114,7 +114,7 @@ void TensorImpl::backward()
     // 记录已处理的Operator和tensor，用于后续清理
     std::vector<FunctionPtr> processed_ops;
     std::set<TensorImplPtr> processed_tensors;
-    
+
     while (!funcs.empty())
     {
         auto f = funcs.back();
@@ -127,10 +127,10 @@ void TensorImpl::backward()
             // 如果outputs_为空，跳过这个Operator
             continue;
         }
-        
+
         // 记录这个Operator已被处理
         processed_ops.push_back(f);
-        
+
         // 收集所有输出tensor的impl_，用于后续清理
         // 将 weak_ptr 转换为 shared_ptr（如果有效）
         std::vector<TensorImplPtr> valid_outputs;  // 临时保存有效的 shared_ptr，确保在 backward() 期间有效
@@ -144,18 +144,18 @@ void TensorImpl::backward()
                 // 这是正常的，跳过这个输出
                 continue;
             }
-            
+
             // 临时保存有效的 shared_ptr，确保在 backward() 期间有效
             valid_outputs.push_back(output_impl);
-            
+
             // 记录tensor的impl_，用于后续清理
             processed_tensors.insert(output_impl);
-            
+
             // 获取输出张量的梯度
             Tensor output_tensor(output_impl);
             gys.push_back(output_tensor.grad());
         }
-        
+
         // 如果所有 weak_ptr 都失效，跳过这个 Operator
         if (gys.empty())
         {
@@ -197,15 +197,15 @@ void TensorImpl::backward()
             }
         }
     }
-    
+
     // backward()完成后，自动清理计算图以释放内存
-    // 
+    //
     // 关键设计（使用 weak_ptr 后）：
     // 1. outputs_ 使用 weak_ptr，不再持有强引用，不会造成循环引用
     // 2. 先收集输入tensor信息（在清理inputs_之前）
     // 3. 清理所有涉及的Operator的inputs_，减少内存占用
     // 4. 清理所有相关tensor的grad_和creator_，彻底断开循环引用并释放内存
-    
+
     // 第一步：收集输入tensor信息（在清理inputs_之前）
     std::set<TensorImplPtr> input_tensors;
     for (const auto &f : processed_ops)
@@ -221,7 +221,7 @@ void TensorImpl::backward()
             }
         }
     }
-    
+
     // 第二步：清理Operator的inputs_（减少内存占用）
     // 注意：outputs_ 使用 weak_ptr，不再持有强引用，不会造成循环引用，不需要清理
     for (const auto &f : processed_ops)
@@ -233,10 +233,10 @@ void TensorImpl::backward()
             f->inputs_.clear();
         }
     }
-    
+
     // 第三步：清理所有相关tensor的grad_和creator_，彻底断开循环引用并释放内存
     // 注意：只清理在当前backward()调用中涉及的tensor，不会影响其他tensor
-    // 
+    //
     // 关键设计：
     // 1. 清理中间tensor的grad_和creator_，释放梯度内存并断开循环引用
     // 2. 输出tensor（this）的grad_需要保留（用户可能需要），但清理creator_
@@ -249,14 +249,14 @@ void TensorImpl::backward()
         {
             // 判断是否是输出tensor（当前backward()的起点）
             is_output_tensor = (tensor_impl.get() == this);
-            
+
             // 判断是否是输入tensor（需要保留grad_）
             bool is_input_tensor = (input_tensors.find(tensor_impl) != input_tensors.end());
-            
+
             // 清理creator_，断开循环引用
-            tensor_impl->creator_ = nullptr;
+            tensor_impl->creator_    = nullptr;
             tensor_impl->generation_ = 0;
-            
+
             // 清理中间tensor的grad_，释放梯度内存
             // 输入tensor和输出tensor的grad_需要保留，供用户使用
             if (!is_input_tensor && !is_output_tensor)
@@ -266,10 +266,10 @@ void TensorImpl::backward()
             }
         }
     }
-    
+
     // 清理当前tensor的creator_，断开与计算图的连接
     // 这样可以确保整个计算图都可以被释放
-    this->creator_ = nullptr;
+    this->creator_    = nullptr;
     this->generation_ = 0;
 }
 
@@ -286,18 +286,18 @@ void TensorImpl::detach()
     {
         return;  // 已经detach过了
     }
-    
+
     // 收集所有相关的Operator和tensor，递归清理整个计算图
     std::set<FunctionPtr> processed_ops;
     std::set<TensorImplPtr> processed_tensors;
-    
+
     std::function<void(const FunctionPtr &)> collect_ops = [&](const FunctionPtr &op) {
         if (!op || processed_ops.find(op) != processed_ops.end())
         {
             return;
         }
         processed_ops.insert(op);
-        
+
         // 收集所有输出tensor（将 weak_ptr 转换为 shared_ptr）
         for (const auto &weak_output : op->outputs_)
         {
@@ -307,7 +307,7 @@ void TensorImpl::detach()
                 processed_tensors.insert(output_impl);
             }
         }
-        
+
         // 递归收集输入tensor的creator
         for (const auto &input : op->inputs_)
         {
@@ -321,33 +321,33 @@ void TensorImpl::detach()
             }
         }
     };
-    
+
     // 从当前tensor的creator开始收集
     collect_ops(creator_);
-    
+
     // 清理所有收集到的Operator的outputs_和inputs_，断开循环引用
     for (const auto &op : processed_ops)
     {
         op->outputs_.clear();
         op->inputs_.clear();
     }
-    
+
     // 清理所有相关tensor的creator_，彻底断开循环引用
     for (const auto &tensor_impl : processed_tensors)
     {
         if (tensor_impl)
         {
-            tensor_impl->creator_ = nullptr;
+            tensor_impl->creator_    = nullptr;
             tensor_impl->generation_ = 0;
             // 也清理grad_，释放梯度内存
             tensor_impl->grad_ = nullptr;
         }
     }
-    
+
     // 断开当前tensor的creator_
-    creator_ = nullptr;
+    creator_    = nullptr;
     generation_ = 0;
-    grad_ = nullptr;  // 也清理当前tensor的梯度
+    grad_       = nullptr;  // 也清理当前tensor的梯度
 }
 
 TensorImpl TensorImpl::reshape(const Shape &shape) const
@@ -403,7 +403,8 @@ T *TensorImpl::data_ptr()
     // 对于 OriginMat，会调用 OriginMat::data_ptr() 的虚函数版本，返回 void*
     // 然后转换为 T*
     // 这样 TensorImpl 使用的是虚函数版本，而不是模板版本。
-    // 模板版本 template <typename T> T *data_ptr() 保留给内部实现代码（如 cpu/ 和 cuda/ 目录下的文件）直接使用，提供类型安全。
+    // 模板版本 template <typename T> T *data_ptr() 保留给内部实现代码（如 cpu/ 和 cuda/
+    // 目录下的文件）直接使用，提供类型安全。
     return static_cast<T *>(data_->data_ptr());
 }
 

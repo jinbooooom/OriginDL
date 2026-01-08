@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "origin.h"
-#include "origin/operators/conv/max_pool2d.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
+#include "origin/operators/conv/max_pool2d.h"
 
 using namespace origin;
 
@@ -12,8 +12,7 @@ using namespace origin;
  * @brief MaxPool2d 算子测试类（参数化版本）
  */
 class MaxPool2dOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -24,9 +23,9 @@ TEST_P(MaxPool2dOperatorTest, ForwardBasic)
     // 池化核: 2x2, stride=2, pad=0
     // 期望输出: (1, 1, 2, 2)
 
-    std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f,
+    std::vector<float> x_data = {1.0f, 2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,
                                  9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 4, 4}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 1, 4, 4}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = max_pool2d(x, 2, 2, 0);
 
@@ -48,7 +47,7 @@ TEST_P(MaxPool2dOperatorTest, ForwardStride)
 {
     // 测试带步长的池化
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 3, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 1, 3, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = max_pool2d(x, std::make_pair(2, 2), std::make_pair(1, 1), std::make_pair(0, 0));
 
@@ -66,7 +65,7 @@ TEST_P(MaxPool2dOperatorTest, ForwardPad)
 {
     // 测试带填充的池化
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = max_pool2d(x, 2, 1, 1);
 
@@ -84,7 +83,7 @@ TEST_P(MaxPool2dOperatorTest, ForwardSingleElement)
 {
     // 测试单元素池化
     std::vector<float> x_data = {5.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 1, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = max_pool2d(x, 1, 1, 0);
 
@@ -150,4 +149,3 @@ TEST_P(MaxPool2dOperatorTest, BackwardWithGradient)
 
 // Instantiate test suite: automatically generate tests for CPU and available CUDA
 INSTANTIATE_DEVICE_TEST_SUITE_P(MaxPool2dOperatorTest);
-

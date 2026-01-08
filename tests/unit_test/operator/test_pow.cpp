@@ -1,18 +1,17 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief 幂算子测试类（参数化版本）
  */
 class PowOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -133,7 +132,8 @@ TEST_P(PowOperatorTest, BackwardNegativeExponent)
     y.backward();
 
     // 梯度：-2 * x^(-3) = -2 / x^3
-    auto expected_grad = Tensor({-2.0f / 8.0f, -2.0f / 27.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected_grad =
+        Tensor({-2.0f / 8.0f, -2.0f / 27.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, origin::test::TestTolerance::kDefault);
 }
 
@@ -163,22 +163,24 @@ TEST_P(PowOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
-    auto expected = Tensor(std::vector<float>(100, 4.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto expected =
+        Tensor(std::vector<float>(100, 4.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(PowOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x       = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x       = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                          dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 2;
 
     auto result = pow(x, exponent);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data;
     for (int i = 1; i <= 8; ++i)
     {
@@ -312,7 +314,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithNegativeIntegerExponent)
 TEST_P(PowOperatorTest, NegativeBaseWithNonIntegerExponent)
 {
     // 测试负数底数 + 非整数指数 → NaN
-    auto x       = Tensor({-2.0f, -3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor({-2.0f, -3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 2.5;  // 非整数指数
 
     auto result = pow(x, exponent);
@@ -321,14 +323,15 @@ TEST_P(PowOperatorTest, NegativeBaseWithNonIntegerExponent)
     auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
-        EXPECT_TRUE(std::isnan(result_data[i])) << "Element " << i << " should be NaN for negative base with non-integer exponent";
+        EXPECT_TRUE(std::isnan(result_data[i]))
+            << "Element " << i << " should be NaN for negative base with non-integer exponent";
     }
 }
 
 TEST_P(PowOperatorTest, NegativeBaseWithFloatExponent)
 {
     // 测试负数底数 + 浮点数指数（非整数）→ NaN
-    auto x       = Tensor({-2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x         = Tensor({-2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     float exponent = 2.5f;  // 浮点数非整数指数
 
     auto result = pow(x, exponent);
@@ -341,7 +344,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithFloatExponent)
 TEST_P(PowOperatorTest, NegativeBaseWithHalfExponent)
 {
     // 测试负数底数 + 0.5指数（平方根）→ NaN
-    auto x       = Tensor({-4.0f, -9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor({-4.0f, -9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 0.5;  // 平方根
 
     auto result = pow(x, exponent);
@@ -350,7 +353,8 @@ TEST_P(PowOperatorTest, NegativeBaseWithHalfExponent)
     auto result_data = result.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
-        EXPECT_TRUE(std::isnan(result_data[i])) << "Element " << i << " should be NaN for negative base with 0.5 exponent";
+        EXPECT_TRUE(std::isnan(result_data[i]))
+            << "Element " << i << " should be NaN for negative base with 0.5 exponent";
     }
 }
 
@@ -359,7 +363,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithHalfExponent)
 TEST_P(PowOperatorTest, FloatExponentPositiveBase)
 {
     // 测试正数底数 + 浮点数指数
-    auto x       = Tensor({4.0f, 9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor({4.0f, 9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 2.5;
 
     auto result = pow(x, exponent);
@@ -373,7 +377,7 @@ TEST_P(PowOperatorTest, FloatExponentPositiveBase)
 TEST_P(PowOperatorTest, FloatExponentWithOperator)
 {
     // 测试使用运算符的浮点数指数
-    auto x       = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 2.5;
 
     auto result = x ^ exponent;
@@ -390,7 +394,7 @@ TEST_P(PowOperatorTest, FloatExponentWithOperator)
 TEST_P(PowOperatorTest, FloatExponentSmallValue)
 {
     // 测试小数值的浮点数指数
-    auto x       = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 0.5;  // 平方根
 
     auto result = pow(x, exponent);
@@ -402,31 +406,31 @@ TEST_P(PowOperatorTest, FloatExponentSmallValue)
 TEST_P(PowOperatorTest, FloatExponentNegativeValue)
 {
     // 测试负浮点数指数
-    auto x       = Tensor({4.0f, 9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor({4.0f, 9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = -0.5;  // 负平方根
 
     auto result = pow(x, exponent);
 
     // 4^(-0.5) = 1/sqrt(4) = 0.5
     // 9^(-0.5) = 1/sqrt(9) = 1/3 ≈ 0.333
-    auto expected = Tensor({0.5f, 1.0f/3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected = Tensor({0.5f, 1.0f / 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e-4);
 }
 
 TEST_P(PowOperatorTest, MixedPositiveNegativeBaseWithFloatExponent)
 {
     // 测试混合正负底数 + 浮点数指数
-    auto x       = Tensor({2.0f, -2.0f, 4.0f, -4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor({2.0f, -2.0f, 4.0f, -4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 2.5;
 
     auto result = pow(x, exponent);
 
     auto result_data = result.to_vector<float>();
-    
+
     // 正数底数应该正常计算
     EXPECT_FALSE(std::isnan(result_data[0])) << "Positive base should not produce NaN";
     EXPECT_FALSE(std::isnan(result_data[2])) << "Positive base should not produce NaN";
-    
+
     // 负数底数应该产生 NaN
     EXPECT_TRUE(std::isnan(result_data[1])) << "Negative base should produce NaN";
     EXPECT_TRUE(std::isnan(result_data[3])) << "Negative base should produce NaN";
@@ -438,15 +442,16 @@ TEST_P(PowOperatorTest, NegativeBaseIntegerVsNonInteger)
 {
     // 对比测试：负数底数的整数指数 vs 非整数指数
     auto x_neg = Tensor({-2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     // 整数指数：应该正常
     auto result_int = pow(x_neg, 2);
     EXPECT_FALSE(std::isnan(result_int.item<float>())) << "Integer exponent should work with negative base";
     EXPECT_NEAR(result_int.item<float>(), 4.0f, origin::test::TestTolerance::kDefault);
-    
+
     // 非整数指数：应该产生 NaN
     auto result_non_int = pow(x_neg, 2.5);
-    EXPECT_TRUE(std::isnan(result_non_int.item<float>())) << "Non-integer exponent should produce NaN with negative base";
+    EXPECT_TRUE(std::isnan(result_non_int.item<float>()))
+        << "Non-integer exponent should produce NaN with negative base";
 }
 
 // 实例化测试套件：自动为CPU和可用CUDA生成测试

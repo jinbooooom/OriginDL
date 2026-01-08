@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 
@@ -167,11 +167,12 @@ TEST_F(TensorCreateTest, FactoryMethods)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(ones_tensor, expected_ones, origin::test::TestTolerance::kDefault);
 
     // constant
-    float value           = 2.5f;
+    float value            = 2.5f;
     Tensor constant_tensor = Tensor(value, shape);
     EXPECT_EQ(constant_tensor.shape(), shape);
     auto expected_constant = Tensor(std::vector<float>(9, value), shape, dtype(DataType::kFloat32));
-    origin::test::GTestUtils::EXPECT_TENSORS_EQ(constant_tensor, expected_constant, origin::test::TestTolerance::kDefault);
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(constant_tensor, expected_constant,
+                                                origin::test::TestTolerance::kDefault);
 }
 
 // 随机张量工厂测试
@@ -373,12 +374,12 @@ TEST_F(TensorCreateTest, FullFactoryMethod)
     // 测试基本full方法
     Shape shape{2, 2};
     float value = 2.5f;
-    auto t = Tensor::full(shape, value, dtype(DataType::kFloat32));
-    
+    auto t      = Tensor::full(shape, value, dtype(DataType::kFloat32));
+
     EXPECT_EQ(t.shape(), shape);
     EXPECT_EQ(t.elements(), 4U);
     EXPECT_EQ(t.dtype(), DataType::kFloat32);
-    
+
     auto expected = Tensor(std::vector<float>(4, value), shape, dtype(DataType::kFloat32));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(t, expected, origin::test::TestTolerance::kDefault);
 }
@@ -387,19 +388,19 @@ TEST_F(TensorCreateTest, FullDifferentValues)
 {
     // 测试不同填充值
     Shape shape{3, 1};
-    
+
     // 正数
-    auto t1 = Tensor::full(shape, 5.0f, dtype(DataType::kFloat32));
+    auto t1        = Tensor::full(shape, 5.0f, dtype(DataType::kFloat32));
     auto expected1 = Tensor(std::vector<float>(3, 5.0f), shape, dtype(DataType::kFloat32));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(t1, expected1, origin::test::TestTolerance::kDefault);
-    
+
     // 负数
-    auto t2 = Tensor::full(shape, -1.0f, dtype(DataType::kFloat32));
+    auto t2        = Tensor::full(shape, -1.0f, dtype(DataType::kFloat32));
     auto expected2 = Tensor(std::vector<float>(3, -1.0f), shape, dtype(DataType::kFloat32));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(t2, expected2, origin::test::TestTolerance::kDefault);
-    
+
     // 零
-    auto t3 = Tensor::full(shape, 0.0f, dtype(DataType::kFloat32));
+    auto t3        = Tensor::full(shape, 0.0f, dtype(DataType::kFloat32));
     auto expected3 = Tensor::zeros(shape, dtype(DataType::kFloat32));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(t3, expected3, origin::test::TestTolerance::kDefault);
 }
@@ -408,15 +409,15 @@ TEST_F(TensorCreateTest, FullDifferentTypes)
 {
     // 测试不同数据类型的full
     Shape shape{2, 2};
-    
+
     // float32
     auto t_float32 = Tensor::full(shape, 2.5f, dtype(DataType::kFloat32));
     EXPECT_EQ(t_float32.dtype(), DataType::kFloat32);
-    
+
     // float64
     auto t_float64 = Tensor::full(shape, 2.5, dtype(DataType::kFloat64));
     EXPECT_EQ(t_float64.dtype(), DataType::kFloat64);
-    
+
     // int32
     auto t_int32 = Tensor::full(shape, 42, dtype(DataType::kInt32));
     EXPECT_EQ(t_int32.dtype(), DataType::kInt32);
@@ -435,11 +436,11 @@ TEST_F(TensorCreateTest, FromBlobBasic)
     float data[] = {1.0f, 2.0f, 3.0f, 4.0f};
     Shape shape{2, 2};
     auto t = Tensor::from_blob(data, shape, dtype(DataType::kFloat32));
-    
+
     EXPECT_EQ(t.shape(), shape);
     EXPECT_EQ(t.elements(), 4U);
     EXPECT_EQ(t.dtype(), DataType::kFloat32);
-    
+
     auto expected = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, shape, dtype(DataType::kFloat32));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(t, expected, origin::test::TestTolerance::kDefault);
 }
@@ -449,19 +450,19 @@ TEST_F(TensorCreateTest, FromBlobDifferentShapes)
     // 测试不同形状的from_blob
     // 1维
     float data1[] = {1.0f, 2.0f, 3.0f};
-    auto t1 = Tensor::from_blob(data1, Shape{3}, dtype(DataType::kFloat32));
+    auto t1       = Tensor::from_blob(data1, Shape{3}, dtype(DataType::kFloat32));
     EXPECT_EQ(t1.shape(), Shape({3}));
     EXPECT_EQ(t1.elements(), 3U);
-    
+
     // 2维
     float data2[] = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto t2 = Tensor::from_blob(data2, Shape{2, 2}, dtype(DataType::kFloat32));
+    auto t2       = Tensor::from_blob(data2, Shape{2, 2}, dtype(DataType::kFloat32));
     EXPECT_EQ(t2.shape(), Shape({2, 2}));
     EXPECT_EQ(t2.elements(), 4U);
-    
+
     // 3维
     float data3[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f};
-    auto t3 = Tensor::from_blob(data3, Shape{2, 2, 2}, dtype(DataType::kFloat32));
+    auto t3       = Tensor::from_blob(data3, Shape{2, 2, 2}, dtype(DataType::kFloat32));
     EXPECT_EQ(t3.shape(), Shape({2, 2, 2}));
     EXPECT_EQ(t3.elements(), 8U);
 }
@@ -470,15 +471,15 @@ TEST_F(TensorCreateTest, FromBlobDifferentTypes)
 {
     // 测试不同数据类型的from_blob
     Shape shape{2, 2};
-    
+
     // float32
     float data_f32[] = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto t_float32 = Tensor::from_blob(data_f32, shape, dtype(DataType::kFloat32));
+    auto t_float32   = Tensor::from_blob(data_f32, shape, dtype(DataType::kFloat32));
     EXPECT_EQ(t_float32.dtype(), DataType::kFloat32);
-    
+
     // int32
     int32_t data_i32[] = {1, 2, 3, 4};
-    auto t_int32 = Tensor::from_blob(data_i32, shape, dtype(DataType::kInt32));
+    auto t_int32       = Tensor::from_blob(data_i32, shape, dtype(DataType::kInt32));
     EXPECT_EQ(t_int32.dtype(), DataType::kInt32);
     auto int_data = t_int32.to_vector<int32_t>();
     for (size_t i = 0; i < 4; ++i)
@@ -493,7 +494,7 @@ TEST_F(TensorCreateTest, FromBlobDataIntegrity)
     float data[] = {1.1f, 2.2f, 3.3f, 4.4f};
     Shape shape{2, 2};
     auto t = Tensor::from_blob(data, shape, dtype(DataType::kFloat32));
-    
+
     auto vec = t.to_vector<float>();
     for (size_t i = 0; i < 4; ++i)
     {
@@ -508,14 +509,14 @@ TEST_F(TensorCreateTest, ScalarConstructorWithDataType)
     // 测试标量构造函数（指定数据类型）
     Shape shape{3, 3};
     float value = 5.0f;
-    
+
     // 使用DataType参数
     auto t1 = Tensor(value, shape, DataType::kFloat32);
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
     EXPECT_EQ(t1.shape(), shape);
     auto expected1 = Tensor(std::vector<float>(9, value), shape, dtype(DataType::kFloat32));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(t1, expected1, origin::test::TestTolerance::kDefault);
-    
+
     // 使用DataType::kFloat64
     auto t2 = Tensor(5.0, shape, DataType::kFloat64);
     EXPECT_EQ(t2.dtype(), DataType::kFloat64);
@@ -527,14 +528,14 @@ TEST_F(TensorCreateTest, ScalarConstructorWithTensorOptions)
     // 测试标量构造函数（指定TensorOptions）
     Shape shape{2, 2};
     float value = 3.14f;
-    
+
     // 使用TensorOptions
     auto t1 = Tensor(value, shape, dtype(DataType::kFloat32));
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
     EXPECT_EQ(t1.shape(), shape);
     auto expected1 = Tensor(std::vector<float>(4, value), shape, dtype(DataType::kFloat32));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(t1, expected1, origin::test::TestTolerance::kDefault);
-    
+
     // 使用TensorOptions指定int32
     auto t2 = Tensor(42, shape, dtype(DataType::kInt32));
     EXPECT_EQ(t2.dtype(), DataType::kInt32);
@@ -550,19 +551,19 @@ TEST_F(TensorCreateTest, ScalarConstructorDifferentTypes)
 {
     // 测试标量构造函数的不同数据类型
     Shape shape{2, 2};
-    
+
     // float
     auto t_float = Tensor(2.5f, shape, DataType::kFloat32);
     EXPECT_EQ(t_float.dtype(), DataType::kFloat32);
-    
+
     // double
     auto t_double = Tensor(2.5, shape, DataType::kFloat64);
     EXPECT_EQ(t_double.dtype(), DataType::kFloat64);
-    
+
     // int32
     auto t_int32 = Tensor(42, shape, DataType::kInt32);
     EXPECT_EQ(t_int32.dtype(), DataType::kInt32);
-    
+
     // int64
     auto t_int64 = Tensor(42L, shape, DataType::kInt64);
     EXPECT_EQ(t_int64.dtype(), DataType::kInt64);

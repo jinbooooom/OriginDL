@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # MNIST 数据集下载脚本
-# 下载 MNIST 数据集到 ./data/ 目录
+# 下载 MNIST 数据集到 ./data/mnist/ 目录
 
 set -e
 
-DATA_DIR="./data"
+DATA_DIR="./data/mnist"
 # 使用 Google Cloud Storage 镜像（更可靠）
 BASE_URL="https://storage.googleapis.com/cvdf-datasets/mnist"
 

@@ -1,10 +1,10 @@
 #include "origin/operators/conv/avg_pool2d.h"
-#include "origin/utils/exception.h"
-#include "origin/core/tensor.h"
+#include <vector>
 #include "origin/core/operator.h"
+#include "origin/core/tensor.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/conv_utils.h"
-#include <vector>
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -16,7 +16,7 @@ std::vector<Tensor> AvgPool2d::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("AvgPool2d operator requires exactly 1 input, but got {}", xs.size());
     }
 
-    auto &x = xs[0];
+    auto &x      = xs[0];
     auto x_shape = x.shape();
 
     // 检查输入形状
@@ -29,7 +29,7 @@ std::vector<Tensor> AvgPool2d::forward(const std::vector<Tensor> &xs)
     const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
 
     auto result = x_mat.avg_pool2d(kernel_size_, stride_, pad_);
-    auto y = convert_mat_to_tensor(std::move(result));
+    auto y      = convert_mat_to_tensor(std::move(result));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -44,11 +44,11 @@ std::vector<Tensor> AvgPool2d::backward(const std::vector<Tensor> &gys)
     }
 
     auto &gy = gys[0];
-    auto &x = this->inputs_[0];
+    auto &x  = this->inputs_[0];
 
     // 获取 Mat 引用并调用底层 avg_pool2d_backward
     const OriginMat &gy_mat = static_cast<const OriginMat &>(mat(gy));
-    const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+    const OriginMat &x_mat  = static_cast<const OriginMat &>(mat(x));
 
     auto gx = x_mat.avg_pool2d_backward(gy_mat, kernel_size_, stride_, pad_);
 
@@ -57,8 +57,7 @@ std::vector<Tensor> AvgPool2d::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
-Tensor avg_pool2d(const Tensor &x, std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                  std::pair<int, int> pad)
+Tensor avg_pool2d(const Tensor &x, std::pair<int, int> kernel_size, std::pair<int, int> stride, std::pair<int, int> pad)
 {
     auto op = std::make_shared<AvgPool2d>(kernel_size, stride, pad);
     return (*op)(x);
@@ -71,4 +70,3 @@ Tensor avg_pool2d(const Tensor &x, int kernel_size, int stride, int pad)
 }
 
 }  // namespace origin
-

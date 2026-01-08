@@ -1,4 +1,5 @@
 #include "origin/nn/module.h"
+#include <set>
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -110,6 +111,108 @@ void Module::zero_grad()
     {
         module->zero_grad();
     }
+}
+
+Module::StateDict Module::state_dict() const
+{
+    StateDict state_dict;
+    auto named_params = named_parameters("");
+    for (auto &[name, param] : named_params)
+    {
+        // 将 Parameter 转换为 Tensor（Parameter 继承自 Tensor，可以直接转换）
+        state_dict[name] = static_cast<const Tensor &>(*param);
+    }
+    return state_dict;
+}
+
+void Module::load_state_dict(const StateDict &state_dict, bool strict)
+{
+    auto named_params = named_parameters();
+    std::set<std::string> loaded_keys;
+
+    // 加载参数
+    for (auto &[name, param] : named_params)
+    {
+        auto it = state_dict.find(name);
+        if (it != state_dict.end())
+        {
+            // 检查形状是否匹配
+            if (param->shape() != it->second.shape())
+            {
+                THROW_RUNTIME_ERROR("Shape mismatch for parameter '{}': expected {}, got {}", name,
+                                    param->shape().to_string(), it->second.shape().to_string());
+            }
+            // 更新参数值
+            *param = Parameter(it->second);
+            loaded_keys.insert(name);
+        }
+        else if (strict)
+        {
+            THROW_RUNTIME_ERROR("Missing parameter '{}' in state_dict (strict mode)", name);
+        }
+    }
+
+    // 检查是否有未使用的键
+    if (strict)
+    {
+        for (const auto &[key, value] : state_dict)
+        {
+            if (loaded_keys.find(key) == loaded_keys.end())
+            {
+                THROW_RUNTIME_ERROR("Unexpected parameter '{}' in state_dict (strict mode)", key);
+            }
+        }
+    }
+}
+
+std::unordered_map<std::string, Parameter *> Module::named_parameters(const std::string &prefix)
+{
+    std::unordered_map<std::string, Parameter *> named_params;
+
+    // 收集当前模块的参数
+    for (auto &[name, param] : parameters_)
+    {
+        std::string full_name   = prefix.empty() ? name : prefix + "." + name;
+        named_params[full_name] = param;
+    }
+
+    // 递归收集子模块的参数
+    for (auto &[name, module] : modules_)
+    {
+        std::string module_prefix = prefix.empty() ? name : prefix + "." + name;
+        auto sub_params           = module->named_parameters(module_prefix);
+        named_params.insert(sub_params.begin(), sub_params.end());
+    }
+
+    return named_params;
+}
+
+std::unordered_map<std::string, const Parameter *> Module::named_parameters(const std::string &prefix) const
+{
+    std::unordered_map<std::string, const Parameter *> named_params;
+
+    // 收集当前模块的参数
+    for (const auto &[name, param] : parameters_)
+    {
+        std::string full_name   = prefix.empty() ? name : prefix + "." + name;
+        named_params[full_name] = param;
+    }
+
+    // 递归收集子模块的参数
+    for (const auto &[name, module] : modules_)
+    {
+        std::string module_prefix = prefix.empty() ? name : prefix + "." + name;
+        auto sub_params           = module->named_parameters(module_prefix);
+        named_params.insert(sub_params.begin(), sub_params.end());
+    }
+
+    return named_params;
+}
+
+void Module::load(const std::string &filepath, bool strict)
+{
+    auto state_dict = origin::load(filepath);
+    load_state_dict(state_dict, strict);
 }
 
 }  // namespace origin

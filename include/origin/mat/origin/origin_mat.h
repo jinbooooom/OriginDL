@@ -104,7 +104,9 @@ public:
      * @param to_matrix 是否转换为矩阵形式
      * @return 列矩阵
      */
-    std::unique_ptr<Mat> im2col(std::pair<int, int> kernel_size, std::pair<int, int> stride, std::pair<int, int> pad,
+    std::unique_ptr<Mat> im2col(std::pair<int, int> kernel_size,
+                                std::pair<int, int> stride,
+                                std::pair<int, int> pad,
                                 bool to_matrix = true) const;
 
     /**
@@ -116,8 +118,11 @@ public:
      * @param to_matrix 是否从矩阵形式转换
      * @return 图像矩阵
      */
-    std::unique_ptr<Mat> col2im(const Shape &input_shape, std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                                std::pair<int, int> pad, bool to_matrix = true) const;
+    std::unique_ptr<Mat> col2im(const Shape &input_shape,
+                                std::pair<int, int> kernel_size,
+                                std::pair<int, int> stride,
+                                std::pair<int, int> pad,
+                                bool to_matrix = true) const;
 
     /**
      * @brief conv2d：完整的二维卷积操作
@@ -127,7 +132,9 @@ public:
      * @param pad 填充 (PH, PW)
      * @return 输出张量 (N, OC, OH, OW)
      */
-    std::unique_ptr<Mat> conv2d(const OriginMat &W, const OriginMat *b, std::pair<int, int> stride,
+    std::unique_ptr<Mat> conv2d(const OriginMat &W,
+                                const OriginMat *b,
+                                std::pair<int, int> stride,
                                 std::pair<int, int> pad) const;
 
     /**
@@ -140,9 +147,12 @@ public:
      * @param pad 填充 (PH, PW)
      * @return 梯度向量：{gx, gW, [gb]}
      */
-    std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const OriginMat &x, const OriginMat &W,
-                                                        const OriginMat *b, std::pair<int, int> stride,
-                                                        std::pair<int, int> pad) const;
+    std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy,
+                                                      const OriginMat &x,
+                                                      const OriginMat &W,
+                                                      const OriginMat *b,
+                                                      std::pair<int, int> stride,
+                                                      std::pair<int, int> pad) const;
 
     /**
      * @brief avg_pool2d：平均池化操作
@@ -151,7 +161,8 @@ public:
      * @param pad 填充 (PH, PW)
      * @return 输出张量 (N, C, OH, OW)
      */
-    std::unique_ptr<Mat> avg_pool2d(std::pair<int, int> kernel_size, std::pair<int, int> stride,
+    std::unique_ptr<Mat> avg_pool2d(std::pair<int, int> kernel_size,
+                                    std::pair<int, int> stride,
                                     std::pair<int, int> pad) const;
 
     /**
@@ -162,8 +173,10 @@ public:
      * @param pad 填充 (PH, PW)
      * @return 输入梯度 (N, C, H, W)
      */
-    std::unique_ptr<Mat> avg_pool2d_backward(const OriginMat &gy, std::pair<int, int> kernel_size,
-                                             std::pair<int, int> stride, std::pair<int, int> pad) const;
+    std::unique_ptr<Mat> avg_pool2d_backward(const OriginMat &gy,
+                                             std::pair<int, int> kernel_size,
+                                             std::pair<int, int> stride,
+                                             std::pair<int, int> pad) const;
 
     /**
      * @brief max_pool2d：最大池化操作
@@ -173,8 +186,10 @@ public:
      * @param indices 输出参数：保存每个最大值在窗口内的索引
      * @return 输出张量 (N, C, OH, OW)
      */
-    std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                                    std::pair<int, int> pad, std::vector<size_t> &indices) const;
+    std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size,
+                                    std::pair<int, int> stride,
+                                    std::pair<int, int> pad,
+                                    std::vector<size_t> &indices) const;
 
     /**
      * @brief max_pool2d_backward：最大池化反向传播
@@ -185,8 +200,10 @@ public:
      * @param indices 前向传播时保存的索引
      * @return 输入梯度 (N, C, H, W)
      */
-    std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy, std::pair<int, int> kernel_size,
-                                             std::pair<int, int> stride, std::pair<int, int> pad,
+    std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy,
+                                             std::pair<int, int> kernel_size,
+                                             std::pair<int, int> stride,
+                                             std::pair<int, int> pad,
                                              const std::vector<size_t> &indices) const;
 
     // 形状和维度
@@ -226,12 +243,11 @@ public:
 
     // 数据访问
     // 1. void* data_ptr() override: 虚函数版本，覆盖基类 Mat::data_ptr()，供 TensorImpl 通过基类指针调用
-    // 2. template <typename T> T *data_ptr(): 模板函数，供内部实现代码（如 cpu/ 和 cuda/ 目录下的文件）直接通过 OriginMat 对象调用，提供类型安全
-    // 3. template <typename T> const T *data_ptr() const: const 成员函数版本的模板函数，用于 const 对象的只读访问（通过 const 修饰符区分）
-    void *data_ptr() override
-    {
-        return storage_->data();
-    }
+    // 2. template <typename T> T *data_ptr(): 模板函数，供内部实现代码（如 cpu/ 和 cuda/ 目录下的文件）直接通过
+    // OriginMat 对象调用，提供类型安全
+    // 3. template <typename T> const T *data_ptr() const: const 成员函数版本的模板函数，用于 const 对象的只读访问（通过
+    // const 修饰符区分）
+    void *data_ptr() override { return storage_->data(); }
 
     template <typename T>
     T *data_ptr()

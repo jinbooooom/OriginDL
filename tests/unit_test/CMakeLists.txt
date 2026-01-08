@@ -322,6 +322,17 @@ set_target_properties(test_mlp PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+# Checkpoint 测试
+add_executable(test_checkpoint io/test_checkpoint.cpp)
+add_dependencies(test_checkpoint gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_checkpoint ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_checkpoint PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_checkpoint PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_conv2d_layer nn/test_conv2d_layer.cpp)
 add_dependencies(test_conv2d_layer gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_conv2d_layer ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)

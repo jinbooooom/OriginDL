@@ -1,18 +1,17 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief 转置算子测试类（参数化版本）
  */
 class TransposeOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -40,21 +39,24 @@ TEST_P(TransposeOperatorTest, Forward3x2Matrix)
     Shape expected_shape{2, 3};
     EXPECT_EQ(result.shape(), expected_shape);
     // 行主序：[[1,2],[3,4],[5,6]]转置为[[1,3,5],[2,4,6]]，展开为[1,3,5,2,4,6]
-    auto expected = Tensor({1.0f, 3.0f, 5.0f, 2.0f, 4.0f, 6.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1.0f, 3.0f, 5.0f, 2.0f, 4.0f, 6.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(TransposeOperatorTest, ForwardSquareMatrix)
 {
     // 测试方阵转置
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, Shape{3, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, Shape{3, 3},
+                    dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = transpose(x);
 
     Shape expected_shape{3, 3};
     EXPECT_EQ(result.shape(), expected_shape);
     // 行主序：[[1,2,3],[4,5,6],[7,8,9]]转置为[[1,4,7],[2,5,8],[3,6,9]]，展开为[1,4,7,2,5,8,3,6,9]
-    auto expected = Tensor({1.0f, 4.0f, 7.0f, 2.0f, 5.0f, 8.0f, 3.0f, 6.0f, 9.0f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected = Tensor({1.0f, 4.0f, 7.0f, 2.0f, 5.0f, 8.0f, 3.0f, 6.0f, 9.0f}, expected_shape,
+                           dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -161,14 +163,16 @@ TEST_P(TransposeOperatorTest, LargeMatrix)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    auto expected = Tensor(std::vector<float>(100, 1.0f), expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor(std::vector<float>(100, 1.0f), expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(TransposeOperatorTest, ThreeDimensional)
 {
     // 测试三维张量（应该只转置最后两个维度）
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = transpose(x);
 
@@ -200,7 +204,8 @@ TEST_P(TransposeOperatorTest, NumericalStability)
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
     // 行主序：[[1e10,1e-10],[1e10,1e-10]]转置为[[1e10,1e10],[1e-10,1e-10]]，展开为[1e10,1e10,1e-10,1e-10]
-    auto expected = Tensor({1e10f, 1e10f, 1e-10f, 1e-10f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1e10f, 1e10f, 1e-10f, 1e-10f}, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e7);
 }
 
