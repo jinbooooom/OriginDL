@@ -512,5 +512,18 @@ template void cpu_unary_kernel<uint32_t, SqrtOp>(const uint32_t *, uint32_t *, s
 template void cpu_unary_kernel<uint64_t, SqrtOp>(const uint64_t *, uint64_t *, size_t, SqrtOp);
 template void cpu_unary_kernel<bool, SqrtOp>(const bool *, bool *, size_t, SqrtOp);
 
+// ReLUOp 实例化
+template void cpu_unary_kernel<float, ReLUOp>(const float *, float *, size_t, ReLUOp);
+template void cpu_unary_kernel<double, ReLUOp>(const double *, double *, size_t, ReLUOp);
+template void cpu_unary_kernel<int8_t, ReLUOp>(const int8_t *, int8_t *, size_t, ReLUOp);
+template void cpu_unary_kernel<int16_t, ReLUOp>(const int16_t *, int16_t *, size_t, ReLUOp);
+template void cpu_unary_kernel<int32_t, ReLUOp>(const int32_t *, int32_t *, size_t, ReLUOp);
+template void cpu_unary_kernel<int64_t, ReLUOp>(const int64_t *, int64_t *, size_t, ReLUOp);
+template void cpu_unary_kernel<uint8_t, ReLUOp>(const uint8_t *, uint8_t *, size_t, ReLUOp);
+template void cpu_unary_kernel<uint16_t, ReLUOp>(const uint16_t *, uint16_t *, size_t, ReLUOp);
+template void cpu_unary_kernel<uint32_t, ReLUOp>(const uint32_t *, uint32_t *, size_t, ReLUOp);
+template void cpu_unary_kernel<uint64_t, ReLUOp>(const uint64_t *, uint64_t *, size_t, ReLUOp);
+template void cpu_unary_kernel<bool, ReLUOp>(const bool *, bool *, size_t, ReLUOp);
+
 }  // namespace cpu
 }  // namespace origin

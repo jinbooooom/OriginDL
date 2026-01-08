@@ -178,6 +178,18 @@ struct NegOp
 };
 
 /**
+ * @brief ReLU 操作
+ */
+struct ReLUOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value) const
+    {
+        return (value > T(0)) ? value : T(0);
+    }
+};
+
+/**
  * @brief 轴求和操作
  * @details 提供模板化的轴求和实现，减少重复的类型处理代码
  */

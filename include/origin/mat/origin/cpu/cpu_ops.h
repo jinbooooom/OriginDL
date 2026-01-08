@@ -25,6 +25,7 @@ std::unique_ptr<Mat> log(const OriginMat &mat);
 std::unique_ptr<Mat> sqrt(const OriginMat &mat);
 std::unique_ptr<Mat> square(const OriginMat &mat);
 std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
+std::unique_ptr<Mat> relu(const OriginMat &mat);
 
 // === 统计函数 ===
 std::unique_ptr<Mat> sum(const OriginMat &mat, int axis);

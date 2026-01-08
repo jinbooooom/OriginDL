@@ -41,7 +41,10 @@ std::vector<Tensor> LinearOp::forward(const std::vector<Tensor> &xs)
             features *= x_shape[i];
         }
         Shape flat_shape{batch_size, features};
-        x_flat = reshape(x, flat_shape);
+        // 通过 Mat 层调用 reshape
+        const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+        auto x_flat_result = x_mat.reshape(flat_shape);
+        x_flat = convert_mat_to_tensor(std::move(x_flat_result));
     }
     
     // 检查维度
@@ -76,20 +79,34 @@ std::vector<Tensor> LinearOp::forward(const std::vector<Tensor> &xs)
     // 使用 matmul 进行矩阵乘法：x * weight^T
     // PyTorch 的 Linear 层：y = x * weight^T + bias
     // 所以我们需要先转置 weight
-    auto weight_t = transpose(weight);
+    // 通过 Mat 层调用 transpose
+    const OriginMat &weight_mat = static_cast<const OriginMat &>(mat(weight));
+    auto weight_t_result = weight_mat.transpose();
+    auto weight_t = convert_mat_to_tensor(std::move(weight_t_result));
     
     // x: (N, in_features), weight_t: (in_features, out_features)
     // 结果: (N, out_features)
-    auto y = mat_mul(x_flat, weight_t);
+    // 通过 Mat 层调用 matmul
+    const OriginMat &x_flat_mat = static_cast<const OriginMat &>(mat(x_flat));
+    const OriginMat &weight_t_mat = static_cast<const OriginMat &>(mat(weight_t));
+    auto y_result = x_flat_mat.matmul(weight_t_mat);
+    auto y = convert_mat_to_tensor(std::move(y_result));
     
     // 添加偏置
     if (bias != nullptr)
     {
         // 广播偏置到 (N, out_features)
-        Shape bias_shape{1, static_cast<size_t>(out_features_)};
         Shape y_shape = y.shape();
-        auto bias_broadcast = broadcast_to(*bias, y_shape);
-        y = y + bias_broadcast;
+        // 通过 Mat 层调用 broadcast_to
+        const OriginMat &bias_mat = static_cast<const OriginMat &>(mat(*bias));
+        auto bias_broadcast_result = bias_mat.broadcast_to(y_shape);
+        auto bias_broadcast = convert_mat_to_tensor(std::move(bias_broadcast_result));
+        
+        // 通过 Mat 层调用加法
+        const OriginMat &y_mat = static_cast<const OriginMat &>(mat(y));
+        const OriginMat &bias_broadcast_mat = static_cast<const OriginMat &>(mat(bias_broadcast));
+        auto y_plus_bias_result = y_mat + bias_broadcast_mat;
+        y = convert_mat_to_tensor(std::move(y_plus_bias_result));
     }
     
     std::vector<Tensor> outputs;
@@ -124,23 +141,42 @@ std::vector<Tensor> LinearOp::backward(const std::vector<Tensor> &gys)
             features *= x.shape()[i];
         }
         Shape flat_shape{batch_size, features};
-        x_flat = reshape(x, flat_shape);
+        // 通过 Mat 层调用 reshape
+        const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+        auto x_flat_result = x_mat.reshape(flat_shape);
+        x_flat = convert_mat_to_tensor(std::move(x_flat_result));
     }
     
     // gx = gy * weight
-    auto gx_flat = mat_mul(gy, weight);
+    // 通过 Mat 层调用 matmul
+    const OriginMat &gy_mat = static_cast<const OriginMat &>(mat(gy));
+    const OriginMat &weight_mat = static_cast<const OriginMat &>(mat(weight));
+    auto gx_flat_result = gy_mat.matmul(weight_mat);
+    auto gx_flat = convert_mat_to_tensor(std::move(gx_flat_result));
     
     // 如果原始 x 是多维的，需要 reshape 回原始形状
     Tensor gx = gx_flat;
     if (x.shape().size() > 2)
     {
-        gx = reshape(gx_flat, x.shape());
+        // 通过 Mat 层调用 reshape
+        const OriginMat &gx_flat_mat = static_cast<const OriginMat &>(mat(gx_flat));
+        auto gx_result = gx_flat_mat.reshape(x.shape());
+        gx = convert_mat_to_tensor(std::move(gx_result));
     }
     
     // gweight = gy^T * x_flat
-    auto gy_t = transpose(gy);
-    auto gweight = mat_mul(gy_t, x_flat);
-    gweight = transpose(gweight);  // 转置回 (out_features, in_features)
+    // 通过 Mat 层调用 transpose 和 matmul
+    auto gy_t_result = gy_mat.transpose();
+    auto gy_t = convert_mat_to_tensor(std::move(gy_t_result));
+    const OriginMat &gy_t_mat = static_cast<const OriginMat &>(mat(gy_t));
+    const OriginMat &x_flat_mat = static_cast<const OriginMat &>(mat(x_flat));
+    auto gweight_result = gy_t_mat.matmul(x_flat_mat);
+    auto gweight = convert_mat_to_tensor(std::move(gweight_result));
+    
+    // 转置回 (out_features, in_features)
+    const OriginMat &gweight_mat = static_cast<const OriginMat &>(mat(gweight));
+    auto gweight_t_result = gweight_mat.transpose();
+    gweight = convert_mat_to_tensor(std::move(gweight_t_result));
     
     std::vector<Tensor> outputs;
     outputs.push_back(gx);
@@ -149,7 +185,9 @@ std::vector<Tensor> LinearOp::backward(const std::vector<Tensor> &gys)
     if (use_bias_)
     {
         // gbias = sum(gy, dim=0)
-        auto gbias = sum(gy, 0);  // 沿 batch 维度求和
+        // 通过 Mat 层调用 sum
+        auto gbias_result = gy_mat.sum(0);  // 沿 batch 维度求和
+        auto gbias = convert_mat_to_tensor(std::move(gbias_result));
         outputs.push_back(gbias);
     }
     

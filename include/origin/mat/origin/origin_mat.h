@@ -226,6 +226,7 @@ public:
 
     // 数学函数
     std::unique_ptr<Mat> exp() const override;
+    std::unique_ptr<Mat> relu() const override;
     std::unique_ptr<Mat> log() const override;
     std::unique_ptr<Mat> sin() const override;
     std::unique_ptr<Mat> cos() const override;

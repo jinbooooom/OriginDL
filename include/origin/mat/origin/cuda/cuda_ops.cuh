@@ -90,6 +90,13 @@ std::unique_ptr<Mat> square(const origin::OriginMat &mat);
  */
 std::unique_ptr<Mat> negate(const origin::OriginMat &mat);
 
+/**
+ * @brief CUDA ReLU 激活函数算子
+ * @param mat 输入矩阵
+ * @return ReLU 运算结果矩阵，y = max(0, x)
+ */
+std::unique_ptr<Mat> relu(const origin::OriginMat &mat);
+
 // ============================================================================
 // 形状操作算子
 // ============================================================================

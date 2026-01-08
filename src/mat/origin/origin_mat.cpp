@@ -608,6 +608,26 @@ std::unique_ptr<Mat> OriginMat::exp() const
     }
 }
 
+std::unique_ptr<Mat> OriginMat::relu() const
+{
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::relu(*this);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::relu(*this);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for relu: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
 std::unique_ptr<Mat> OriginMat::log() const
 {
     // 自然对数运算（以 e 为底）

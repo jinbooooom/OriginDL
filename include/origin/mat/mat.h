@@ -236,6 +236,12 @@ public:
     virtual std::unique_ptr<Mat> pow(const Scalar &exponent) const = 0;
 
     /**
+     * @brief ReLU 激活函数
+     * @return ReLU 运算结果，y = max(0, x)
+     */
+    virtual std::unique_ptr<Mat> relu() const = 0;
+
+    /**
      * @brief 获取后端类型
      * @return 后端类型标识符
      */
