@@ -75,8 +75,9 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
     }
 
     // 创建填充后的图像
-    size_t padded_H = H + 2 * PH + SH - 1;
-    size_t padded_W = W + 2 * PW + SW - 1;
+    // 标准公式：padded_H = H + 2 * PH
+    size_t padded_H = H + 2 * PH;
+    size_t padded_W = W + 2 * PW;
     std::vector<float> padded_img(N * C * padded_H * padded_W, 0.0f);
 
     // 填充图像
@@ -296,8 +297,9 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col,
     }
 
     // 创建输出图像（带填充）
-    size_t padded_H = H + 2 * PH + SH - 1;
-    size_t padded_W = W + 2 * PW + SW - 1;
+    // 标准公式：padded_H = H + 2 * PH
+    size_t padded_H = H + 2 * PH;
+    size_t padded_W = W + 2 * PW;
     std::vector<float> img_data(N * C * padded_H * padded_W, 0.0f);
 
     // 将列矩阵转换回图像（累加重叠区域）

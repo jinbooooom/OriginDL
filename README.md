@@ -24,6 +24,12 @@ wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-de
 unzip
 
 bash build.sh torch
+
+```
+
+对于某些 example(如example_yolov5, example_resnet)，需要 opencv 的支持，没有 opencv 将不会编译
+```shell
+sudo apt install libopencv-dev -y
 ```
 
 

@@ -49,6 +49,7 @@ file(GLOB_RECURSE CUDA_CPP_SRCS CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
 )
 
+
 # 创建CUDA库（包含本目录下所有 .cu 与 .cpp 文件）
 add_library(originmat_cuda SHARED ${CUDA_SRCS} ${CUDA_CPP_SRCS})
 

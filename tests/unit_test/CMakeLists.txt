@@ -252,6 +252,36 @@ set_target_properties(test_sigmoid PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_silu operator/test_silu.cpp)
+add_dependencies(test_silu gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_silu ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_silu PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_silu PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_upsample operator/test_upsample.cpp)
+add_dependencies(test_upsample gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_upsample ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_upsample PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_upsample PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_cat operator/test_cat.cpp)
+add_dependencies(test_cat gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_cat ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_cat PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_cat PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_avg_pool2d operator/test_avg_pool2d.cpp)
 add_dependencies(test_avg_pool2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_avg_pool2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
@@ -373,6 +403,37 @@ set_target_properties(test_pow PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+# 新增算子测试
+add_executable(test_adaptive_avg_pool2d operator/test_adaptive_avg_pool2d.cpp)
+add_dependencies(test_adaptive_avg_pool2d gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_adaptive_avg_pool2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_adaptive_avg_pool2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_adaptive_avg_pool2d PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_flatten operator/test_flatten.cpp)
+add_dependencies(test_flatten gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_flatten ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_flatten PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_flatten PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_linear operator/test_linear.cpp)
+add_dependencies(test_linear gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_linear ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_linear PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_linear PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 # 添加类型提升测试
 add_executable(test_type_promotion operator/test_type_promotion.cpp)
 add_dependencies(test_type_promotion gtest gtest_main origindl test_utils gtest_utils)
@@ -457,6 +518,16 @@ set_target_properties(test_conv2d PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_yolo_detect operator/test_yolo_detect.cpp)
+add_dependencies(test_yolo_detect gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_yolo_detect ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_yolo_detect PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_yolo_detect PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 # 自动微分测试
 add_executable(test_linear_regression autograd/test_linear_regression.cpp)
 add_dependencies(test_linear_regression gtest gtest_main origindl test_utils gtest_utils)
@@ -491,6 +562,10 @@ add_test(NAME exp_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_exp)
 add_test(NAME log_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_log)
 add_test(NAME softmax_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_softmax)
 add_test(NAME relu_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_relu)
+add_test(NAME sigmoid_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sigmoid)
+add_test(NAME silu_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_silu)
+add_test(NAME upsample_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_upsample)
+add_test(NAME cat_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_cat)
 add_test(NAME softmax_cross_entropy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_softmax_cross_entropy)
 add_test(NAME accuracy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_accuracy)
 add_test(NAME adam_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_adam)
@@ -508,6 +583,7 @@ add_test(NAME transpose_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_transpose)
 add_test(NAME reshape_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_reshape)
 add_test(NAME matmul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_matmul)
 add_test(NAME conv2d_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_conv2d)
+add_test(NAME yolo_detect_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_yolo_detect)
 add_test(NAME linear_regression_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_linear_regression)
 
 # 设置测试属性
