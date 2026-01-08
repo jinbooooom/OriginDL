@@ -24,9 +24,7 @@ YOLOv5 推理示例（使用 PNNX 模型）
 #include "origin/cuda/cuda.h"
 #endif
 
-#ifdef OPENCV_FOUND
 #include <opencv2/opencv.hpp>
-#endif
 
 using namespace origin;
 using namespace origin::pnnx;
@@ -252,7 +250,6 @@ void print_help(const char *program_name) {
               << std::endl;
 }
 
-#ifdef OPENCV_FOUND
 // 检测结果结构
 struct Detection {
     cv::Rect box;
@@ -406,7 +403,6 @@ Tensor preprocess_image(const cv::Mat& image, const Device& device, int input_h 
     
     return result;
 }
-#endif  // OPENCV_FOUND
 
 /**
  * @brief 简化的图像预处理（用于测试，当没有 OpenCV 时）
@@ -428,7 +424,6 @@ Tensor create_test_input(const Device& device, int batch_size = 1, int channels 
     return Tensor(input_data, input_shape, dtype(DataType::kFloat32).device(device));
 }
 
-#ifdef OPENCV_FOUND
 /**
  * @brief 处理单张图像的检测结果并保存
  * @param output_data 模型输出数据
@@ -655,7 +650,6 @@ void process_and_save_detection(const std::vector<float>& output_data,
     cv::imwrite(output_path, result_image);
     logi("Detection results saved to: {} (Found {} objects)", output_path, detections.size());
 }
-#endif  // OPENCV_FOUND
 
 /**
  * @brief YOLOv5 推理示例
@@ -707,7 +701,6 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
         
         // 获取图像文件列表
         std::vector<std::string> image_files;
-#ifdef OPENCV_FOUND
         if (!cfg.image_dir.empty()) {
             image_files = get_image_files_from_directory(cfg.image_dir);
             if (image_files.empty()) {
@@ -716,7 +709,6 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
             }
             logi("Found {} image files in directory", image_files.size());
         }
-#endif
         
         // 创建输出目录
         std::string output_dir = cfg.output_dir.empty() ? "./tmp" : cfg.output_dir;
@@ -745,7 +737,6 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
             logi("Inference successful! Output count: {}", outputs.size());
         } else {
             // 批量处理图像
-#ifdef OPENCV_FOUND
             // 按 batch_size 分批处理
             for (size_t batch_start = 0; batch_start < image_files.size(); batch_start += batch_size) {
                 size_t batch_end = std::min(batch_start + batch_size, image_files.size());
@@ -852,7 +843,6 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
             }
             
             logi("Processed {} images in total", image_files.size());
-#endif  // OPENCV_FOUND
         }
         
         logi("=== YOLOv5 Inference Complete ===");
