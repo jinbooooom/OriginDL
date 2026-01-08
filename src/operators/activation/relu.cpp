@@ -1,9 +1,9 @@
+#include <algorithm>
 #include "origin/core/operator.h"
 #include "origin/utils/exception.h"
 #include "origin/mat/mat.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/scalar.h"
-#include <algorithm>
 
 namespace origin
 {
@@ -88,4 +88,3 @@ Tensor relu(const Tensor &x)
 }
 
 }  // namespace origin
-

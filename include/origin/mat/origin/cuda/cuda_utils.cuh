@@ -22,14 +22,14 @@ namespace cuda
     } while (0)
 
 // CUDA异步错误检查宏（用于异步kernel启动后的错误检查，不阻塞）
-#define CUDA_CHECK_ASYNC()                                                                                \
-    do                                                                                                   \
-    {                                                                                                    \
-        cudaError_t err = cudaGetLastError();                                                            \
-        if (err != cudaSuccess)                                                                          \
-        {                                                                                                \
-            THROW_RUNTIME_ERROR("CUDA operation failed in {}: {}", __func__, cudaGetErrorString(err));   \
-        }                                                                                                \
+#define CUDA_CHECK_ASYNC()                                                                             \
+    do                                                                                                 \
+    {                                                                                                  \
+        cudaError_t err = cudaGetLastError();                                                          \
+        if (err != cudaSuccess)                                                                        \
+        {                                                                                              \
+            THROW_RUNTIME_ERROR("CUDA operation failed in {}: {}", __func__, cudaGetErrorString(err)); \
+        }                                                                                              \
     } while (0)
 
 // 获取最优的线程块大小

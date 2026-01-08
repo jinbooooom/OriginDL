@@ -37,8 +37,7 @@ namespace cuda
 void add_inplace(::origin::OriginMat &a, const ::origin::OriginMat &b);
 }
 #endif
-}
-
+}  // namespace origin
 
 namespace origin
 {
@@ -52,7 +51,10 @@ OriginMat::OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, DataT
 }
 
 // 视图构造函数实现（用于创建视图，共享Storage）
-OriginMat::OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, const std::vector<size_t> &strides, DataType dtype)
+OriginMat::OriginMat(std::shared_ptr<Storage> storage,
+                     const Shape &shape,
+                     const std::vector<size_t> &strides,
+                     DataType dtype)
     : storage_(storage), shape_(shape), dtype_(dtype), strides_(strides)
 {
     utils::validate_shape(shape);
@@ -779,8 +781,10 @@ std::unique_ptr<Mat> OriginMat::full(const Shape &shape, data_t value, const Ten
 
 // === 卷积相关操作实现 ===
 
-std::unique_ptr<Mat> OriginMat::im2col(std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                                       std::pair<int, int> pad, bool to_matrix) const
+std::unique_ptr<Mat> OriginMat::im2col(std::pair<int, int> kernel_size,
+                                       std::pair<int, int> stride,
+                                       std::pair<int, int> pad,
+                                       bool to_matrix) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -801,8 +805,11 @@ std::unique_ptr<Mat> OriginMat::im2col(std::pair<int, int> kernel_size, std::pai
     }
 }
 
-std::unique_ptr<Mat> OriginMat::col2im(const Shape &input_shape, std::pair<int, int> kernel_size,
-                                       std::pair<int, int> stride, std::pair<int, int> pad, bool to_matrix) const
+std::unique_ptr<Mat> OriginMat::col2im(const Shape &input_shape,
+                                       std::pair<int, int> kernel_size,
+                                       std::pair<int, int> stride,
+                                       std::pair<int, int> pad,
+                                       bool to_matrix) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -823,8 +830,10 @@ std::unique_ptr<Mat> OriginMat::col2im(const Shape &input_shape, std::pair<int, 
     }
 }
 
-std::unique_ptr<Mat> OriginMat::conv2d(const OriginMat &W, const OriginMat *b, std::pair<int, int> stride,
-                                      std::pair<int, int> pad) const
+std::unique_ptr<Mat> OriginMat::conv2d(const OriginMat &W,
+                                       const OriginMat *b,
+                                       std::pair<int, int> stride,
+                                       std::pair<int, int> pad) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -845,9 +854,12 @@ std::unique_ptr<Mat> OriginMat::conv2d(const OriginMat &W, const OriginMat *b, s
     }
 }
 
-std::vector<std::unique_ptr<Mat>> OriginMat::conv2d_backward(const OriginMat &gy, const OriginMat &x, const OriginMat &W,
-                                                              const OriginMat *b, std::pair<int, int> stride,
-                                                              std::pair<int, int> pad) const
+std::vector<std::unique_ptr<Mat>> OriginMat::conv2d_backward(const OriginMat &gy,
+                                                             const OriginMat &x,
+                                                             const OriginMat &W,
+                                                             const OriginMat *b,
+                                                             std::pair<int, int> stride,
+                                                             std::pair<int, int> pad) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -869,7 +881,8 @@ std::vector<std::unique_ptr<Mat>> OriginMat::conv2d_backward(const OriginMat &gy
     }
 }
 
-std::unique_ptr<Mat> OriginMat::avg_pool2d(std::pair<int, int> kernel_size, std::pair<int, int> stride,
+std::unique_ptr<Mat> OriginMat::avg_pool2d(std::pair<int, int> kernel_size,
+                                           std::pair<int, int> stride,
                                            std::pair<int, int> pad) const
 {
     // 根据设备类型选择实现
@@ -891,8 +904,10 @@ std::unique_ptr<Mat> OriginMat::avg_pool2d(std::pair<int, int> kernel_size, std:
     }
 }
 
-std::unique_ptr<Mat> OriginMat::avg_pool2d_backward(const OriginMat &gy, std::pair<int, int> kernel_size,
-                                                     std::pair<int, int> stride, std::pair<int, int> pad) const
+std::unique_ptr<Mat> OriginMat::avg_pool2d_backward(const OriginMat &gy,
+                                                    std::pair<int, int> kernel_size,
+                                                    std::pair<int, int> stride,
+                                                    std::pair<int, int> pad) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -914,8 +929,10 @@ std::unique_ptr<Mat> OriginMat::avg_pool2d_backward(const OriginMat &gy, std::pa
     }
 }
 
-std::unique_ptr<Mat> OriginMat::max_pool2d(std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                                           std::pair<int, int> pad, std::vector<size_t> &indices) const
+std::unique_ptr<Mat> OriginMat::max_pool2d(std::pair<int, int> kernel_size,
+                                           std::pair<int, int> stride,
+                                           std::pair<int, int> pad,
+                                           std::vector<size_t> &indices) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -936,8 +953,10 @@ std::unique_ptr<Mat> OriginMat::max_pool2d(std::pair<int, int> kernel_size, std:
     }
 }
 
-std::unique_ptr<Mat> OriginMat::max_pool2d_backward(const OriginMat &gy, std::pair<int, int> kernel_size,
-                                                    std::pair<int, int> stride, std::pair<int, int> pad,
+std::unique_ptr<Mat> OriginMat::max_pool2d_backward(const OriginMat &gy,
+                                                    std::pair<int, int> kernel_size,
+                                                    std::pair<int, int> stride,
+                                                    std::pair<int, int> pad,
                                                     const std::vector<size_t> &indices) const
 {
     // 根据设备类型选择实现

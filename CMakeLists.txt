@@ -28,6 +28,7 @@ file(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/optim/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pnnx/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/pnnx/**/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/io/*.cpp
 )
 
 # 根据后端添加对应的源文件

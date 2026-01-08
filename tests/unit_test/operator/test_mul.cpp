@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 
@@ -13,8 +13,7 @@ using namespace origin;
  *          无GPU环境只运行CPU测试，有GPU环境运行CPU+CUDA测试
  */
 class MulOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -169,22 +168,25 @@ TEST_P(MulOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
-    auto expected = Tensor(std::vector<float>(100, 6.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto expected =
+        Tensor(std::vector<float>(100, 6.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(MulOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    auto x1 = Tensor({0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                     dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f}, Shape{2, 2, 2},
+                     dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = mul(x0, x1);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data;
     for (int i = 1; i <= 8; ++i)
     {

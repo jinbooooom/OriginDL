@@ -11,9 +11,15 @@ namespace origin
  * @param value 单个int值或pair<int, int>
  * @return pair<int, int>
  */
-inline std::pair<int, int> pair(int value) { return std::make_pair(value, value); }
+inline std::pair<int, int> pair(int value)
+{
+    return std::make_pair(value, value);
+}
 
-inline std::pair<int, int> pair(std::pair<int, int> value) { return value; }
+inline std::pair<int, int> pair(std::pair<int, int> value)
+{
+    return value;
+}
 
 /**
  * @brief 计算卷积输出尺寸
@@ -31,4 +37,3 @@ inline int get_conv_outsize(int input_size, int kernel_size, int stride, int pad
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_CONV_UTILS_H__
-

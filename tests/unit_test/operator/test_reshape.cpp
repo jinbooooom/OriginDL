@@ -1,18 +1,17 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief reshape算子测试类（参数化版本）
  */
 class ReshapeOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -49,7 +48,8 @@ TEST_P(ReshapeOperatorTest, ForwardTo1D)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -62,20 +62,23 @@ TEST_P(ReshapeOperatorTest, ForwardTo2D)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(ReshapeOperatorTest, ForwardTo3D)
 {
     // 测试重塑为三维
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{8}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{8},
+                    dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2, 2};
 
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, target_shape,
+                           dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -179,13 +182,15 @@ TEST_P(ReshapeOperatorTest, LargeTensor)
 TEST_P(ReshapeOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{4, 2};
 
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, target_shape,
+                           dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -200,7 +205,8 @@ TEST_P(ReshapeOperatorTest, NumericalStability)
     auto result = reshape(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
-    auto expected = Tensor({1e10f, 1e-10f, 1e10f, 1e-10f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1e10f, 1e-10f, 1e10f, 1e-10f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e7);
 }
 

@@ -26,7 +26,7 @@ TorchMat/OriginMat (具体后端)
           └─> data_: shared_ptr<Mat>
                 └─> OriginMat::storage_: shared_ptr<Storage>
                       └─> Storage::data_: void* (真正的数据)
-          
+
           └─> grad_: shared_ptr<Mat>
                 └─> OriginMat::storage_: shared_ptr<Storage>
                       └─> Storage::data_: void* (真正的数据)
@@ -34,7 +34,7 @@ TorchMat/OriginMat (具体后端)
 Storage 是数据拥有者，可以被多个 Mat 共享
 Mat 可以是数据拥有者或视图（view）
 TensorImpl 的 data_ 和 grad_ 应该直接共享，不需要 clone
-reshape 等操作应该创建视图，共享 Storage 
+reshape 等操作应该创建视图，共享 Storage
 
 数据流路径分析
 路径 1: 算子前向传播
@@ -70,7 +70,6 @@ data_->reshape(shape)  // 返回 unique_ptr<Mat>
   ↓
 当前实现: 连续张量使用view()（零拷贝），非连续张量创建新Storage（已优化）
 */
-
 
 /**
  * @brief 张量类，深度学习计算的核心数据结构
@@ -223,7 +222,7 @@ public:
     void backward();
     void clear_grad();
     void accumulate_grad(const Tensor &grad_to_add);
-    
+
     // === 计算图管理 ===
     /**
      * @brief 断开tensor与计算图的连接，创建一个不参与梯度计算的新tensor

@@ -17,8 +17,8 @@ namespace test
 struct TestTolerance
 {
     static constexpr double kDefault = 1e-3;  // 默认精度
-    static constexpr double kStrict   = 1e-5;  // 严格精度
-    static constexpr double kLoose    = 1e-2;  // 宽松精度
+    static constexpr double kStrict  = 1e-5;  // 严格精度
+    static constexpr double kLoose   = 1e-2;  // 宽松精度
 };
 
 /**
@@ -57,17 +57,14 @@ public:
      */
     static bool tensorsNear(const Tensor &a, const Tensor &b, double rtol = 1e-5, double atol = 1e-8);
 
-
     /**
      * @brief 检查CUDA是否可用
      * @return 如果CUDA可用返回true，否则返回false
      */
     static bool isCudaAvailable();
-
 };
 
 }  // namespace test
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_TEST_UTILS_H__
-

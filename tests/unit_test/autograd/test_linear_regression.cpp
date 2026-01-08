@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
-#include "origin/utils/log.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
+#include "origin/utils/log.h"
 
 using namespace origin;
 /**
@@ -35,8 +35,8 @@ protected:
         auto sum_result = origin::sum(origin::pow(diff, 2.0f));
         // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
         // 确保elements张量在正确的设备上（使用sum_result的设备，而不是deviceType()）
-        auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(), 
-                                     dtype(DataType::kFloat32).device(sum_result.device()));
+        auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(),
+                               dtype(DataType::kFloat32).device(sum_result.device()));
         auto result   = sum_result / elements;
         return result;
     }
@@ -46,8 +46,8 @@ protected:
 TEST_P(LinearRegressionTest, ConvergeToExpectedValues)
 {
     // 生成随机数据
-    size_t input_size = 256; // 数据量足够大，cuda才有优势，如 256000，不然 cuda 的耗时都花在 launch kernel 上了
-    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    size_t input_size = 256;  // 数据量足够大，cuda才有优势，如 256000，不然 cuda 的耗时都花在 launch kernel 上了
+    auto x = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(deviceType()));
     // 设置一个噪声，使真实值在预测结果附近
     auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(deviceType())) * 0.1f;
     // 生成真实标签：y = x * 2.0 + 5.0 + noise

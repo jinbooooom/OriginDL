@@ -1,10 +1,10 @@
 #ifndef __ORIGIN_DL_MAX_POOL2D_LAYER_H__
 #define __ORIGIN_DL_MAX_POOL2D_LAYER_H__
 
+#include <utility>
 #include "../../core/operator.h"
 #include "../../core/tensor.h"
 #include "../layer.h"
-#include <utility>
 
 namespace origin
 {
@@ -29,9 +29,7 @@ public:
      * @param stride 步长，默认为 (0, 0)，表示使用 kernel_size
      * @param pad 填充，默认为 (0, 0)
      */
-    MaxPool2d(std::pair<int, int> kernel_size, 
-              std::pair<int, int> stride = {0, 0}, 
-              std::pair<int, int> pad = {0, 0});
+    MaxPool2d(std::pair<int, int> kernel_size, std::pair<int, int> stride = {0, 0}, std::pair<int, int> pad = {0, 0});
 
     /**
      * @brief 构造函数（单值版本）
@@ -53,4 +51,3 @@ public:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_MAX_POOL2D_LAYER_H__
-

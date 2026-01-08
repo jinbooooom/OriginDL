@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../../common/device_test_base.h"
 #include "../../common/gtest_utils.h"
 #include "../../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 
@@ -12,8 +12,7 @@ using namespace origin;
  * @brief ReLU 算子测试类（参数化版本）
  */
 class ReLUOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -102,7 +101,8 @@ TEST_P(ReLUOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
     // 注意：y.backward() 会自动使用全1的梯度，所以这里我们验证基本行为
-    auto x = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{4},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = relu(x);
     y.backward();
@@ -132,14 +132,15 @@ TEST_P(ReLUOperatorTest, BackwardZero)
 TEST_P(ReLUOperatorTest, BackwardTwoDimensional)
 {
     // 测试 2D 张量的反向传播
-    auto x = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = relu(x);
     y.backward();
 
     // 验证梯度形状
     EXPECT_EQ(x.grad().shape(), x.shape());
-    
+
     // 验证梯度值
     std::vector<float> expected_grad_data = {0.0f, 1.0f, 0.0f, 1.0f};
     auto expected_grad = Tensor(expected_grad_data, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -186,7 +187,7 @@ TEST_P(ReLUOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 验证前 50 个元素为 0（对应 -50 到 -1），索引 50 为 0（对应 0），后 49 个元素为正数（对应 1 到 49）
     auto result_data = result.to_vector<float>();
     for (size_t i = 0; i <= 50; ++i)
@@ -205,13 +206,13 @@ TEST_P(ReLUOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
     std::vector<float> input_data = {-1.0f, 2.0f, -3.0f, 4.0f, -5.0f, 6.0f, -7.0f, 8.0f};
-    auto x = Tensor(input_data, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                        = Tensor(input_data, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = relu(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data = {0.0f, 2.0f, 0.0f, 4.0f, 0.0f, 6.0f, 0.0f, 8.0f};
     auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -242,4 +243,3 @@ TEST_P(ReLUOperatorTest, ZeroProperty)
 
 // Instantiate test suite: automatically generate tests for CPU and available CUDA
 INSTANTIATE_DEVICE_TEST_SUITE_P(ReLUOperatorTest);
-

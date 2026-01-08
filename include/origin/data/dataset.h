@@ -9,7 +9,7 @@ namespace origin
 
 /**
  * @brief 数据集抽象基类
- * 
+ *
  * 定义数据集的接口规范，所有数据集类都应该继承此类
  */
 class Dataset
@@ -38,13 +38,9 @@ public:
      * @param index 数据索引
      * @return 索引是否在有效范围内
      */
-    bool valid_index(size_t index) const
-    {
-        return index < size();
-    }
+    bool valid_index(size_t index) const { return index < size(); }
 };
 
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_DATASET_H__
-

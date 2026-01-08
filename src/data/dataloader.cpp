@@ -1,8 +1,8 @@
 #include "origin/data/dataloader.h"
-#include "origin/core/tensor.h"
-#include "origin/utils/exception.h"
 #include <algorithm>
 #include <random>
+#include "origin/core/tensor.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -38,7 +38,8 @@ std::pair<Tensor, Tensor> DataLoader::next()
     {
         // 对于空数据集，抛出异常或返回特殊值
         // 实际使用中，应该在调用 next() 之前检查 has_next()
-        THROW_RUNTIME_ERROR("DataLoader::next() called when no more data available. Use has_next() to check before calling next().");
+        THROW_RUNTIME_ERROR(
+            "DataLoader::next() called when no more data available. Use has_next() to check before calling next().");
     }
 
     // 确定实际批大小（可能是最后一个不完整的批次）
@@ -51,21 +52,21 @@ std::pair<Tensor, Tensor> DataLoader::next()
     batch_labels.reserve(actual_batch_size);
 
     // 获取第一个样本以确定输入维度
-    size_t first_idx = indices_[current_index_];
+    size_t first_idx                = indices_[current_index_];
     auto [first_image, first_label] = dataset_->get_item(first_idx);
-    auto first_image_shape = first_image.shape();
-    size_t input_size = first_image_shape.elements();  // 输入的总元素数（例如 784 或 1）
+    auto first_image_shape          = first_image.shape();
+    size_t input_size               = first_image_shape.elements();  // 输入的总元素数（例如 784 或 1）
 
     for (size_t i = 0; i < actual_batch_size; ++i)
     {
-        size_t idx = indices_[current_index_ + i];
+        size_t idx          = indices_[current_index_ + i];
         auto [image, label] = dataset_->get_item(idx);
 
         // 验证图像形状一致
         if (image.shape().elements() != input_size)
         {
-            THROW_RUNTIME_ERROR("Inconsistent input shapes in dataset: expected {} elements, got {}",
-                                input_size, image.shape().elements());
+            THROW_RUNTIME_ERROR("Inconsistent input shapes in dataset: expected {} elements, got {}", input_size,
+                                image.shape().elements());
         }
 
         // 将图像添加到批次
@@ -107,4 +108,3 @@ void DataLoader::reset()
 }
 
 }  // namespace origin
-

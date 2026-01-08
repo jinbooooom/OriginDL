@@ -1,28 +1,28 @@
 #ifndef __ORIGIN_DL_DATALOADER_H__
 #define __ORIGIN_DL_DATALOADER_H__
 
-#include "dataset.h"
-#include <vector>
-#include <random>
 #include <algorithm>
 #include <memory>
+#include <random>
+#include <vector>
+#include "dataset.h"
 
 namespace origin
 {
 
 /**
  * @brief 数据加载器
- * 
+ *
  * 支持批处理、随机打乱和迭代器接口
  */
 class DataLoader
 {
 private:
-    Dataset *dataset_;           // 数据集指针（不拥有所有权）
-    size_t batch_size_;          // 批大小
-    bool shuffle_;               // 是否随机打乱
-    std::vector<size_t> indices_; // 索引列表
-    size_t current_index_;       // 当前索引位置
+    Dataset *dataset_;             // 数据集指针（不拥有所有权）
+    size_t batch_size_;            // 批大小
+    bool shuffle_;                 // 是否随机打乱
+    std::vector<size_t> indices_;  // 索引列表
+    size_t current_index_;         // 当前索引位置
 
     /**
      * @brief 重置索引列表（如果需要打乱，则随机打乱）
@@ -74,4 +74,3 @@ public:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_DATALOADER_H__
-

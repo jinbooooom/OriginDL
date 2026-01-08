@@ -5,9 +5,9 @@ namespace origin
 
 namespace Config
 {
-    // 默认启用反向传播
-    bool enable_backprop = true;
-}
+// 默认启用反向传播
+bool enable_backprop = true;
+}  // namespace Config
 
 NoGradGuard::NoGradGuard() : old_value_(Config::enable_backprop)
 {
@@ -25,6 +25,3 @@ NoGradGuard no_grad()
 }
 
 }  // namespace origin
-
-
-

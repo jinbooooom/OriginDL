@@ -1,8 +1,10 @@
 #ifndef __ORIGIN_DL_OPTIMIZER_H__
 #define __ORIGIN_DL_OPTIMIZER_H__
 
+#include <any>
 #include <functional>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include "../core/parameter.h"
 #include "../nn/module.h"
@@ -58,6 +60,22 @@ public:
      * @return 参数列表引用
      */
     std::vector<Parameter *> &parameters() { return parameters_; }
+
+    // === State Dict 接口（用于 Checkpoint）===
+
+    /**
+     * @brief 获取优化器的状态字典
+     * @return 优化器状态字典（包含优化器类型特定的状态）
+     * @note 类似 PyTorch 的 optimizer.state_dict()
+     */
+    virtual std::unordered_map<std::string, std::any> state_dict() const = 0;
+
+    /**
+     * @brief 从状态字典加载优化器状态
+     * @param state_dict 优化器状态字典
+     * @note 类似 PyTorch 的 optimizer.load_state_dict(state_dict)
+     */
+    virtual void load_state_dict(const std::unordered_map<std::string, std::any> &state_dict) = 0;
 
 protected:
     /**

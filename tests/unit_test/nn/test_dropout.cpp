@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "origin/nn/layers/dropout.h"
-#include "origin/core/tensor.h"
 #include "origin/core/operator.h"
+#include "origin/core/tensor.h"
+#include "origin/nn/layers/dropout.h"
 #include "test_utils.h"
 
 using namespace origin;
@@ -22,7 +22,7 @@ TEST_P(DropoutTest, BasicForward)
 
     // 创建输入
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
-    auto x = Tensor(x_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 前向传播
     auto y = dropout.forward(x);
@@ -32,7 +32,7 @@ TEST_P(DropoutTest, BasicForward)
     EXPECT_EQ(y.shape()[0], 5U);
 
     // 在训练模式下，部分值应该被置为 0
-    auto y_data = y.to_vector<float>();
+    auto y_data   = y.to_vector<float>();
     bool has_zero = false;
     for (float val : y_data)
     {
@@ -53,13 +53,13 @@ TEST_P(DropoutTest, EvalMode)
     dropout.eval();
 
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
-    auto x = Tensor(x_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto y = dropout.forward(x);
 
     // 在评估模式下，输出应该等于输入
     EXPECT_EQ(y.shape(), x.shape());
-    auto y_data = y.to_vector<float>();
+    auto y_data       = y.to_vector<float>();
     auto x_data_check = x.to_vector<float>();
     for (size_t i = 0; i < y_data.size(); ++i)
     {
@@ -75,13 +75,13 @@ TEST_P(DropoutTest, Backward)
     dropout.train(true);
 
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
-    auto x = Tensor(x_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto y = dropout.forward(x);
-    
+
     // 创建梯度
     std::vector<float> gy_data = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-    auto gy = Tensor(gy_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gy                    = Tensor(gy_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 反向传播
     y.backward();
@@ -90,6 +90,4 @@ TEST_P(DropoutTest, Backward)
     EXPECT_TRUE(x.grad().shape() == x.shape());
 }
 
-INSTANTIATE_TEST_SUITE_P(DropoutTests, DropoutTest, 
-                         ::testing::Values(DeviceType::kCPU));
-
+INSTANTIATE_TEST_SUITE_P(DropoutTests, DropoutTest, ::testing::Values(DeviceType::kCPU));

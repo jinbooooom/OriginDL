@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "origin/core/tensor.h"
-#include "origin/mat/basic_types.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin/core/tensor.h"
+#include "origin/mat/basic_types.h"
 
 using namespace origin;
 using namespace origin::test;

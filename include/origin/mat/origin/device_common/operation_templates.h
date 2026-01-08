@@ -327,7 +327,7 @@ public:
         // 计算源和目标的 strides（用于多维索引）
         std::vector<size_t> src_strides(src_shape.size());
         std::vector<size_t> dst_strides(dst_shape.size());
-        
+
         size_t src_stride = 1;
         size_t dst_stride = 1;
         for (int i = static_cast<int>(src_shape.size()) - 1; i >= 0; --i)
@@ -344,7 +344,7 @@ public:
         // 对齐维度：从右到左对齐
         int src_ndim = static_cast<int>(src_shape.size());
         int dst_ndim = static_cast<int>(dst_shape.size());
-        
+
         // 对每个输出元素计算对应的源索引
         for (size_t dst_idx = 0; dst_idx < dst_shape.elements(); ++dst_idx)
         {
@@ -365,12 +365,12 @@ public:
                 // 从右到左对齐：dst 的最后一个维度对应 src 的最后一个维度
                 int dst_dim_idx = dst_ndim - 1 - i;
                 int src_dim_idx = src_ndim - 1 - i;  // 从右到左对齐
-                
+
                 if (src_dim_idx >= 0 && src_dim_idx < src_ndim)
                 {
                     // 如果源维度大小为1，则索引为0（广播）
                     size_t src_dim_size = src_shape[src_dim_idx];
-                    size_t src_index = (src_dim_size == 1) ? 0 : dst_indices[dst_dim_idx];
+                    size_t src_index    = (src_dim_size == 1) ? 0 : dst_indices[dst_dim_idx];
                     src_idx += src_index * src_strides[src_dim_idx];
                 }
             }

@@ -1,12 +1,12 @@
+#include <cuda_runtime.h>
+#include <cstring>
+#include <vector>
 #include "origin/mat/origin/cuda/cuda_ops.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat.h"
-#include "origin/utils/exception.h"
-#include "origin/utils/conv_utils.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
-#include <vector>
-#include <cstring>
-#include <cuda_runtime.h>
+#include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/conv_utils.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -20,37 +20,42 @@ namespace cuda
  * @details 对于每个输出位置，在窗口内求最大值并保存索引
  */
 template <typename T>
-__global__ void max_pool2d_forward_kernel(const T *__restrict__ col_data, T *__restrict__ result_data,
-                                           size_t *__restrict__ indices, size_t N, size_t C, size_t OH, size_t OW,
-                                           int KH, int KW)
+__global__ void max_pool2d_forward_kernel(const T *__restrict__ col_data,
+                                          T *__restrict__ result_data,
+                                          size_t *__restrict__ indices,
+                                          size_t N,
+                                          size_t C,
+                                          size_t OH,
+                                          size_t OW,
+                                          int KH,
+                                          int KW)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * OH * OW;
 
     if (idx < total_elements)
     {
         // 计算 (n, c, oh, ow)
-        size_t n = idx / (C * OH * OW);
+        size_t n   = idx / (C * OH * OW);
         size_t rem = idx % (C * OH * OW);
-        size_t c = rem / (OH * OW);
-        rem = rem % (OH * OW);
-        size_t oh = rem / OW;
-        size_t ow = rem % OW;
+        size_t c   = rem / (OH * OW);
+        rem        = rem % (OH * OW);
+        size_t oh  = rem / OW;
+        size_t ow  = rem % OW;
 
         // 在窗口内求最大值和索引
         // col形状: (N, C, KH, KW, OH, OW)
         size_t col_base = n * C * KH * KW * OH * OW + c * KH * KW * OH * OW + oh * OW + ow;
-        
-        T max_val = col_data[col_base];  // (kh=0, kw=0)
+
+        T max_val      = col_data[col_base];  // (kh=0, kw=0)
         size_t max_idx = 0;
 
         for (int kh = 0; kh < KH; ++kh)
         {
             for (int kw = 0; kw < KW; ++kw)
             {
-                size_t col_idx = col_base + static_cast<size_t>(kh) * KW * OH * OW +
-                                static_cast<size_t>(kw) * OH * OW;
-                T val = col_data[col_idx];
+                size_t col_idx = col_base + static_cast<size_t>(kh) * KW * OH * OW + static_cast<size_t>(kw) * OH * OW;
+                T val          = col_data[col_idx];
                 size_t linear_idx = static_cast<size_t>(kh) * KW + static_cast<size_t>(kw);
                 if (val > max_val)
                 {
@@ -61,7 +66,7 @@ __global__ void max_pool2d_forward_kernel(const T *__restrict__ col_data, T *__r
         }
 
         result_data[idx] = max_val;
-        indices[idx] = max_idx;
+        indices[idx]     = max_idx;
     }
 }
 
@@ -70,32 +75,38 @@ __global__ void max_pool2d_forward_kernel(const T *__restrict__ col_data, T *__r
  * @details 将梯度根据前向传播保存的索引分配到对应位置
  */
 template <typename T>
-__global__ void max_pool2d_backward_kernel(const T *__restrict__ gy_data, const size_t *__restrict__ indices,
-                                           T *__restrict__ gcol_data, size_t N, size_t C, size_t OH, size_t OW, int KH,
+__global__ void max_pool2d_backward_kernel(const T *__restrict__ gy_data,
+                                           const size_t *__restrict__ indices,
+                                           T *__restrict__ gcol_data,
+                                           size_t N,
+                                           size_t C,
+                                           size_t OH,
+                                           size_t OW,
+                                           int KH,
                                            int KW)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * OH * OW;
 
     if (idx < total_elements)
     {
         // 计算 (n, c, oh, ow)
-        size_t n = idx / (C * OH * OW);
+        size_t n   = idx / (C * OH * OW);
         size_t rem = idx % (C * OH * OW);
-        size_t c = rem / (OH * OW);
-        rem = rem % (OH * OW);
-        size_t oh = rem / OW;
-        size_t ow = rem % OW;
+        size_t c   = rem / (OH * OW);
+        rem        = rem % (OH * OW);
+        size_t oh  = rem / OW;
+        size_t ow  = rem % OW;
 
         // 获取索引
         size_t linear_idx = indices[idx];
-        int kh = static_cast<int>(linear_idx) / KW;
-        int kw = static_cast<int>(linear_idx) % KW;
+        int kh            = static_cast<int>(linear_idx) / KW;
+        int kw            = static_cast<int>(linear_idx) % KW;
 
         // 计算gcol中的位置
         // gcol形状: (N, C, KH, KW, OH, OW)
-        size_t gcol_idx = n * C * KH * KW * OH * OW + c * KH * KW * OH * OW +
-                         static_cast<size_t>(kh) * KW * OH * OW + static_cast<size_t>(kw) * OH * OW + oh * OW + ow;
+        size_t gcol_idx = n * C * KH * KW * OH * OW + c * KH * KW * OH * OW + static_cast<size_t>(kh) * KW * OH * OW +
+                          static_cast<size_t>(kw) * OH * OW + oh * OW + ow;
 
         gcol_data[gcol_idx] = gy_data[idx];
     }
@@ -103,8 +114,11 @@ __global__ void max_pool2d_backward_kernel(const T *__restrict__ gy_data, const 
 
 // ==================== max_pool2d 实现 ====================
 
-std::unique_ptr<Mat> max_pool2d(const OriginMat &x, std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                                std::pair<int, int> pad, std::vector<size_t> &indices)
+std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
+                                std::pair<int, int> kernel_size,
+                                std::pair<int, int> stride,
+                                std::pair<int, int> pad,
+                                std::vector<size_t> &indices)
 {
     // 输入验证：确保输入是4D张量 (N, C, H, W)
     if (x.shape().size() != 4)
@@ -130,13 +144,14 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x, std::pair<int, int> kernel_s
 
     if (OH <= 0 || OW <= 0)
     {
-        THROW_INVALID_ARG("max_pool2d: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
-                         "stride=({},{}), pad=({},{})",
-                         OH, OW, H, W, KH, KW, SH, SW, PH, PW);
+        THROW_INVALID_ARG(
+            "max_pool2d: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
+            "stride=({},{}), pad=({},{})",
+            OH, OW, H, W, KH, KW, SH, SW, PH, PW);
     }
 
     // 1. 使用 im2col 提取窗口（to_matrix=false），得到 (N, C, KH, KW, OH, OW)
-    auto col = im2col(x, kernel_size, stride, pad, false);
+    auto col                 = im2col(x, kernel_size, stride, pad, false);
     const OriginMat &col_mat = static_cast<const OriginMat &>(*col);
 
     // 2. 在 (KH, KW) 维度上求最大值，并保存索引
@@ -149,8 +164,8 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x, std::pair<int, int> kernel_s
 
     // 在GPU上分配索引内存
     size_t indices_size = N * C * OH * OW * sizeof(size_t);
-    size_t *d_indices = nullptr;
-    cudaError_t err = cudaMalloc(&d_indices, indices_size);
+    size_t *d_indices   = nullptr;
+    cudaError_t err     = cudaMalloc(&d_indices, indices_size);
     if (err != cudaSuccess)
     {
         THROW_RUNTIME_ERROR("CUDA memory allocation failed for indices: {}", cudaGetErrorString(err));
@@ -160,14 +175,14 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x, std::pair<int, int> kernel_s
     if (x.dtype() == DataType::kFloat32)
     {
         const float *col_data = col_mat.data_ptr<float>();
-        float *result_data = result->data_ptr<float>();
+        float *result_data    = result->data_ptr<float>();
 
         size_t total_elements = N * C * OH * OW;
         int threads_per_block = 256;
-        int num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
-        max_pool2d_forward_kernel<float><<<num_blocks, threads_per_block>>>(col_data, result_data, d_indices, N, C, OH,
-                                                                            OW, KH, KW);
+        max_pool2d_forward_kernel<float>
+            <<<num_blocks, threads_per_block>>>(col_data, result_data, d_indices, N, C, OH, OW, KH, KW);
     }
     else
     {
@@ -190,18 +205,22 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x, std::pair<int, int> kernel_s
     return result;
 }
 
-std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy, const OriginMat &x, std::pair<int, int> kernel_size,
-                                         std::pair<int, int> stride, std::pair<int, int> pad,
+std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy,
+                                         const OriginMat &x,
+                                         std::pair<int, int> kernel_size,
+                                         std::pair<int, int> stride,
+                                         std::pair<int, int> pad,
                                          const std::vector<size_t> &indices)
 {
     // 输入验证：确保 gy 形状为 (N, C, OH, OW)
     if (gy.shape().size() != 4)
     {
-        THROW_INVALID_ARG("max_pool2d_backward: gy must be 4D (N, C, OH, OW), but got shape {}", gy.shape().to_string());
+        THROW_INVALID_ARG("max_pool2d_backward: gy must be 4D (N, C, OH, OW), but got shape {}",
+                          gy.shape().to_string());
     }
 
-    size_t N = gy.shape()[0];
-    size_t C = gy.shape()[1];
+    size_t N  = gy.shape()[0];
+    size_t C  = gy.shape()[1];
     size_t OH = gy.shape()[2];
     size_t OW = gy.shape()[3];
 
@@ -212,7 +231,7 @@ std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy, const OriginMat &x
     if (indices.size() != N * C * OH * OW)
     {
         THROW_INVALID_ARG("max_pool2d_backward: indices size mismatch. Expected {}, got {}", N * C * OH * OW,
-                         indices.size());
+                          indices.size());
     }
 
     // 1. 创建零张量 gcol，形状 (N, C, KH, KW, OH, OW) 以匹配 col2im 的期望格式
@@ -221,8 +240,8 @@ std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy, const OriginMat &x
 
     // 在GPU上分配索引内存
     size_t indices_size = indices.size() * sizeof(size_t);
-    size_t *d_indices = nullptr;
-    cudaError_t err = cudaMalloc(&d_indices, indices_size);
+    size_t *d_indices   = nullptr;
+    cudaError_t err     = cudaMalloc(&d_indices, indices_size);
     if (err != cudaSuccess)
     {
         THROW_RUNTIME_ERROR("CUDA memory allocation failed for indices: {}", cudaGetErrorString(err));
@@ -240,17 +259,17 @@ std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy, const OriginMat &x
     if (gy.dtype() == DataType::kFloat32)
     {
         const float *gy_data = gy.data_ptr<float>();
-        float *gcol_data = gcol->data_ptr<float>();
+        float *gcol_data     = gcol->data_ptr<float>();
 
         // 初始化gcol为0
         cudaMemset(gcol_data, 0, N * C * OH * OW * KH * KW * sizeof(float));
 
         size_t total_elements = N * C * OH * OW;
         int threads_per_block = 256;
-        int num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
-        max_pool2d_backward_kernel<float><<<num_blocks, threads_per_block>>>(gy_data, d_indices, gcol_data, N, C, OH,
-                                                                             OW, KH, KW);
+        max_pool2d_backward_kernel<float>
+            <<<num_blocks, threads_per_block>>>(gy_data, d_indices, gcol_data, N, C, OH, OW, KH, KW);
     }
     else
     {
@@ -271,4 +290,3 @@ std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy, const OriginMat &x
 
 }  // namespace cuda
 }  // namespace origin
-

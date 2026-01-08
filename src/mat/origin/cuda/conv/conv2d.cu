@@ -1,13 +1,13 @@
-#include "origin/mat/origin/cuda/cuda_ops.cuh"
-#include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/origin_mat.h"
-#include "origin/utils/exception.h"
-#include "origin/utils/conv_utils.h"
-#include "origin/mat/origin/device_common/type_dispatcher.h"
-#include <vector>
+#include <cuda_runtime.h>
 #include <cstring>
 #include <type_traits>
-#include <cuda_runtime.h>
+#include <vector>
+#include "origin/mat/origin/cuda/cuda_ops.cuh"
+#include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/conv_utils.h"
+#include "origin/utils/exception.h"
 
 // 前向声明 GPU matmul 函数
 namespace origin {
@@ -28,9 +28,23 @@ namespace cuda
  * @tparam T 数据类型
  */
 template <typename T>
-__global__ void im2col_kernel(const T *__restrict__ img, T *__restrict__ col, size_t N, size_t C, size_t H, size_t W,
-                               int KH, int KW, int SH, int SW, int PH, int PW, int OH, int OW, size_t padded_H,
-                               size_t padded_W, bool to_matrix)
+__global__ void im2col_kernel(const T *__restrict__ img,
+                              T *__restrict__ col,
+                              size_t N,
+                              size_t C,
+                              size_t H,
+                              size_t W,
+                              int KH,
+                              int KW,
+                              int SH,
+                              int SW,
+                              int PH,
+                              int PW,
+                              int OH,
+                              int OW,
+                              size_t padded_H,
+                              size_t padded_W,
+                              bool to_matrix)
 {
     // 计算全局线程索引
     size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -46,15 +60,15 @@ __global__ void im2col_kernel(const T *__restrict__ img, T *__restrict__ col, si
             size_t row_idx = idx / out_cols;
             size_t col_idx = idx % out_cols;
 
-            size_t n = row_idx / (OH * OW);
+            size_t n     = row_idx / (OH * OW);
             size_t oh_ow = row_idx % (OH * OW);
-            int oh = oh_ow / OW;
-            int ow = oh_ow % OW;
+            int oh       = oh_ow / OW;
+            int ow       = oh_ow % OW;
 
-            size_t c = col_idx / (KH * KW);
+            size_t c     = col_idx / (KH * KW);
             size_t kh_kw = col_idx % (KH * KW);
-            int kh = kh_kw / KW;
-            int kw = kh_kw % KW;
+            int kh       = kh_kw / KW;
+            int kw       = kh_kw % KW;
 
             // h_idx 和 w_idx 的计算：对于输出位置 (oh, ow)，卷积核覆盖的输入区域是
             // h_start = oh * SH - PH (相对于原始输入图像，可能为负数)
@@ -72,7 +86,7 @@ __global__ void im2col_kernel(const T *__restrict__ img, T *__restrict__ col, si
             if (h_idx >= 0 && h_idx < static_cast<int>(padded_H) && w_idx >= 0 && w_idx < static_cast<int>(padded_W))
             {
                 size_t img_idx = n * C * padded_H * padded_W + c * padded_H * padded_W + h_idx * padded_W + w_idx;
-                col[idx] = img[img_idx];
+                col[idx]       = img[img_idx];
             }
             else
             {
@@ -86,16 +100,16 @@ __global__ void im2col_kernel(const T *__restrict__ img, T *__restrict__ col, si
         size_t total_elements = N * C * KH * KW * OH * OW;
         if (idx < total_elements)
         {
-            size_t n = idx / (C * KH * KW * OH * OW);
+            size_t n   = idx / (C * KH * KW * OH * OW);
             size_t rem = idx % (C * KH * KW * OH * OW);
-            size_t c = rem / (KH * KW * OH * OW);
-            rem = rem % (KH * KW * OH * OW);
-            int kh = rem / (KW * OH * OW);
-            rem = rem % (KW * OH * OW);
-            int kw = rem / (OH * OW);
-            rem = rem % (OH * OW);
-            int oh = rem / OW;
-            int ow = rem % OW;
+            size_t c   = rem / (KH * KW * OH * OW);
+            rem        = rem % (KH * KW * OH * OW);
+            int kh     = rem / (KW * OH * OW);
+            rem        = rem % (KW * OH * OW);
+            int kw     = rem / (OH * OW);
+            rem        = rem % (OH * OW);
+            int oh     = rem / OW;
+            int ow     = rem % OW;
 
             // h_idx 和 w_idx 的计算：对于输出位置 (oh, ow)，卷积核覆盖的输入区域是
             // h_start = oh * SH - PH (相对于原始输入图像，可能为负数)
@@ -113,7 +127,7 @@ __global__ void im2col_kernel(const T *__restrict__ img, T *__restrict__ col, si
             if (h_idx >= 0 && h_idx < static_cast<int>(padded_H) && w_idx >= 0 && w_idx < static_cast<int>(padded_W))
             {
                 size_t img_idx = n * C * padded_H * padded_W + c * padded_H * padded_W + h_idx * padded_W + w_idx;
-                col[idx] = img[img_idx];
+                col[idx]       = img[img_idx];
             }
             else
             {
@@ -128,12 +142,26 @@ __global__ void im2col_kernel(const T *__restrict__ img, T *__restrict__ col, si
  * @tparam T 数据类型
  */
 template <typename T>
-__global__ void col2im_kernel(const T *__restrict__ col, T *__restrict__ img, size_t N, size_t C, size_t H, size_t W,
-                               int KH, int KW, int SH, int SW, int PH, int PW, int OH, int OW, size_t padded_H,
-                               size_t padded_W, bool to_matrix)
+__global__ void col2im_kernel(const T *__restrict__ col,
+                              T *__restrict__ img,
+                              size_t N,
+                              size_t C,
+                              size_t H,
+                              size_t W,
+                              int KH,
+                              int KW,
+                              int SH,
+                              int SW,
+                              int PH,
+                              int PW,
+                              int OH,
+                              int OW,
+                              size_t padded_H,
+                              size_t padded_W,
+                              bool to_matrix)
 {
     // 计算全局线程索引
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * padded_H * padded_W;
 
     if (idx < total_elements)
@@ -154,32 +182,32 @@ __global__ void col2im_kernel(const T *__restrict__ col, T *__restrict__ img, si
         if (to_matrix)
         {
             // 从 (N*OH*OW, C*KH*KW) 形状计算索引
-            size_t row_idx = col_idx / (C * KH * KW);
+            size_t row_idx     = col_idx / (C * KH * KW);
             size_t col_col_idx = col_idx % (C * KH * KW);
 
-            n = row_idx / (OH * OW);
+            n            = row_idx / (OH * OW);
             size_t oh_ow = row_idx % (OH * OW);
-            oh = oh_ow / OW;
-            ow = oh_ow % OW;
+            oh           = oh_ow / OW;
+            ow           = oh_ow % OW;
 
-            c = col_col_idx / (KH * KW);
+            c            = col_col_idx / (KH * KW);
             size_t kh_kw = col_col_idx % (KH * KW);
-            kh = kh_kw / KW;
-            kw = kh_kw % KW;
+            kh           = kh_kw / KW;
+            kw           = kh_kw % KW;
         }
         else
         {
             // 从 (N, C, KH, KW, OH, OW) 形状计算索引
-            n = col_idx / (C * KH * KW * OH * OW);
+            n          = col_idx / (C * KH * KW * OH * OW);
             size_t rem = col_idx % (C * KH * KW * OH * OW);
-            c = rem / (KH * KW * OH * OW);
-            rem = rem % (KH * KW * OH * OW);
-            kh = rem / (KW * OH * OW);
-            rem = rem % (KW * OH * OW);
-            kw = rem / (OH * OW);
-            rem = rem % (OH * OW);
-            oh = rem / OW;
-            ow = rem % OW;
+            c          = rem / (KH * KW * OH * OW);
+            rem        = rem % (KH * KW * OH * OW);
+            kh         = rem / (KW * OH * OW);
+            rem        = rem % (KW * OH * OW);
+            kw         = rem / (OH * OW);
+            rem        = rem % (OH * OW);
+            oh         = rem / OW;
+            ow         = rem % OW;
         }
 
         int h_idx = kh + SH * oh;
@@ -203,13 +231,14 @@ __global__ void col2im_kernel(const T *__restrict__ col, T *__restrict__ img, si
                 // 对于整数类型，CUDA 也支持 atomicAdd
                 if constexpr (std::is_integral_v<T>)
                 {
-                    atomicAdd(reinterpret_cast<unsigned long long *>(&img[img_idx]), static_cast<unsigned long long>(col[col_idx]));
+                    atomicAdd(reinterpret_cast<unsigned long long *>(&img[img_idx]),
+                              static_cast<unsigned long long>(col[col_idx]));
                 }
                 else
                 {
                     // 对于其他类型，转换为 float 进行原子操作
                     float *img_float = reinterpret_cast<float *>(&img[img_idx]);
-                    float val = static_cast<float>(col[col_idx]);
+                    float val        = static_cast<float>(col[col_idx]);
                     atomicAdd(img_float, val);
                 }
             }
@@ -222,24 +251,32 @@ __global__ void col2im_kernel(const T *__restrict__ col, T *__restrict__ img, si
  * @tparam T 数据类型
  */
 template <typename T>
-__global__ void pad_image_kernel(const T *__restrict__ src, T *__restrict__ dst, size_t N, size_t C, size_t H, size_t W,
-                                  size_t padded_H, size_t padded_W, int PH, int PW)
+__global__ void pad_image_kernel(const T *__restrict__ src,
+                                 T *__restrict__ dst,
+                                 size_t N,
+                                 size_t C,
+                                 size_t H,
+                                 size_t W,
+                                 size_t padded_H,
+                                 size_t padded_W,
+                                 int PH,
+                                 int PW)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * H * W;
 
     if (idx < total_elements)
     {
-        size_t n = idx / (C * H * W);
+        size_t n   = idx / (C * H * W);
         size_t rem = idx % (C * H * W);
-        size_t c = rem / (H * W);
-        rem = rem % (H * W);
-        size_t h = rem / W;
-        size_t w = rem % W;
+        size_t c   = rem / (H * W);
+        rem        = rem % (H * W);
+        size_t h   = rem / W;
+        size_t w   = rem % W;
 
         size_t src_idx = n * C * H * W + c * H * W + h * W + w;
-        size_t dst_h = h + PH;
-        size_t dst_w = w + PW;
+        size_t dst_h   = h + PH;
+        size_t dst_w   = w + PW;
         size_t dst_idx = n * C * padded_H * padded_W + c * padded_H * padded_W + dst_h * padded_W + dst_w;
 
         dst[dst_idx] = src[src_idx];
@@ -284,24 +321,28 @@ __global__ void convert_filter_row_to_col_major_kernel(const T *__restrict__ src
  * @tparam T 数据类型
  */
 template <typename T>
-__global__ void transpose_conv_output_kernel(const T *__restrict__ src, T *__restrict__ dst, size_t N, size_t OC,
-                                              int OH, int OW)
+__global__ void transpose_conv_output_kernel(const T *__restrict__ src,
+                                             T *__restrict__ dst,
+                                             size_t N,
+                                             size_t OC,
+                                             int OH,
+                                             int OW)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * OC * OH * OW;
 
     if (idx < total_elements)
     {
-        size_t n = idx / (OC * OH * OW);
+        size_t n   = idx / (OC * OH * OW);
         size_t rem = idx % (OC * OH * OW);
-        size_t oc = rem / (OH * OW);
-        rem = rem % (OH * OW);
-        int oh = rem / OW;
-        int ow = rem % OW;
+        size_t oc  = rem / (OH * OW);
+        rem        = rem % (OH * OW);
+        int oh     = rem / OW;
+        int ow     = rem % OW;
 
         // 从 (N, OH, OW, OC) 读取
         size_t src_idx = n * OH * OW * OC + oh * OW * OC + ow * OC + oc;
-        dst[idx] = src[src_idx];
+        dst[idx]       = src[src_idx];
     }
 }
 
@@ -310,23 +351,31 @@ __global__ void transpose_conv_output_kernel(const T *__restrict__ src, T *__res
  * @tparam T 数据类型
  */
 template <typename T>
-__global__ void unpad_image_kernel(const T *__restrict__ src, T *__restrict__ dst, size_t N, size_t C, size_t H,
-                                    size_t W, size_t padded_H, size_t padded_W, int PH, int PW)
+__global__ void unpad_image_kernel(const T *__restrict__ src,
+                                   T *__restrict__ dst,
+                                   size_t N,
+                                   size_t C,
+                                   size_t H,
+                                   size_t W,
+                                   size_t padded_H,
+                                   size_t padded_W,
+                                   int PH,
+                                   int PW)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * H * W;
 
     if (idx < total_elements)
     {
-        size_t n = idx / (C * H * W);
+        size_t n   = idx / (C * H * W);
         size_t rem = idx % (C * H * W);
-        size_t c = rem / (H * W);
-        rem = rem % (H * W);
-        size_t h = rem / W;
-        size_t w = rem % W;
+        size_t c   = rem / (H * W);
+        rem        = rem % (H * W);
+        size_t h   = rem / W;
+        size_t w   = rem % W;
 
-        size_t src_h = h + PH;
-        size_t src_w = w + PW;
+        size_t src_h   = h + PH;
+        size_t src_w   = w + PW;
         size_t src_idx = n * C * padded_H * padded_W + c * padded_H * padded_W + src_h * padded_W + src_w;
         size_t dst_idx = n * C * H * W + c * H * W + h * W + w;
 
@@ -342,8 +391,11 @@ namespace
 /**
  * @brief im2col 内部实现（CUDA版本）
  */
-std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                                 std::pair<int, int> pad, bool to_matrix)
+std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
+                                 std::pair<int, int> kernel_size,
+                                 std::pair<int, int> stride,
+                                 std::pair<int, int> pad,
+                                 bool to_matrix)
 {
     auto img_shape = img.shape();
 
@@ -371,9 +423,10 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
 
     if (OH <= 0 || OW <= 0)
     {
-        THROW_INVALID_ARG("im2col: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
-                         "stride=({},{}), pad=({},{})",
-                         OH, OW, H, W, KH, KW, SH, SW, PH, PW);
+        THROW_INVALID_ARG(
+            "im2col: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
+            "stride=({},{}), pad=({},{})",
+            OH, OW, H, W, KH, KW, SH, SW, PH, PW);
     }
 
     // 创建填充后的图像
@@ -390,7 +443,7 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
     // 在 GPU 上填充图像
     device_common::TypeDispatcher::dispatch_void(img.dtype(), [&]<typename T>() {
         const T *img_data = img.data_ptr<T>();
-        T *padded_data = padded_img->data_ptr<T>();
+        T *padded_data    = padded_img->data_ptr<T>();
 
         // 初始化填充图像为0
         cudaMemset(padded_data, 0, N * C * padded_H * padded_W * sizeof(T));
@@ -399,10 +452,10 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
         // 使用 CUDA kernel 复制原始图像到填充位置
         size_t total_elements = N * C * H * W;
         int threads_per_block = 256;
-        int num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
-        pad_image_kernel<T><<<num_blocks, threads_per_block>>>(img_data, padded_data, N, C, H, W, padded_H, padded_W,
-                                                               PH, PW);
+        pad_image_kernel<T>
+            <<<num_blocks, threads_per_block>>>(img_data, padded_data, N, C, H, W, padded_H, padded_W, PH, PW);
         CUDA_CHECK_ASYNC();
     });
 
@@ -414,19 +467,19 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
     }
     else
     {
-        out_shape = Shape{N, C, static_cast<size_t>(KH), static_cast<size_t>(KW), static_cast<size_t>(OH),
-                          static_cast<size_t>(OW)};
+        out_shape = Shape{
+            N, C, static_cast<size_t>(KH), static_cast<size_t>(KW), static_cast<size_t>(OH), static_cast<size_t>(OW)};
     }
     auto result = std::make_unique<OriginMat>(out_shape, img.dtype(), img.device());
 
     // 启动 CUDA kernel
     device_common::TypeDispatcher::dispatch_void(img.dtype(), [&]<typename T>() {
         const T *padded_data = padded_img->data_ptr<T>();
-        T *col_data = result->data_ptr<T>();
+        T *col_data          = result->data_ptr<T>();
 
         size_t total_elements = to_matrix ? (N * OH * OW * C * KH * KW) : (N * C * KH * KW * OH * OW);
         int threads_per_block = 256;
-        int num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
         im2col_kernel<T><<<num_blocks, threads_per_block>>>(padded_data, col_data, N, C, H, W, KH, KW, SH, SW, PH, PW,
                                                             OH, OW, padded_H, padded_W, to_matrix);
@@ -440,8 +493,12 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
 /**
  * @brief col2im 内部实现（CUDA版本）
  */
-std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape, std::pair<int, int> kernel_size,
-                                  std::pair<int, int> stride, std::pair<int, int> pad, bool to_matrix)
+std::unique_ptr<Mat> col2im_impl(const OriginMat &col,
+                                 const Shape &input_shape,
+                                 std::pair<int, int> kernel_size,
+                                 std::pair<int, int> stride,
+                                 std::pair<int, int> pad,
+                                 bool to_matrix)
 {
     // 检查输入形状
     if (input_shape.size() != 4)
@@ -482,14 +539,14 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
     // 启动 CUDA kernel 进行 col2im
     device_common::TypeDispatcher::dispatch_void(col.dtype(), [&]<typename T>() {
         const T *col_data = col.data_ptr<T>();
-        T *padded_data = padded_img->data_ptr<T>();
+        T *padded_data    = padded_img->data_ptr<T>();
 
-        size_t col_elements = to_matrix ? (N * OH * OW * C * KH * KW) : (N * C * KH * KW * OH * OW);
+        size_t col_elements   = to_matrix ? (N * OH * OW * C * KH * KW) : (N * C * KH * KW * OH * OW);
         int threads_per_block = 256;
-        int num_blocks = (col_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (col_elements + threads_per_block - 1) / threads_per_block;
 
         col2im_kernel<T><<<num_blocks, threads_per_block>>>(col_data, padded_data, N, C, H, W, KH, KW, SH, SW, PH, PW,
-                                                              OH, OW, padded_H, padded_W, to_matrix);
+                                                            OH, OW, padded_H, padded_W, to_matrix);
     });
 
     CUDA_CHECK_ASYNC();
@@ -499,15 +556,15 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
 
     device_common::TypeDispatcher::dispatch_void(col.dtype(), [&]<typename T>() {
         const T *padded_data = padded_img->data_ptr<T>();
-        T *result_data = result->data_ptr<T>();
+        T *result_data       = result->data_ptr<T>();
 
         // 使用 CUDA kernel 移除填充
         size_t total_elements = N * C * H * W;
         int threads_per_block = 256;
-        int num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
-        unpad_image_kernel<T><<<num_blocks, threads_per_block>>>(padded_data, result_data, N, C, H, W, padded_H,
-                                                                  padded_W, PH, PW);
+        unpad_image_kernel<T>
+            <<<num_blocks, threads_per_block>>>(padded_data, result_data, N, C, H, W, padded_H, padded_W, PH, PW);
         CUDA_CHECK_ASYNC();
     });
 
@@ -518,21 +575,31 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
 
 // ==================== 对外接口 ====================
 
-std::unique_ptr<Mat> im2col(const OriginMat &img, std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                            std::pair<int, int> pad, bool to_matrix)
+std::unique_ptr<Mat> im2col(const OriginMat &img,
+                            std::pair<int, int> kernel_size,
+                            std::pair<int, int> stride,
+                            std::pair<int, int> pad,
+                            bool to_matrix)
 {
     return im2col_impl(img, kernel_size, stride, pad, to_matrix);
 }
 
-std::unique_ptr<Mat> col2im(const OriginMat &col, const Shape &input_shape, std::pair<int, int> kernel_size,
-                            std::pair<int, int> stride, std::pair<int, int> pad, bool to_matrix)
+std::unique_ptr<Mat> col2im(const OriginMat &col,
+                            const Shape &input_shape,
+                            std::pair<int, int> kernel_size,
+                            std::pair<int, int> stride,
+                            std::pair<int, int> pad,
+                            bool to_matrix)
 {
     return col2im_impl(col, input_shape, kernel_size, stride, pad, to_matrix);
 }
 
 // ==================== conv2d 实现 ====================
 
-std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const OriginMat *b, std::pair<int, int> stride,
+std::unique_ptr<Mat> conv2d(const OriginMat &x,
+                            const OriginMat &W,
+                            const OriginMat *b,
+                            std::pair<int, int> stride,
                             std::pair<int, int> pad)
 {
     // 输入验证
@@ -545,15 +612,15 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
         THROW_INVALID_ARG("conv2d: W must be 4D (OC, C, KH, KW), but got shape {}", W.shape().to_string());
     }
 
-    size_t N = x.shape()[0];
-    size_t C = x.shape()[1];
-    size_t H = x.shape()[2];
+    size_t N    = x.shape()[0];
+    size_t C    = x.shape()[1];
+    size_t H    = x.shape()[2];
     size_t W_in = x.shape()[3];
 
-    size_t OC = W.shape()[0];
+    size_t OC   = W.shape()[0];
     size_t C_in = W.shape()[1];
-    size_t KH = W.shape()[2];
-    size_t KW = W.shape()[3];
+    size_t KH   = W.shape()[2];
+    size_t KW   = W.shape()[3];
 
     // 检查通道数是否匹配
     if (C != C_in)
@@ -567,9 +634,10 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
 
     if (OH <= 0 || OW <= 0)
     {
-        THROW_INVALID_ARG("conv2d: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
-                         "stride=({},{}), pad=({},{})",
-                         OH, OW, H, W_in, KH, KW, stride.first, stride.second, pad.first, pad.second);
+        THROW_INVALID_ARG(
+            "conv2d: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
+            "stride=({},{}), pad=({},{})",
+            OH, OW, H, W_in, KH, KW, stride.first, stride.second, pad.first, pad.second);
     }
 
     // 检查偏置
@@ -606,8 +674,8 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
     
     // 使用 GPU matmul 实现（避免 cuBLAS 的行列主序转换问题）
     // 计算: y_flat = col @ W^T
-        auto W_T = W_reshaped_mat.transpose();
-        const OriginMat &W_T_mat = static_cast<const OriginMat &>(*W_T);
+    auto W_T = W_reshaped_mat.transpose();
+    const OriginMat &W_T_mat = static_cast<const OriginMat &>(*W_T);
     
     // 使用 GPU matmul
     if (col_mat.device().type() == DeviceType::kCUDA && W_T_mat.device().type() == DeviceType::kCUDA)
@@ -622,12 +690,11 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
         y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat*>(y_flat_matmul.release()));
     }
 
-
     // 4. 添加偏置（如果存在）
     if (b != nullptr)
     {
         // 广播偏置: (OC,) -> (N*OH*OW, OC)
-        auto b_broadcast = b->broadcast_to(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
+        auto b_broadcast            = b->broadcast_to(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
         const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
         const OriginMat &b_broadcast_mat = static_cast<const OriginMat &>(*b_broadcast);
         auto y_flat_with_bias = y_flat_mat.operator+(b_broadcast_mat);
@@ -636,17 +703,17 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
 
     // 5. Reshape 并转置: (N*OH*OW, OC) -> (N, OH, OW, OC) -> (N, OC, OH, OW)
     const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
-    auto y_reshaped = y_flat_mat.reshape(Shape{N, static_cast<size_t>(OH), static_cast<size_t>(OW), OC});
+    auto y_reshaped             = y_flat_mat.reshape(Shape{N, static_cast<size_t>(OH), static_cast<size_t>(OW), OC});
 
     // 使用 CUDA kernel 进行转置
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
         const OriginMat &y_reshaped_mat = static_cast<const OriginMat &>(*y_reshaped);
-        const T *src_data = y_reshaped_mat.data_ptr<T>();
-        T *dst_data = result->data_ptr<T>();
+        const T *src_data               = y_reshaped_mat.data_ptr<T>();
+        T *dst_data                     = result->data_ptr<T>();
 
         size_t total_elements = N * OC * OH * OW;
         int threads_per_block = 256;
-        int num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
         transpose_conv_output_kernel<T><<<num_blocks, threads_per_block>>>(src_data, dst_data, N, OC, OH, OW);
     });
@@ -656,9 +723,12 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
     return result;
 }
 
-std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const OriginMat &x, const OriginMat &W,
-                                                    const OriginMat *b, std::pair<int, int> stride,
-                                                    std::pair<int, int> pad)
+std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy,
+                                                  const OriginMat &x,
+                                                  const OriginMat &W,
+                                                  const OriginMat *b,
+                                                  std::pair<int, int> stride,
+                                                  std::pair<int, int> pad)
 {
     // 输入验证
     if (gy.shape().size() != 4)
@@ -674,8 +744,8 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
         THROW_INVALID_ARG("conv2d_backward: W must be 4D (OC, C, KH, KW), but got shape {}", W.shape().to_string());
     }
 
-    size_t N = x.shape()[0];
-    size_t C = x.shape()[1];
+    size_t N  = x.shape()[0];
+    size_t C  = x.shape()[1];
     size_t OC = W.shape()[0];
     size_t KH = W.shape()[2];
     size_t KW = W.shape()[3];
@@ -689,7 +759,7 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
     // gy 形状: (N, OC, OH, OW) -> reshape 为 (N*OH*OW, OC)
     auto gy_reshaped = gy.reshape(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
     // 转置为 (OC, N*OH*OW)
-    auto gy_T = gy_reshaped->transpose();
+    auto gy_T                 = gy_reshaped->transpose();
     const OriginMat &gy_T_mat = static_cast<const OriginMat &>(*gy_T);
 
     // 使用 im2col 将输入转换为列矩阵
@@ -701,7 +771,7 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
     auto gW_flat = gy_T_mat.matmul(col_mat);
     // gW_flat 形状: (OC, C*KH*KW)
     const OriginMat &gW_flat_mat = static_cast<const OriginMat &>(*gW_flat);
-    auto gW = gW_flat_mat.reshape(Shape{OC, C, KH, KW});
+    auto gW                      = gW_flat_mat.reshape(Shape{OC, C, KH, KW});
     grads.push_back(std::move(gW));
 
     // 2. 计算 gb (偏置梯度)
@@ -710,12 +780,12 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
         // gb = gy.sum(axis=(0, 2, 3))
         // gy 形状: (N, OC, OH, OW)
         // 方法：依次对维度2(OH), 2(OW), 0(N)求和
-        auto gy_sum_h = gy.sum(2);  // sum over OH, shape: (N, OC, OW)
+        auto gy_sum_h                 = gy.sum(2);  // sum over OH, shape: (N, OC, OW)
         const OriginMat &gy_sum_h_mat = static_cast<const OriginMat &>(*gy_sum_h);
-        auto gy_sum_w = gy_sum_h_mat.sum(2);  // sum over OW, shape: (N, OC)
+        auto gy_sum_w                 = gy_sum_h_mat.sum(2);  // sum over OW, shape: (N, OC)
         const OriginMat &gy_sum_w_mat = static_cast<const OriginMat &>(*gy_sum_w);
-        auto gb_mat = gy_sum_w_mat.sum(0);  // sum over N, shape: (OC,)
-        auto gb = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(gb_mat.release()));
+        auto gb_mat                   = gy_sum_w_mat.sum(0);  // sum over N, shape: (OC,)
+        auto gb                       = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(gb_mat.release()));
         // 强制reshape到(OC,)，确保形状正确
         auto gb_reshaped = gb->reshape(Shape{OC});
         grads.push_back(std::move(gb_reshaped));
@@ -726,14 +796,15 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
     auto W_reshaped = W.reshape(Shape{OC, C * KH * KW});
     // gy_reshaped 形状: (N*OH*OW, OC)
     const OriginMat &gy_reshaped_mat = static_cast<const OriginMat &>(*gy_reshaped);
-    const OriginMat &W_reshaped_mat = static_cast<const OriginMat &>(*W_reshaped);
+    const OriginMat &W_reshaped_mat  = static_cast<const OriginMat &>(*W_reshaped);
     // gx_col = gy_reshaped @ W_reshaped
     auto gx_col = gy_reshaped_mat.matmul(W_reshaped_mat);
     // gx_col 形状: (N*OH*OW, C*KH*KW)
 
     // 使用 col2im 转换回图像形状
     const OriginMat &gx_col_mat = static_cast<const OriginMat &>(*gx_col);
-    auto gx = col2im_impl(gx_col_mat, x.shape(), std::make_pair(static_cast<int>(KH), static_cast<int>(KW)), stride, pad, true);
+    auto gx = col2im_impl(gx_col_mat, x.shape(), std::make_pair(static_cast<int>(KH), static_cast<int>(KW)), stride,
+                          pad, true);
     grads.insert(grads.begin(), std::move(gx));  // 插入到开头，顺序为 {gx, gW, [gb]}
 
     return grads;
@@ -741,4 +812,3 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
 
 }  // namespace cuda
 }  // namespace origin
-

@@ -1,11 +1,11 @@
-#include "origin/mat/origin/cpu/cpu_ops.h"
-#include "origin/mat/origin/origin_mat.h"
-#include "origin/utils/exception.h"
-#include "origin/utils/conv_utils.h"
-#include "origin/mat/origin/device_common/type_dispatcher.h"
-#include <vector>
 #include <algorithm>
 #include <cstring>
+#include <vector>
+#include "origin/mat/origin/cpu/cpu_ops.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/conv_utils.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -21,8 +21,11 @@ namespace
 /**
  * @brief im2col：将图像转换为列矩阵（内部实现）
  */
-std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                                 std::pair<int, int> pad, bool to_matrix)
+std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
+                                 std::pair<int, int> kernel_size,
+                                 std::pair<int, int> stride,
+                                 std::pair<int, int> pad,
+                                 bool to_matrix)
 {
     auto img_shape = img.shape();
 
@@ -50,15 +53,16 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
 
     if (OH <= 0 || OW <= 0)
     {
-        THROW_INVALID_ARG("im2col: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
-                         "stride=({},{}), pad=({},{})",
-                         OH, OW, H, W, KH, KW, SH, SW, PH, PW);
+        THROW_INVALID_ARG(
+            "im2col: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
+            "stride=({},{}), pad=({},{})",
+            OH, OW, H, W, KH, KW, SH, SW, PH, PW);
     }
 
     // 获取输入数据指针（使用类型分发器支持多种类型）
     std::vector<float> img_data_vec;
     const float *img_data = nullptr;
-    
+
     if (img.dtype() == DataType::kFloat32)
     {
         img_data = img.data_ptr<float>();
@@ -67,7 +71,7 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
     {
         // 对于非 float32 类型，先转换为 float32 向量
         img_data_vec = img.to_vector<float>();
-        img_data = img_data_vec.data();
+        img_data     = img_data_vec.data();
     }
 
     // 创建填充后的图像
@@ -86,8 +90,8 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
                 for (size_t w = 0; w < W; ++w)
                 {
                     size_t src_idx = n * C * H * W + c * H * W + h * W + w;
-                    size_t dst_h = h + PH;
-                    size_t dst_w = w + PW;
+                    size_t dst_h   = h + PH;
+                    size_t dst_w   = w + PW;
                     size_t dst_idx = n * C * padded_H * padded_W + c * padded_H * padded_W + dst_h * padded_W + dst_w;
                     padded_img[dst_idx] = img_data[src_idx];
                 }
@@ -125,7 +129,7 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
                                 if (h_idx < static_cast<int>(padded_H) && w_idx < static_cast<int>(padded_W))
                                 {
                                     size_t img_idx = n * C * padded_H * padded_W + c * padded_H * padded_W +
-                                                    h_idx * padded_W + w_idx;
+                                                     h_idx * padded_W + w_idx;
                                     col_data[out_idx] = padded_img[img_idx];
                                 }
                             }
@@ -163,12 +167,12 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
                                 int w_idx = kw + SW * ow;
 
                                 size_t idx = n * C * KH * KW * OH * OW + c * KH * KW * OH * OW + kh * KW * OH * OW +
-                                            kw * OH * OW + oh * OW + ow;
+                                             kw * OH * OW + oh * OW + ow;
 
                                 if (h_idx < static_cast<int>(padded_H) && w_idx < static_cast<int>(padded_W))
                                 {
                                     size_t img_idx = n * C * padded_H * padded_W + c * padded_H * padded_W +
-                                                    h_idx * padded_W + w_idx;
+                                                     h_idx * padded_W + w_idx;
                                     col_data[idx] = padded_img[img_idx];
                                 }
                             }
@@ -178,8 +182,8 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
             }
         }
 
-        Shape out_shape{N, C, static_cast<size_t>(KH), static_cast<size_t>(KW), static_cast<size_t>(OH),
-                       static_cast<size_t>(OW)};
+        Shape out_shape{
+            N, C, static_cast<size_t>(KH), static_cast<size_t>(KW), static_cast<size_t>(OH), static_cast<size_t>(OW)};
         auto result = std::make_unique<OriginMat>(out_shape, img.dtype(), img.device());
         // 复制数据
         float *result_data = result->data_ptr<float>();
@@ -191,8 +195,12 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img, std::pair<int, int> kerne
 /**
  * @brief col2im：将列矩阵转换回图像形状（内部实现）
  */
-std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape, std::pair<int, int> kernel_size,
-                                std::pair<int, int> stride, std::pair<int, int> pad, bool to_matrix)
+std::unique_ptr<Mat> col2im_impl(const OriginMat &col,
+                                 const Shape &input_shape,
+                                 std::pair<int, int> kernel_size,
+                                 std::pair<int, int> stride,
+                                 std::pair<int, int> pad,
+                                 bool to_matrix)
 {
     // 检查输入形状
     if (input_shape.size() != 4)
@@ -221,7 +229,7 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
     // 获取列矩阵数据
     std::vector<float> col_data_vec;
     const float *col_data = nullptr;
-    
+
     if (col.dtype() == DataType::kFloat32)
     {
         col_data = col.data_ptr<float>();
@@ -229,7 +237,7 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
     else
     {
         col_data_vec = col.to_vector<float>();
-        col_data = col_data_vec.data();
+        col_data     = col_data_vec.data();
     }
 
     // 如果是从矩阵形式转换，先 reshape
@@ -240,9 +248,10 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
         if (col_shape.size() != 2 || col_shape[0] != static_cast<size_t>(N * OH * OW) ||
             col_shape[1] != static_cast<size_t>(C * KH * KW))
         {
-            THROW_INVALID_ARG("col2im: invalid col shape {} for input_shape {}, kernel=({},{}), "
-                             "stride=({},{}), pad=({},{})",
-                             col_shape.to_string(), input_shape.to_string(), KH, KW, SH, SW, PH, PW);
+            THROW_INVALID_ARG(
+                "col2im: invalid col shape {} for input_shape {}, kernel=({},{}), "
+                "stride=({},{}), pad=({},{})",
+                col_shape.to_string(), input_shape.to_string(), KH, KW, SH, SW, PH, PW);
         }
 
         col_reshaped.resize(N * C * KH * KW * OH * OW);
@@ -262,7 +271,7 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
                                 size_t col_idx = c * KH * KW + kh * KW + kw;
                                 size_t src_idx = row_idx * (C * KH * KW) + col_idx;
                                 size_t dst_idx = n * C * KH * KW * OH * OW + c * KH * KW * OH * OW + kh * KW * OH * OW +
-                                                kw * OH * OW + oh * OW + ow;
+                                                 kw * OH * OW + oh * OW + ow;
                                 col_reshaped[dst_idx] = col_data[src_idx];
                             }
                         }
@@ -274,13 +283,14 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
     else
     {
         // 已经是 (N, C, KH, KW, OH, OW) 形状
-        if (col_shape.size() != 6 || col_shape[0] != N || col_shape[1] != C || col_shape[2] != static_cast<size_t>(KH) ||
-            col_shape[3] != static_cast<size_t>(KW) || col_shape[4] != static_cast<size_t>(OH) ||
-            col_shape[5] != static_cast<size_t>(OW))
+        if (col_shape.size() != 6 || col_shape[0] != N || col_shape[1] != C ||
+            col_shape[2] != static_cast<size_t>(KH) || col_shape[3] != static_cast<size_t>(KW) ||
+            col_shape[4] != static_cast<size_t>(OH) || col_shape[5] != static_cast<size_t>(OW))
         {
-            THROW_INVALID_ARG("col2im: invalid col shape {} for input_shape {}, kernel=({},{}), "
-                             "stride=({},{}), pad=({},{})",
-                             col_shape.to_string(), input_shape.to_string(), KH, KW, SH, SW, PH, PW);
+            THROW_INVALID_ARG(
+                "col2im: invalid col shape {} for input_shape {}, kernel=({},{}), "
+                "stride=({},{}), pad=({},{})",
+                col_shape.to_string(), input_shape.to_string(), KH, KW, SH, SW, PH, PW);
         }
         col_reshaped.resize(N * C * KH * KW * OH * OW);
         std::memcpy(col_reshaped.data(), col_data, col_reshaped.size() * sizeof(float));
@@ -311,9 +321,9 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
                             if (h_idx < static_cast<int>(padded_H) && w_idx < static_cast<int>(padded_W))
                             {
                                 size_t col_idx = n * C * KH * KW * OH * OW + c * KH * KW * OH * OW + kh * KW * OH * OW +
-                                                kw * OH * OW + oh * OW + ow;
-                                size_t img_idx = n * C * padded_H * padded_W + c * padded_H * padded_W +
-                                               h_idx * padded_W + w_idx;
+                                                 kw * OH * OW + oh * OW + ow;
+                                size_t img_idx =
+                                    n * C * padded_H * padded_W + c * padded_H * padded_W + h_idx * padded_W + w_idx;
 
                                 img_data[img_idx] += col_reshaped[col_idx];
                             }
@@ -334,8 +344,8 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
             {
                 for (size_t w = 0; w < W; ++w)
                 {
-                    size_t src_h = h + PH;
-                    size_t src_w = w + PW;
+                    size_t src_h   = h + PH;
+                    size_t src_w   = w + PW;
                     size_t src_idx = n * C * padded_H * padded_W + c * padded_H * padded_W + src_h * padded_W + src_w;
                     size_t dst_idx = n * C * H * W + c * H * W + h * W + w;
                     output_data[dst_idx] = img_data[src_idx];
@@ -356,21 +366,31 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col, const Shape &input_shape,
 
 // ==================== 对外接口（供 OriginMat::im2col/col2im 使用）====================
 
-std::unique_ptr<Mat> im2col(const OriginMat &img, std::pair<int, int> kernel_size, std::pair<int, int> stride,
-                            std::pair<int, int> pad, bool to_matrix)
+std::unique_ptr<Mat> im2col(const OriginMat &img,
+                            std::pair<int, int> kernel_size,
+                            std::pair<int, int> stride,
+                            std::pair<int, int> pad,
+                            bool to_matrix)
 {
     return im2col_impl(img, kernel_size, stride, pad, to_matrix);
 }
 
-std::unique_ptr<Mat> col2im(const OriginMat &col, const Shape &input_shape, std::pair<int, int> kernel_size,
-                            std::pair<int, int> stride, std::pair<int, int> pad, bool to_matrix)
+std::unique_ptr<Mat> col2im(const OriginMat &col,
+                            const Shape &input_shape,
+                            std::pair<int, int> kernel_size,
+                            std::pair<int, int> stride,
+                            std::pair<int, int> pad,
+                            bool to_matrix)
 {
     return col2im_impl(col, input_shape, kernel_size, stride, pad, to_matrix);
 }
 
 // ==================== conv2d 实现 ====================
 
-std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const OriginMat *b, std::pair<int, int> stride,
+std::unique_ptr<Mat> conv2d(const OriginMat &x,
+                            const OriginMat &W,
+                            const OriginMat *b,
+                            std::pair<int, int> stride,
                             std::pair<int, int> pad)
 {
     // 输入验证
@@ -383,15 +403,15 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
         THROW_INVALID_ARG("conv2d: W must be 4D (OC, C, KH, KW), but got shape {}", W.shape().to_string());
     }
 
-    size_t N = x.shape()[0];
-    size_t C = x.shape()[1];
-    size_t H = x.shape()[2];
+    size_t N    = x.shape()[0];
+    size_t C    = x.shape()[1];
+    size_t H    = x.shape()[2];
     size_t W_in = x.shape()[3];
 
-    size_t OC = W.shape()[0];
+    size_t OC   = W.shape()[0];
     size_t C_in = W.shape()[1];
-    size_t KH = W.shape()[2];
-    size_t KW = W.shape()[3];
+    size_t KH   = W.shape()[2];
+    size_t KW   = W.shape()[3];
 
     // 检查通道数是否匹配
     if (C != C_in)
@@ -405,9 +425,10 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
 
     if (OH <= 0 || OW <= 0)
     {
-        THROW_INVALID_ARG("conv2d: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
-                         "stride=({},{}), pad=({},{})",
-                         OH, OW, H, W_in, KH, KW, stride.first, stride.second, pad.first, pad.second);
+        THROW_INVALID_ARG(
+            "conv2d: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
+            "stride=({},{}), pad=({},{})",
+            OH, OW, H, W_in, KH, KW, stride.first, stride.second, pad.first, pad.second);
     }
 
     // 检查偏置
@@ -428,33 +449,33 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
     auto col = im2col_impl(x, std::make_pair(static_cast<int>(KH), static_cast<int>(KW)), stride, pad, true);
 
     // 2. 将卷积核 reshape 为 (OC, C*KH*KW) 并转置为 (C*KH*KW, OC)
-    auto W_reshaped = W.reshape(Shape{OC, C * KH * KW});
-    auto W_T = W_reshaped->transpose();
+    auto W_reshaped          = W.reshape(Shape{OC, C * KH * KW});
+    auto W_T                 = W_reshaped->transpose();
     const OriginMat &W_T_mat = static_cast<const OriginMat &>(*W_T);
 
     // 3. 矩阵乘法: col @ W_T -> (N*OH*OW, OC)
     const OriginMat &col_mat = static_cast<const OriginMat &>(*col);
-    auto y_flat = col_mat.matmul(W_T_mat);
+    auto y_flat              = col_mat.matmul(W_T_mat);
 
     // 4. 添加偏置（如果存在）
     if (b != nullptr)
     {
         // 广播偏置: (OC,) -> (N*OH*OW, OC)
-        auto b_broadcast = b->broadcast_to(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
+        auto b_broadcast            = b->broadcast_to(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
         const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
         const OriginMat &b_broadcast_mat = static_cast<const OriginMat &>(*b_broadcast);
-        y_flat = y_flat_mat.operator+(b_broadcast_mat);
+        y_flat                           = y_flat_mat.operator+(b_broadcast_mat);
     }
 
     // 5. Reshape 并转置: (N*OH*OW, OC) -> (N, OH, OW, OC) -> (N, OC, OH, OW)
     const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
-    auto y_reshaped = y_flat_mat.reshape(Shape{N, static_cast<size_t>(OH), static_cast<size_t>(OW), OC});
+    auto y_reshaped             = y_flat_mat.reshape(Shape{N, static_cast<size_t>(OH), static_cast<size_t>(OW), OC});
 
     // 手动转置数据：从 (N, OH, OW, OC) 到 (N, OC, OH, OW)
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
         const OriginMat &y_reshaped_mat = static_cast<const OriginMat &>(*y_reshaped);
-        const T *src_data = y_reshaped_mat.data_ptr<T>();
-        T *dst_data = result->data_ptr<T>();
+        const T *src_data               = y_reshaped_mat.data_ptr<T>();
+        T *dst_data                     = result->data_ptr<T>();
 
         for (size_t n = 0; n < N; ++n)
         {
@@ -464,8 +485,8 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
                 {
                     for (int ow = 0; ow < OW; ++ow)
                     {
-                        size_t src_idx = n * OH * OW * OC + oh * OW * OC + ow * OC + oc;
-                        size_t dst_idx = n * OC * OH * OW + oc * OH * OW + oh * OW + ow;
+                        size_t src_idx    = n * OH * OW * OC + oh * OW * OC + ow * OC + oc;
+                        size_t dst_idx    = n * OC * OH * OW + oc * OH * OW + oh * OW + ow;
                         dst_data[dst_idx] = src_data[src_idx];
                     }
                 }
@@ -476,9 +497,12 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x, const OriginMat &W, const Origin
     return result;
 }
 
-std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const OriginMat &x, const OriginMat &W,
-                                                    const OriginMat *b, std::pair<int, int> stride,
-                                                    std::pair<int, int> pad)
+std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy,
+                                                  const OriginMat &x,
+                                                  const OriginMat &W,
+                                                  const OriginMat *b,
+                                                  std::pair<int, int> stride,
+                                                  std::pair<int, int> pad)
 {
     // 输入验证
     if (gy.shape().size() != 4)
@@ -494,8 +518,8 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
         THROW_INVALID_ARG("conv2d_backward: W must be 4D (OC, C, KH, KW), but got shape {}", W.shape().to_string());
     }
 
-    size_t N = x.shape()[0];
-    size_t C = x.shape()[1];
+    size_t N  = x.shape()[0];
+    size_t C  = x.shape()[1];
     size_t OC = W.shape()[0];
     size_t KH = W.shape()[2];
     size_t KW = W.shape()[3];
@@ -509,7 +533,7 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
     // gy 形状: (N, OC, OH, OW) -> reshape 为 (N*OH*OW, OC)
     auto gy_reshaped = gy.reshape(Shape{N * OH * OW, OC});
     // 转置为 (OC, N*OH*OW)
-    auto gy_T = gy_reshaped->transpose();
+    auto gy_T                 = gy_reshaped->transpose();
     const OriginMat &gy_T_mat = static_cast<const OriginMat &>(*gy_T);
 
     // 使用 im2col 将输入转换为列矩阵
@@ -521,7 +545,7 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
     auto gW_flat = gy_T_mat.matmul(col_mat);
     // gW_flat 形状: (OC, C*KH*KW)
     const OriginMat &gW_flat_mat = static_cast<const OriginMat &>(*gW_flat);
-    auto gW = gW_flat_mat.reshape(Shape{OC, C, KH, KW});
+    auto gW                      = gW_flat_mat.reshape(Shape{OC, C, KH, KW});
     grads.push_back(std::move(gW));
 
     // 2. 计算 gb (偏置梯度)
@@ -530,12 +554,12 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
         // gb = gy.sum(axis=(0, 2, 3))
         // gy 形状: (N, OC, OH, OW)
         // 方法：依次对维度2(OH), 2(OW), 0(N)求和
-        auto gy_sum_h = gy.sum(2);  // sum over OH, shape: (N, OC, OW)
+        auto gy_sum_h                 = gy.sum(2);  // sum over OH, shape: (N, OC, OW)
         const OriginMat &gy_sum_h_mat = static_cast<const OriginMat &>(*gy_sum_h);
-        auto gy_sum_w = gy_sum_h_mat.sum(2);  // sum over OW, shape: (N, OC)
+        auto gy_sum_w                 = gy_sum_h_mat.sum(2);  // sum over OW, shape: (N, OC)
         const OriginMat &gy_sum_w_mat = static_cast<const OriginMat &>(*gy_sum_w);
-        auto gb_mat = gy_sum_w_mat.sum(0);  // sum over N, shape: (OC,)
-        auto gb = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(gb_mat.release()));
+        auto gb_mat                   = gy_sum_w_mat.sum(0);  // sum over N, shape: (OC,)
+        auto gb                       = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(gb_mat.release()));
         // 强制reshape到(OC,)，确保形状正确
         auto gb_reshaped = gb->reshape(Shape{OC});
         grads.push_back(std::move(gb_reshaped));
@@ -546,14 +570,15 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
     auto W_reshaped = W.reshape(Shape{OC, C * KH * KW});
     // gy_reshaped 形状: (N*OH*OW, OC)
     const OriginMat &gy_reshaped_mat = static_cast<const OriginMat &>(*gy_reshaped);
-    const OriginMat &W_reshaped_mat = static_cast<const OriginMat &>(*W_reshaped);
+    const OriginMat &W_reshaped_mat  = static_cast<const OriginMat &>(*W_reshaped);
     // gx_col = gy_reshaped @ W_reshaped
     auto gx_col = gy_reshaped_mat.matmul(W_reshaped_mat);
     // gx_col 形状: (N*OH*OW, C*KH*KW)
 
     // 使用 col2im 转换回图像形状
     const OriginMat &gx_col_mat = static_cast<const OriginMat &>(*gx_col);
-    auto gx = col2im_impl(gx_col_mat, x.shape(), std::make_pair(static_cast<int>(KH), static_cast<int>(KW)), stride, pad, true);
+    auto gx = col2im_impl(gx_col_mat, x.shape(), std::make_pair(static_cast<int>(KH), static_cast<int>(KW)), stride,
+                          pad, true);
     grads.insert(grads.begin(), std::move(gx));  // 插入到开头，顺序为 {gx, gW, [gb]}
 
     return grads;
@@ -561,4 +586,3 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy, const Ori
 
 }  // namespace cpu
 }  // namespace origin
-

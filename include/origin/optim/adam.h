@@ -11,7 +11,7 @@ namespace origin
 /**
  * @brief Adam优化器
  * @details 实现自适应矩估计（Adam）优化算法
- * 
+ *
  * Adam算法：
  * - m = beta1 * m + (1 - beta1) * grad
  * - v = beta2 * v + (1 - beta2) * grad^2
@@ -22,10 +22,10 @@ namespace origin
 class Adam : public Optimizer
 {
 private:
-    float lr_;      // 学习率
-    float beta1_;   // 一阶矩估计的衰减率，默认为0.9
-    float beta2_;   // 二阶矩估计的衰减率，默认为0.999
-    float eps_;     // 数值稳定性常数，默认为1e-8
+    float lr_;     // 学习率
+    float beta1_;  // 一阶矩估计的衰减率，默认为0.9
+    float beta2_;  // 二阶矩估计的衰减率，默认为0.999
+    float eps_;    // 数值稳定性常数，默认为1e-8
 
     // 状态字典
     std::unordered_map<Parameter *, Tensor> m_buffers_;  // 一阶矩估计
@@ -43,6 +43,38 @@ public:
      */
     Adam(Module &target, float lr, float beta1 = 0.9f, float beta2 = 0.999f, float eps = 1e-8f);
 
+    /**
+     * @brief 获取优化器的状态字典
+     * @return 优化器状态字典
+     */
+    std::unordered_map<std::string, std::any> state_dict() const override;
+
+    /**
+     * @brief 从状态字典加载优化器状态
+     * @param state_dict 优化器状态字典
+     */
+    void load_state_dict(const std::unordered_map<std::string, std::any> &state_dict) override;
+
+    /**
+     * @brief 获取学习率
+     */
+    float learning_rate() const { return lr_; }
+
+    /**
+     * @brief 获取 beta1
+     */
+    float beta1() const { return beta1_; }
+
+    /**
+     * @brief 获取 beta2
+     */
+    float beta2() const { return beta2_; }
+
+    /**
+     * @brief 获取 eps
+     */
+    float eps() const { return eps_; }
+
 protected:
     /**
      * @brief 更新单个参数
@@ -54,4 +86,3 @@ protected:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_ADAM_H__
-

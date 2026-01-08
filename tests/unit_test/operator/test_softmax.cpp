@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../../common/device_test_base.h"
 #include "../../common/gtest_utils.h"
 #include "../../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 
@@ -12,8 +12,7 @@ using namespace origin;
  * @brief Softmax 算子测试类（参数化版本）
  */
 class SoftmaxOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -28,11 +27,11 @@ TEST_P(SoftmaxOperatorTest, ForwardBasic)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 验证和为 1
     auto sum_result = sum(result);
     EXPECT_NEAR(sum_result.item<float>(), 1.0f, 1e-5f);
-    
+
     // 验证所有值在 [0, 1] 范围内
     auto result_data = result.to_vector<float>();
     for (float val : result_data)
@@ -52,11 +51,11 @@ TEST_P(SoftmaxOperatorTest, ForwardTwoDimensional)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 验证每一行的和为 1
     auto result_data = result.to_vector<float>();
-    float row1_sum = result_data[0] + result_data[1];
-    float row2_sum = result_data[2] + result_data[3];
+    float row1_sum   = result_data[0] + result_data[1];
+    float row2_sum   = result_data[2] + result_data[3];
     EXPECT_NEAR(row1_sum, 1.0f, 1e-5f);
     EXPECT_NEAR(row2_sum, 1.0f, 1e-5f);
 }
@@ -72,11 +71,11 @@ TEST_P(SoftmaxOperatorTest, ForwardLargeValues)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 验证和为 1
     auto sum_result = sum(result);
     EXPECT_NEAR(sum_result.item<float>(), 1.0f, 1e-4f);
-    
+
     // 验证所有值都是有效的（不是 NaN 或 Inf）
     auto result_data = result.to_vector<float>();
     for (float val : result_data)
@@ -97,7 +96,7 @@ TEST_P(SoftmaxOperatorTest, ForwardNegativeValues)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 验证和为 1
     auto sum_result = sum(result);
     EXPECT_NEAR(sum_result.item<float>(), 1.0f, 1e-5f);
@@ -112,9 +111,9 @@ TEST_P(SoftmaxOperatorTest, ForwardEqualValues)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 所有值应该相等（约 1/3）
-    auto result_data = result.to_vector<float>();
+    auto result_data   = result.to_vector<float>();
     float expected_val = 1.0f / 3.0f;
     for (float val : result_data)
     {
@@ -151,7 +150,8 @@ TEST_P(SoftmaxOperatorTest, BackwardWithGradient)
 TEST_P(SoftmaxOperatorTest, BackwardTwoDimensional)
 {
     // 测试 2D 张量的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = softmax(x);
     y.backward();
@@ -188,7 +188,7 @@ TEST_P(SoftmaxOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 验证每一行的和为 1
     auto result_data = result.to_vector<float>();
     for (int row = 0; row < 10; ++row)
@@ -218,7 +218,7 @@ TEST_P(SoftmaxOperatorTest, NumericalStability)
         EXPECT_FALSE(std::isnan(val));
         EXPECT_FALSE(std::isinf(val));
     }
-    
+
     // 验证和为 1
     auto sum_result = sum(result);
     EXPECT_NEAR(sum_result.item<float>(), 1.0f, 1e-3f);
@@ -226,4 +226,3 @@ TEST_P(SoftmaxOperatorTest, NumericalStability)
 
 // Instantiate test suite: automatically generate tests for CPU and available CUDA
 INSTANTIATE_DEVICE_TEST_SUITE_P(SoftmaxOperatorTest);
-

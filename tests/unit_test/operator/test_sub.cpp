@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 
@@ -13,8 +13,7 @@ using namespace origin;
  *          无GPU环境只运行CPU测试，有GPU环境运行CPU+CUDA测试
  */
 class SubOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -101,7 +100,7 @@ TEST_P(SubOperatorTest, BackwardBasic)
     // 减法算子的梯度：∂y/∂x0 = 1, ∂y/∂x1 = -1
     auto expected_gx0 = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto expected_gx1 = Tensor({-1.0f, -1.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0.grad(), expected_gx0, origin::test::TestTolerance::kDefault);
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1.grad(), expected_gx1, origin::test::TestTolerance::kDefault);
 }
@@ -118,7 +117,7 @@ TEST_P(SubOperatorTest, BackwardWithGradient)
     // 减法算子的梯度：∂y/∂x0 = 1, ∂y/∂x1 = -1
     auto expected_gx0 = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto expected_gx1 = Tensor({-1.0f, -1.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0.grad(), expected_gx0, origin::test::TestTolerance::kDefault);
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1.grad(), expected_gx1, origin::test::TestTolerance::kDefault);
 }
@@ -174,24 +173,28 @@ TEST_P(SubOperatorTest, LargeTensor)
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
-    
-    auto expected = Tensor(std::vector<float>(100, 3.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto expected =
+        Tensor(std::vector<float>(100, 3.0f), Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(SubOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    auto x1 = Tensor({0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                     dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f}, Shape{2, 2, 2},
+                     dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = sub(x0, x1);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 期望值：x0[i] - x1[i]
-    auto expected = Tensor({0.9f, 1.8f, 2.7f, 3.6f, 4.5f, 5.4f, 6.3f, 7.2f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected = Tensor({0.9f, 1.8f, 2.7f, 3.6f, 4.5f, 5.4f, 6.3f, 7.2f}, Shape{2, 2, 2},
+                           dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 

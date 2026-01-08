@@ -1,18 +1,17 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
 /**
  * @brief sum_to算子测试类（参数化版本）
  */
 class SumToOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -165,7 +164,8 @@ TEST_P(SumToOperatorTest, LargeTensor)
 TEST_P(SumToOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{1, 1, 1};
 
     auto result = sum_to(x, target_shape);
@@ -177,7 +177,8 @@ TEST_P(SumToOperatorTest, ThreeDimensional)
 TEST_P(SumToOperatorTest, ThreeDimensionalTo2D)
 {
     // 测试三维张量到二维
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 1};
 
     auto result = sum_to(x, target_shape);
@@ -265,7 +266,8 @@ TEST_P(SumToOperatorTest, CommutativeProperty)
 TEST_P(SumToOperatorTest, ForwardMultipleAxes)
 {
     // 测试沿多个轴求和
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{1, 1, 1};
 
     auto result = sum_to(x, target_shape);
@@ -314,7 +316,8 @@ TEST_P(SumToOperatorTest, ForwardHighPrecision)
 TEST_P(SumToOperatorTest, BackwardPartialReduction)
 {
     // 测试部分归约的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{2, 1};
 
     auto y = sum_to(x, target_shape);

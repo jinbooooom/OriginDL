@@ -1,13 +1,13 @@
 #include "origin/data/mnist.h"
-#include "origin/core/tensor.h"
-#include "origin/utils/exception.h"
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-#include <sstream>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include "origin/core/tensor.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -34,37 +34,40 @@ MNIST::MNIST(const std::string &root, bool train) : train_(train), root_(root)
     if (!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file))
     {
         std::cout << "MNIST data files not found. Running download script..." << std::endl;
-        
+
         // 获取脚本路径（相对于当前工作目录）
         std::filesystem::path script_path = std::filesystem::current_path() / "scripts" / "download_mnist.sh";
-        
+
         // 检查脚本是否存在
         if (!std::filesystem::exists(script_path))
         {
             THROW_RUNTIME_ERROR(
                 "MNIST data files not found and download script not found at: {}\n"
-                "Please ensure the script exists or download the data manually.", script_path.string());
+                "Please ensure the script exists or download the data manually.",
+                script_path.string());
         }
-        
+
         // 调用下载脚本
         std::string cmd = "bash " + script_path.string();
-        int ret = std::system(cmd.c_str());
-        
+        int ret         = std::system(cmd.c_str());
+
         if (ret != 0)
         {
             THROW_RUNTIME_ERROR(
                 "Failed to download MNIST dataset. Download script returned error code: {}\n"
-                "Please run the script manually: bash scripts/download_mnist.sh", ret);
+                "Please run the script manually: bash scripts/download_mnist.sh",
+                ret);
         }
-        
+
         // 再次检查文件是否存在
         if (!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file))
         {
             THROW_RUNTIME_ERROR(
                 "MNIST data files still not found after running download script.\n"
-                "Expected files: {} and {}", images_file, labels_file);
+                "Expected files: {} and {}",
+                images_file, labels_file);
         }
-        
+
         std::cout << "MNIST dataset downloaded successfully." << std::endl;
     }
 
@@ -191,4 +194,3 @@ size_t MNIST::size() const
 }
 
 }  // namespace origin
-

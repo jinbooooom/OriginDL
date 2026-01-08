@@ -659,7 +659,7 @@ void *TorchMat::data_ptr()
 {
     // TODO: 实现 TorchMat::data_ptr() 虚函数版本
     // 需要根据数据类型分发到对应的 data_ptr<T>()
-    
+
     THROW_RUNTIME_ERROR("TorchMat::data_ptr() not implemented yet");
 }
 
