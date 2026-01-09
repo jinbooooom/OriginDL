@@ -83,6 +83,33 @@ std::vector<Tensor> Mul::backward(const std::vector<Tensor> &gys)
     return gxs;
 }
 
+void Mul::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (&input1 == &kNullTensor_)
+    {
+        THROW_INVALID_ARG("Mul requires two operands, cannot be used as unary operator");
+    }
+
+    // 原地操作：input0 = input0 * input1
+    if (TypePromotion::needs_promotion({input0, input1}))
+    {
+        auto promoted_tensors = TypePromotion::promote_tensors({input0, input1});
+        if (input0.dtype() != promoted_tensors[0].dtype())
+        {
+            input0 = input0.to(promoted_tensors[0].dtype());
+        }
+        Tensor input1_promoted = (input1.dtype() != promoted_tensors[1].dtype()) ? input1.to(promoted_tensors[1].dtype()) : input1;
+        
+        // 使用 mat() 方法获取 Mat 引用并执行原地操作
+        mat(input0).mul_inplace(mat(input1_promoted));
+    }
+    else
+    {
+        // 类型匹配，直接执行原地操作
+        mat(input0).mul_inplace(mat(input1));
+    }
+}
+
 Tensor mul(const std::vector<Tensor> &xs)
 {
     auto op = std::make_shared<Mul>();
@@ -92,6 +119,13 @@ Tensor mul(const std::vector<Tensor> &xs)
 Tensor mul(const Tensor &lhs, const Tensor &rhs)
 {
     return mul({lhs, rhs});
+}
+
+void mul_(Tensor &lhs, const Tensor &rhs)
+{
+    // 创建 Mul 实例并调用 forward_inplace
+    Mul op;
+    op.forward_inplace(lhs, rhs);
 }
 
 }  // namespace functional

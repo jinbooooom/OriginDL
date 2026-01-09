@@ -29,6 +29,7 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
 
     // 类型匹配，直接运算
     auto result = mat(xs[0]) + mat(xs[1]);
+    
     auto y      = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{y};
 }
@@ -80,6 +81,35 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
     return std::vector<Tensor>{gx0, gx1};
 }
 
+void Add::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (&input1 == &kNullTensor_)
+    {
+        THROW_INVALID_ARG("Add requires two operands, cannot be used as unary operator");
+    }
+
+    // 原地操作：input0 = input0 + input1
+    if (TypePromotion::needs_promotion({input0, input1}))
+    {
+        auto promoted_tensors = TypePromotion::promote_tensors({input0, input1});
+        // 如果input0需要类型提升，需要先转换
+        if (input0.dtype() != promoted_tensors[0].dtype())
+        {
+            input0 = input0.to(promoted_tensors[0].dtype());
+        }
+        // 如果input1需要类型提升，需要先转换
+        Tensor input1_promoted = (input1.dtype() != promoted_tensors[1].dtype()) ? input1.to(promoted_tensors[1].dtype()) : input1;
+        
+        // 使用 mat() 方法获取 Mat 引用并执行原地操作
+        mat(input0).add_inplace(mat(input1_promoted));
+    }
+    else
+    {
+        // 类型匹配，直接执行原地操作
+        mat(input0).add_inplace(mat(input1));
+    }
+}
+
 Tensor add(const std::vector<Tensor> &xs)
 {
     return (*std::shared_ptr<Operator>(new Add()))(xs)[0];
@@ -88,6 +118,13 @@ Tensor add(const std::vector<Tensor> &xs)
 Tensor add(const Tensor &lhs, const Tensor &rhs)
 {
     return add({lhs, rhs});
+}
+
+void add_(Tensor &lhs, const Tensor &rhs)
+{
+    // 创建 Add 实例并调用 forward_inplace
+    Add op;
+    op.forward_inplace(lhs, rhs);
 }
 
 }  // namespace functional

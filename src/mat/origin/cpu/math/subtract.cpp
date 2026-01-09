@@ -61,5 +61,35 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b)
     return result;
 }
 
+/**
+ * @brief CPU原地减法算子实现（从目标矩阵减去源矩阵）
+ * @param a 目标矩阵（会被修改）
+ * @param b 源矩阵（不会被修改）
+ * @note 要求 a 和 b 的形状相同
+ */
+void subtract_inplace(OriginMat &a, const OriginMat &b)
+{
+    // 输入验证
+    VALIDATE_SAME_DTYPE(a, b);
+    VALIDATE_SAME_CPU_DEVICE(a, b);
+
+    // 验证形状必须相同（原地操作要求）
+    if (a.shape() != b.shape())
+    {
+        THROW_INVALID_ARG("subtract_inplace: shapes must match. a.shape() = {}, b.shape() = {}", a.shape().to_string(),
+                          b.shape().to_string());
+    }
+
+    // 获取数据指针
+    void *a_data       = a.storage()->data();
+    const void *b_data = b.storage()->data();
+
+    // 执行原地减法：a = a - b
+    device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+        cpu_elementwise_kernel<T, SubtractOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                             static_cast<T *>(a_data), a.elements(), SubtractOp{});
+    });
+}
+
 }  // namespace cpu
 }  // namespace origin

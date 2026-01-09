@@ -39,6 +39,17 @@ std::vector<Tensor> Exp::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+void Exp::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (&input1 != &kNullTensor_)
+    {
+        THROW_INVALID_ARG("Exp is a unary operator, cannot accept two operands");
+    }
+
+    // 原地操作：input0 = exp(input0)
+    mat(input0).exp_inplace();
+}
+
 Tensor exp(const std::vector<Tensor> &xs)
 {
     auto op = std::make_shared<Exp>();
@@ -50,6 +61,13 @@ Tensor exp(const Tensor &x)
     auto xs = std::vector<Tensor>();
     xs.emplace_back(x);
     return exp(xs);
+}
+
+void exp_(Tensor &x)
+{
+    // 创建 Exp 实例并调用 forward_inplace
+    Exp op;
+    op.forward_inplace(x, Operator::kNullTensor_);
 }
 
 }  // namespace functional

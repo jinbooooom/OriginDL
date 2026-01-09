@@ -43,5 +43,28 @@ std::unique_ptr<Mat> square(const OriginMat &mat)
     return result;
 }
 
+/**
+ * @brief CPU原地平方运算实现（修改当前矩阵）
+ * @param mat 输入矩阵（会被修改）
+ */
+void square_inplace(OriginMat &mat)
+{
+    // 输入验证
+    if (unlikely(mat.elements() == 0))
+    {
+        THROW_INVALID_ARG("Cannot compute square of empty matrix");
+    }
+    VALIDATE_CPU_DEVICE(mat);
+
+    // 获取数据指针
+    void *a_data = mat.storage()->data();
+
+    // 使用类型分发器执行原地平方运算
+    device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
+        cpu_unary_kernel<T, SquareOp>(static_cast<const T *>(a_data), static_cast<T *>(a_data), mat.elements(),
+                                      SquareOp{});
+    });
+}
+
 }  // namespace cpu
 }  // namespace origin

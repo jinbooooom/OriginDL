@@ -213,5 +213,43 @@ TEST_P(NegOperatorTest, MixedSigns)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
+// ==================== 原地操作测试 ====================
+
+TEST_P(NegOperatorTest, InplaceBasic)
+{
+    // 测试基本原地取负运算
+    auto x = Tensor({1.0f, -2.0f, 3.0f, -4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    F::neg_(x);
+    
+    auto expected = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(NegOperatorTest, InplaceZeroTensor)
+{
+    // 测试零张量原地取负
+    auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x_original = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    F::neg_(x);
+    
+    // 结果应该等于x（零的负号还是零）
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, x_original, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(NegOperatorTest, InplaceDoubleNegation)
+{
+    // 测试双重负号原地操作
+    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x_original = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    F::neg_(x);
+    F::neg_(x);
+    
+    // 双重负号应该等于原值
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, x_original, origin::test::TestTolerance::kDefault);
+}
+
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(NegOperatorTest);

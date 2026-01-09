@@ -40,6 +40,17 @@ std::vector<Tensor> Log::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+void Log::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (&input1 != &kNullTensor_)
+    {
+        THROW_INVALID_ARG("Log is a unary operator, cannot accept two operands");
+    }
+
+    // 原地操作：input0 = log(input0)
+    mat(input0).log_inplace();
+}
+
 Tensor log(const std::vector<Tensor> &xs)
 {
     auto op = std::make_shared<Log>();
@@ -51,6 +62,13 @@ Tensor log(const Tensor &x)
     auto xs = std::vector<Tensor>();
     xs.emplace_back(x);
     return log(xs);
+}
+
+void log_(Tensor &x)
+{
+    // 创建 Log 实例并调用 forward_inplace
+    Log op;
+    op.forward_inplace(x, Operator::kNullTensor_);
 }
 
 }  // namespace functional

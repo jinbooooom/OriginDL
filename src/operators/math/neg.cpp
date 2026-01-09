@@ -32,6 +32,17 @@ std::vector<Tensor> Neg::backward(const std::vector<Tensor> &gys)
     return gxs;
 }
 
+void Neg::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (&input1 != &kNullTensor_)
+    {
+        THROW_INVALID_ARG("Neg is a unary operator, cannot accept two operands");
+    }
+
+    // 原地操作：input0 = -input0
+    mat(input0).neg_inplace();
+}
+
 Tensor neg(const std::vector<Tensor> &xs)
 {
     return (*std::shared_ptr<Operator>(new Neg()))(xs)[0];
@@ -42,6 +53,13 @@ Tensor neg(const Tensor &x)
     auto xs = std::vector<Tensor>();
     xs.emplace_back(x);
     return neg(xs);
+}
+
+void neg_(Tensor &x)
+{
+    // 创建 Neg 实例并调用 forward_inplace
+    Neg op;
+    op.forward_inplace(x, Operator::kNullTensor_);
 }
 
 }  // namespace functional

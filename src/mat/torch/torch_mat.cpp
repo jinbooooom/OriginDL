@@ -174,6 +174,24 @@ void TorchMat::add_inplace(const Mat &other)
     data_.add_(other_torch.data_);
 }
 
+void TorchMat::sub_inplace(const Mat &other)
+{
+    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
+    data_.sub_(other_torch.data_);
+}
+
+void TorchMat::mul_inplace(const Mat &other)
+{
+    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
+    data_.mul_(other_torch.data_);
+}
+
+void TorchMat::div_inplace(const Mat &other)
+{
+    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
+    data_.div_(other_torch.data_);
+}
+
 std::unique_ptr<Mat> TorchMat::operator-(const Mat &other) const
 {
     const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
@@ -201,6 +219,21 @@ std::unique_ptr<Mat> TorchMat::operator/(const Mat &other) const
 std::unique_ptr<Mat> TorchMat::operator-() const
 {
     return std::make_unique<TorchMat>(-data_);
+}
+
+void TorchMat::neg_inplace()
+{
+    data_.neg_();
+}
+
+std::unique_ptr<Mat> TorchMat::relu() const
+{
+    return std::make_unique<TorchMat>(torch::relu(data_));
+}
+
+void TorchMat::relu_inplace()
+{
+    data_.relu_();
 }
 
 std::unique_ptr<Mat> TorchMat::broadcast_to(const Shape &shape) const
@@ -329,9 +362,19 @@ std::unique_ptr<Mat> TorchMat::exp() const
     return std::make_unique<TorchMat>(torch::exp(data_));
 }
 
+void TorchMat::exp_inplace()
+{
+    data_.exp_();
+}
+
 std::unique_ptr<Mat> TorchMat::log() const
 {
     return std::make_unique<TorchMat>(torch::log(data_));
+}
+
+void TorchMat::log_inplace()
+{
+    data_.log_();
 }
 
 std::unique_ptr<Mat> TorchMat::sin() const
@@ -349,9 +392,19 @@ std::unique_ptr<Mat> TorchMat::sqrt() const
     return std::make_unique<TorchMat>(torch::sqrt(data_));
 }
 
+void TorchMat::sqrt_inplace()
+{
+    data_.sqrt_();
+}
+
 std::unique_ptr<Mat> TorchMat::square() const
 {
     return std::make_unique<TorchMat>(data_ * data_);
+}
+
+void TorchMat::square_inplace()
+{
+    data_.mul_(data_);
 }
 
 std::unique_ptr<Mat> TorchMat::pow(const Scalar &exponent) const

@@ -98,6 +98,74 @@ std::unique_ptr<Mat> negate(const origin::OriginMat &mat);
 std::unique_ptr<Mat> relu(const origin::OriginMat &mat);
 
 // ============================================================================
+// 原地操作算子
+// ============================================================================
+
+/**
+ * @brief CUDA原地加法算子
+ * @param a 目标矩阵（会被修改）
+ * @param b 源矩阵（不会被修改）
+ */
+void add_inplace(OriginMat &a, const OriginMat &b);
+
+/**
+ * @brief CUDA原地减法算子
+ * @param a 目标矩阵（会被修改）
+ * @param b 源矩阵（不会被修改）
+ */
+void subtract_inplace(OriginMat &a, const OriginMat &b);
+
+/**
+ * @brief CUDA原地乘法算子
+ * @param a 目标矩阵（会被修改）
+ * @param b 源矩阵（不会被修改）
+ */
+void multiply_inplace(OriginMat &a, const OriginMat &b);
+
+/**
+ * @brief CUDA原地除法算子
+ * @param a 目标矩阵（会被修改）
+ * @param b 源矩阵（不会被修改）
+ */
+void divide_inplace(OriginMat &a, const OriginMat &b);
+
+/**
+ * @brief CUDA原地指数算子
+ * @param mat 输入矩阵（会被修改）
+ */
+void exp_inplace(OriginMat &mat);
+
+/**
+ * @brief CUDA原地对数算子
+ * @param mat 输入矩阵（会被修改）
+ */
+void log_inplace(OriginMat &mat);
+
+/**
+ * @brief CUDA原地平方根算子
+ * @param mat 输入矩阵（会被修改）
+ */
+void sqrt_inplace(OriginMat &mat);
+
+/**
+ * @brief CUDA原地平方算子
+ * @param mat 输入矩阵（会被修改）
+ */
+void square_inplace(OriginMat &mat);
+
+/**
+ * @brief CUDA原地取负算子
+ * @param mat 输入矩阵（会被修改）
+ */
+void negate_inplace(OriginMat &mat);
+
+/**
+ * @brief CUDA原地ReLU激活函数算子
+ * @param mat 输入矩阵（会被修改）
+ */
+void relu_inplace(OriginMat &mat);
+
+// ============================================================================
 // 形状操作算子
 // ============================================================================
 

@@ -69,10 +69,28 @@ std::vector<Tensor> ReLU::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+void ReLU::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (&input1 != &kNullTensor_)
+    {
+        THROW_INVALID_ARG("ReLU is a unary operator, cannot accept two operands");
+    }
+
+    // 原地操作：input0 = relu(input0)
+    mat(input0).relu_inplace();
+}
+
 Tensor relu(const Tensor &x)
 {
     auto op = std::make_shared<ReLU>();
     return (*op)(x);
+}
+
+void relu_(Tensor &x)
+{
+    // 创建 ReLU 实例并调用 forward_inplace
+    ReLU op;
+    op.forward_inplace(x, Operator::kNullTensor_);
 }
 
 }  // namespace functional

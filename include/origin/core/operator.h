@@ -39,6 +39,9 @@ public:
     virtual std::vector<Tensor> backward(const std::vector<Tensor> &grad_outputs) = 0;
 
 public:
+    // 静态成员变量：用于标记空 Tensor，区分一元和二元原地操作
+    static const Tensor kNullTensor_;
+
     std::vector<Tensor> inputs_;  // 前向传播的入参，考虑多输入
 
     // 根本解决方案：使用 weak_ptr 避免循环引用
@@ -85,6 +88,13 @@ protected:
 
     // 从Mat创建Tensor（仅限Operator子类使用）
     Tensor convert_mat_to_tensor(std::unique_ptr<Mat> mat) { return Tensor(std::move(mat)); }
+
+    // 原地操作虚函数，会修改 input0.（默认实现抛出异常）
+    // input1 默认为 kNullTensor_，当 input1 == kNullTensor_ 时表示一元操作，否则为二元操作
+    virtual void forward_inplace(Tensor &input0, const Tensor &input1 = kNullTensor_)
+    {
+        THROW_RUNTIME_ERROR("forward_inplace not implemented for this operator");
+    }
 
 private:
     void setup_computation_graph(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs);

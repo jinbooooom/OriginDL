@@ -84,11 +84,25 @@ public:
     virtual std::unique_ptr<Mat> operator-(const Mat &other) const = 0;
 
     /**
+     * @brief 原地矩阵减法（从当前矩阵减去另一个矩阵）
+     * @param other 另一个矩阵
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void sub_inplace(const Mat &other) = 0;
+
+    /**
      * @brief 元素级乘法
      * @param other 另一个矩阵
      * @return 乘法结果
      */
     virtual std::unique_ptr<Mat> operator*(const Mat &other) const = 0;
+
+    /**
+     * @brief 原地矩阵乘法（将当前矩阵与另一个矩阵相乘）
+     * @param other 另一个矩阵
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void mul_inplace(const Mat &other) = 0;
 
     /**
      * @brief 矩阵乘法（真正的矩阵乘法）
@@ -103,6 +117,13 @@ public:
      * @return 除法结果
      */
     virtual std::unique_ptr<Mat> operator/(const Mat &other) const = 0;
+
+    /**
+     * @brief 原地矩阵除法（将当前矩阵除以另一个矩阵）
+     * @param other 另一个矩阵
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void div_inplace(const Mat &other) = 0;
 
     // === 泛型标量操作 ===
 
@@ -196,6 +217,12 @@ public:
     virtual std::unique_ptr<Mat> exp() const = 0;
 
     /**
+     * @brief 原地指数函数（修改当前矩阵）
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void exp_inplace() = 0;
+
+    /**
      * @brief 自然对数运算（以 e 为底）
      *
      * 计算矩阵的自然对数，即 log(x) = ln(x)
@@ -203,6 +230,12 @@ public:
      * @return 自然对数运算结果
      */
     virtual std::unique_ptr<Mat> log() const = 0;
+
+    /**
+     * @brief 原地自然对数函数（修改当前矩阵）
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void log_inplace() = 0;
 
     /**
      * @brief 正弦函数
@@ -223,10 +256,22 @@ public:
     virtual std::unique_ptr<Mat> sqrt() const = 0;
 
     /**
+     * @brief 原地平方根函数（修改当前矩阵）
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void sqrt_inplace() = 0;
+
+    /**
      * @brief 平方函数
      * @return 平方运算结果
      */
     virtual std::unique_ptr<Mat> square() const = 0;
+
+    /**
+     * @brief 原地平方函数（修改当前矩阵）
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void square_inplace() = 0;
 
     /**
      * @brief 幂函数
@@ -240,6 +285,18 @@ public:
      * @return ReLU 运算结果，y = max(0, x)
      */
     virtual std::unique_ptr<Mat> relu() const = 0;
+
+    /**
+     * @brief 原地ReLU激活函数（修改当前矩阵）
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void relu_inplace() = 0;
+
+    /**
+     * @brief 原地取负函数（修改当前矩阵）
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void neg_inplace() = 0;
 
     /**
      * @brief 获取后端类型

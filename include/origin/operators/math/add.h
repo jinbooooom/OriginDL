@@ -17,10 +17,15 @@ public:
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+
+    void forward_inplace(Tensor &input0, const Tensor &input1) override;
 };
 
 extern Tensor add(const std::vector<Tensor> &xs);
 extern Tensor add(const Tensor &lhs, const Tensor &rhs);
+
+// 原地操作函数
+extern void add_(Tensor &lhs, const Tensor &rhs);
 
 }  // namespace functional
 

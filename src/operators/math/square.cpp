@@ -43,6 +43,17 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+void Square::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (&input1 != &kNullTensor_)
+    {
+        THROW_INVALID_ARG("Square is a unary operator, cannot accept two operands");
+    }
+
+    // 原地操作：input0 = input0 * input0
+    mat(input0).square_inplace();
+}
+
 Tensor square(const std::vector<Tensor> &xs)
 {
     auto op = std::make_shared<Square>();
@@ -54,6 +65,13 @@ Tensor square(const Tensor &x)
     auto xs = std::vector<Tensor>();
     xs.emplace_back(x);
     return square(xs);
+}
+
+void square_(Tensor &x)
+{
+    // 创建 Square 实例并调用 forward_inplace
+    Square op;
+    op.forward_inplace(x, Operator::kNullTensor_);
 }
 
 }  // namespace functional

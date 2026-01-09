@@ -230,5 +230,55 @@ TEST_P(AddOperatorTest, PrecisionTest)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
+// ==================== 原地操作测试 ====================
+
+TEST_P(AddOperatorTest, InplaceBasic)
+{
+    // 测试基本原地加法运算
+    Shape shape{2, 2};
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    
+    // 保存原始值用于验证
+    auto x0_copy = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    
+    // 执行原地操作
+    F::add_(x0, x1);
+    
+    // 验证结果
+    auto expected = Tensor({6.0f, 8.0f, 10.0f, 12.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
+    
+    // 验证 x1 没有被修改
+    auto x1_expected = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1, x1_expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, InplaceZeroTensor)
+{
+    // 测试零张量原地加法
+    auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    auto x0_original = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    F::add_(x0, x1);
+    
+    // 结果应该等于x0的原始值
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, x0_original, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, InplaceNegativeValues)
+{
+    // 测试负值原地加法
+    auto x0 = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    
+    F::add_(x0, x1);
+    
+    auto expected = Tensor({2.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
+}
+
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(AddOperatorTest);

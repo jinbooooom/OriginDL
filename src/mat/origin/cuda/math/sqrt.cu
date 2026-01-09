@@ -43,5 +43,27 @@ std::unique_ptr<Mat> sqrt(const OriginMat &mat)
     return result;
 }
 
+/**
+ * @brief CUDA原地平方根运算实现（修改当前矩阵）
+ * @param mat 输入矩阵（会被修改）
+ */
+void sqrt_inplace(OriginMat &mat)
+{
+    // 验证输入
+    VALIDATE_CUDA_DEVICE(mat);
+    VALIDATE_FLOAT_DTYPE(mat);
+
+    // 获取数据指针
+    void *a_data = mat.storage()->data();
+
+    // 直接调用一元内核执行原地平方根运算
+    device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
+        launch_unary_kernel<T, SqrtOp>(static_cast<const T *>(a_data), static_cast<T *>(a_data), mat.elements(),
+                                       SqrtOp{}, 0);
+    });
+
+    CUDA_CHECK_ASYNC();
+}
+
 }  // namespace cuda
 }  // namespace origin

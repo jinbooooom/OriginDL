@@ -20,6 +20,8 @@ public:
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+
+    void forward_inplace(Tensor &input0, const Tensor &input1) override;
 };
 
 /**
@@ -31,6 +33,9 @@ public:
  * @note 与 PyTorch 的 torch.log() 行为一致
  */
 extern Tensor log(const Tensor &x);
+
+// 原地操作函数
+extern void log_(Tensor &x);
 
 }  // namespace functional
 }  // namespace origin

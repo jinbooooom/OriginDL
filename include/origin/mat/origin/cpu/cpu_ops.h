@@ -12,20 +12,30 @@ namespace cpu
 
 // === 基础运算 ===
 std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b);
+void add_inplace(OriginMat &a, const OriginMat &b);
 std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b);
+void subtract_inplace(OriginMat &a, const OriginMat &b);
 std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b);
+void multiply_inplace(OriginMat &a, const OriginMat &b);
 std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b);
+void divide_inplace(OriginMat &a, const OriginMat &b);
 std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
 
 std::unique_ptr<Mat> negate(const OriginMat &mat);
+void negate_inplace(OriginMat &mat);
 
 // === 数学函数 ===
 std::unique_ptr<Mat> exp(const OriginMat &mat);
+void exp_inplace(OriginMat &mat);
 std::unique_ptr<Mat> log(const OriginMat &mat);
+void log_inplace(OriginMat &mat);
 std::unique_ptr<Mat> sqrt(const OriginMat &mat);
+void sqrt_inplace(OriginMat &mat);
 std::unique_ptr<Mat> square(const OriginMat &mat);
+void square_inplace(OriginMat &mat);
 std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
 std::unique_ptr<Mat> relu(const OriginMat &mat);
+void relu_inplace(OriginMat &mat);
 
 // === 统计函数 ===
 std::unique_ptr<Mat> sum(const OriginMat &mat, int axis);

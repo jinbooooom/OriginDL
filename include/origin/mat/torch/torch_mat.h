@@ -162,9 +162,12 @@ public:
     std::unique_ptr<Mat> operator+(const Mat &other) const override;
     void add_inplace(const Mat &other) override;
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
+    void sub_inplace(const Mat &other) override;
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
+    void mul_inplace(const Mat &other) override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
+    void div_inplace(const Mat &other) override;
 
     std::unique_ptr<Mat> operator-() const override;
     std::unique_ptr<Mat> broadcast_to(const Shape &shape) const override;
@@ -181,13 +184,20 @@ public:
 
     // 数学函数
     std::unique_ptr<Mat> exp() const override;
+    void exp_inplace() override;
     std::unique_ptr<Mat> log() const override;
+    void log_inplace() override;
     std::unique_ptr<Mat> sin() const override;
     std::unique_ptr<Mat> cos() const override;
     std::unique_ptr<Mat> sqrt() const override;
+    void sqrt_inplace() override;
     std::unique_ptr<Mat> square() const override;
+    void square_inplace() override;
     // 虚函数重写（与OriginMat接口对齐）
     std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
+    std::unique_ptr<Mat> relu() const override;
+    void relu_inplace() override;
+    void neg_inplace() override;
 
     // 0维张量支持（与OriginMat接口对齐）
     bool is_scalar() const override;
