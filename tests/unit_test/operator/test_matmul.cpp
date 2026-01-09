@@ -7,6 +7,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 /**
  * @brief 矩阵乘法算子测试类（参数化版本）
  */
@@ -21,7 +22,7 @@ TEST_P(MatMulOperatorTest, ForwardBasic)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto w = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -37,7 +38,7 @@ TEST_P(MatMulOperatorTest, ForwardOperatorOverload)
     auto x = Tensor({1.0f, 2.0f}, Shape{1, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto w = Tensor({3.0f, 4.0f}, Shape{2, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
 
     Shape expected_shape{1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -51,7 +52,7 @@ TEST_P(MatMulOperatorTest, ForwardDifferentSizes)
     auto w =
         Tensor({7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -68,7 +69,7 @@ TEST_P(MatMulOperatorTest, ForwardIdentityMatrix)
     auto x        = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto identity = Tensor({1.0f, 0.0f, 0.0f, 1.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, identity);
+    auto result = F::mat_mul(x, identity);
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
 }
@@ -79,7 +80,7 @@ TEST_P(MatMulOperatorTest, ForwardZeroMatrix)
     auto x    = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto zero = Tensor::zeros(Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, zero);
+    auto result = F::mat_mul(x, zero);
 
     auto expected = Tensor::zeros(Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -95,7 +96,7 @@ TEST_P(MatMulOperatorTest, BackwardBasic)
     auto w = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2},
                     dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = mat_mul(x, w);
+    auto y = F::mat_mul(x, w);
     y.backward();
 
     // 矩阵乘法算子的梯度：
@@ -123,7 +124,7 @@ TEST_P(MatMulOperatorTest, BackwardWithGradient)
     auto w = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2},
                     dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = mat_mul(x, w);
+    auto y = F::mat_mul(x, w);
     y.backward();
 
     // 梯度会累积
@@ -149,7 +150,7 @@ TEST_P(MatMulOperatorTest, BackwardDifferentSizes)
     auto w = Tensor({7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f}, Shape{3, 2},
                     dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = mat_mul(x, w);
+    auto y = F::mat_mul(x, w);
     y.backward();
 
     auto gx_data = x.grad().to_vector<float>();
@@ -177,7 +178,7 @@ TEST_P(MatMulOperatorTest, BackwardIdentityMatrix)
     auto identity = Tensor({1.0f, 0.0f, 0.0f, 1.0f}, Shape{2, 2},
                            dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = mat_mul(x, identity);
+    auto y = F::mat_mul(x, identity);
     y.backward();
 
     auto gx_data        = x.grad().to_vector<float>();
@@ -202,7 +203,7 @@ TEST_P(MatMulOperatorTest, SingleElement)
     auto x = Tensor({5.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()));
     auto w = Tensor({3.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
 
     Shape expected_shape{1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -217,7 +218,7 @@ TEST_P(MatMulOperatorTest, LargeMatrix)
     auto x = Tensor(data_x, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     auto w = Tensor(data_w, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -241,7 +242,7 @@ TEST_P(MatMulOperatorTest, ThreeDimensional)
     auto w = Tensor({1.0f, 0.0f, 0.0f, 1.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     // libtorch支持三维张量矩阵乘法，结果形状为[2, 2, 2]
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
 
@@ -259,7 +260,7 @@ TEST_P(MatMulOperatorTest, NumericalStability)
     auto x = Tensor({1e3f, 1e-3f, 1e3f, 1e-3f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto w = Tensor({1e-3f, 1e3f, 1e-3f, 1e3f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -278,7 +279,7 @@ TEST_P(MatMulOperatorTest, PrecisionTest)
     auto x = Tensor({0.1f, 0.2f, 0.3f, 0.4f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto w = Tensor({0.5f, 0.6f, 0.7f, 0.8f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -297,7 +298,7 @@ TEST_P(MatMulOperatorTest, MixedSigns)
     auto x = Tensor({1.0f, -2.0f, 3.0f, -4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto w = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -314,8 +315,8 @@ TEST_P(MatMulOperatorTest, AssociativeProperty)
     auto B = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto C = Tensor({9.0f, 10.0f, 11.0f, 12.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result1 = mat_mul(mat_mul(A, B), C);
-    auto result2 = mat_mul(A, mat_mul(B, C));
+    auto result1 = F::mat_mul(F::mat_mul(A, B), C);
+    auto result2 = F::mat_mul(A, F::mat_mul(B, C));
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, result2, origin::test::TestTolerance::kDefault);
 }
@@ -327,8 +328,8 @@ TEST_P(MatMulOperatorTest, DistributiveProperty)
     auto B = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto C = Tensor({9.0f, 10.0f, 11.0f, 12.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result1 = mat_mul(A, B + C);
-    auto result2 = mat_mul(A, B) + mat_mul(A, C);
+    auto result1 = F::mat_mul(A, B + C);
+    auto result2 = F::mat_mul(A, B) + F::mat_mul(A, C);
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, result2, origin::test::TestTolerance::kDefault);
 }
@@ -340,7 +341,7 @@ TEST_P(MatMulOperatorTest, DimensionValidation)
     auto w = Tensor({5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 维度匹配，应该成功
-    auto result = mat_mul(x, w);
+    auto result = F::mat_mul(x, w);
     Shape expected_shape{2, 3};
     EXPECT_EQ(result.shape(), expected_shape);
 
@@ -350,7 +351,7 @@ TEST_P(MatMulOperatorTest, DimensionValidation)
         Tensor({5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 维度不匹配应该抛出异常
-    EXPECT_THROW(mat_mul(x2, w2), std::exception);
+    EXPECT_THROW(F::mat_mul(x2, w2), std::exception);
 }
 
 // 实例化测试套件：自动为CPU和可用CUDA生成测试

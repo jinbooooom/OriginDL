@@ -7,6 +7,7 @@
 #include "origin/utils/log.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 namespace nn = origin::nn;
 
@@ -54,7 +55,7 @@ int main()
         auto y_pred = model(x);
 
         auto diff       = y_pred - y;
-        auto sum_result = sum(pow(diff, 2));
+        auto sum_result = F::sum(F::pow(diff, Scalar(2)));
         // Create elements tensor on GPU (scalar with value = diff.elements())
         auto elements_value  = static_cast<float>(diff.elements());
         auto elements_tensor = Tensor(elements_value, sum_result.shape(), dtype(DataType::kFloat32).device(kCUDA));

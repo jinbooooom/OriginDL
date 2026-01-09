@@ -7,6 +7,7 @@
 #include "../common/test_utils.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief Linear 算子测试类（参数化版本）
@@ -34,7 +35,7 @@ TEST_P(LinearOperatorTest, ForwardBasic)
     std::vector<float> bias_data = {0.0f, 0.0f, 0.0f, 0.0f};
     auto bias = Tensor(bias_data, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
 
-    LinearOp op(3, 4, true);
+    functional::LinearOp op(3, 4, true);
     auto result = op.forward({x, weight, bias})[0];
 
     Shape expected_shape{2, 4};
@@ -61,7 +62,7 @@ TEST_P(LinearOperatorTest, ForwardWithBias)
     std::vector<float> bias_data = {1.0f, 2.0f};
     auto bias = Tensor(bias_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    LinearOp op(2, 2, true);
+    functional::LinearOp op(2, 2, true);
     auto result = op.forward({x, weight, bias})[0];
 
     Shape expected_shape{1, 2};
@@ -83,7 +84,7 @@ TEST_P(LinearOperatorTest, ForwardNoBias)
     std::vector<float> weight_data = {1.0f, 0.0f, 0.0f, 1.0f};
     auto weight = Tensor(weight_data, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    LinearOp op(2, 2, false);
+    functional::LinearOp op(2, 2, false);
     auto result = op.forward({x, weight})[0];
 
     Shape expected_shape{1, 2};
@@ -114,7 +115,7 @@ TEST_P(LinearOperatorTest, Forward3DInput)
     }
     auto weight = Tensor(weight_data, Shape{4, 6}, dtype(DataType::kFloat32).device(deviceType()));
 
-    LinearOp op(6, 4, false);
+    functional::LinearOp op(6, 4, false);
     auto result = op.forward({x, weight})[0];
 
     Shape expected_shape{2, 4};

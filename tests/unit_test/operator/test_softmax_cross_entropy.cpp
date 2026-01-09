@@ -7,6 +7,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief SoftmaxCrossEntropy 算子测试类（参数化版本）
@@ -25,7 +26,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, ForwardBasic)
     auto x      = Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor({2}, Shape{1}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto result = softmax_cross_entropy(x, target);
+    auto result = F::softmax_cross_entropy(x, target);
 
     Shape expected_shape{};  // 标量
     EXPECT_EQ(result.shape(), expected_shape);
@@ -44,7 +45,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, ForwardPerfectPrediction)
     auto x      = Tensor({-10.0f, -10.0f, 10.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor({2}, Shape{1}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto result = softmax_cross_entropy(x, target);
+    auto result = F::softmax_cross_entropy(x, target);
 
     float loss_value = result.item<float>();
     EXPECT_NEAR(loss_value, 0.0f, 0.1f);  // 应该接近 0
@@ -57,7 +58,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, ForwardBatch)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 3.0f, 2.0f, 1.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor({2, 0}, Shape{2}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto result = softmax_cross_entropy(x, target);
+    auto result = F::softmax_cross_entropy(x, target);
 
     Shape expected_shape{};  // 标量
     EXPECT_EQ(result.shape(), expected_shape);
@@ -74,7 +75,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, ForwardUniformDistribution)
     auto x      = Tensor({1.0f, 1.0f, 1.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor({1}, Shape{1}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto result = softmax_cross_entropy(x, target);
+    auto result = F::softmax_cross_entropy(x, target);
 
     float loss_value    = result.item<float>();
     float expected_loss = std::log(3.0f);  // -log(1/3) = log(3)
@@ -90,7 +91,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, BackwardBasic)
         Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto target = Tensor({2}, Shape{1}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto loss = softmax_cross_entropy(x, target);
+    auto loss = F::softmax_cross_entropy(x, target);
     loss.backward();
 
     // 验证梯度形状
@@ -112,7 +113,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, BackwardBatch)
                          dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto target = Tensor({2, 0}, Shape{2}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto loss = softmax_cross_entropy(x, target);
+    auto loss = F::softmax_cross_entropy(x, target);
     loss.backward();
 
     // 验证梯度形状
@@ -135,11 +136,11 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, BackwardGradientCheck)
         Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto target = Tensor({2}, Shape{1}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto loss = softmax_cross_entropy(x, target);
+    auto loss = F::softmax_cross_entropy(x, target);
     loss.backward();
 
     // 计算 softmax
-    auto p      = softmax(x, -1);
+    auto p      = F::softmax(x, -1);
     auto p_data = p.to_vector<float>();
 
     // 创建 one_hot
@@ -167,7 +168,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, SingleClass)
     auto x      = Tensor({1.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor({0}, Shape{1}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto result = softmax_cross_entropy(x, target);
+    auto result = F::softmax_cross_entropy(x, target);
 
     // 对于单类别，softmax 输出为 1.0，损失为 -log(1) = 0
     float loss_value = result.item<float>();
@@ -194,7 +195,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, LargeBatch)
     auto x      = Tensor(x_data, Shape{N, C}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor(target_data, Shape{N}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto result = softmax_cross_entropy(x, target);
+    auto result = F::softmax_cross_entropy(x, target);
 
     float loss_value = result.item<float>();
     EXPECT_GT(loss_value, 0.0f);
@@ -214,7 +215,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, ManyClasses)
     auto x      = Tensor(x_data, Shape{1, C}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor({5}, Shape{1}, dtype(DataType::kInt32).device(deviceType()));
 
-    auto result = softmax_cross_entropy(x, target);
+    auto result = F::softmax_cross_entropy(x, target);
 
     float loss_value = result.item<float>();
     EXPECT_GT(loss_value, 0.0f);
@@ -229,7 +230,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, InvalidTargetIndex)
     auto x      = Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor({5}, Shape{1}, dtype(DataType::kInt32).device(deviceType()));  // 索引超出范围
 
-    EXPECT_THROW(softmax_cross_entropy(x, target), std::exception);
+    EXPECT_THROW(F::softmax_cross_entropy(x, target), std::exception);
 }
 
 TEST_P(SoftmaxCrossEntropyOperatorTest, ShapeMismatch)
@@ -238,7 +239,7 @@ TEST_P(SoftmaxCrossEntropyOperatorTest, ShapeMismatch)
     auto x      = Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
     auto target = Tensor({0, 1}, Shape{2}, dtype(DataType::kInt32).device(deviceType()));  // batch size 不匹配
 
-    EXPECT_THROW(softmax_cross_entropy(x, target), std::exception);
+    EXPECT_THROW(F::softmax_cross_entropy(x, target), std::exception);
 }
 
 // Instantiate test suite: automatically generate tests for CPU and available CUDA

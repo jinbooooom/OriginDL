@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
 {
@@ -154,4 +156,5 @@ Tensor softmax(const Tensor &x, int axis)
     return (*op)(x);
 }
 
+}  // namespace functional
 }  // namespace origin

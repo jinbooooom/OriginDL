@@ -7,6 +7,7 @@
 #include "origin/operators/conv/conv2d.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief Conv2d 算子测试类（参数化版本）
@@ -30,7 +31,7 @@ TEST_P(Conv2dOperatorTest, ForwardBasic)
     std::vector<float> W_data = {1.0f, 1.0f, 1.0f, 1.0f};
     auto W                    = Tensor(W_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = conv2d(x, W, nullptr, 1, 0);
+    auto result = F::conv2d(x, W, nullptr, 1, 0);
 
     Shape expected_shape{1, 1, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -55,7 +56,7 @@ TEST_P(Conv2dOperatorTest, ForwardWithStride)
     std::vector<float> W_data = {1.0f, 1.0f, 1.0f, 1.0f};
     auto W                    = Tensor(W_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = conv2d(x, W, nullptr, 2, 0);
+    auto result = F::conv2d(x, W, nullptr, 2, 0);
 
     Shape expected_shape{1, 1, 1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -77,7 +78,7 @@ TEST_P(Conv2dOperatorTest, ForwardWithPadding)
     std::vector<float> W_data = {1.0f, 1.0f, 1.0f, 1.0f};
     auto W                    = Tensor(W_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = conv2d(x, W, nullptr, 1, 1);
+    auto result = F::conv2d(x, W, nullptr, 1, 1);
 
     Shape expected_shape{1, 1, 3, 3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -101,7 +102,7 @@ TEST_P(Conv2dOperatorTest, ForwardWithBias)
     std::vector<float> b_data = {1.0f};
     auto b                    = Tensor(b_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = conv2d(x, W, &b, 1, 0);
+    auto result = F::conv2d(x, W, &b, 1, 0);
 
     Shape expected_shape{1, 1, 1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -126,7 +127,7 @@ TEST_P(Conv2dOperatorTest, ForwardMultipleChannels)
     std::vector<float> W_data = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
     auto W                    = Tensor(W_data, Shape{1, 2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = conv2d(x, W, nullptr, 1, 0);
+    auto result = F::conv2d(x, W, nullptr, 1, 0);
 
     Shape expected_shape{1, 1, 1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -149,7 +150,7 @@ TEST_P(Conv2dOperatorTest, BackwardBasic)
     std::vector<float> W_data = {1.0f, 1.0f, 1.0f, 1.0f};
     auto W                    = Tensor(W_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = conv2d(x, W, nullptr, 1, 0);
+    auto y = F::conv2d(x, W, nullptr, 1, 0);
     y.backward();
 
     // 验证梯度不为零
@@ -195,7 +196,7 @@ TEST_P(Conv2dOperatorTest, BackwardWithBias)
     std::vector<float> b_data = {1.0f};
     auto b                    = Tensor(b_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = conv2d(x, W, &b, 1, 0);
+    auto y = F::conv2d(x, W, &b, 1, 0);
     y.backward();
 
     // 验证梯度形状
@@ -223,7 +224,7 @@ TEST_P(Conv2dOperatorTest, SingleElementInput)
     std::vector<float> W_data = {1.0f};
     auto W                    = Tensor(W_data, Shape{1, 1, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = conv2d(x, W, nullptr, 1, 0);
+    auto result = F::conv2d(x, W, nullptr, 1, 0);
 
     Shape expected_shape{1, 1, 1, 1};
     EXPECT_EQ(result.shape(), expected_shape);

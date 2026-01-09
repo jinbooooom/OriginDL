@@ -95,14 +95,14 @@ Tensor Linear::forward(const Tensor &input)
     // 直接使用weight_，因为Parameter继承自Tensor
     // 问题可能在于Parameter的拷贝/传递导致impl_丢失
     // 直接传递引用而不是拷贝
-    auto output = mat_mul(input, static_cast<const Tensor &>(weight_));
+    auto output = functional::mat_mul(input, static_cast<const Tensor &>(weight_));
 
     // 添加偏置
     // 由于加法操作只支持相同形状或标量广播，需要先使用broadcast_to
     if (use_bias_)
     {
         // bias_ 的形状是 {1, out_features}，需要广播到 {batch_size, out_features}
-        auto bias_broadcast = broadcast_to(bias_, output.shape());
+        auto bias_broadcast = functional::broadcast_to(bias_, output.shape());
         output              = output + bias_broadcast;
     }
 

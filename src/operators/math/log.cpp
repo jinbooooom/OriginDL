@@ -3,6 +3,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Log::forward(const std::vector<Tensor> &xs)
 {
@@ -51,4 +53,5 @@ Tensor log(const Tensor &x)
     return log(xs);
 }
 
+}  // namespace functional
 }  // namespace origin

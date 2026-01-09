@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> FlattenOp::forward(const std::vector<Tensor> &xs)
 {
@@ -64,7 +66,7 @@ std::vector<Tensor> FlattenOp::forward(const std::vector<Tensor> &xs)
     Shape output_shape(output_dims);
     
     // 使用 reshape，这会自动处理 GPU
-    auto y = reshape(x, output_shape);
+    auto y = functional::reshape(x, output_shape);
     
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -82,12 +84,13 @@ std::vector<Tensor> FlattenOp::backward(const std::vector<Tensor> &gys)
     auto &x = this->inputs_[0];
     
     // 反向传播就是 reshape 回原始形状
-    auto gx = reshape(gy, x.shape());
+    auto gx = functional::reshape(gy, x.shape());
     
     std::vector<Tensor> outputs;
     outputs.push_back(gx);
     return outputs;
 }
 
+}  // namespace functional
 }  // namespace origin
 

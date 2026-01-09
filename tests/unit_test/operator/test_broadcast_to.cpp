@@ -7,6 +7,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 /**
  * @brief broadcast_to算子测试类（参数化版本）
  */
@@ -21,7 +22,7 @@ TEST_P(BroadcastToOperatorTest, ForwardBasic)
     auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     // libtorch行主序：[1,2] expand到[2,2] = [[1,2],[1,2]] = [1,2,1,2]
@@ -35,7 +36,7 @@ TEST_P(BroadcastToOperatorTest, ForwardScalar)
     auto x = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{3};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto expected = Tensor({5.0f, 5.0f, 5.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
@@ -48,7 +49,7 @@ TEST_P(BroadcastToOperatorTest, ForwardToSameShape)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
 }
@@ -59,7 +60,7 @@ TEST_P(BroadcastToOperatorTest, ForwardToLargerShape)
     auto x = Tensor({1.0f, 2.0f}, Shape{1, 2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{3, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto expected =
@@ -73,7 +74,7 @@ TEST_P(BroadcastToOperatorTest, ForwardTo3D)
     auto x = Tensor({1.0f, 2.0f}, Shape{1, 1, 2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 3, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto result_data = result.to_vector<float>();
@@ -92,7 +93,7 @@ TEST_P(BroadcastToOperatorTest, ForwardZeroTensor)
     auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto expected = Tensor::zeros(target_shape, dtype(DataType::kFloat32).device(deviceType()));
@@ -107,10 +108,10 @@ TEST_P(BroadcastToOperatorTest, BackwardBasic)
     auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto y = broadcast_to(x, target_shape);
+    auto y = F::broadcast_to(x, target_shape);
     y.backward();
 
-    // broadcast_to算子的梯度：∂y/∂x = sum_to(gy, x.shape())
+    // broadcast_to算子的梯度：∂y/∂x = F::sum_to(gy, x.shape())
     auto expected_grad = Tensor({2.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, origin::test::TestTolerance::kDefault);
 }
@@ -121,7 +122,7 @@ TEST_P(BroadcastToOperatorTest, BackwardWithGradient)
     auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto y = broadcast_to(x, target_shape);
+    auto y = F::broadcast_to(x, target_shape);
     y.backward();
 
     // 梯度会累积
@@ -135,7 +136,7 @@ TEST_P(BroadcastToOperatorTest, BackwardToSameShape)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto y = broadcast_to(x, target_shape);
+    auto y = F::broadcast_to(x, target_shape);
     y.backward();
 
     auto expected_grad = Tensor::ones(Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -148,7 +149,7 @@ TEST_P(BroadcastToOperatorTest, BackwardToLargerShape)
     auto x = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{3};
 
-    auto y = broadcast_to(x, target_shape);
+    auto y = F::broadcast_to(x, target_shape);
     y.backward();
 
     auto gx_data = x.grad().to_vector<float>();
@@ -164,7 +165,7 @@ TEST_P(BroadcastToOperatorTest, SingleElement)
     auto x = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{1};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     EXPECT_NEAR(result.item<float>(), 5.0f, origin::test::TestTolerance::kDefault);
@@ -177,7 +178,7 @@ TEST_P(BroadcastToOperatorTest, LargeTensor)
     auto x = Tensor(data, Shape{10}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{10, 10};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto result_data = result.to_vector<float>();
@@ -194,7 +195,7 @@ TEST_P(BroadcastToOperatorTest, ThreeDimensional)
     auto x = Tensor({1.0f, 2.0f}, Shape{1, 1, 2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto result_data = result.to_vector<float>();
@@ -214,7 +215,7 @@ TEST_P(BroadcastToOperatorTest, NumericalStability)
     auto x = Tensor({1e10f, 1e-10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto expected =
@@ -228,7 +229,7 @@ TEST_P(BroadcastToOperatorTest, PrecisionTest)
     auto x = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto expected = Tensor({0.1f, 0.2f, 0.1f, 0.2f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
@@ -243,7 +244,7 @@ TEST_P(BroadcastToOperatorTest, MixedSigns)
     auto x = Tensor({1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{3, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto result_data = result.to_vector<float>();
@@ -257,36 +258,36 @@ TEST_P(BroadcastToOperatorTest, MixedSigns)
 
 TEST_P(BroadcastToOperatorTest, IdentityProperty)
 {
-    // 测试恒等性质：broadcast_to(x, x.shape()) = x
+    // 测试恒等性质：F::broadcast_to(x, x.shape()) = x
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = broadcast_to(x, x.shape());
+    auto result = F::broadcast_to(x, x.shape());
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(BroadcastToOperatorTest, AssociativeProperty)
 {
-    // 测试结合性质：broadcast_to(broadcast_to(x, shape1), shape2) = broadcast_to(x, shape2)
+    // 测试结合性质：F::broadcast_to(F::broadcast_to(x, shape1), shape2) = F::broadcast_to(x, shape2)
     auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape shape1{2, 2};
     Shape shape2{2, 2, 2};
 
-    auto result1 = broadcast_to(broadcast_to(x, shape1), shape2);
-    auto result2 = broadcast_to(x, shape2);
+    auto result1 = F::broadcast_to(F::broadcast_to(x, shape1), shape2);
+    auto result2 = F::broadcast_to(x, shape2);
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, result2, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(BroadcastToOperatorTest, CommutativeProperty)
 {
-    // 测试交换性质：broadcast_to(x + y, shape) = broadcast_to(x, shape) + broadcast_to(y, shape)
+    // 测试交换性质：F::broadcast_to(x + y, shape) = F::broadcast_to(x, shape) + F::broadcast_to(y, shape)
     auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto y = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto result1 = broadcast_to(x + y, target_shape);
-    auto result2 = broadcast_to(x, target_shape) + broadcast_to(y, target_shape);
+    auto result1 = F::broadcast_to(x + y, target_shape);
+    auto result2 = F::broadcast_to(x, target_shape) + F::broadcast_to(y, target_shape);
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, result2, origin::test::TestTolerance::kDefault);
 }
@@ -300,7 +301,7 @@ TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcast2DTo2D)
     auto x = Tensor({1.0f, 2.0f}, Shape{2, 1}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 2};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto expected = Tensor({1.0f, 1.0f, 2.0f, 2.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
@@ -314,7 +315,7 @@ TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcast1DTo2D)
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 3};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto expected =
@@ -328,7 +329,7 @@ TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcast3D)
     auto x = Tensor({1.0f, 2.0f}, Shape{1, 2, 1}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{3, 2, 4};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     // 验证每个 (2,) 切片都是 [1, 1, 1, 1] 或 [2, 2, 2, 2]
@@ -353,7 +354,7 @@ TEST_P(BroadcastToOperatorTest, DimensionAwareBroadcastComplex)
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
     Shape target_shape{2, 3};
 
-    auto result = broadcast_to(x, target_shape);
+    auto result = F::broadcast_to(x, target_shape);
 
     EXPECT_EQ(result.shape(), target_shape);
     auto expected =

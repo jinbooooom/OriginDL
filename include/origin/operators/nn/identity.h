@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief Identity 算子：恒等映射
@@ -24,6 +26,7 @@ public:
  */
 Tensor identity(const Tensor &x);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_IDENTITY_H__

@@ -8,6 +8,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Conv2dOp::forward(const std::vector<Tensor> &xs)
 {
@@ -106,4 +108,5 @@ Tensor conv2d(const Tensor &x, const Tensor &W, const Tensor *b, int stride, int
     return conv2d(x, W, b, pair(stride), pair(pad));
 }
 
+}  // namespace functional
 }  // namespace origin

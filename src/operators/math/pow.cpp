@@ -7,6 +7,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
 {
@@ -103,9 +105,12 @@ Tensor pow(const Tensor &base, const Scalar &exponent)
     return pow(std::vector<Tensor>{base}, exponent);
 }
 
+}  // namespace functional
+
+// 运算符重载放在 origin 命名空间下
 Tensor operator^(const Tensor &base, const Scalar &exponent)
 {
-    return pow(std::vector<Tensor>{base}, exponent);
+    return functional::pow(std::vector<Tensor>{base}, exponent);
 }
 
 }  // namespace origin

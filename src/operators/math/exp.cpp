@@ -3,6 +3,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Exp::forward(const std::vector<Tensor> &xs)
 {
@@ -50,4 +52,5 @@ Tensor exp(const Tensor &x)
     return exp(xs);
 }
 
+}  // namespace functional
 }  // namespace origin

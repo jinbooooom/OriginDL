@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> ReLU::forward(const std::vector<Tensor> &xs)
 {
@@ -73,4 +75,5 @@ Tensor relu(const Tensor &x)
     return (*op)(x);
 }
 
+}  // namespace functional
 }  // namespace origin

@@ -52,7 +52,7 @@ Tensor BatchNorm2d::forward(const Tensor &input)
     }
 
     // 创建 BatchNorm Operator
-    auto op = std::make_shared<BatchNorm>(is_training(), eps_, momentum_, 4);  // 4 表示 4D 输入
+    auto op = std::make_shared<functional::BatchNorm>(is_training(), eps_, momentum_, 4);  // 4 表示 4D 输入
 
     // 准备输入
     std::vector<Tensor> inputs;

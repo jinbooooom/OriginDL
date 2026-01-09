@@ -9,6 +9,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
 {
@@ -236,5 +238,6 @@ Tensor cat(const std::vector<Tensor> &xs, int dim)
     return outputs[0];
 }
 
+}  // namespace functional
 }  // namespace origin
 

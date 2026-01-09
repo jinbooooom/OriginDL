@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief SoftmaxCrossEntropy 损失函数算子
@@ -36,6 +38,7 @@ public:
  */
 extern Tensor softmax_cross_entropy(const Tensor &x, const Tensor &target);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SOFTMAX_CROSS_ENTROPY_H__

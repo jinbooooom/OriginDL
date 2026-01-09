@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class BroadcastTo : public Operator
 {
@@ -22,6 +24,7 @@ public:
 
 extern Tensor broadcast_to(const Tensor &x, const Shape &shape);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_BROADCAST_TO_H__

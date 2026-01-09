@@ -8,6 +8,7 @@
 #include "../../common/test_utils.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief SiLU 算子测试类（参数化版本）
@@ -21,13 +22,13 @@ class SiLUOperatorTest : public origin::test::OperatorTestBase
 TEST_P(SiLUOperatorTest, ForwardBasic)
 {
     // 测试基本 SiLU 运算
-    // SiLU(x) = x * sigmoid(x)
-    // SiLU(0) = 0 * sigmoid(0) = 0 * 0.5 = 0
-    // SiLU(1) = 1 * sigmoid(1) ≈ 1 * 0.731 = 0.731
-    // SiLU(-1) = -1 * sigmoid(-1) ≈ -1 * 0.269 = -0.269
+    // SiLU(x) = x * F::sigmoid(x)
+    // SiLU(0) = 0 * F::sigmoid(0) = 0 * 0.5 = 0
+    // SiLU(1) = 1 * F::sigmoid(1) ≈ 1 * 0.731 = 0.731
+    // SiLU(-1) = -1 * F::sigmoid(-1) ≈ -1 * 0.269 = -0.269
     auto x = Tensor({0.0f, 1.0f, -1.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = silu(x);
+    auto result = F::silu(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -48,10 +49,10 @@ TEST_P(SiLUOperatorTest, ForwardBasic)
 
 TEST_P(SiLUOperatorTest, ForwardZero)
 {
-    // 测试零值：SiLU(0) = 0 * sigmoid(0) = 0
+    // 测试零值：SiLU(0) = 0 * F::sigmoid(0) = 0
     auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = silu(x);
+    auto result = F::silu(x);
 
     auto expected = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -62,7 +63,7 @@ TEST_P(SiLUOperatorTest, ForwardPositiveValues)
     // 测试正数
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = silu(x);
+    auto result = F::silu(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -83,7 +84,7 @@ TEST_P(SiLUOperatorTest, ForwardNegativeValues)
     // 测试负数
     auto x = Tensor({-1.0f, -2.0f, -3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = silu(x);
+    auto result = F::silu(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -104,7 +105,7 @@ TEST_P(SiLUOperatorTest, ForwardTwoDimensional)
     // 测试 2D 张量
     auto x = Tensor({0.0f, 1.0f, -1.0f, 2.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = silu(x);
+    auto result = F::silu(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -124,10 +125,10 @@ TEST_P(SiLUOperatorTest, ForwardTwoDimensional)
 TEST_P(SiLUOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    // SiLU'(x) = sigmoid(x) * (1 + x * (1 - sigmoid(x)))
+    // SiLU'(x) = F::sigmoid(x) * (1 + x * (1 - F::sigmoid(x)))
     auto x = Tensor({0.0f, 1.0f, -1.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = silu(x);
+    auto y = F::silu(x);
     y.backward();
 
     // 计算期望梯度
@@ -145,10 +146,10 @@ TEST_P(SiLUOperatorTest, BackwardBasic)
 TEST_P(SiLUOperatorTest, BackwardZero)
 {
     // 测试零值的梯度
-    // SiLU'(0) = sigmoid(0) * (1 + 0 * (1 - sigmoid(0))) = 0.5 * 1 = 0.5
+    // SiLU'(0) = F::sigmoid(0) * (1 + 0 * (1 - F::sigmoid(0))) = 0.5 * 1 = 0.5
     auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = silu(x);
+    auto y = F::silu(x);
     y.backward();
 
     auto expected_grad = Tensor::full(Shape{2}, 0.5f, dtype(DataType::kFloat32).device(deviceType()));
@@ -162,9 +163,9 @@ TEST_P(SiLUOperatorTest, IdentityProperty)
     // 测试性质：对于大正数，SiLU(x) ≈ x
     auto x = Tensor({10.0f, 20.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = silu(x);
+    auto result = F::silu(x);
 
-    // 对于大正数，sigmoid(x) ≈ 1，所以 SiLU(x) ≈ x
+    // 对于大正数，F::sigmoid(x) ≈ 1，所以 SiLU(x) ≈ x
     auto result_data = result.to_vector<float>();
     auto x_data = x.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
@@ -178,9 +179,9 @@ TEST_P(SiLUOperatorTest, NegativeProperty)
     // 测试性质：对于大负数，SiLU(x) ≈ 0
     auto x = Tensor({-10.0f, -20.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = silu(x);
+    auto result = F::silu(x);
 
-    // 对于大负数，sigmoid(x) ≈ 0，所以 SiLU(x) ≈ 0
+    // 对于大负数，F::sigmoid(x) ≈ 0，所以 SiLU(x) ≈ 0
     auto result_data = result.to_vector<float>();
     for (float val : result_data)
     {

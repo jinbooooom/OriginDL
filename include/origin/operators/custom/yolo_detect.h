@@ -9,6 +9,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief YOLO Detect 算子：YOLOv5 检测层
@@ -59,6 +61,7 @@ private:
     std::vector<Tensor> conv_biases_;
 };
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_YOLO_DETECT_H__

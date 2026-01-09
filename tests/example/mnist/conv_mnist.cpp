@@ -24,6 +24,7 @@
 #endif
 
 using namespace origin;
+namespace F = origin::functional;
 
 namespace nn = origin::nn;
 
@@ -211,7 +212,7 @@ public:
     Tensor forward(const Tensor &input) override
     {
         // 输入形状: (N, 784) -> reshape为 (N, 1, 28, 28)
-        auto x = reshape(input, Shape{input.shape()[0], 1, 28, 28});
+        auto x = F::reshape(input, Shape{input.shape()[0], 1, 28, 28});
 
         // 第一层：Conv2d(1, 64, 3x3, pad=1) -> BatchNorm2d(64) -> ReLU -> MaxPool2d(2x2)
         x = conv1_->forward(x);
@@ -539,7 +540,7 @@ int main(int argc, char *argv[])
 
                 // 前向传播
                 auto y    = model(x);
-                auto loss = softmax_cross_entropy(y, t);
+                auto loss = F::softmax_cross_entropy(y, t);
 
                 // 先提取loss和准确率（在反向传播前，避免计算图累积）
                 float loss_value       = loss.item<float>();
@@ -630,7 +631,7 @@ int main(int argc, char *argv[])
 
                     // 前向传播（不需要梯度，已在no_grad作用域内）
                     auto y         = model(x);
-                    auto loss      = softmax_cross_entropy(y, t_int32);
+                    auto loss      = F::softmax_cross_entropy(y, t_int32);
                     float loss_val = loss.item<float>();
 
                     // 使用accuracy函数计算准确率
@@ -761,7 +762,7 @@ int main(int argc, char *argv[])
 
                     // 使用加载的模型进行前向传播
                     auto y         = loaded_model(x);
-                    auto loss      = softmax_cross_entropy(y, t_int32);
+                    auto loss      = F::softmax_cross_entropy(y, t_int32);
                     float loss_val = loss.item<float>();
 
                     // 使用accuracy函数计算准确率

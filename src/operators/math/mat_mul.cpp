@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
 {
@@ -199,4 +201,5 @@ Tensor mat_mul(const Tensor &lhs, const Tensor &rhs)
     return matmul(lhs, rhs);
 }
 
+}  // namespace functional
 }  // namespace origin

@@ -7,6 +7,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 /**
  * @brief 幂算子测试类（参数化版本）
  */
@@ -21,7 +22,7 @@ TEST_P(PowOperatorTest, ForwardBasic)
     auto x       = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 2;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     Shape expected_shape{2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -49,7 +50,7 @@ TEST_P(PowOperatorTest, ForwardZeroExponent)
     auto x       = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 0;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     auto expected = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -61,7 +62,7 @@ TEST_P(PowOperatorTest, ForwardNegativeExponent)
     auto x       = Tensor({2.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = -1;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     auto expected = Tensor({0.5f, 0.25f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -73,7 +74,7 @@ TEST_P(PowOperatorTest, ForwardZeroBase)
     auto x       = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 2;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     auto expected = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -87,7 +88,7 @@ TEST_P(PowOperatorTest, BackwardBasic)
     auto x       = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     int exponent = 2;
 
-    auto y = pow(x, exponent);
+    auto y = F::pow(x, Scalar(exponent));
     y.backward();
 
     // 幂算子的梯度：∂y/∂x = exponent * x^(exponent-1)
@@ -101,7 +102,7 @@ TEST_P(PowOperatorTest, BackwardWithGradient)
     auto x       = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     int exponent = 3;
 
-    auto y = pow(x, exponent);
+    auto y = F::pow(x, Scalar(exponent));
     y.backward();
 
     // 梯度会累积
@@ -115,7 +116,7 @@ TEST_P(PowOperatorTest, BackwardZeroExponent)
     auto x       = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     int exponent = 0;
 
-    auto y = pow(x, exponent);
+    auto y = F::pow(x, Scalar(exponent));
     y.backward();
 
     auto expected_grad = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -128,7 +129,7 @@ TEST_P(PowOperatorTest, BackwardNegativeExponent)
     auto x       = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     int exponent = -2;
 
-    auto y = pow(x, exponent);
+    auto y = F::pow(x, Scalar(exponent));
     y.backward();
 
     // 梯度：-2 * x^(-3) = -2 / x^3
@@ -145,7 +146,7 @@ TEST_P(PowOperatorTest, SingleElement)
     auto x       = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 3;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -159,7 +160,7 @@ TEST_P(PowOperatorTest, LargeTensor)
     auto x       = Tensor(data, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 2;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -176,7 +177,7 @@ TEST_P(PowOperatorTest, ThreeDimensional)
                           dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 2;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -199,7 +200,7 @@ TEST_P(PowOperatorTest, NumericalStability)
     auto x       = Tensor({1e-3f, 1e5f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 2;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     auto expected = Tensor({1e-6f, 1e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e9);
@@ -211,7 +212,7 @@ TEST_P(PowOperatorTest, PrecisionTest)
     auto x       = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 3;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     auto expected = Tensor({0.001f, 0.008f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -225,15 +226,15 @@ TEST_P(PowOperatorTest, DifferentExponents)
     auto x = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 测试指数为1
-    auto result1 = pow(x, 1);
+    auto result1 = F::pow(x, Scalar(1));
     EXPECT_NEAR(result1.item<float>(), 2.0f, origin::test::TestTolerance::kDefault);
 
     // 测试指数为2
-    auto result2 = pow(x, 2);
+    auto result2 = F::pow(x, Scalar(2));
     EXPECT_NEAR(result2.item<float>(), 4.0f, origin::test::TestTolerance::kDefault);
 
     // 测试指数为3
-    auto result3 = pow(x, 3);
+    auto result3 = F::pow(x, Scalar(3));
     EXPECT_NEAR(result3.item<float>(), 8.0f, origin::test::TestTolerance::kDefault);
 }
 
@@ -242,7 +243,7 @@ TEST_P(PowOperatorTest, IdentityProperty)
     // 测试恒等性质：x^1 = x
     auto x = Tensor({2.0f, 3.0f, 4.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = pow(x, 1);
+    auto result = F::pow(x, Scalar(1));
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
 }
@@ -252,7 +253,7 @@ TEST_P(PowOperatorTest, ZeroPowerProperty)
     // 测试零幂性质：x^0 = 1
     auto x = Tensor({2.0f, 3.0f, 4.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = pow(x, 0);
+    auto result = F::pow(x, Scalar(0));
 
     auto expected = Tensor::ones(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -264,7 +265,7 @@ TEST_P(PowOperatorTest, LargeExponent)
     auto x       = Tensor({1.1f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 10;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     EXPECT_NEAR(result.item<float>(), static_cast<float>(std::pow(1.1, 10)), origin::test::TestTolerance::kDefault);
 }
@@ -277,7 +278,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithIntegerExponent)
     auto x       = Tensor({-2.0f, -3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 2;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // 负数底数的整数次幂应该正常计算
     // (-2)^2 = 4, (-3)^2 = 9
@@ -291,7 +292,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithPositiveIntegerExponent)
     auto x       = Tensor({-2.0f, -3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = 3;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // (-2)^3 = -8, (-3)^3 = -27
     auto expected = Tensor({-8.0f, -27.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -304,7 +305,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithNegativeIntegerExponent)
     auto x       = Tensor({-2.0f, -4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     int exponent = -2;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // (-2)^(-2) = 1/4 = 0.25, (-4)^(-2) = 1/16 = 0.0625
     auto expected = Tensor({0.25f, 0.0625f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -317,7 +318,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithNonIntegerExponent)
     auto x          = Tensor({-2.0f, -3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 2.5;  // 非整数指数
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // 负数底数的非整数次幂应该产生 NaN
     auto result_data = result.to_vector<float>();
@@ -334,7 +335,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithFloatExponent)
     auto x         = Tensor({-2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     float exponent = 2.5f;  // 浮点数非整数指数
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // 应该产生 NaN
     float result_value = result.item<float>();
@@ -347,7 +348,7 @@ TEST_P(PowOperatorTest, NegativeBaseWithHalfExponent)
     auto x          = Tensor({-4.0f, -9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 0.5;  // 平方根
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // 负数的平方根应该产生 NaN
     auto result_data = result.to_vector<float>();
@@ -366,7 +367,7 @@ TEST_P(PowOperatorTest, FloatExponentPositiveBase)
     auto x          = Tensor({4.0f, 9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 2.5;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // 4^2.5 = 4^2 * 4^0.5 = 16 * 2 = 32
     // 9^2.5 = 9^2 * 9^0.5 = 81 * 3 = 243
@@ -397,7 +398,7 @@ TEST_P(PowOperatorTest, FloatExponentSmallValue)
     auto x          = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 0.5;  // 平方根
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // 2^0.5 = sqrt(2) ≈ 1.414
     EXPECT_NEAR(result.item<float>(), static_cast<float>(std::sqrt(2.0)), origin::test::TestTolerance::kDefault);
@@ -409,7 +410,7 @@ TEST_P(PowOperatorTest, FloatExponentNegativeValue)
     auto x          = Tensor({4.0f, 9.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = -0.5;  // 负平方根
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     // 4^(-0.5) = 1/sqrt(4) = 0.5
     // 9^(-0.5) = 1/sqrt(9) = 1/3 ≈ 0.333
@@ -423,7 +424,7 @@ TEST_P(PowOperatorTest, MixedPositiveNegativeBaseWithFloatExponent)
     auto x          = Tensor({2.0f, -2.0f, 4.0f, -4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
     double exponent = 2.5;
 
-    auto result = pow(x, exponent);
+    auto result = F::pow(x, Scalar(exponent));
 
     auto result_data = result.to_vector<float>();
 
@@ -444,12 +445,12 @@ TEST_P(PowOperatorTest, NegativeBaseIntegerVsNonInteger)
     auto x_neg = Tensor({-2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 整数指数：应该正常
-    auto result_int = pow(x_neg, 2);
+    auto result_int = F::pow(x_neg, Scalar(2));
     EXPECT_FALSE(std::isnan(result_int.item<float>())) << "Integer exponent should work with negative base";
     EXPECT_NEAR(result_int.item<float>(), 4.0f, origin::test::TestTolerance::kDefault);
 
     // 非整数指数：应该产生 NaN
-    auto result_non_int = pow(x_neg, 2.5);
+    auto result_non_int = F::pow(x_neg, Scalar(2.5f));
     EXPECT_TRUE(std::isnan(result_non_int.item<float>()))
         << "Non-integer exponent should produce NaN with negative base";
 }

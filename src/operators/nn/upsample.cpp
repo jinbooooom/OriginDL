@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Upsample::forward(const std::vector<Tensor> &xs)
 {
@@ -134,5 +136,6 @@ Tensor upsample(const Tensor &x, const std::string &mode, std::pair<float, float
     return (*op)(x);
 }
 
+}  // namespace functional
 }  // namespace origin
 

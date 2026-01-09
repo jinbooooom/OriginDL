@@ -3,6 +3,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Neg::forward(const std::vector<Tensor> &xs)
 {
@@ -42,9 +44,12 @@ Tensor neg(const Tensor &x)
     return neg(xs);
 }
 
+}  // namespace functional
+
+// 运算符重载放在 origin 命名空间下
 Tensor operator-(const Tensor &x)
 {
-    return neg(x);
+    return functional::neg(x);
 }
 
 }  // namespace origin

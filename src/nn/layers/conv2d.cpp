@@ -153,7 +153,7 @@ Tensor Conv2d::forward(const Tensor &input)
     // 调用conv2d算子
     // 如果使用偏置，传递bias_的指针；否则传递nullptr
     const Tensor *bias_ptr = use_bias_ ? &static_cast<const Tensor &>(bias_) : nullptr;
-    auto output            = conv2d(input, static_cast<const Tensor &>(weight_), bias_ptr, stride_, pad_);
+    auto output            = functional::conv2d(input, static_cast<const Tensor &>(weight_), bias_ptr, stride_, pad_);
 
     return output;
 }

@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief Upsample 上采样算子
@@ -39,6 +41,7 @@ public:
 Tensor upsample(const Tensor &x, const std::string &mode = "nearest",
                 std::pair<float, float> scale_factor = {2.0f, 2.0f});
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_UPSAMPLE_H__

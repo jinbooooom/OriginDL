@@ -3,6 +3,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> SumTo::forward(const std::vector<Tensor> &xs)
 {
@@ -45,4 +47,5 @@ Tensor sum_to(const Tensor &x, const Shape &shape)
     return sum_to(inputs, shape);
 }
 
+}  // namespace functional
 }  // namespace origin

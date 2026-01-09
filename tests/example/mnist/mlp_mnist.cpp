@@ -14,6 +14,7 @@
 #endif
 
 using namespace origin;
+namespace F = origin::functional;
 
 namespace nn = origin::nn;
 
@@ -110,7 +111,7 @@ int main(int argc, char *argv[])
 
                 // 前向传播
                 auto y    = model(x);
-                auto loss = softmax_cross_entropy(y, t);
+                auto loss = F::softmax_cross_entropy(y, t);
 
                 // 先提取loss和准确率（在反向传播前，避免计算图累积）
                 float loss_value       = loss.item<float>();
@@ -205,7 +206,7 @@ int main(int argc, char *argv[])
 
                     // 前向传播（不需要梯度，已在no_grad作用域内）
                     auto y         = model(x);
-                    auto loss      = softmax_cross_entropy(y, t_int32);
+                    auto loss      = F::softmax_cross_entropy(y, t_int32);
                     float loss_val = loss.item<float>();
 
                     // 使用accuracy函数计算准确率（更高效，避免多次to_vector）

@@ -6,6 +6,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief 加法算子测试类（参数化版本）
@@ -29,7 +30,7 @@ TEST_P(AddOperatorTest, ForwardBasic)
     origin::test::GTestUtils::EXPECT_TENSOR_DEVICE(x0, deviceType());
     origin::test::GTestUtils::EXPECT_TENSOR_DEVICE(x1, deviceType());
 
-    auto result = add(x0, x1);
+    auto result = F::add(x0, x1);
 
     // 验证结果张量在正确的设备上
     origin::test::GTestUtils::EXPECT_TENSOR_DEVICE(result, deviceType());
@@ -76,7 +77,7 @@ TEST_P(AddOperatorTest, ForwardZeroTensor)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = add(x0, x1);
+    auto result = F::add(x0, x1);
 
     // 结果应该等于x0
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x0, origin::test::TestTolerance::kDefault);
@@ -88,7 +89,7 @@ TEST_P(AddOperatorTest, ForwardNegativeValues)
     auto x0 = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = add(x0, x1);
+    auto result = F::add(x0, x1);
 
     auto expected = Tensor({2.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -102,7 +103,7 @@ TEST_P(AddOperatorTest, BackwardBasic)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = add(x0, x1);
+    auto y = F::add(x0, x1);
     y.backward();
 
     // 加法算子的梯度应该都是1
@@ -117,7 +118,7 @@ TEST_P(AddOperatorTest, BackwardWithGradient)
     auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({1.0f, 1.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = add(x0, x1);
+    auto y = F::add(x0, x1);
     y.backward();
 
     // 加法算子的梯度：∂y/∂x0 = 1, ∂y/∂x1 = 1
@@ -132,7 +133,7 @@ TEST_P(AddOperatorTest, BackwardDifferentShapes)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = add(x0, x1);
+    auto y = F::add(x0, x1);
     y.backward();
 
     // 梯度应该正确广播
@@ -158,7 +159,7 @@ TEST_P(AddOperatorTest, SingleElement)
     auto x0 = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = add(x0, x1);
+    auto result = F::add(x0, x1);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -173,7 +174,7 @@ TEST_P(AddOperatorTest, LargeTensor)
     auto x0 = Tensor(data1, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor(data2, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = add(x0, x1);
+    auto result = F::add(x0, x1);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -192,7 +193,7 @@ TEST_P(AddOperatorTest, ThreeDimensional)
     auto x1 = Tensor({0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f}, Shape{2, 2, 2},
                      dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = add(x0, x1);
+    auto result = F::add(x0, x1);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -211,7 +212,7 @@ TEST_P(AddOperatorTest, NumericalStability)
     auto x0 = Tensor({1e-10f, 1e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({1e-10f, 1e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = add(x0, x1);
+    auto result = F::add(x0, x1);
 
     auto expected = Tensor({2e-10f, 2e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -223,7 +224,7 @@ TEST_P(AddOperatorTest, PrecisionTest)
     auto x0 = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({0.3f, 0.4f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = add(x0, x1);
+    auto result = F::add(x0, x1);
 
     auto expected = Tensor({0.4f, 0.6f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);

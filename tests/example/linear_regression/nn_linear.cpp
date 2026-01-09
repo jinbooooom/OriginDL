@@ -7,6 +7,7 @@
 #include "origin/utils/log.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 namespace nn = origin::nn;
 
@@ -41,7 +42,7 @@ int main()
         auto y_pred = model(x);  // 等价于 auto y_pred = model.forward(x);
 
         auto diff       = y_pred - y;
-        auto sum_result = sum(pow(diff, 2));
+        auto sum_result = F::sum(F::pow(diff, Scalar(2)));
         auto elements   = Tensor(diff.elements(), sum_result.shape(), DataType::kFloat32);
         auto loss       = sum_result / elements;
 

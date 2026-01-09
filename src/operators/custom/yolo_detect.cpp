@@ -10,6 +10,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 YoloDetect::YoloDetect(int32_t stages, 
                        int32_t num_classes, 
@@ -93,7 +95,7 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
 
         // 步骤1：对输入特征图应用卷积
         // 使用 Conv2dOp 进行卷积操作
-        auto conv_op = std::make_shared<Conv2dOp>(std::make_pair(1, 1), std::make_pair(0, 0));
+        auto conv_op = std::make_shared<functional::Conv2dOp>(std::make_pair(1, 1), std::make_pair(0, 0));
         std::vector<Tensor> conv_inputs = {input, conv_weights_[stage], conv_biases_[stage]};
         auto conv_outputs = conv_op->forward(conv_inputs);
         Tensor conv_output = conv_outputs[0];
@@ -169,7 +171,7 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         
         // 简化实现：对整个 tensor 应用 sigmoid（虽然只有前5个通道需要）
         // 更精确的实现需要分别处理不同通道
-        auto sigmoid_op = std::make_shared<Sigmoid>();
+        auto sigmoid_op = std::make_shared<functional::Sigmoid>();
         std::vector<Tensor> sigmoid_inputs = {stage_tensor};
         auto sigmoid_outputs = sigmoid_op->forward(sigmoid_inputs);
         Tensor sigmoid_output = sigmoid_outputs[0];
@@ -284,7 +286,7 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         return std::vector<Tensor>{stage_outputs[0]};
     }
     
-    auto cat_op = std::make_shared<Cat>(1);  // 在维度1上拼接
+    auto cat_op = std::make_shared<functional::Cat>(1);  // 在维度1上拼接
     auto final_outputs = cat_op->forward(stage_outputs);
     
     return final_outputs;
@@ -297,6 +299,7 @@ std::vector<Tensor> YoloDetect::backward(const std::vector<Tensor> &gys)
     return std::vector<Tensor>{};
 }
 
+}  // namespace functional
 }  // namespace origin
 
 

@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Sub::forward(const std::vector<Tensor> &xs)
 {
@@ -60,11 +62,11 @@ std::vector<Tensor> Sub::backward(const std::vector<Tensor> &gys)
         // 实现 sum_to 功能：将梯度广播回原始形状
         if (gx0.shape() != shape0_)
         {
-            gx0 = sum_to(gx0, shape0_);
+            gx0 = functional::sum_to(gx0, shape0_);
         }
         if (gx1.shape() != shape1_)
         {
-            gx1 = sum_to(gx1, shape1_);
+            gx1 = functional::sum_to(gx1, shape1_);
         }
     }
 
@@ -85,21 +87,24 @@ Tensor sub(const Tensor &lhs, const Tensor &rhs)
     return sub({lhs, rhs});
 }
 
+}  // namespace functional
+
+// 运算符重载放在 origin 命名空间下
 Tensor operator-(const Tensor &lhs, const Tensor &rhs)
 {
-    return sub(lhs, rhs);
+    return functional::sub(lhs, rhs);
 }
 
 Tensor operator-(const Tensor &lhs, const Scalar &rhs)
 {
     auto x = Tensor(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
-    return sub(lhs, x);
+    return functional::sub(lhs, x);
 }
 
 Tensor operator-(const Scalar &lhs, const Tensor &rhs)
 {
     auto x = Tensor(lhs, Shape({}), dtype(lhs.dtype()).device(rhs.device()));
-    return sub(x, rhs);
+    return functional::sub(x, rhs);
 }
 
 }  // namespace origin

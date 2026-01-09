@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Exp : public Operator
 {
@@ -16,6 +18,7 @@ public:
 
 extern Tensor exp(const Tensor &x);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_EXP_H__

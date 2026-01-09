@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief Softmax 算子
@@ -35,6 +37,7 @@ public:
  */
 extern Tensor softmax(const Tensor &x, int axis = -1);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SOFTMAX_H__

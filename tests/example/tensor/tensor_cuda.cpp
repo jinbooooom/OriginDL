@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include "origin.h"
+namespace F = origin::functional;
 
 int main()
 {

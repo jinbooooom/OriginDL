@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Sum : public Operator
 {
@@ -22,6 +24,7 @@ public:
 
 extern Tensor sum(const Tensor &x, int axis = -1);  // -1 意味着所有元素相加
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SUM_H__

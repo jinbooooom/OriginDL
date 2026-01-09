@@ -3,6 +3,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Sum::forward(const std::vector<Tensor> &xs)
 {
@@ -52,4 +54,5 @@ Tensor sum(const Tensor &x, int axis)
     return result[0];
 }
 
+}  // namespace functional
 }  // namespace origin

@@ -3,6 +3,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> BroadcastTo::forward(const std::vector<Tensor> &xs)
 {
@@ -41,4 +43,5 @@ Tensor broadcast_to(const Tensor &x, const Shape &shape)
     return result[0];
 }
 
+}  // namespace functional
 }  // namespace origin

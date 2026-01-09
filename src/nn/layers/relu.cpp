@@ -9,7 +9,7 @@ namespace nn
 Tensor ReLU::forward(const Tensor &input)
 {
     // 调用 relu 函数
-    return relu(input);
+    return functional::relu(input);
 }
 
 }  // namespace nn

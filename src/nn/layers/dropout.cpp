@@ -19,7 +19,7 @@ Tensor Dropout::forward(const Tensor &input)
 {
     // 创建 Dropout Operator（注意：Operator 的 Dropout 需要两个参数）
     // 使用完整的命名空间来区分 Layer 和 Operator
-    auto op = std::make_shared<::origin::Dropout>(p_, is_training());
+    auto op = std::make_shared<functional::Dropout>(p_, is_training());
 
     // 执行前向传播
     std::vector<Tensor> inputs;

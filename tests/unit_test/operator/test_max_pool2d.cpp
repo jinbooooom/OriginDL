@@ -7,6 +7,7 @@
 #include "origin/operators/pooling/max_pool2d.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief MaxPool2d 算子测试类（参数化版本）
@@ -27,7 +28,7 @@ TEST_P(MaxPool2dOperatorTest, ForwardBasic)
                                  9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
     auto x                    = Tensor(x_data, Shape{1, 1, 4, 4}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = max_pool2d(x, 2, 2, 0);
+    auto result = F::max_pool2d(x, 2, 2, 0);
 
     Shape expected_shape{1, 1, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -49,7 +50,7 @@ TEST_P(MaxPool2dOperatorTest, ForwardStride)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
     auto x                    = Tensor(x_data, Shape{1, 1, 3, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = max_pool2d(x, std::make_pair(2, 2), std::make_pair(1, 1), std::make_pair(0, 0));
+    auto result = F::max_pool2d(x, std::make_pair(2, 2), std::make_pair(1, 1), std::make_pair(0, 0));
 
     Shape expected_shape{1, 1, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -67,7 +68,7 @@ TEST_P(MaxPool2dOperatorTest, ForwardPad)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto x                    = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = max_pool2d(x, 2, 1, 1);
+    auto result = F::max_pool2d(x, 2, 1, 1);
 
     Shape expected_shape{1, 1, 3, 3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -85,7 +86,7 @@ TEST_P(MaxPool2dOperatorTest, ForwardSingleElement)
     std::vector<float> x_data = {5.0f};
     auto x                    = Tensor(x_data, Shape{1, 1, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = max_pool2d(x, 1, 1, 0);
+    auto result = F::max_pool2d(x, 1, 1, 0);
 
     Shape expected_shape{1, 1, 1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -100,7 +101,7 @@ TEST_P(MaxPool2dOperatorTest, BackwardBasic)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = max_pool2d(x, 2, 2, 0);
+    auto y = F::max_pool2d(x, 2, 2, 0);
     y.backward();
 
     // 验证梯度形状
@@ -130,7 +131,7 @@ TEST_P(MaxPool2dOperatorTest, BackwardWithGradient)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = max_pool2d(x, 2, 2, 0);
+    auto y = F::max_pool2d(x, 2, 2, 0);
     y.backward();
 
     // 验证梯度形状

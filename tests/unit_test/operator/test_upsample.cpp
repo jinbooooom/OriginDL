@@ -7,6 +7,7 @@
 #include "../../common/test_utils.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief Upsample 算子测试类（参数化版本）
@@ -25,7 +26,7 @@ TEST_P(UpsampleOperatorTest, ForwardBasic)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = upsample(x, "nearest", {2.0f, 2.0f});
+    auto result = F::upsample(x, "nearest", {2.0f, 2.0f});
 
     Shape expected_shape{1, 1, 4, 4};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -51,7 +52,7 @@ TEST_P(UpsampleOperatorTest, ForwardScaleFactor)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = upsample(x, "nearest", {3.0f, 3.0f});
+    auto result = F::upsample(x, "nearest", {3.0f, 3.0f});
 
     // 2 * 3 = 6
     Shape expected_shape{1, 1, 6, 6};
@@ -64,7 +65,7 @@ TEST_P(UpsampleOperatorTest, ForwardSingleChannel)
     std::vector<float> x_data = {1.0f};
     auto x = Tensor(x_data, Shape{1, 1, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = upsample(x, "nearest", {2.0f, 2.0f});
+    auto result = F::upsample(x, "nearest", {2.0f, 2.0f});
 
     Shape expected_shape{1, 1, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -85,7 +86,7 @@ TEST_P(UpsampleOperatorTest, ForwardMultiChannel)
     };
     auto x = Tensor(x_data, Shape{1, 2, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = upsample(x, "nearest", {2.0f, 2.0f});
+    auto result = F::upsample(x, "nearest", {2.0f, 2.0f});
 
     Shape expected_shape{1, 2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -99,7 +100,7 @@ TEST_P(UpsampleOperatorTest, BackwardBasic)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = upsample(x, "nearest", {2.0f, 2.0f});
+    auto y = F::upsample(x, "nearest", {2.0f, 2.0f});
     y.backward();
 
     // 验证梯度形状
@@ -123,7 +124,7 @@ TEST_P(UpsampleOperatorTest, SingleElement)
     std::vector<float> x_data = {5.0f};
     auto x = Tensor(x_data, Shape{1, 1, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = upsample(x, "nearest", {2.0f, 2.0f});
+    auto result = F::upsample(x, "nearest", {2.0f, 2.0f});
 
     Shape expected_shape{1, 1, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);

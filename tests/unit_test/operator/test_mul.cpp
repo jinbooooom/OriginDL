@@ -6,6 +6,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief 乘法算子测试类（参数化版本）
@@ -23,7 +24,7 @@ TEST_P(MulOperatorTest, ForwardBasic)
     auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({2.0f, 3.0f, 4.0f, 5.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mul(x0, x1);
+    auto result = F::mul(x0, x1);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -68,7 +69,7 @@ TEST_P(MulOperatorTest, ForwardZeroTensor)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mul(x0, x1);
+    auto result = F::mul(x0, x1);
 
     auto expected = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -80,7 +81,7 @@ TEST_P(MulOperatorTest, ForwardNegativeValues)
     auto x0 = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mul(x0, x1);
+    auto result = F::mul(x0, x1);
 
     auto expected = Tensor({-3.0f, -8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -94,7 +95,7 @@ TEST_P(MulOperatorTest, BackwardBasic)
     auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({4.0f, 5.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = mul(x0, x1);
+    auto y = F::mul(x0, x1);
     y.backward();
 
     // 乘法算子的梯度：∂y/∂x0 = x1, ∂y/∂x1 = x0
@@ -108,7 +109,7 @@ TEST_P(MulOperatorTest, BackwardWithGradient)
     auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({1.0f, 1.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = mul(x0, x1);
+    auto y = F::mul(x0, x1);
     y.backward();
 
     // 乘法算子的梯度：∂y/∂x0 = x1 = 1, ∂y/∂x1 = x0
@@ -123,7 +124,7 @@ TEST_P(MulOperatorTest, BackwardDifferentShapes)
     auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({4.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = mul(x0, x1);
+    auto y = F::mul(x0, x1);
     y.backward();
 
     // 梯度应该正确广播
@@ -149,7 +150,7 @@ TEST_P(MulOperatorTest, SingleElement)
     auto x0 = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mul(x0, x1);
+    auto result = F::mul(x0, x1);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -164,7 +165,7 @@ TEST_P(MulOperatorTest, LargeTensor)
     auto x0 = Tensor(data1, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor(data2, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mul(x0, x1);
+    auto result = F::mul(x0, x1);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -182,7 +183,7 @@ TEST_P(MulOperatorTest, ThreeDimensional)
     auto x1 = Tensor({0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f}, Shape{2, 2, 2},
                      dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mul(x0, x1);
+    auto result = F::mul(x0, x1);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -204,7 +205,7 @@ TEST_P(MulOperatorTest, NumericalStability)
     auto x0 = Tensor({1e10f, 1e-10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({1e-10f, 1e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mul(x0, x1);
+    auto result = F::mul(x0, x1);
 
     auto expected = Tensor({1.0f, 1.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e-3);
@@ -216,7 +217,7 @@ TEST_P(MulOperatorTest, PrecisionTest)
     auto x0 = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({0.3f, 0.4f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = mul(x0, x1);
+    auto result = F::mul(x0, x1);
 
     auto expected = Tensor({0.03f, 0.08f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);

@@ -7,6 +7,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief ReLU 算子测试类（参数化版本）
@@ -23,7 +24,7 @@ TEST_P(ReLUOperatorTest, ForwardBasic)
     // 预期: [0.0, 0.0, 1.0, 2.0]
     auto x = Tensor({-1.0f, 0.0f, 1.0f, 2.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     Shape expected_shape{4};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -37,7 +38,7 @@ TEST_P(ReLUOperatorTest, ForwardAllPositive)
     // 测试全正数
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     // ReLU 应该保持不变
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
@@ -48,7 +49,7 @@ TEST_P(ReLUOperatorTest, ForwardAllNegative)
     // 测试全负数
     auto x = Tensor({-1.0f, -2.0f, -3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     // ReLU 应该全部变为 0
     auto expected = Tensor::zeros(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
@@ -60,7 +61,7 @@ TEST_P(ReLUOperatorTest, ForwardZero)
     // 测试零值
     auto x = Tensor::zeros(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     // ReLU(0) = 0
     auto expected = Tensor::zeros(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
@@ -72,7 +73,7 @@ TEST_P(ReLUOperatorTest, ForwardTwoDimensional)
     // 测试 2D 张量
     auto x = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -88,7 +89,7 @@ TEST_P(ReLUOperatorTest, BackwardBasic)
     // 测试基本反向传播
     auto x = Tensor({-1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = relu(x);
+    auto y = F::relu(x);
     y.backward();
 
     // 梯度：x > 0 时为 1，x <= 0 时为 0
@@ -104,7 +105,7 @@ TEST_P(ReLUOperatorTest, BackwardWithGradient)
     auto x = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{4},
                     dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = relu(x);
+    auto y = F::relu(x);
     y.backward();
 
     // 梯度：gx = gy * (x > 0 ? 1 : 0)
@@ -121,7 +122,7 @@ TEST_P(ReLUOperatorTest, BackwardZero)
     // 测试 x=0 的梯度
     auto x = Tensor({0.0f, 0.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = relu(x);
+    auto y = F::relu(x);
     y.backward();
 
     // ReLU 在 x=0 处的梯度为 0（通常定义）
@@ -135,7 +136,7 @@ TEST_P(ReLUOperatorTest, BackwardTwoDimensional)
     auto x = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{2, 2},
                     dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = relu(x);
+    auto y = F::relu(x);
     y.backward();
 
     // 验证梯度形状
@@ -154,7 +155,7 @@ TEST_P(ReLUOperatorTest, SingleElement)
     // 测试单个元素
     auto x = Tensor({-5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -166,7 +167,7 @@ TEST_P(ReLUOperatorTest, SingleElementPositive)
     // 测试单个正元素
     auto x = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -183,7 +184,7 @@ TEST_P(ReLUOperatorTest, LargeTensor)
     }
     auto x = Tensor(data, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -208,7 +209,7 @@ TEST_P(ReLUOperatorTest, ThreeDimensional)
     std::vector<float> input_data = {-1.0f, 2.0f, -3.0f, 4.0f, -5.0f, 6.0f, -7.0f, 8.0f};
     auto x                        = Tensor(input_data, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -225,7 +226,7 @@ TEST_P(ReLUOperatorTest, IdentityProperty)
     // 测试恒等性质：对于正数，ReLU(x) = x
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
 }
@@ -235,7 +236,7 @@ TEST_P(ReLUOperatorTest, ZeroProperty)
     // 测试零性质：对于负数，ReLU(x) = 0
     auto x = Tensor({-1.0f, -2.0f, -3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = relu(x);
+    auto result = F::relu(x);
 
     auto expected = Tensor::zeros(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);

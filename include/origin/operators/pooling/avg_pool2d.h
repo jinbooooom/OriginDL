@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief AvgPool2d 算子：二维平均池化操作
@@ -57,6 +59,7 @@ Tensor avg_pool2d(const Tensor &x,
 
 Tensor avg_pool2d(const Tensor &x, int kernel_size, int stride = 0, int pad = 0);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_AVG_POOL2D_H__

@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 BatchNorm::BatchNorm(bool training, float eps, float momentum, int num_dims)
     : training_(training), eps_(eps), momentum_(momentum), num_dims_(num_dims)
@@ -308,4 +310,5 @@ std::vector<Tensor> BatchNorm::backward(const std::vector<Tensor> &gys)
     outputs.push_back(Tensor::zeros(this->inputs_[4].shape(), dtype(DataType::kFloat32).device(x.device())));
     return outputs;
 }
+}  // namespace functional
 }  // namespace origin

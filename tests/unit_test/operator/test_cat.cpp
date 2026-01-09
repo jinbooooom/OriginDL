@@ -7,6 +7,7 @@
 #include "../../common/test_utils.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief Cat 算子测试类（参数化版本）
@@ -23,7 +24,7 @@ TEST_P(CatOperatorTest, ForwardBasic)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = cat({x0, x1}, 0);
+    auto result = F::cat({x0, x1}, 0);
 
     Shape expected_shape{4};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -39,7 +40,7 @@ TEST_P(CatOperatorTest, ForwardDim1)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{1, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{1, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = cat({x0, x1}, 1);
+    auto result = F::cat({x0, x1}, 1);
 
     Shape expected_shape{1, 4};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -56,7 +57,7 @@ TEST_P(CatOperatorTest, ForwardMultipleTensors)
     auto x1 = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     auto x2 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = cat({x0, x1, x2}, 0);
+    auto result = F::cat({x0, x1, x2}, 0);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -73,12 +74,12 @@ TEST_P(CatOperatorTest, ForwardTwoDimensional)
     auto x1 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 在 dim=0 上拼接
-    auto result0 = cat({x0, x1}, 0);
+    auto result0 = F::cat({x0, x1}, 0);
     Shape expected_shape0{4, 2};
     EXPECT_EQ(result0.shape(), expected_shape0);
     
     // 在 dim=1 上拼接
-    auto result1 = cat({x0, x1}, 1);
+    auto result1 = F::cat({x0, x1}, 1);
     Shape expected_shape1{2, 4};
     EXPECT_EQ(result1.shape(), expected_shape1);
 }
@@ -88,7 +89,7 @@ TEST_P(CatOperatorTest, ForwardSingleTensor)
     // 测试单个张量（应该直接返回）
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = cat({x}, 0);
+    auto result = F::cat({x}, 0);
 
     // 应该和输入相同
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
@@ -102,7 +103,7 @@ TEST_P(CatOperatorTest, BackwardBasic)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = cat({x0, x1}, 0);
+    auto y = F::cat({x0, x1}, 0);
     y.backward();
 
     // 验证梯度形状
@@ -122,7 +123,7 @@ TEST_P(CatOperatorTest, BackwardDim1)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{1, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{1, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = cat({x0, x1}, 1);
+    auto y = F::cat({x0, x1}, 1);
     y.backward();
 
     // 验证梯度形状
@@ -138,7 +139,7 @@ TEST_P(CatOperatorTest, SingleElement)
     auto x0 = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({6.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = cat({x0, x1}, 0);
+    auto result = F::cat({x0, x1}, 0);
 
     Shape expected_shape{2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -154,7 +155,7 @@ TEST_P(CatOperatorTest, DifferentSizes)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = cat({x0, x1}, 0);
+    auto result = F::cat({x0, x1}, 0);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);

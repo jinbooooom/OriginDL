@@ -6,6 +6,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 /**
  * @brief 除法算子测试类（参数化版本）
  */
@@ -20,7 +21,7 @@ TEST_P(DivOperatorTest, ForwardBasic)
     auto x0 = Tensor({6.0f, 8.0f, 10.0f, 12.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({2.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = div(x0, x1);
+    auto result = F::div(x0, x1);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -66,7 +67,7 @@ TEST_P(DivOperatorTest, ForwardOneTensor)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = div(x0, x1);
+    auto result = F::div(x0, x1);
 
     // 结果应该等于x0
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x0, origin::test::TestTolerance::kDefault);
@@ -78,7 +79,7 @@ TEST_P(DivOperatorTest, ForwardNegativeValues)
     auto x0 = Tensor({-6.0f, -8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({2.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = div(x0, x1);
+    auto result = F::div(x0, x1);
 
     auto expected = Tensor({-3.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -92,7 +93,7 @@ TEST_P(DivOperatorTest, BackwardBasic)
     auto x0 = Tensor({6.0f, 8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({2.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = div(x0, x1);
+    auto y = F::div(x0, x1);
     y.backward();
 
     // 除法算子的梯度：∂y/∂x0 = 1/x1, ∂y/∂x1 = -x0/x1²
@@ -112,7 +113,7 @@ TEST_P(DivOperatorTest, BackwardWithGradient)
     auto x0 = Tensor({4.0f, 6.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = div(x0, x1);
+    auto y = F::div(x0, x1);
     y.backward();
 
     auto x0_data = x0.to_vector<float>();
@@ -132,7 +133,7 @@ TEST_P(DivOperatorTest, BackwardDifferentShapes)
     auto x0 = Tensor({6.0f, 8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = div(x0, x1);
+    auto y = F::div(x0, x1);
     y.backward();
 
     // 梯度应该正确广播
@@ -158,7 +159,7 @@ TEST_P(DivOperatorTest, SingleElement)
     auto x0 = Tensor({15.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = div(x0, x1);
+    auto result = F::div(x0, x1);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -173,7 +174,7 @@ TEST_P(DivOperatorTest, LargeTensor)
     auto x0 = Tensor(data1, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor(data2, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = div(x0, x1);
+    auto result = F::div(x0, x1);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -191,7 +192,7 @@ TEST_P(DivOperatorTest, ThreeDimensional)
     auto x1 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
                      dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = div(x0, x1);
+    auto result = F::div(x0, x1);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -208,7 +209,7 @@ TEST_P(DivOperatorTest, NumericalStability)
     auto x0 = Tensor({1e10f, 1e-10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({1e-10f, 1e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = div(x0, x1);
+    auto result = F::div(x0, x1);
 
     auto expected = Tensor({1e20f, 1e-20f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e-3);
@@ -220,7 +221,7 @@ TEST_P(DivOperatorTest, PrecisionTest)
     auto x0 = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({0.2f, 0.4f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = div(x0, x1);
+    auto result = F::div(x0, x1);
 
     auto expected = Tensor({0.5f, 0.5f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);

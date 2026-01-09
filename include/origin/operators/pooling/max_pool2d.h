@@ -7,6 +7,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief MaxPool2d 算子：二维最大池化操作
@@ -62,6 +64,7 @@ Tensor max_pool2d(const Tensor &x,
 
 Tensor max_pool2d(const Tensor &x, int kernel_size, int stride = 0, int pad = 0);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_MAX_POOL2D_H__

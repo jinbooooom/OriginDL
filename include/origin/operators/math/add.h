@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Add : public Operator
 {
@@ -19,6 +21,10 @@ public:
 
 extern Tensor add(const std::vector<Tensor> &xs);
 extern Tensor add(const Tensor &lhs, const Tensor &rhs);
+
+}  // namespace functional
+
+// 运算符重载放在 origin 命名空间下
 Tensor operator+(const Tensor &lhs, const Tensor &rhs);
 Tensor operator+(const Tensor &lhs, const Scalar &rhs);
 Tensor operator+(const Scalar &lhs, const Tensor &rhs);

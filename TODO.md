@@ -17,4 +17,5 @@
 - [ ] MNIST demo 的核心功能已完成，可以正常运行。剩余主要是：架构层面的优化（循环引用根本解决方案）
 - [ ] 类型提升优化（backward 中的类型提升）：在 `mul.cpp`, `div.cpp`, `sub.cpp`, `mat_mul.cpp` 的 backward() 中实现类型提升逻辑，确保与前向传播一致。参考 `add.cpp` 和 `pow.cpp` 的实现。
 - [ ] 性能优化（初始化列表到 vector 的转换）：优化 `Tensor` 的初始化列表构造函数，避免 `std::vector<T>(data)` 的额外内存分配和拷贝。可直接使用 `initializer_list` 的底层指针，减少一次内存分配和一次数据拷贝。
+- [ ] 增加下划线的方法表示就地操作，如add()的就地操作 add_()，这是 pytorch 风格
          

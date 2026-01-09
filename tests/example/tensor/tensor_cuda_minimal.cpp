@@ -4,6 +4,7 @@
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 
 using namespace origin;
+namespace F = origin::functional;
 
 int main()
 {

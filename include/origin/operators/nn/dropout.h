@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Dropout : public Operator
 {
@@ -22,6 +24,7 @@ private:
     Tensor mask_;
 };
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_DROPOUT_H__

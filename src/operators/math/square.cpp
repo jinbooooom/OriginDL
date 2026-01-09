@@ -4,6 +4,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Square::forward(const std::vector<Tensor> &xs)
 {
@@ -54,4 +56,5 @@ Tensor square(const Tensor &x)
     return square(xs);
 }
 
+}  // namespace functional
 }  // namespace origin

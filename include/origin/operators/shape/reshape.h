@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Reshape : public Operator
 {
@@ -22,6 +24,7 @@ public:
 
 extern Tensor reshape(const Tensor &x, const Shape &shape);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_RESHAPE_H__

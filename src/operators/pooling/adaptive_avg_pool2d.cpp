@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> AdaptiveAvgPool2d::forward(const std::vector<Tensor> &xs)
 {
@@ -56,5 +58,17 @@ std::vector<Tensor> AdaptiveAvgPool2d::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+Tensor adaptive_avg_pool2d(const Tensor &x, std::pair<int, int> output_size)
+{
+    auto op = std::make_shared<AdaptiveAvgPool2d>(output_size);
+    return (*op)(x);
+}
+
+Tensor adaptive_avg_pool2d(const Tensor &x, int output_size)
+{
+    return adaptive_avg_pool2d(x, std::make_pair(output_size, output_size));
+}
+
+}  // namespace functional
 }  // namespace origin
 

@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Pow : public Operator
 {
@@ -20,7 +22,11 @@ public:
 };
 
 extern Tensor pow(const Tensor &base, const Scalar &exponent);        // 支持标量指数
-extern Tensor operator^(const Tensor &base, const Scalar &exponent);  // 支持标量指数
+
+}  // namespace functional
+
+// 运算符重载放在 origin 命名空间下
+Tensor operator^(const Tensor &base, const Scalar &exponent);  // 支持标量指数
 
 }  // namespace origin
 

@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief Flatten 算子
@@ -23,6 +25,7 @@ public:
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_FLATTEN_OPERATOR_H__

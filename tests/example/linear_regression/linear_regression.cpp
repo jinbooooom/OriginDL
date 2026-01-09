@@ -4,10 +4,11 @@
 #include "origin/utils/log.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
 {
-    auto y = origin::mat_mul(x, w) + b;
+    auto y = F::mat_mul(x, w) + b;
     return y;
 }
 
@@ -15,7 +16,7 @@ Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
 Tensor MSE(const Tensor &x0, const Tensor &x1)
 {
     auto diff       = x0 - x1;
-    auto sum_result = origin::sum(origin::pow(diff, 2));
+    auto sum_result = F::sum(F::pow(diff, Scalar(2)));
     // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
     auto elements = Tensor(diff.elements(), sum_result.shape(), DataType::kFloat32);
     auto result   = sum_result / elements;

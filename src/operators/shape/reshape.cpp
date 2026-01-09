@@ -3,6 +3,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Reshape::forward(const std::vector<Tensor> &xs)
 {
@@ -40,4 +42,5 @@ Tensor reshape(const Tensor &x, const Shape &shape)
     return result[0];
 }
 
+}  // namespace functional
 }  // namespace origin

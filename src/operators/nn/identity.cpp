@@ -4,6 +4,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Identity::forward(const std::vector<Tensor> &xs)
 {
@@ -45,5 +47,6 @@ Tensor identity(const Tensor &x)
     return (*op)(x);
 }
 
+}  // namespace functional
 }  // namespace origin
 

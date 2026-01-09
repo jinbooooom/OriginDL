@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief 自然对数算子（以 e 为底的对数）
@@ -30,6 +32,7 @@ public:
  */
 extern Tensor log(const Tensor &x);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_LOG_H__

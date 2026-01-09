@@ -18,7 +18,7 @@ MaxPool2d::MaxPool2d(int kernel_size, int stride, int pad)
 Tensor MaxPool2d::forward(const Tensor &input)
 {
     // 调用 max_pool2d 函数
-    return max_pool2d(input, kernel_size_, stride_, pad_);
+    return functional::max_pool2d(input, kernel_size_, stride_, pad_);
 }
 
 }  // namespace nn

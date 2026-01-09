@@ -8,6 +8,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> MaxPool2d::forward(const std::vector<Tensor> &xs)
 {
@@ -81,4 +83,5 @@ Tensor max_pool2d(const Tensor &x, int kernel_size, int stride, int pad)
                       std::make_pair(pad, pad));
 }
 
+}  // namespace functional
 }  // namespace origin

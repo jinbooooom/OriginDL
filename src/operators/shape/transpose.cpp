@@ -3,6 +3,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Transpose::forward(const std::vector<Tensor> &xs)
 {
@@ -36,4 +38,5 @@ Tensor transpose(const Tensor &x)
     return transpose(inputs);
 }
 
+}  // namespace functional
 }  // namespace origin

@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class BatchNorm : public Operator
 {
@@ -26,6 +28,7 @@ private:
     Tensor saved_x_norm_;
 };
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_BATCH_NORM_H__

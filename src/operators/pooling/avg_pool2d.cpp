@@ -8,6 +8,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> AvgPool2d::forward(const std::vector<Tensor> &xs)
 {
@@ -69,4 +71,5 @@ Tensor avg_pool2d(const Tensor &x, int kernel_size, int stride, int pad)
                       std::make_pair(pad, pad));
 }
 
+}  // namespace functional
 }  // namespace origin

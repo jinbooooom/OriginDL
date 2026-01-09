@@ -4,6 +4,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Sigmoid::forward(const std::vector<Tensor> &xs)
 {
@@ -73,4 +75,5 @@ Tensor sigmoid(const Tensor &x)
     return (*op)(x);
 }
 
+}  // namespace functional
 }  // namespace origin

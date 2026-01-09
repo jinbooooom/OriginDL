@@ -61,7 +61,7 @@ Tensor Flatten::forward(const Tensor &input)
     }
 
     Shape new_shape(new_shape_dims);
-    return reshape(input, new_shape);
+    return functional::reshape(input, new_shape);
 }
 
 }  // namespace nn

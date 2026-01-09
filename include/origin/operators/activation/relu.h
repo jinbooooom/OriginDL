@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief ReLU 激活函数算子
@@ -28,6 +30,7 @@ public:
  */
 extern Tensor relu(const Tensor &x);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_RELU_H__

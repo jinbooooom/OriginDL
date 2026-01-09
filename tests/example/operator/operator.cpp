@@ -2,6 +2,7 @@
 #include "origin/utils/log.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 int main()
 {
@@ -59,7 +60,7 @@ int main()
 
     logi("Square: y = x0^2");
     clear_grad();
-    y = square(x0);
+    y = F::square(x0);
     y.backward();
     y.print("y ");
     x0.grad().print("dx0 ");
@@ -73,7 +74,7 @@ int main()
 
     logi("Exp: y = exp(x0)");
     clear_grad();
-    y = exp(x0);
+    y = F::exp(x0);
     y.backward();
     y.print("y ");
     x0.grad().print("dx0 ");
@@ -83,7 +84,7 @@ int main()
     x.print("x ");
     logi("Reshape: y = reshape(x, {4, 2})");
     x.clear_grad();
-    auto x_reshaped = reshape(x, Shape{4, 2});
+    auto x_reshaped = F::reshape(x, Shape{4, 2});
     x_reshaped.backward();
     x_reshaped.print("y ");
     x.grad().print("dx ");
@@ -91,7 +92,7 @@ int main()
     // 测试Transpose算子
     logi("Transpose: y = transpose(x)");
     x.clear_grad();
-    auto x_transposed = transpose(x);
+    auto x_transposed = F::transpose(x);
     x_transposed.backward();
     x_transposed.print("y ");
     x.grad().print("dx ");
@@ -99,7 +100,7 @@ int main()
     // 测试Sum算子
     logi("Sum: y = sum(x)");
     x.clear_grad();
-    auto x_sum = sum(x);
+    auto x_sum = F::sum(x);
     x_sum.backward();
     x_sum.print("y ");
     x.grad().print("dx ");
@@ -112,7 +113,7 @@ int main()
     x_1_2_4.print("x_1_2_4:");
     logi("BroadcastTo: y = broadcast_to(x_1_2_4, {2, 2, 4})");
     x.clear_grad();
-    auto x_broadcasted = broadcast_to(x_1_2_4, Shape{2, 2, 4});
+    auto x_broadcasted = F::broadcast_to(x_1_2_4, Shape{2, 2, 4});
     x_broadcasted.backward();
     x_broadcasted.print("y ");
     x_1_2_4.grad().print("dx ");
@@ -120,7 +121,7 @@ int main()
     // 测试SumTo算子
     logi("SumTo: y = sum_to(x, {1, 1})");
     x.clear_grad();
-    auto x_sum_to = sum_to(x, Shape{1, 1});
+    auto x_sum_to = F::sum_to(x, Shape{1, 1});
     x_sum_to.backward();
     x_sum_to.print("y ");
     x.grad().print("dx ");
@@ -133,7 +134,7 @@ int main()
     b.print("b ");
     a.clear_grad();
     b.clear_grad();
-    auto ab_matmul = mat_mul(a, b);
+    auto ab_matmul = F::mat_mul(a, b);
     ab_matmul.backward();
     ab_matmul.print("y ");
     a.grad().print("da ");

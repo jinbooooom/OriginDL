@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> SoftmaxCrossEntropy::forward(const std::vector<Tensor> &xs)
 {
@@ -134,4 +136,5 @@ Tensor softmax_cross_entropy(const Tensor &x, const Tensor &target)
     return result[0];
 }
 
+}  // namespace functional
 }  // namespace origin

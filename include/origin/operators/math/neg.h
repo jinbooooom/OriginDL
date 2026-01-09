@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Neg : public Operator
 {
@@ -16,6 +18,10 @@ public:
 
 Tensor neg(const std::vector<Tensor> &xs);
 Tensor neg(const Tensor &x);
+
+}  // namespace functional
+
+// 运算符重载放在 origin 命名空间下
 Tensor operator-(const Tensor &x);
 
 }  // namespace origin

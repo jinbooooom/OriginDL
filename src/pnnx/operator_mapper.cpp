@@ -86,19 +86,19 @@ std::shared_ptr<Operator> OperatorMapper::create_conv2d(std::shared_ptr<PNNXNode
     std::pair<int, int> pad = get_int_pair_param(params, "padding", {0, 0});
     
     // 创建 Conv2dOp
-    return std::make_shared<Conv2dOp>(stride, pad);
+    return std::make_shared<functional::Conv2dOp>(stride, pad);
 }
 
 std::shared_ptr<Operator> OperatorMapper::create_silu(std::shared_ptr<PNNXNode> node)
 {
     // SiLU 激活函数：x * sigmoid(x)
-    return std::make_shared<SiLU>();
+    return std::make_shared<functional::SiLU>();
 }
 
 std::shared_ptr<Operator> OperatorMapper::create_relu(std::shared_ptr<PNNXNode> node)
 {
     // ReLU 激活函数：max(0, x)
-    return std::make_shared<ReLU>();
+    return std::make_shared<functional::ReLU>();
 }
 
 std::shared_ptr<Operator> OperatorMapper::create_adaptive_avg_pool2d(std::shared_ptr<PNNXNode> node)
@@ -108,7 +108,7 @@ std::shared_ptr<Operator> OperatorMapper::create_adaptive_avg_pool2d(std::shared
     // 获取 output_size 参数，例如 output_size=(1,1)
     std::pair<int, int> output_size = get_int_pair_param(params, "output_size", {1, 1});
     
-    return std::make_shared<AdaptiveAvgPool2d>(output_size);
+    return std::make_shared<functional::AdaptiveAvgPool2d>(output_size);
 }
 
 std::shared_ptr<Operator> OperatorMapper::create_flatten(std::shared_ptr<PNNXNode> node)
@@ -119,7 +119,7 @@ std::shared_ptr<Operator> OperatorMapper::create_flatten(std::shared_ptr<PNNXNod
     int start_dim = get_int_param(params, "start_dim", 1);
     int end_dim = get_int_param(params, "end_dim", -1);
     
-    return std::make_shared<FlattenOp>(start_dim, end_dim);
+    return std::make_shared<functional::FlattenOp>(start_dim, end_dim);
 }
 
 std::shared_ptr<Operator> OperatorMapper::create_linear(std::shared_ptr<PNNXNode> node)
@@ -146,7 +146,7 @@ std::shared_ptr<Operator> OperatorMapper::create_linear(std::shared_ptr<PNNXNode
         THROW_RUNTIME_ERROR("Linear operator: in_features and out_features must be specified");
     }
     
-    return std::make_shared<LinearOp>(in_features, out_features, use_bias);
+    return std::make_shared<functional::LinearOp>(in_features, out_features, use_bias);
 }
 
 std::shared_ptr<Operator> OperatorMapper::create_upsample(std::shared_ptr<PNNXNode> node)
@@ -168,18 +168,18 @@ std::shared_ptr<Operator> OperatorMapper::create_upsample(std::shared_ptr<PNNXNo
         float scale_h = static_cast<float>(scale.first);
         float scale_w = static_cast<float>(scale.second);
         std::pair<float, float> scale_pair(scale_h, scale_w);
-        return std::make_shared<Upsample>(mode, scale_pair);
+        return std::make_shared<functional::Upsample>(mode, scale_pair);
     }
     else if (params.find("size") != params.end())
     {
         auto size = get_int_pair_param(params, "size", {0, 0});
-        return std::make_shared<Upsample>(mode, size);
+        return std::make_shared<functional::Upsample>(mode, size);
     }
     else
     {
         // 默认 2x 上采样
         std::pair<float, float> default_scale(2.0f, 2.0f);
-        return std::make_shared<Upsample>(mode, default_scale);
+        return std::make_shared<functional::Upsample>(mode, default_scale);
     }
 }
 
@@ -192,7 +192,7 @@ std::shared_ptr<Operator> OperatorMapper::create_max_pool2d(std::shared_ptr<PNNX
     std::pair<int, int> stride = get_int_pair_param(params, "stride", {0, 0});  // 0 表示使用 kernel_size
     std::pair<int, int> pad = get_int_pair_param(params, "padding", {0, 0});
     
-    return std::make_shared<MaxPool2d>(kernel_size, stride, pad);
+    return std::make_shared<functional::MaxPool2d>(kernel_size, stride, pad);
 }
 
 std::shared_ptr<Operator> OperatorMapper::create_expression(std::shared_ptr<PNNXNode> node)
@@ -207,7 +207,7 @@ std::shared_ptr<Operator> OperatorMapper::create_expression(std::shared_ptr<PNNX
         if (expr.find("add") != std::string::npos)
         {
             // 使用 Add 算子
-            return std::make_shared<Add>();
+            return std::make_shared<functional::Add>();
         }
         // TODO: 支持其他表达式（mul, sub 等）
     }
@@ -225,7 +225,7 @@ std::shared_ptr<Operator> OperatorMapper::create_cat(std::shared_ptr<PNNXNode> n
     // 获取 dim 参数
     int dim = get_int_param(params, "dim", 0);
     
-    return std::make_shared<Cat>(dim);
+    return std::make_shared<functional::Cat>(dim);
 }
 
 int OperatorMapper::get_int_param(const std::map<std::string, Parameter> &params,
@@ -385,7 +385,7 @@ std::shared_ptr<Operator> OperatorMapper::create_yolo_detect(std::shared_ptr<PNN
         }
     }
     
-    return std::make_shared<YoloDetect>(stages, num_classes, num_anchors,
+    return std::make_shared<functional::YoloDetect>(stages, num_classes, num_anchors,
                                        std::move(strides),
                                        std::move(anchor_grids),
                                        std::move(grids),

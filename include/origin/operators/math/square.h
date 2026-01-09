@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Square : public Operator
 {
@@ -16,6 +18,7 @@ public:
 
 extern Tensor square(const Tensor &x);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SQUARE_H__

@@ -7,6 +7,7 @@
 #include "../common/test_utils.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief Flatten 算子测试类（参数化版本）
@@ -27,7 +28,7 @@ TEST_P(FlattenOperatorTest, ForwardBasic)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
     auto x = Tensor(x_data, Shape{1, 2, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    FlattenOp op(1, -1);
+    functional::FlattenOp op(1, -1);
     auto result = op.forward({x})[0];
 
     Shape expected_shape{1, 6};
@@ -43,7 +44,7 @@ TEST_P(FlattenOperatorTest, Forward2D)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto x = Tensor(x_data, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    FlattenOp op(0, -1);
+    functional::FlattenOp op(0, -1);
     auto result = op.forward({x})[0];
 
     Shape expected_shape{4};
@@ -62,7 +63,7 @@ TEST_P(FlattenOperatorTest, Forward4D)
     }
     auto x = Tensor(x_data, Shape{1, 2, 3, 4}, dtype(DataType::kFloat32).device(deviceType()));
 
-    FlattenOp op(1, -1);
+    functional::FlattenOp op(1, -1);
     auto result = op.forward({x})[0];
 
     Shape expected_shape{1, 24};
@@ -81,7 +82,7 @@ TEST_P(FlattenOperatorTest, ForwardPartial)
     }
     auto x = Tensor(x_data, Shape{2, 2, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    FlattenOp op(1, 2);
+    functional::FlattenOp op(1, 2);
     auto result = op.forward({x})[0];
 
     Shape expected_shape{2, 6};

@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 class Transpose : public Operator
 {
@@ -16,6 +18,7 @@ public:
 
 extern Tensor transpose(const Tensor &x);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_TRANSPOSE_H__

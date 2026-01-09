@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief Linear 算子（全连接层）
@@ -27,6 +29,7 @@ public:
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_LINEAR_OPERATOR_H__

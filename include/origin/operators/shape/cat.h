@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief Cat 拼接算子
@@ -29,6 +31,7 @@ public:
  */
 Tensor cat(const std::vector<Tensor> &xs, int dim = 0);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_CAT_H__

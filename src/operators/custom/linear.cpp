@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> LinearOp::forward(const std::vector<Tensor> &xs)
 {
@@ -194,5 +196,6 @@ std::vector<Tensor> LinearOp::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+}  // namespace functional
 }  // namespace origin
 

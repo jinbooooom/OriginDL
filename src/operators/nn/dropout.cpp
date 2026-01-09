@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 Dropout::Dropout(float p, bool training) : p_(p), training_(training)
 {
@@ -105,4 +107,5 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+}  // namespace functional
 }  // namespace origin

@@ -35,7 +35,7 @@ MLP::MLP(const std::vector<int> &hidden_sizes, std::function<Tensor(const Tensor
     // 如果没有指定激活函数，默认使用relu
     if (!activation_)
     {
-        activation_ = [](const Tensor &x) { return relu(x); };
+        activation_ = [](const Tensor &x) { return functional::relu(x); };
     }
 }
 

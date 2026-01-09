@@ -22,6 +22,7 @@
 #endif
 
 using namespace origin;
+namespace F = origin::functional;
 using namespace origin::pnnx;
 
 #ifdef OPENCV_FOUND
@@ -207,7 +208,7 @@ int main(int argc, char* argv[]) {
     
     // 应用 Softmax
     // ResNet 输出形状应该是 (1, 1000)，对最后一个维度应用 softmax
-    Tensor softmax_output = softmax(output, -1);
+    Tensor softmax_output = F::softmax(output, -1);
     
     // 找到最大概率的类别
     auto prob_data = softmax_output.to_vector<float>();

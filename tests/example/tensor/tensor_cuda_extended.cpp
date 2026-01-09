@@ -1,6 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include "origin.h"
+namespace F = origin::functional;
 
 /**
  * @brief 扩展的CUDA张量测试
@@ -55,12 +56,12 @@ int main()
         a.print("A");
 
         // 测试平方
-        auto c_square = square(a);
+        auto c_square = F::square(a);
         c_square.print("A^2");
 
         // 测试指数
-        auto c_exp = exp(a);
-        c_exp.print("exp(A)");
+        auto c_exp = F::exp(a);
+        c_exp.print("F::exp(A)");
 
         // 测试取负
         auto c_neg = -a;
@@ -136,7 +137,7 @@ int main()
         start = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < 100; ++i)
         {
-            auto c = exp(a);
+            auto c = F::exp(a);
         }
         cudaDeviceSynchronize();
         end           = std::chrono::high_resolution_clock::now();

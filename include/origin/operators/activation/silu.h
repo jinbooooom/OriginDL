@@ -5,6 +5,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief SiLU 激活函数算子
@@ -24,6 +26,7 @@ public:
  */
 extern Tensor silu(const Tensor &x);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SILU_H__
