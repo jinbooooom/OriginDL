@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include "origin.h"
-#include "origin/operators/conv/adaptive_avg_pool2d.h"
+#include "origin/operators/pooling/adaptive_avg_pool2d.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include "origin.h"
-#include "origin/operators/nn/flatten.h"
+#include "origin/operators/shape/flatten.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"

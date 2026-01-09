@@ -1,0 +1,29 @@
+#ifndef __ORIGIN_DL_DIV_H__
+#define __ORIGIN_DL_DIV_H__
+
+#include "../../core/operator.h"
+
+namespace origin
+{
+
+class Div : public Operator
+{
+public:
+    Shape shape0_;
+    Shape shape1_;
+
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+};
+
+extern Tensor div(const std::vector<Tensor> &xs);
+extern Tensor div(const Tensor &lhs, const Tensor &rhs);
+Tensor operator/(const Tensor &lhs, const Tensor &rhs);
+Tensor operator/(const Tensor &lhs, const Scalar &rhs);
+Tensor operator/(const Scalar &lhs, const Tensor &rhs);
+
+}  // namespace origin
+
+#endif  // __ORIGIN_DL_DIV_H__
+

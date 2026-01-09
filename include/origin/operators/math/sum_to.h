@@ -1,0 +1,28 @@
+#ifndef __ORIGIN_DL_SUM_TO_H__
+#define __ORIGIN_DL_SUM_TO_H__
+
+#include "../../core/operator.h"
+
+namespace origin
+{
+
+class SumTo : public Operator
+{
+public:
+    Shape shape_;  // 输出的形状
+
+    Shape x_shape_;  // 输入的形状
+
+    SumTo(const Shape &shape) : shape_(shape){};
+
+    std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
+
+    std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+};
+
+extern Tensor sum_to(const Tensor &x, const Shape &shape);
+
+}  // namespace origin
+
+#endif  // __ORIGIN_DL_SUM_TO_H__
+

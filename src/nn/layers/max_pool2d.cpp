@@ -1,6 +1,6 @@
 #include "origin/nn/layers/max_pool2d.h"
 #include "origin/core/operator.h"
-#include "origin/operators/conv/max_pool2d.h"
+#include "origin/operators/pooling/max_pool2d.h"
 
 namespace origin
 {

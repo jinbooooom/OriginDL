@@ -1,4 +1,4 @@
-#include "origin/operators/conv/avg_pool2d.h"
+#include "origin/operators/pooling/avg_pool2d.h"
 #include <vector>
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"

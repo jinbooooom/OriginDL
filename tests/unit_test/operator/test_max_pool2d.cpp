@@ -4,7 +4,7 @@
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
 #include "origin.h"
-#include "origin/operators/conv/max_pool2d.h"
+#include "origin/operators/pooling/max_pool2d.h"
 
 using namespace origin;
 

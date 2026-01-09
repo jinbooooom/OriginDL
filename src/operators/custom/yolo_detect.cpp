@@ -3,7 +3,7 @@
 #include "origin/utils/exception.h"
 #include "origin/operators/conv/conv2d.h"
 #include "origin/core/operator.h"
-#include "origin/operators/nn/cat.h"
+#include "origin/operators/shape/cat.h"
 #include "origin/utils/log.h"
 #include <vector>
 #include <cmath>

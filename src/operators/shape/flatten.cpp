@@ -1,4 +1,4 @@
-#include "origin/operators/nn/flatten.h"
+#include "origin/operators/shape/flatten.h"
 #include "origin/core/tensor.h"
 #include "origin/utils/exception.h"
 #include "origin/mat/origin/origin_mat.h"
