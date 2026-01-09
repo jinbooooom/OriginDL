@@ -29,6 +29,36 @@ public:
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
+/**
+ * @brief 函数式接口：Linear 算子
+ * @param x 输入张量
+ * @param weight 权重张量 (out_features, in_features)
+ * @param bias 偏置张量 (out_features, optional)
+ * @param in_features 输入特征数
+ * @param out_features 输出特征数
+ * @param use_bias 是否使用偏置，默认 true
+ * @return 输出张量 (N, out_features)
+ */
+Tensor custom_linear(const Tensor &x, 
+                     const Tensor &weight, 
+                     const Tensor &bias,
+                     int in_features, 
+                     int out_features, 
+                     bool use_bias = true);
+
+/**
+ * @brief 函数式接口：Linear 算子（无偏置版本）
+ * @param x 输入张量
+ * @param weight 权重张量 (out_features, in_features)
+ * @param in_features 输入特征数
+ * @param out_features 输出特征数
+ * @return 输出张量 (N, out_features)
+ */
+Tensor custom_linear(const Tensor &x, 
+                     const Tensor &weight,
+                     int in_features, 
+                     int out_features);
+
 }  // namespace functional
 }  // namespace origin
 

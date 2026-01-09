@@ -25,6 +25,18 @@ public:
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 };
 
+/**
+ * @brief 函数式接口：Flatten 算子
+ * @details 将输入张量从 start_dim 到 end_dim 的所有维度展平为一个维度
+ * 参考 PyTorch 的 torch.flatten(input, start_dim=0, end_dim=-1)
+ * 
+ * @param x 输入张量
+ * @param start_dim 起始维度，默认为 1（保留 batch 维度）
+ * @param end_dim 结束维度，默认为 -1（最后一个维度）
+ * @return 展平后的张量
+ */
+Tensor flatten(const Tensor &x, int start_dim = 1, int end_dim = -1);
+
 }  // namespace functional
 }  // namespace origin
 

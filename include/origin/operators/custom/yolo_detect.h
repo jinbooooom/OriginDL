@@ -61,6 +61,29 @@ private:
     std::vector<Tensor> conv_biases_;
 };
 
+/**
+ * @brief 函数式接口：YOLO Detect 算子
+ * @param xs 输入特征图列表，每个特征图形状为 (N, C, H, W)
+ * @param stages 检测阶段数（通常为3）
+ * @param num_classes 类别数（COCO为80）
+ * @param num_anchors anchor数量（通常为3）
+ * @param strides 每个阶段的stride
+ * @param anchor_grids anchor grid数据
+ * @param grids grid数据
+ * @param conv_weights 卷积权重（3个阶段）
+ * @param conv_biases 卷积偏置（3个阶段）
+ * @return 检测结果张量，形状为 (N, num_boxes, 85)
+ */
+Tensor custom_yolo_detect(const std::vector<Tensor> &xs,
+                          int32_t stages,
+                          int32_t num_classes,
+                          int32_t num_anchors,
+                          std::vector<float> strides,
+                          std::vector<Tensor> anchor_grids,
+                          std::vector<Tensor> grids,
+                          std::vector<Tensor> conv_weights,
+                          std::vector<Tensor> conv_biases);
+
 }  // namespace functional
 }  // namespace origin
 

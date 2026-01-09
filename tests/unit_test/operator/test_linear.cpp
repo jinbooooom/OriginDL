@@ -35,8 +35,7 @@ TEST_P(LinearOperatorTest, ForwardBasic)
     std::vector<float> bias_data = {0.0f, 0.0f, 0.0f, 0.0f};
     auto bias = Tensor(bias_data, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
 
-    functional::LinearOp op(3, 4, true);
-    auto result = op.forward({x, weight, bias})[0];
+    auto result = F::custom_linear(x, weight, bias, 3, 4, true);
 
     Shape expected_shape{2, 4};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -62,8 +61,7 @@ TEST_P(LinearOperatorTest, ForwardWithBias)
     std::vector<float> bias_data = {1.0f, 2.0f};
     auto bias = Tensor(bias_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    functional::LinearOp op(2, 2, true);
-    auto result = op.forward({x, weight, bias})[0];
+    auto result = F::custom_linear(x, weight, bias, 2, 2, true);
 
     Shape expected_shape{1, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -84,8 +82,7 @@ TEST_P(LinearOperatorTest, ForwardNoBias)
     std::vector<float> weight_data = {1.0f, 0.0f, 0.0f, 1.0f};
     auto weight = Tensor(weight_data, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    functional::LinearOp op(2, 2, false);
-    auto result = op.forward({x, weight})[0];
+    auto result = F::custom_linear(x, weight, 2, 2);
 
     Shape expected_shape{1, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -115,8 +112,7 @@ TEST_P(LinearOperatorTest, Forward3DInput)
     }
     auto weight = Tensor(weight_data, Shape{4, 6}, dtype(DataType::kFloat32).device(deviceType()));
 
-    functional::LinearOp op(6, 4, false);
-    auto result = op.forward({x, weight})[0];
+    auto result = F::custom_linear(x, weight, 6, 4);
 
     Shape expected_shape{2, 4};
     EXPECT_EQ(result.shape(), expected_shape);

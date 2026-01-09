@@ -91,6 +91,12 @@ std::vector<Tensor> FlattenOp::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+Tensor flatten(const Tensor &x, int start_dim, int end_dim)
+{
+    auto op = std::make_shared<FlattenOp>(start_dim, end_dim);
+    return (*op)(x);
+}
+
 }  // namespace functional
 }  // namespace origin
 

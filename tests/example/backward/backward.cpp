@@ -8,22 +8,7 @@ namespace F = origin::functional;
 
 int main(int argc, char **argv)
 {
-
-    auto A = origin::FunctionPtr(new functional::Square());
-    auto B = origin::FunctionPtr(new functional::Exp());
-    auto C = origin::FunctionPtr(new functional::Square());
-
     origin::Shape shape = {2, 2};
-    float val           = 0.5f;
-
-    logi("Test: y = (origin::exp(x^2))^2");
-    auto x = origin::Tensor(val, shape, origin::Float32);
-    auto a = (*A)(x);
-    auto b = (*B)(a);
-    auto y = (*C)(b);
-
-    y.backward();
-    x.grad().print("gx: ");  // gx = 3.2974
 
     logi("Test Add: y = (x0^2) + (x1^2)");
     auto x0 = origin::Tensor(2, shape);
@@ -31,7 +16,7 @@ int main(int argc, char **argv)
     // y       = origin::add({origin::square(x0), origin::square(x1)});
     // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
     // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
-    y = ((x0) ^ 2) + ((x1) ^ 2);
+    auto y = ((x0) ^ 2) + ((x1) ^ 2);
     y.print("y: ");  // 13
     y.backward();
     x0.grad().print("gx0: ");  // 4
@@ -39,7 +24,7 @@ int main(int argc, char **argv)
 
     logi("Test Add with repeated values: y = x + x");
     y.clear_grad();
-    x = x0;
+    auto x = x0;
     x.clear_grad();
     y = x + x;
     y.print("y: ");  // 4

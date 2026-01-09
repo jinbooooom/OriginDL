@@ -310,5 +310,19 @@ std::vector<Tensor> BatchNorm::backward(const std::vector<Tensor> &gys)
     outputs.push_back(Tensor::zeros(this->inputs_[4].shape(), dtype(DataType::kFloat32).device(x.device())));
     return outputs;
 }
+
+Tensor batch_norm(const Tensor &x,
+                  const Tensor &gamma,
+                  const Tensor &beta,
+                  const Tensor &running_mean,
+                  const Tensor &running_var,
+                  bool training,
+                  float eps,
+                  float momentum,
+                  int num_dims)
+{
+    auto op = std::make_shared<BatchNorm>(training, eps, momentum, num_dims);
+    return (*op)({x, gamma, beta, running_mean, running_var})[0];
+}
 }  // namespace functional
 }  // namespace origin

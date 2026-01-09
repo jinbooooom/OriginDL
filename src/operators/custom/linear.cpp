@@ -196,6 +196,32 @@ std::vector<Tensor> LinearOp::backward(const std::vector<Tensor> &gys)
     return outputs;
 }
 
+Tensor custom_linear(const Tensor &x, 
+                     const Tensor &weight, 
+                     const Tensor &bias,
+                     int in_features, 
+                     int out_features, 
+                     bool use_bias)
+{
+    auto op = std::make_shared<LinearOp>(in_features, out_features, use_bias);
+    if (use_bias)
+    {
+        return (*op)({x, weight, bias})[0];
+    }
+    else
+    {
+        return (*op)({x, weight})[0];
+    }
+}
+
+Tensor custom_linear(const Tensor &x, 
+                     const Tensor &weight,
+                     int in_features, 
+                     int out_features)
+{
+    return custom_linear(x, weight, Tensor(), in_features, out_features, false);
+}
+
 }  // namespace functional
 }  // namespace origin
 

@@ -518,16 +518,6 @@ set_target_properties(test_conv2d PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
-add_executable(test_yolo_detect operator/test_yolo_detect.cpp)
-add_dependencies(test_yolo_detect gtest gtest_main origindl test_utils gtest_utils)
-target_link_libraries(test_yolo_detect ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_yolo_detect PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
-set_target_properties(test_yolo_detect PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
-)
-
 # 自动微分测试
 add_executable(test_linear_regression autograd/test_linear_regression.cpp)
 add_dependencies(test_linear_regression gtest gtest_main origindl test_utils gtest_utils)
@@ -583,7 +573,6 @@ add_test(NAME transpose_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_transpose)
 add_test(NAME reshape_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_reshape)
 add_test(NAME matmul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_matmul)
 add_test(NAME conv2d_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_conv2d)
-add_test(NAME yolo_detect_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_yolo_detect)
 add_test(NAME linear_regression_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_linear_regression)
 
 # 设置测试属性

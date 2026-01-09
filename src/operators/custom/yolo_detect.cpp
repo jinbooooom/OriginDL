@@ -299,6 +299,25 @@ std::vector<Tensor> YoloDetect::backward(const std::vector<Tensor> &gys)
     return std::vector<Tensor>{};
 }
 
+Tensor custom_yolo_detect(const std::vector<Tensor> &xs,
+                          int32_t stages,
+                          int32_t num_classes,
+                          int32_t num_anchors,
+                          std::vector<float> strides,
+                          std::vector<Tensor> anchor_grids,
+                          std::vector<Tensor> grids,
+                          std::vector<Tensor> conv_weights,
+                          std::vector<Tensor> conv_biases)
+{
+    auto op = std::make_shared<YoloDetect>(stages, num_classes, num_anchors,
+                                           std::move(strides),
+                                           std::move(anchor_grids),
+                                           std::move(grids),
+                                           std::move(conv_weights),
+                                           std::move(conv_biases));
+    return (*op)(xs)[0];
+}
+
 }  // namespace functional
 }  // namespace origin
 
