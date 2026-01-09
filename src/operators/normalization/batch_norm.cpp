@@ -1,7 +1,9 @@
 #include <cmath>
 #include <vector>
+#include "origin/core/config.h"
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
+#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -29,166 +31,45 @@ std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
     auto &running_mean = xs[3];
     auto &running_var  = xs[4];
 
-    auto x_shape           = x.shape();
-    auto x_data            = x.to_vector<float>();
-    auto gamma_data        = gamma.to_vector<float>();
-    auto beta_data         = beta.to_vector<float>();
-    auto running_mean_data = running_mean.to_vector<float>();
-    auto running_var_data  = running_var.to_vector<float>();
+    // 获取 Mat 引用
+    const OriginMat &x_mat           = static_cast<const OriginMat &>(mat(x));
+    const OriginMat &gamma_mat       = static_cast<const OriginMat &>(mat(gamma));
+    const OriginMat &beta_mat        = static_cast<const OriginMat &>(mat(beta));
+    const OriginMat &running_mean_mat = static_cast<const OriginMat &>(mat(running_mean));
+    const OriginMat &running_var_mat  = static_cast<const OriginMat &>(mat(running_var));
 
-    size_t num_channels = x_shape[1];  // 通道在维度1
+    Tensor y;
 
-    // 计算需要求均值的元素数量（沿 batch 和其他空间维度）
-    size_t reduce_size = x_shape[0];  // batch size
-    if (num_dims_ == 4)               // BatchNorm2d: (N, C, H, W)
+    // 检查是否需要梯度计算：使用 tensor.requires_grad() 方法判断
+    // 如果输入 tensor 需要梯度，使用 batch_norm_forward 保存中间结果
+    // 如果输入 tensor 不需要梯度，使用 batch_norm 只返回输出（节省内存）
+    if (x.requires_grad())
     {
-        reduce_size *= x_shape[2] * x_shape[3];  // H * W
-    }
+        // 需要梯度计算：使用 batch_norm_forward 保存中间结果
+        auto result = x_mat.batch_norm_forward(gamma_mat, beta_mat, running_mean_mat, running_var_mat, training_,
+                                                eps_, num_dims_);
 
-    std::vector<float> mean_data(num_channels, 0.0f);
-    std::vector<float> var_data(num_channels, 0.0f);
+        // 转换结果
+        y = convert_mat_to_tensor(std::move(result.y));
 
-    if (training_)
-    {
-        // 训练模式：计算当前 batch 的均值和方差
-        // 对每个通道计算均值和方差
-        for (size_t c = 0; c < num_channels; ++c)
-        {
-            float sum    = 0.0f;
-            size_t count = 0;
-
-            // 遍历所有元素，找到属于通道 c 的元素
-            if (num_dims_ == 2)  // BatchNorm1d: (N, C)
-            {
-                for (size_t n = 0; n < x_shape[0]; ++n)
-                {
-                    size_t idx = n * num_channels + c;
-                    sum += x_data[idx];
-                    count++;
-                }
-            }
-            else if (num_dims_ == 4)  // BatchNorm2d: (N, C, H, W)
-            {
-                for (size_t n = 0; n < x_shape[0]; ++n)
-                {
-                    for (size_t h = 0; h < x_shape[2]; ++h)
-                    {
-                        for (size_t w = 0; w < x_shape[3]; ++w)
-                        {
-                            size_t idx = ((n * num_channels + c) * x_shape[2] + h) * x_shape[3] + w;
-                            sum += x_data[idx];
-                            count++;
-                        }
-                    }
-                }
-            }
-
-            if (count > 0)
-            {
-                mean_data[c] = sum / static_cast<float>(count);
-            }
-
-            // 计算方差
-            float sum_sq_diff = 0.0f;
-            if (num_dims_ == 2)
-            {
-                for (size_t n = 0; n < x_shape[0]; ++n)
-                {
-                    size_t idx = n * num_channels + c;
-                    float diff = x_data[idx] - mean_data[c];
-                    sum_sq_diff += diff * diff;
-                }
-            }
-            else if (num_dims_ == 4)
-            {
-                for (size_t n = 0; n < x_shape[0]; ++n)
-                {
-                    for (size_t h = 0; h < x_shape[2]; ++h)
-                    {
-                        for (size_t w = 0; w < x_shape[3]; ++w)
-                        {
-                            size_t idx = ((n * num_channels + c) * x_shape[2] + h) * x_shape[3] + w;
-                            float diff = x_data[idx] - mean_data[c];
-                            sum_sq_diff += diff * diff;
-                        }
-                    }
-                }
-            }
-
-            if (count > 0)
-            {
-                var_data[c] = sum_sq_diff / static_cast<float>(count);
-            }
-        }
+        // 保存中间结果用于反向传播
+        saved_mean_   = convert_mat_to_tensor(std::move(result.mean));
+        saved_var_    = convert_mat_to_tensor(std::move(result.var));
+        saved_x_norm_ = convert_mat_to_tensor(std::move(result.x_norm));
     }
     else
     {
-        // 推理模式：使用 running_mean 和 running_var
-        mean_data = running_mean_data;
-        var_data  = running_var_data;
+        // 不需要梯度计算：使用 batch_norm 只返回输出（节省内存）
+        auto result = x_mat.batch_norm(gamma_mat, beta_mat, running_mean_mat, running_var_mat, training_, eps_,
+                                       momentum_, num_dims_);
+        y = convert_mat_to_tensor(std::move(result));
+
+        // 不需要保存中间结果（反向传播已禁用或输入不在计算图中）
+        // 为了安全起见，仍然初始化这些成员（虽然不会被使用）
+        saved_mean_   = Tensor::zeros(running_mean.shape(), dtype(DataType::kFloat32).device(x.device()));
+        saved_var_    = Tensor::zeros(running_var.shape(), dtype(DataType::kFloat32).device(x.device()));
+        saved_x_norm_ = Tensor::zeros(x.shape(), dtype(DataType::kFloat32).device(x.device()));
     }
-
-    // 归一化：x_norm = (x - mean) / sqrt(var + eps)
-    std::vector<float> x_norm_data(x_data.size());
-
-    if (num_dims_ == 2)
-    {
-        for (size_t n = 0; n < x_shape[0]; ++n)
-        {
-            for (size_t c = 0; c < num_channels; ++c)
-            {
-                size_t idx       = n * num_channels + c;
-                float mean_val   = mean_data[c];
-                float var_val    = var_data[c];
-                float std_val    = std::sqrt(var_val + eps_);
-                x_norm_data[idx] = (x_data[idx] - mean_val) / std_val;
-            }
-        }
-    }
-    else if (num_dims_ == 4)
-    {
-        for (size_t n = 0; n < x_shape[0]; ++n)
-        {
-            for (size_t c = 0; c < num_channels; ++c)
-            {
-                float mean_val = mean_data[c];
-                float var_val  = var_data[c];
-                float std_val  = std::sqrt(var_val + eps_);
-                for (size_t h = 0; h < x_shape[2]; ++h)
-                {
-                    for (size_t w = 0; w < x_shape[3]; ++w)
-                    {
-                        size_t idx       = ((n * num_channels + c) * x_shape[2] + h) * x_shape[3] + w;
-                        x_norm_data[idx] = (x_data[idx] - mean_val) / std_val;
-                    }
-                }
-            }
-        }
-    }
-
-    // 应用 gamma 和 beta：y = gamma * x_norm + beta
-    std::vector<float> y_data(x_data.size());
-    for (size_t i = 0; i < x_data.size(); ++i)
-    {
-        size_t c = 0;
-        if (num_dims_ == 2)
-        {
-            c = (i % num_channels);
-        }
-        else if (num_dims_ == 4)
-        {
-            c = ((i / (x_shape[2] * x_shape[3])) % num_channels);
-        }
-        y_data[i] = gamma_data[c] * x_norm_data[i] + beta_data[c];
-    }
-
-    // 创建输出张量
-    auto y = Tensor(y_data, x_shape, dtype(DataType::kFloat32).device(x.device()));
-
-    // 保存中间结果用于反向传播
-    saved_mean_   = Tensor(mean_data, running_mean.shape(), dtype(DataType::kFloat32).device(x.device()));
-    saved_var_    = Tensor(var_data, running_var.shape(), dtype(DataType::kFloat32).device(x.device()));
-    saved_x_norm_ = Tensor(x_norm_data, x_shape, dtype(DataType::kFloat32).device(x.device()));
 
     std::vector<Tensor> outputs;
     outputs.push_back(y);
@@ -212,94 +93,21 @@ std::vector<Tensor> BatchNorm::backward(const std::vector<Tensor> &gys)
     auto &x     = this->inputs_[0];
     auto &gamma = this->inputs_[1];
 
-    auto gy_data           = gy.to_vector<float>();
-    auto x_shape           = x.shape();
-    auto gamma_data        = gamma.to_vector<float>();
-    auto saved_mean_data   = saved_mean_.to_vector<float>();
-    auto saved_var_data    = saved_var_.to_vector<float>();
-    auto saved_x_norm_data = saved_x_norm_.to_vector<float>();
+    // 获取 Mat 引用并调用底层 batch_norm_backward
+    const OriginMat &gy_mat          = static_cast<const OriginMat &>(mat(gy));
+    const OriginMat &x_mat          = static_cast<const OriginMat &>(mat(x));
+    const OriginMat &gamma_mat       = static_cast<const OriginMat &>(mat(gamma));
+    const OriginMat &saved_mean_mat  = static_cast<const OriginMat &>(mat(saved_mean_));
+    const OriginMat &saved_var_mat    = static_cast<const OriginMat &>(mat(saved_var_));
+    const OriginMat &saved_x_norm_mat = static_cast<const OriginMat &>(mat(saved_x_norm_));
 
-    size_t num_channels = x_shape[1];
+    auto results = x_mat.batch_norm_backward(gy_mat, gamma_mat, saved_mean_mat, saved_var_mat, saved_x_norm_mat,
+                                             eps_, num_dims_);
 
-    // 计算梯度
-    std::vector<float> gx_data(x_shape.elements(), 0.0f);
-    std::vector<float> dgamma_data(num_channels, 0.0f);
-    std::vector<float> dbeta_data(num_channels, 0.0f);
-
-    // 计算每个通道的统计量
-    for (size_t c = 0; c < num_channels; ++c)
-    {
-        float sum_gy       = 0.0f;
-        float sum_gy_xnorm = 0.0f;
-        size_t count       = 0;
-
-        if (num_dims_ == 2)
-        {
-            for (size_t n = 0; n < x_shape[0]; ++n)
-            {
-                size_t idx = n * num_channels + c;
-                sum_gy += gy_data[idx];
-                sum_gy_xnorm += gy_data[idx] * saved_x_norm_data[idx];
-                count++;
-            }
-        }
-        else if (num_dims_ == 4)
-        {
-            for (size_t n = 0; n < x_shape[0]; ++n)
-            {
-                for (size_t h = 0; h < x_shape[2]; ++h)
-                {
-                    for (size_t w = 0; w < x_shape[3]; ++w)
-                    {
-                        size_t idx = ((n * num_channels + c) * x_shape[2] + h) * x_shape[3] + w;
-                        sum_gy += gy_data[idx];
-                        sum_gy_xnorm += gy_data[idx] * saved_x_norm_data[idx];
-                        count++;
-                    }
-                }
-            }
-        }
-
-        float mean_gy       = (count > 0) ? sum_gy / static_cast<float>(count) : 0.0f;
-        float mean_gy_xnorm = (count > 0) ? sum_gy_xnorm / static_cast<float>(count) : 0.0f;
-        float std_val       = std::sqrt(saved_var_data[c] + eps_);
-
-        // 计算 dgamma 和 dbeta
-        dgamma_data[c] = sum_gy_xnorm;
-        dbeta_data[c]  = sum_gy;
-
-        // 计算 gx
-        if (num_dims_ == 2)
-        {
-            for (size_t n = 0; n < x_shape[0]; ++n)
-            {
-                size_t idx = n * num_channels + c;
-                float gx_val =
-                    (gamma_data[c] / std_val) * (gy_data[idx] - mean_gy - saved_x_norm_data[idx] * mean_gy_xnorm);
-                gx_data[idx] = gx_val;
-            }
-        }
-        else if (num_dims_ == 4)
-        {
-            for (size_t n = 0; n < x_shape[0]; ++n)
-            {
-                for (size_t h = 0; h < x_shape[2]; ++h)
-                {
-                    for (size_t w = 0; w < x_shape[3]; ++w)
-                    {
-                        size_t idx   = ((n * num_channels + c) * x_shape[2] + h) * x_shape[3] + w;
-                        float gx_val = (gamma_data[c] / std_val) *
-                                       (gy_data[idx] - mean_gy - saved_x_norm_data[idx] * mean_gy_xnorm);
-                        gx_data[idx] = gx_val;
-                    }
-                }
-            }
-        }
-    }
-
-    auto gx     = Tensor(gx_data, x_shape, dtype(DataType::kFloat32).device(x.device()));
-    auto dgamma = Tensor(dgamma_data, gamma.shape(), dtype(DataType::kFloat32).device(x.device()));
-    auto dbeta  = Tensor(dbeta_data, gamma.shape(), dtype(DataType::kFloat32).device(x.device()));
+    // 转换结果
+    auto gx     = convert_mat_to_tensor(std::move(results[0]));
+    auto dgamma = convert_mat_to_tensor(std::move(results[1]));
+    auto dbeta  = convert_mat_to_tensor(std::move(results[2]));
 
     std::vector<Tensor> outputs;
     outputs.push_back(gx);

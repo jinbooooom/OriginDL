@@ -223,6 +223,13 @@ public:
     void clear_grad();
     void accumulate_grad(const Tensor &grad_to_add);
 
+    /**
+     * @brief 检查 tensor 是否需要梯度计算
+     * @return 如果 tensor 在计算图中（有 creator_）且全局反向传播启用，返回 true
+     * @details 类似 PyTorch 的 tensor.requires_grad 属性
+     */
+    bool requires_grad() const;
+
     // === 计算图管理 ===
     /**
      * @brief 断开tensor与计算图的连接，创建一个不参与梯度计算的新tensor

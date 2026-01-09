@@ -24,7 +24,7 @@
 // 前向声明
 class OriginMat;
 
-// 前向声明 add_inplace 函数（在 add.cpp 和 add.cu 中定义）
+// TODO: jinbo 前向声明 add_inplace 函数（在 add.cpp 和 add.cu 中定义）
 namespace origin
 {
 namespace cpu
@@ -1040,6 +1040,98 @@ std::unique_ptr<Mat> OriginMat::max_pool2d_backward(const OriginMat &gy,
     else
     {
         THROW_RUNTIME_ERROR("Unsupported device type for max_pool2d_backward: {}",
+                            static_cast<int>(storage_->device_type()));
+    }
+}
+
+// === 归一化相关操作实现 ===
+
+OriginMat::BatchNormResult OriginMat::batch_norm_forward(const OriginMat &gamma,
+                                                          const OriginMat &beta,
+                                                          const OriginMat &running_mean,
+                                                          const OriginMat &running_var,
+                                                          bool training,
+                                                          float eps,
+                                                          int num_dims) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        auto result = cpu::batch_norm_forward(*this, gamma, beta, running_mean, running_var, training, eps, num_dims);
+        OriginMat::BatchNormResult ret;
+        ret.y      = std::move(result.y);
+        ret.mean   = std::move(result.mean);
+        ret.var    = std::move(result.var);
+        ret.x_norm = std::move(result.x_norm);
+        return ret;
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        THROW_RUNTIME_ERROR("CUDA batch_norm_forward not implemented yet");
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for batch_norm_forward: {}",
+                            static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::batch_norm(const OriginMat &gamma,
+                                            const OriginMat &beta,
+                                            const OriginMat &running_mean,
+                                            const OriginMat &running_var,
+                                            bool training,
+                                            float eps,
+                                            float momentum,
+                                            int num_dims) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::batch_norm(*this, gamma, beta, running_mean, running_var, training, eps, momentum, num_dims);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        THROW_RUNTIME_ERROR("CUDA batch_norm not implemented yet");
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for batch_norm: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::vector<std::unique_ptr<Mat>> OriginMat::batch_norm_backward(const OriginMat &gy,
+                                                                   const OriginMat &gamma,
+                                                                   const OriginMat &saved_mean,
+                                                                   const OriginMat &saved_var,
+                                                                   const OriginMat &saved_x_norm,
+                                                                   float eps,
+                                                                   int num_dims) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::batch_norm_backward(gy, *this, gamma, saved_mean, saved_var, saved_x_norm, eps, num_dims);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        THROW_RUNTIME_ERROR("CUDA batch_norm_backward not implemented yet");
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for batch_norm_backward: {}",
                             static_cast<int>(storage_->device_type()));
     }
 }

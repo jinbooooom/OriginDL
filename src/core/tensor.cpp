@@ -1,5 +1,6 @@
 #include "origin/core/tensor.h"
 #include <stdexcept>
+#include "origin/core/config.h"
 #include "origin/core/tensor_options.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
@@ -172,6 +173,12 @@ void Tensor::backward()
 void Tensor::clear_grad()
 {
     impl_->clear_grad();
+}
+
+bool Tensor::requires_grad() const
+{
+    // TODO: jinbo 当前的origindl不支持requires_grad=false，所以默认是true，未来支持后，需要修改
+    return true;//Config::enable_backprop && impl_ && impl_->creator_ != nullptr;
 }
 
 Tensor Tensor::detach() const

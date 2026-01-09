@@ -222,6 +222,78 @@ public:
                                              std::pair<int, int> pad,
                                              const std::vector<size_t> &indices) const;
 
+    // === 归一化相关操作 ===
+    
+    /**
+     * @brief BatchNorm 前向传播结果结构体
+     */
+    struct BatchNormResult
+    {
+        std::unique_ptr<Mat> y;       // 输出
+        std::unique_ptr<Mat> mean;   // 当前 batch 的均值
+        std::unique_ptr<Mat> var;     // 当前 batch 的方差
+        std::unique_ptr<Mat> x_norm; // 归一化后的 x
+    };
+
+    /**
+     * @brief batch_norm：BatchNorm 前向传播（返回所有中间结果）
+     * @param gamma 缩放参数 (weight)，形状为 (C,)
+     * @param beta 偏移参数 (bias)，形状为 (C,)
+     * @param running_mean 运行均值，形状为 (C,)
+     * @param running_var 运行方差，形状为 (C,)
+     * @param training 是否为训练模式
+     * @param eps 数值稳定性参数
+     * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+     * @return BatchNormResult 包含输出和中间结果
+     */
+    BatchNormResult batch_norm_forward(const OriginMat &gamma,
+                                       const OriginMat &beta,
+                                       const OriginMat &running_mean,
+                                       const OriginMat &running_var,
+                                       bool training,
+                                       float eps,
+                                       int num_dims) const;
+
+    /**
+     * @brief batch_norm：BatchNorm 前向传播（只返回输出）
+     * @param gamma 缩放参数 (weight)，形状为 (C,)
+     * @param beta 偏移参数 (bias)，形状为 (C,)
+     * @param running_mean 运行均值，形状为 (C,)
+     * @param running_var 运行方差，形状为 (C,)
+     * @param training 是否为训练模式
+     * @param eps 数值稳定性参数
+     * @param momentum 动量参数（未使用，为了接口一致性保留）
+     * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+     * @return 输出张量，形状与输入相同
+     */
+    std::unique_ptr<Mat> batch_norm(const OriginMat &gamma,
+                                     const OriginMat &beta,
+                                     const OriginMat &running_mean,
+                                     const OriginMat &running_var,
+                                     bool training,
+                                     float eps,
+                                     float momentum,
+                                     int num_dims) const;
+
+    /**
+     * @brief batch_norm_backward：BatchNorm 反向传播
+     * @param gy 输出梯度，形状与输入 x 相同
+     * @param gamma 缩放参数 (weight)，形状为 (C,)
+     * @param saved_mean 前向传播时保存的均值，形状为 (C,)
+     * @param saved_var 前向传播时保存的方差，形状为 (C,)
+     * @param saved_x_norm 前向传播时保存的归一化结果，形状与输入 x 相同
+     * @param eps 数值稳定性参数
+     * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+     * @return 梯度向量：{gx, dgamma, dbeta}
+     */
+    std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
+                                                           const OriginMat &gamma,
+                                                           const OriginMat &saved_mean,
+                                                           const OriginMat &saved_var,
+                                                           const OriginMat &saved_x_norm,
+                                                           float eps,
+                                                           int num_dims) const;
+
     // 形状和维度
     Shape shape() const override;
     size_t elements() const override;
