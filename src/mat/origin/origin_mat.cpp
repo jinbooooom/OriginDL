@@ -1068,7 +1068,13 @@ OriginMat::BatchNormResult OriginMat::batch_norm_forward(const OriginMat &gamma,
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        THROW_RUNTIME_ERROR("CUDA batch_norm_forward not implemented yet");
+        auto result = cuda::batch_norm_forward(*this, gamma, beta, running_mean, running_var, training, eps, num_dims);
+        OriginMat::BatchNormResult ret;
+        ret.y      = std::move(result.y);
+        ret.mean   = std::move(result.mean);
+        ret.var    = std::move(result.var);
+        ret.x_norm = std::move(result.x_norm);
+        return ret;
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -1097,7 +1103,7 @@ std::unique_ptr<Mat> OriginMat::batch_norm(const OriginMat &gamma,
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        THROW_RUNTIME_ERROR("CUDA batch_norm not implemented yet");
+        return cuda::batch_norm(*this, gamma, beta, running_mean, running_var, training, eps, momentum, num_dims);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -1124,7 +1130,7 @@ std::vector<std::unique_ptr<Mat>> OriginMat::batch_norm_backward(const OriginMat
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        THROW_RUNTIME_ERROR("CUDA batch_norm_backward not implemented yet");
+        return cuda::batch_norm_backward(gy, *this, gamma, saved_mean, saved_var, saved_x_norm, eps, num_dims);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif

@@ -315,6 +315,89 @@ std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy,
                                          std::pair<int, int> pad,
                                          const std::vector<size_t> &indices);
 
+// ============================================================================
+// 归一化相关操作
+// ============================================================================
+
+/**
+ * @brief BatchNorm 前向传播结果结构体
+ */
+struct BatchNormForwardResult
+{
+    std::unique_ptr<Mat> y;       // 输出
+    std::unique_ptr<Mat> mean;     // 当前 batch 的均值
+    std::unique_ptr<Mat> var;      // 当前 batch 的方差
+    std::unique_ptr<Mat> x_norm;   // 归一化后的 x
+};
+
+/**
+ * @brief CUDA batch_norm_forward：BatchNorm 前向传播（返回所有中间结果）
+ * @note 只支持浮点类型（float32 或 float64），与 PyTorch 行为一致
+ * @param x 输入张量（必须是 float32 或 float64）
+ * @param gamma 缩放参数 (weight)，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param beta 偏移参数 (bias)，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param running_mean 运行均值，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param running_var 运行方差，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param training 是否为训练模式
+ * @param eps 数值稳定性参数
+ * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+ * @return BatchNormForwardResult 包含输出和中间结果
+ */
+BatchNormForwardResult batch_norm_forward(const OriginMat &x,
+                                          const OriginMat &gamma,
+                                          const OriginMat &beta,
+                                          const OriginMat &running_mean,
+                                          const OriginMat &running_var,
+                                          bool training,
+                                          float eps,
+                                          int num_dims);
+
+/**
+ * @brief CUDA batch_norm：BatchNorm 前向传播（只返回输出）
+ * @note 只支持浮点类型（float32 或 float64），与 PyTorch 行为一致
+ * @param x 输入张量（必须是 float32 或 float64）
+ * @param gamma 缩放参数 (weight)，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param beta 偏移参数 (bias)，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param running_mean 运行均值，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param running_var 运行方差，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param training 是否为训练模式
+ * @param eps 数值稳定性参数
+ * @param momentum 动量参数（未使用，为了接口一致性保留）
+ * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+ * @return 输出张量，形状与输入相同
+ */
+std::unique_ptr<Mat> batch_norm(const OriginMat &x,
+                                 const OriginMat &gamma,
+                                 const OriginMat &beta,
+                                 const OriginMat &running_mean,
+                                 const OriginMat &running_var,
+                                 bool training,
+                                 float eps,
+                                 float momentum,
+                                 int num_dims);
+
+/**
+ * @brief CUDA batch_norm_backward：BatchNorm 反向传播
+ * @note 只支持浮点类型（float32 或 float64），与 PyTorch 行为一致
+ * @param gy 输出梯度，形状与输入 x 相同，必须是浮点类型
+ * @param x 输入张量，必须是浮点类型
+ * @param gamma 缩放参数 (weight)，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param saved_mean 前向传播时保存的均值，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param saved_var 前向传播时保存的方差，形状为 (C,)，必须与 x 相同的浮点类型
+ * @param saved_x_norm 前向传播时保存的归一化结果，形状与输入 x 相同，必须与 x 相同的浮点类型
+ * @param eps 数值稳定性参数
+ * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+ * @return 梯度向量：{gx, dgamma, dbeta}
+ */
+std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
+                                                      const OriginMat &x,
+                                                      const OriginMat &gamma,
+                                                      const OriginMat &saved_mean,
+                                                      const OriginMat &saved_var,
+                                                      const OriginMat &saved_x_norm,
+                                                      float eps,
+                                                      int num_dims);
+
 }  // namespace cuda
 }  // namespace origin
 
