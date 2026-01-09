@@ -7,25 +7,16 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
-#include "origin.h"
-#include "origin/pnnx/pnnx_graph.h"
-#include "origin/utils/log.h"
-#include "origin/core/config.h"
-#include "origin/core/operator.h"
-#include "class_labels.h"
-#ifdef WITH_CUDA
-#include "origin/cuda/cuda.h"
-#endif
 
-#ifdef OPENCV_FOUND
+#include "origin.h"
+#include "class_labels.h"
+
 #include <opencv2/opencv.hpp>
-#endif
 
 using namespace origin;
 namespace F = origin::functional;
 using namespace origin::pnnx;
 
-#ifdef OPENCV_FOUND
 /**
  * @brief 图像预处理：Resize + BGR2RGB + 归一化 + 标准化
  * @param image 输入图像（BGR格式）
@@ -124,7 +115,6 @@ Tensor preprocess_image(const cv::Mat& image, const Device& device) {
     // 创建标准化后的 Tensor
     return Tensor(data_vec, input_shape, dtype(DataType::kFloat32).device(device));
 }
-#endif  // OPENCV_FOUND
 
 /**
  * @brief ResNet 推理示例
@@ -137,7 +127,6 @@ int main(int argc, char* argv[]) {
     
     const std::string image_path = argv[1];
     
-#ifdef OPENCV_FOUND
     // 加载图像
     cv::Mat image = cv::imread(image_path);
     if (image.empty()) {
@@ -149,16 +138,12 @@ int main(int argc, char* argv[]) {
     
     // 确定设备
     Device device(DeviceType::kCPU);
-#ifdef WITH_CUDA
     if (cuda::is_available()) {
         device = Device(DeviceType::kCUDA, 0);
         std::cout << "Using CUDA device" << std::endl;
     } else {
         std::cout << "CUDA not available, using CPU" << std::endl;
     }
-#else
-    std::cout << "Using CPU" << std::endl;
-#endif
     
     // 图像预处理
     Tensor input = preprocess_image(image, device);
@@ -232,9 +217,5 @@ int main(int argc, char* argv[]) {
               << " (index: " << max_index << ", probability: " << max_prob << ")" << std::endl;
     
     return 0;
-#else
-    std::cerr << "Error: OpenCV not found. Please install OpenCV to use this demo." << std::endl;
-    return -1;
-#endif  // OPENCV_FOUND
 }
 

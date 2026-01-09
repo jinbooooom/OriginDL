@@ -1,10 +1,5 @@
 #include <iostream>
 #include "origin.h"
-#include "origin/core/operator.h"
-#include "origin/nn/layers/linear.h"
-#include "origin/nn/sequential.h"
-#include "origin/optim/sgd.h"
-#include "origin/utils/log.h"
 
 using namespace origin;
 namespace F = origin::functional;
@@ -17,10 +12,9 @@ namespace nn = origin::nn;
  */
 int main()
 {
-#ifdef WITH_CUDA
-    cuda::print_cuda_device_info();
+    cuda::device_info();
 
-    if (!cuda::is_cuda_available())
+    if (!cuda::is_available())
     {
         std::cout << "CUDA is not available on this system!" << std::endl;
         return 1;
@@ -82,12 +76,6 @@ int main()
             logi("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
         }
     }
-
-#else
-    std::cout << "CUDA support is not enabled in this build!" << std::endl;
-    std::cout << "Please rebuild with --cuda flag: ./build.sh origin --cuda" << std::endl;
-    return 1;
-#endif
 
     return 0;
 }

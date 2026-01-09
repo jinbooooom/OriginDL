@@ -6,10 +6,6 @@
 #include "../common/test_utils.h"
 #include "origin.h"
 
-#ifdef WITH_CUDA
-#    include <cuda_runtime.h>
-#endif
-
 using namespace origin;
 
 /**
@@ -272,7 +268,6 @@ TEST_P(TensorOperationsTest, DataPtrBasic)
     else
     {
         // CUDA版本：直接获取CUDA张量的指针，使用cudaMemcpy拷贝到CPU内存进行比较
-#ifdef WITH_CUDA
         float *cuda_ptr = t.data_ptr<float>();
         EXPECT_NE(cuda_ptr, nullptr);
 
@@ -288,7 +283,7 @@ TEST_P(TensorOperationsTest, DataPtrBasic)
         EXPECT_EQ(err, cudaSuccess) << "cudaMemcpy failed: " << cudaGetErrorString(err);
 
         // 同步等待拷贝完成
-        cudaDeviceSynchronize();
+        cuda::synchronize();
 
         // 比较数据
         std::vector<float> expected_data = {1.0f, 2.0f, 3.0f, 4.0f};
@@ -297,9 +292,6 @@ TEST_P(TensorOperationsTest, DataPtrBasic)
         {
             EXPECT_NEAR(cpu_data[i], expected_data[i], origin::test::TestTolerance::kDefault);
         }
-#else
-        GTEST_SKIP() << "CUDA support not compiled in";
-#endif
     }
 }
 
@@ -322,7 +314,6 @@ TEST_P(TensorOperationsTest, DataPtrModification)
     else
     {
         // CUDA版本：使用cudaMemcpy在CPU和GPU之间传输数据
-#ifdef WITH_CUDA
         float *cuda_ptr = t.data_ptr<float>();
         EXPECT_NE(cuda_ptr, nullptr);
 
@@ -336,7 +327,7 @@ TEST_P(TensorOperationsTest, DataPtrModification)
         // 从GPU拷贝到CPU
         cudaError_t err = cudaMemcpy(cpu_data.data(), cuda_ptr, data_size, cudaMemcpyDeviceToHost);
         EXPECT_EQ(err, cudaSuccess) << "cudaMemcpy failed: " << cudaGetErrorString(err);
-        cudaDeviceSynchronize();
+        cuda::synchronize();
 
         // 在CPU上修改数据
         cpu_data[0] = 10.0f;
@@ -345,16 +336,13 @@ TEST_P(TensorOperationsTest, DataPtrModification)
         // 从CPU拷贝回GPU
         err = cudaMemcpy(cuda_ptr, cpu_data.data(), data_size, cudaMemcpyHostToDevice);
         EXPECT_EQ(err, cudaSuccess) << "cudaMemcpy failed: " << cudaGetErrorString(err);
-        cudaDeviceSynchronize();
+        cuda::synchronize();
 
         // 验证修改生效：使用to_vector获取数据进行比较
         auto verify_data = t.to_vector<float>();
         EXPECT_EQ(verify_data.size(), num_elements);
         EXPECT_NEAR(verify_data[0], 10.0f, origin::test::TestTolerance::kDefault);
         EXPECT_NEAR(verify_data[1], 20.0f, origin::test::TestTolerance::kDefault);
-#else
-        GTEST_SKIP() << "CUDA support not compiled in";
-#endif
     }
 }
 

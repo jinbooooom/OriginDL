@@ -1,17 +1,6 @@
-#include "origin/data/mnist.h"
 #include <iomanip>
 #include "origin.h"
-#include "origin/core/config.h"
-#include "origin/core/operator.h"
-#include "origin/data/dataloader.h"
 #include "origin/nn/models/mlp.h"
-#include "origin/optim/adam.h"
-#include "origin/optim/hooks.h"
-#include "origin/utils/log.h"
-#include "origin/utils/metrics.h"
-#ifdef WITH_CUDA
-#    include "origin/cuda/cuda.h"
-#endif
 
 using namespace origin;
 namespace F = origin::functional;
@@ -35,7 +24,6 @@ int main(int argc, char *argv[])
 
     // 检测并选择设备（GPU优先，如果没有GPU则使用CPU）
     Device device(DeviceType::kCPU);
-#ifdef WITH_CUDA
     // if (0 &&cuda::is_available())// 强行使用cpu
     if (cuda::is_available())
     {
@@ -47,9 +35,6 @@ int main(int argc, char *argv[])
     {
         logw("CUDA is not available. Using CPU for training.");
     }
-#else
-    logi("CUDA support not compiled. Using CPU for training.");
-#endif
 
     logi("=== MNIST Handwritten Digit Recognition Demo ===");
     logi("Device: {}", device.to_string());
@@ -145,11 +130,9 @@ int main(int argc, char *argv[])
                 // 这可以帮助释放未使用的GPU内存，避免内存碎片化导致训练变慢
                 if (train_batches % 100 == 0 && device.type() == DeviceType::kCUDA)
                 {
-#ifdef WITH_CUDA
-                    cudaDeviceSynchronize();  // 确保所有CUDA操作完成
-                                              // 注意：CUDA没有像PyTorch的empty_cache()那样的函数
-                                              // 但cudaDeviceSynchronize()可以帮助释放一些内存
-#endif
+                    cuda::synchronize();  // 确保所有CUDA操作完成
+                                          // 注意：CUDA没有像PyTorch的empty_cache()那样的函数
+                                          // 但synchronize()可以帮助释放一些内存
                 }
 
                 train_correct += static_cast<int>(acc_value * static_cast<float>(current_batch_size));

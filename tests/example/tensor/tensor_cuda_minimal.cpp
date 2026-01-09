@@ -1,6 +1,5 @@
 #include <iostream>
-#include "origin/core/operator.h"
-#include "origin/core/tensor.h"
+#include "origin.h"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 
 using namespace origin;
@@ -11,7 +10,7 @@ int main()
     std::cout << "Testing minimal CUDA operations..." << std::endl;
 
     // 检查CUDA是否可用
-    if (!cuda::is_cuda_available())
+    if (!cuda::is_available())
     {
         std::cout << "CUDA not available!" << std::endl;
         return 1;

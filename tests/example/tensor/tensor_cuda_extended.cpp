@@ -10,10 +10,9 @@ namespace F = origin::functional;
 int main()
 {
     // 检查CUDA是否可用
-#ifdef WITH_CUDA
-    origin::cuda::print_cuda_device_info();
+    origin::cuda::device_info();
 
-    if (!origin::cuda::is_cuda_available())
+    if (!origin::cuda::is_available())
     {
         std::cout << "CUDA is not available on this system!" << std::endl;
         return 1;
@@ -111,7 +110,7 @@ int main()
 
         // 预热
         auto warmup = a + b;
-        cudaDeviceSynchronize();
+        origin::cuda::synchronize();
 
         // 测试加法性能
         auto start = std::chrono::high_resolution_clock::now();
@@ -119,7 +118,7 @@ int main()
         {
             auto c = a + b;
         }
-        cudaDeviceSynchronize();
+        origin::cuda::synchronize();
         auto end      = std::chrono::high_resolution_clock::now();
         auto add_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
@@ -129,7 +128,7 @@ int main()
         {
             auto c = a * b;
         }
-        cudaDeviceSynchronize();
+        origin::cuda::synchronize();
         end           = std::chrono::high_resolution_clock::now();
         auto mul_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
@@ -139,7 +138,7 @@ int main()
         {
             auto c = F::exp(a);
         }
-        cudaDeviceSynchronize();
+        origin::cuda::synchronize();
         end           = std::chrono::high_resolution_clock::now();
         auto exp_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
@@ -150,12 +149,6 @@ int main()
     }
 
     std::cout << "\nAll CUDA operator tests completed successfully!" << std::endl;
-
-#else
-    std::cout << "CUDA support is not enabled in this build!" << std::endl;
-    std::cout << "Please rebuild with --cuda flag: ./build.sh ORIGIN --cuda" << std::endl;
-    return 1;
-#endif
 
     return 0;
 }

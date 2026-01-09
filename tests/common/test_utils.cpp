@@ -1,9 +1,5 @@
 #include "test_utils.h"
-
-#ifdef WITH_CUDA
-#    include <cuda_runtime.h>
-#    include "origin/mat/origin/cuda/cuda_utils.cuh"
-#endif
+#include "origin.h"
 
 namespace origin
 {
@@ -69,11 +65,7 @@ bool TestUtils::tensorsNear(const Tensor &a, const Tensor &b, double rtol, doubl
 
 bool TestUtils::isCudaAvailable()
 {
-#ifdef WITH_CUDA
-    return cuda::is_cuda_available();
-#else
-    return false;
-#endif
+    return cuda::is_available();
 }
 
 }  // namespace test

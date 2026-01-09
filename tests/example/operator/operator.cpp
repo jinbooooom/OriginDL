@@ -1,5 +1,4 @@
 #include "origin.h"
-#include "origin/utils/log.h"
 
 using namespace origin;
 namespace F = origin::functional;

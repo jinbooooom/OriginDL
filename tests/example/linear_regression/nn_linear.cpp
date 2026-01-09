@@ -1,10 +1,5 @@
 #include <iostream>
 #include "origin.h"
-#include "origin/core/operator.h"
-#include "origin/nn/layers/linear.h"
-#include "origin/nn/sequential.h"
-#include "origin/optim/sgd.h"
-#include "origin/utils/log.h"
 
 using namespace origin;
 namespace F = origin::functional;

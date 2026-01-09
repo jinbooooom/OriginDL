@@ -15,14 +15,9 @@ YOLOv5 推理示例（使用 PNNX 模型）
 #include <iomanip>
 #include <getopt.h>
 #include <filesystem>
+
 #include "origin.h"
-#include "origin/pnnx/pnnx_graph.h"
-#include "origin/utils/log.h"
-#include "origin/core/config.h"
 #include "class_labels.h"
-#ifdef WITH_CUDA
-#include "origin/cuda/cuda.h"
-#endif
 
 #include <opencv2/opencv.hpp>
 
@@ -664,7 +659,6 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
     // 检测并选择设备（GPU优先，如果没有GPU则使用CPU）
     // 注意：cuDNN 和 cuBLAS 已在代码中禁用，将使用自定义 GPU kernel（行主序）
     Device device(DeviceType::kCPU);
-#ifdef WITH_CUDA
     if (cuda::is_available() && cfg.gpu_device >= 0)
     {
         device = Device(DeviceType::kCUDA, cfg.gpu_device);
@@ -674,9 +668,6 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
     {
         logw("CUDA is not available. Using CPU for inference.");
     }
-#else
-    logi("CUDA support not compiled. Using CPU for inference.");
-#endif
     
     logi("Configuration:");
     logi("  Confidence threshold: {}", cfg.confidence_thresh);

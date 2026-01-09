@@ -4,10 +4,9 @@ namespace F = origin::functional;
 
 int main()
 {
-#ifdef WITH_CUDA
-    origin::cuda::print_cuda_device_info();
+    origin::cuda::device_info();
 
-    if (!origin::cuda::is_cuda_available())
+    if (!origin::cuda::is_available())
     {
         std::cout << "CUDA is not available on this system!" << std::endl;
         return 1;
@@ -42,12 +41,6 @@ int main()
     }
 
     std::cout << "All tests completed successfully!" << std::endl;
-
-#else
-    std::cout << "CUDA support is not enabled in this build!" << std::endl;
-    std::cout << "Please rebuild with --cuda flag: ./build.sh ORIGIN --cuda" << std::endl;
-    return 1;
-#endif
 
     return 0;
 }

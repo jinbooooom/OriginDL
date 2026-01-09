@@ -59,25 +59,19 @@ protected:
         // 如果是CUDA但不可用，跳过测试
         if (device_type_ == DeviceType::kCUDA)
         {
-#ifdef WITH_CUDA
             if (!TestUtils::isCudaAvailable())
             {
                 GTEST_SKIP() << "CUDA is not available on this system";
             }
-#else
-            GTEST_SKIP() << "CUDA support is not compiled in this build";
-#endif
         }
     }
 
     void TearDown() override
     {
-#ifdef WITH_CUDA
         if (device_type_ == DeviceType::kCUDA && TestUtils::isCudaAvailable())
         {
-            cudaDeviceSynchronize();
+            cuda::synchronize();
         }
-#endif
     }
 
     /**
@@ -114,12 +108,10 @@ inline std::vector<DeviceType> GetAvailableDevices()
 {
     std::vector<DeviceType> devices = {DeviceType::kCPU};
 
-#ifdef WITH_CUDA
     if (TestUtils::isCudaAvailable())
     {
         devices.push_back(DeviceType::kCUDA);
     }
-#endif
 
     return devices;
 }
