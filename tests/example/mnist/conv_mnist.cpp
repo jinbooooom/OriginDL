@@ -6,7 +6,6 @@
 
 using namespace origin;
 namespace F = origin::functional;
-
 namespace nn = origin::nn;
 
 /**
@@ -280,7 +279,7 @@ struct TrainingConfig
 {
     int max_epoch           = 10;
     int batch_size          = 256;
-    float learning_rate     = 0.0005f;
+    float learning_rate     = 0.0001f;  // 降低学习率：0.0005 -> 0.0001，学习率太大，训练到后期越训精度越低
     float weight_decay_rate = 1e-4f;
     int log_interval        = 50;
     std::string model_path  = "model/mnist_model.odl";
@@ -334,7 +333,7 @@ void usage(const char *program_name)
     logi("Options:");
     logi("  -e, --epochs EPOCHS          Maximum number of epochs (default: 10)");
     logi("  -b, --batch-size SIZE        Batch size (default: 256)");
-    logi("  -l, --learning-rate LR       Learning rate (default: 0.0005)");
+    logi("  -l, --learning-rate LR       Learning rate (default: 0.0001)");
     logi("  -w, --weight-decay RATE      Weight decay rate (default: 1e-4)");
     logi("  -i, --log-interval INTERVAL  Log interval in batches (default: 50)");
     logi("  -m, --model-path PATH        Path to save model (default: model/mnist_model.odl)");
@@ -392,8 +391,8 @@ TrainingConfig parse_args(int argc, char *argv[])
                 config.learning_rate = std::atof(optarg);
                 if (config.learning_rate <= 0.0f)
                 {
-                    logw("Invalid learning_rate: {}. Using default: 0.0005", optarg);
-                    config.learning_rate = 0.0005f;
+                    logw("Invalid learning_rate: {}. Using default: 0.0001", optarg);
+                    config.learning_rate = 0.0001f;
                 }
                 break;
             case 'w':
