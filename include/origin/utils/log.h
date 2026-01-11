@@ -17,6 +17,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/details/os.h"
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 
 class OriginLog final
@@ -97,5 +98,6 @@ public:
 #define logw(format, ...) SPDLOG_LOGGER_WARN(origin_logger, format, ##__VA_ARGS__)
 #define loge(format, ...) SPDLOG_LOGGER_ERROR(origin_logger, format, ##__VA_ARGS__)
 #define logc(format, ...) SPDLOG_LOGGER_CRITICAL(origin_logger, format, ##__VA_ARGS__)
+#define loga(format, ...) printf(format, ##__VA_ARGS__)  // log always: 始终输出，不受日志级别限制
 
 #endif

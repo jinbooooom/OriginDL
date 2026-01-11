@@ -329,17 +329,17 @@ struct TrainingConfig
  */
 void usage(const char *program_name)
 {
-    logi("Usage: {} [OPTIONS]", program_name);
-    logi("Options:");
-    logi("  -e, --epochs EPOCHS          Maximum number of epochs (default: 10)");
-    logi("  -b, --batch-size SIZE        Batch size (default: 256)");
-    logi("  -l, --learning-rate LR       Learning rate (default: 0.0001)");
-    logi("  -w, --weight-decay RATE      Weight decay rate (default: 1e-4)");
-    logi("  -i, --log-interval INTERVAL  Log interval in batches (default: 50)");
-    logi("  -m, --model-path PATH        Path to save model (default: model/mnist_model.odl)");
-    logi("  -c, --checkpoint-interval N  Save checkpoint every N epochs (default: 5)");
-    logi("  -s, --seed SEED              Random seed (default: 42)");
-    logi("  -h, --help                   Show this help message");
+    loga("Usage: %s [OPTIONS]\n", program_name);
+    loga("Options:\n");
+    loga("  -e, --epochs EPOCHS          Maximum number of epochs (default: 10)\n");
+    loga("  -b, --batch-size SIZE        Batch size (default: 256)\n");
+    loga("  -l, --learning-rate LR       Learning rate (default: 0.0001)\n");
+    loga("  -w, --weight-decay RATE      Weight decay rate (default: 1e-4)\n");
+    loga("  -i, --log-interval INTERVAL  Log interval in batches (default: 50)\n");
+    loga("  -m, --model-path PATH        Path to save model (default: model/mnist_model.odl)\n");
+    loga("  -c, --checkpoint-interval N  Save checkpoint every N epochs (default: 5)\n");
+    loga("  -s, --seed SEED              Random seed (default: 42)\n");
+    loga("  -h, --help                   Show this help message\n");
 }
 
 /**

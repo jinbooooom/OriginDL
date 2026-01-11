@@ -7,6 +7,8 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <chrono>
+#include <getopt.h>
 
 #include "origin.h"
 #include "class_labels.h"
@@ -117,79 +119,181 @@ Tensor preprocess_image(const cv::Mat& image, const Device& device) {
 }
 
 /**
+ * @brief 配置结构体
+ */
+struct InferenceConfig {
+    std::string image_path;
+    std::string param_path;
+    std::string bin_path;
+    int gpu_id = 0;
+};
+
+/**
+ * @brief 打印帮助信息
+ */
+void usage(const char *program_name) {
+    loga("Usage: %s [OPTIONS]\n", program_name);
+    loga("\n");
+    loga("Required options:\n");
+    loga("  -i, --image PATH     Input image file path\n");
+    loga("\n");
+    loga("Optional options:\n");
+    loga("  -p, --param PATH     PNNX param file path (default: auto-detect)\n");
+    loga("  -b, --bin PATH       PNNX bin file path (default: auto-detect)\n");
+    loga("  -g, --gpu INT        GPU device ID (default: 0)\n");
+    loga("  -h, --help           Show this help message\n");
+    loga("\n");
+    loga("Examples:\n");
+    loga("  %s -i path/to/image.jpg\n", program_name);
+    loga("  %s -i path/to/image.jpg -p model.pnnx.param -b model.pnnx.bin\n", program_name);
+    loga("  %s -i path/to/image.jpg -g 0\n", program_name);
+}
+
+/**
+ * @brief 解析命令行参数
+ * @param argc 参数个数
+ * @param argv 参数数组
+ * @return InferenceConfig 配置对象
+ */
+InferenceConfig parse_args(int argc, char *argv[])
+{
+    InferenceConfig config;
+
+    // 定义长选项
+    static struct option long_options[] = {
+        {"image", required_argument, 0, 'i'},
+        {"param", required_argument, 0, 'p'},
+        {"bin", required_argument, 0, 'b'},
+        {"gpu", required_argument, 0, 'g'},
+        {"help", no_argument, 0, 'h'},
+        {0, 0, 0, 0}
+    };
+
+    int option_index = 0;
+    int c;
+
+    while ((c = getopt_long(argc, argv, "i:p:b:g:h", long_options, &option_index)) != -1)
+    {
+        switch (c)
+        {
+            case 'i':
+                config.image_path = optarg;
+                break;
+            case 'p':
+                config.param_path = optarg;
+                break;
+            case 'b':
+                config.bin_path = optarg;
+                break;
+            case 'g':
+                config.gpu_id = std::atoi(optarg);
+                if (config.gpu_id < 0)
+                {
+                    logw("Invalid GPU ID: {}. Using default: 0", optarg);
+                    config.gpu_id = 0;
+                }
+                break;
+            case 'h':
+                usage(argv[0]);
+                std::exit(0);
+            case '?':
+                // getopt_long 已经打印了错误信息
+                logw("Use -h or --help for usage information");
+                break;
+            default:
+                break;
+        }
+    }
+
+    // 检查必需参数
+    if (config.image_path.empty())
+    {
+        loge("Error: Image path is required");
+        usage(argv[0]);
+        std::exit(1);
+    }
+
+    return config;
+}
+
+/**
  * @brief ResNet 推理示例
  */
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <image_path>" << std::endl;
-        return -1;
-    }
-    
-    const std::string image_path = argv[1];
+    // 解析命令行参数
+    InferenceConfig config = parse_args(argc, argv);
     
     // 加载图像
-    cv::Mat image = cv::imread(image_path);
+    cv::Mat image = cv::imread(config.image_path);
     if (image.empty()) {
-        std::cerr << "Error: Cannot load image from " << image_path << std::endl;
+        loge("Error: Cannot load image from {}", config.image_path);
         return -1;
     }
     
-    std::cout << "Image size: " << image.cols << "x" << image.rows << std::endl;
+    logi("Image size: {}x{}", image.cols, image.rows);
     
     // 确定设备
     Device device(DeviceType::kCPU);
     if (cuda::is_available()) {
-        device = Device(DeviceType::kCUDA, 0);
-        std::cout << "Using CUDA device" << std::endl;
+        device = Device(DeviceType::kCUDA, config.gpu_id);
+        logi("Using CUDA device {}", config.gpu_id);
     } else {
-        std::cout << "CUDA not available, using CPU" << std::endl;
+        logi("CUDA not available, using CPU");
     }
     
     // 图像预处理
     Tensor input = preprocess_image(image, device);
-    std::cout << "Preprocessed input shape: " << input.shape().to_string() << std::endl;
+    logi("Preprocessed input shape: {}", input.shape().to_string());
     
-    // 模型路径（从项目根目录运行，或从 build/bin/example 运行时使用相对路径）
-    // 尝试多个可能的路径
-    std::string param_path = "s/KuiperInferGitee/tmp/resnet/demo/resnet18_batch1.pnnx.param";
-    std::string bin_path = "s/KuiperInferGitee/tmp/resnet/demo/resnet18_batch1.pnnx.bin";
+    // 模型路径处理
+    std::string param_path = config.param_path;
+    std::string bin_path = config.bin_path;
     
-    // 如果从 build/bin/example 运行，需要向上三级
-    std::ifstream test_file(param_path);
-    if (!test_file.good()) {
-        param_path = "../../../s/KuiperInferGitee/tmp/resnet/demo/resnet18_batch1.pnnx.param";
-        bin_path = "../../../s/KuiperInferGitee/tmp/resnet/demo/resnet18_batch1.pnnx.bin";
+    // 如果未指定模型路径，尝试自动检测
+    if (param_path.empty() || bin_path.empty()) {
+        // 尝试多个可能的路径
+        param_path = "model/pnnx/resnet/resnet18_batch1.pnnx.param";
+        bin_path = "model/pnnx/resnet/resnet18_batch1.pnnx.bin";
+        
+        // 如果从 build/bin/example 运行，需要向上三级
+        std::ifstream test_file(param_path);
+        if (!test_file.good()) {
+            param_path = "../../../model/pnnx/resnet/resnet18_batch1.pnnx.param";
+            bin_path = "../../../model/pnnx/resnet/resnet18_batch1.pnnx.bin";
+        }
+        test_file.close();
     }
-    test_file.close();
+    
+    logi("Using model: param={}, bin={}", param_path, bin_path);
     
     // 创建 PNNX 图
     PNNXGraph graph(param_path, bin_path);
     
     // 构建计算图
-    std::cout << "Building graph..." << std::endl;
+    logi("Building graph...");
     graph.build();
-    std::cout << "Graph built successfully!" << std::endl;
+    logi("Graph built successfully!");
     
     // 设置输入
     graph.set_inputs("pnnx_input_0", {input});
     
     // 推理
-    std::cout << "Running inference..." << std::endl;
+    logi("Running inference...");
     auto start_time = std::chrono::high_resolution_clock::now();
     graph.forward(false);
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    std::cout << "Forward time: " << duration.count() / 1000.0 << "s" << std::endl;
+    logi("Forward time: {:.3f}s", duration.count() / 1000.0);
     
     // 获取输出
     std::vector<Tensor> outputs = graph.get_outputs("pnnx_output_0");
     if (outputs.empty()) {
-        std::cerr << "Error: No output found" << std::endl;
+        loge("Error: No output found");
         return -1;
     }
     
     Tensor output = outputs[0];
-    std::cout << "Output shape: " << output.shape().to_string() << std::endl;
+    logi("Output shape: {}", output.shape().to_string());
     
     // 应用 Softmax
     // ResNet 输出形状应该是 (1, 1000)，对最后一个维度应用 softmax
@@ -213,8 +317,8 @@ int main(int argc, char* argv[]) {
         class_name = IMAGENET_CLASSES[max_index];
     }
     
-    std::cout << "Class with max probability: " << class_name 
-              << " (index: " << max_index << ", probability: " << max_prob << ")" << std::endl;
+    loga("Class with max probability: %s (index: %d, probability: %.4f)\n", 
+         class_name, max_index, max_prob);
     
     return 0;
 }

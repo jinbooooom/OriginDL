@@ -217,32 +217,46 @@ UserCfg parse_args(int argc, char *argv[]) {
         cfg.image_dir = argv[optind++];
     }
     
+    // 如果未指定模型路径，尝试自动检测
+    if (cfg.param_path.empty() || cfg.bin_path.empty()) {
+        // 尝试多个可能的路径
+        cfg.param_path = "model/pnnx/yolo/yolov5n_small.pnnx.param";
+        cfg.bin_path = "model/pnnx/yolo/yolov5n_small.pnnx.bin";
+        
+        // 如果从 build/bin/example 运行，需要向上三级
+        std::ifstream test_file(cfg.param_path);
+        if (!test_file.good()) {
+            cfg.param_path = "../../../model/pnnx/yolo/yolov5n_small.pnnx.param";
+            cfg.bin_path = "../../../model/pnnx/yolo/yolov5n_small.pnnx.bin";
+        }
+        test_file.close();
+    }
+    
     return cfg;
 }
 
 /**
  * @brief 打印帮助信息
  */
-void print_help(const char *program_name) {
-    std::cout << "Usage: " << program_name << " [OPTIONS]\n"
-              << "\n"
-              << "Required options:\n"
-              << "  -p, --param PATH      PNNX param file path\n"
-              << "  -b, --bin PATH        PNNX bin file path\n"
-              << "\n"
-              << "Optional options:\n"
-              << "  -i, --image DIR       Input image directory path (default: use test input)\n"
-              << "  -o, --output DIR      Output image directory path (default: ./tmp)\n"
-              << "  -c, --confidence FLOAT Confidence threshold (default: 0.25)\n"
-              << "  -u, --iou FLOAT       IOU threshold for NMS (default: 0.45)\n"
-              << "  -g, --gpu INT         GPU device ID (default: 0)\n"
-              << "  -d, --debug           Enable debug logging\n"
-              << "  -h, --help            Show this help message\n"
-              << "\n"
-              << "Examples:\n"
-              << "  " << program_name << " -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output\n"
-              << "  " << program_name << " -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output -c 0.5 -u 0.5\n"
-              << std::endl;
+void usage(const char *program_name) {
+    loga("Usage: %s [OPTIONS]\n", program_name);
+    loga("\n");
+    loga("Options:\n");
+    loga("  -p, --param PATH      PNNX param file path (default: model/pnnx/yolo/yolov5n_small.pnnx.param)\n");
+    loga("  -b, --bin PATH        PNNX bin file path (default: model/pnnx/yolo/yolov5n_small.pnnx.bin)\n");
+    loga("\n");
+    loga("Optional options:\n");
+    loga("  -i, --image DIR       Input image directory path (default: use test input)\n");
+    loga("  -o, --output DIR      Output image directory path (default: ./tmp)\n");
+    loga("  -c, --confidence FLOAT Confidence threshold (default: 0.25)\n");
+    loga("  -u, --iou FLOAT       IOU threshold for NMS (default: 0.45)\n");
+    loga("  -g, --gpu INT         GPU device ID (default: 0)\n");
+    loga("  -d, --debug           Enable debug logging\n");
+    loga("  -h, --help            Show this help message\n");
+    loga("\n");
+    loga("Examples:\n");
+    loga("  %s -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output\n", program_name);
+    loga("  %s -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output -c 0.5 -u 0.5\n", program_name);
 }
 
 // 检测结果结构
@@ -639,6 +653,8 @@ void process_and_save_detection(const std::vector<float>& output_data,
                    cv::Point(text_x, text_y), 
                    font_face, current_font_scale,
                    box_color, thickness);
+
+        loga("%s: %s\n", std::filesystem::path(image_path).filename().string().c_str(), label.c_str());
     }
     
     // 保存结果
@@ -833,10 +849,10 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
                 }
             }
             
-            logi("Processed {} images in total", image_files.size());
+            loga("Processed %zu images in total\n", image_files.size());
         }
         
-        logi("=== YOLOv5 Inference Complete ===");
+        loga("=== YOLOv5 Inference Complete ===\n");
     }
     catch (const std::exception &e)
     {
@@ -850,15 +866,21 @@ int main(int argc, char *argv[])
     UserCfg cfg = parse_args(argc, argv);
     
     if (cfg.show_help) {
-        print_help(argv[0]);
+        usage(argv[0]);
         return 0;
     }
     
-    if (cfg.param_path.empty() || cfg.bin_path.empty()) {
-        loge("param_path and bin_path are required!");
-        print_help(argv[0]);
+    // 检查模型路径是否存在
+    std::ifstream param_file(cfg.param_path);
+    std::ifstream bin_file(cfg.bin_path);
+    if (!param_file.good() || !bin_file.good()) {
+        loge("Model files not found! param={}, bin={}", cfg.param_path, cfg.bin_path);
+        loge("Please specify model paths with -p and -b options, or place model files in default location");
+        usage(argv[0]);
         return 1;
     }
+    param_file.close();
+    bin_file.close();
     
     // 从 param 文件中自动解析输入形状
     uint32_t parsed_batch_size = 1;
