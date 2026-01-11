@@ -84,16 +84,17 @@ private:
     Tensor(TensorImplPtr impl);
 
 public:
-    // 默认构造函数
+
     Tensor() = default;  // TODO，可以去掉
-    // 拷贝构造函数 - 浅拷贝，共享实现
+
     Tensor(const Tensor &other);
-    // 移动构造函数 - 转移所有权
+
     Tensor(Tensor &&other) noexcept;
-    // 赋值运算符
+
     Tensor &operator=(const Tensor &other);
+
     Tensor &operator=(Tensor &&other) noexcept;
-    // 析构函数
+
     ~Tensor() = default;
 
     // 向量构造函数（自动推断类型）

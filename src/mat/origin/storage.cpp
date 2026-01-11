@@ -11,7 +11,7 @@ namespace origin
 {
 
 Storage::Storage(size_t size, DeviceType device_type, int device_index)
-    : data_(nullptr), size_(size), device_type_(device_type), device_index_(device_index), ref_count_(1)
+    : data_(nullptr), size_(size), device_type_(device_type), device_index_(device_index)
 {
     allocator_ = AllocatorFactory::create_allocator(device_type_, device_index_);
     data_      = allocator_->allocate(size_);
@@ -31,12 +31,10 @@ Storage::Storage(Storage &&other) noexcept
       size_(other.size_),
       device_type_(other.device_type_),
       device_index_(other.device_index_),
-      ref_count_(other.ref_count_.load()),
       allocator_(std::move(other.allocator_))
 {
-    other.data_      = nullptr;
-    other.size_      = 0;
-    other.ref_count_ = 0;
+    other.data_ = nullptr;
+    other.size_ = 0;
 }
 
 Storage &Storage::operator=(Storage &&other) noexcept
@@ -48,16 +46,14 @@ Storage &Storage::operator=(Storage &&other) noexcept
             allocator_->deallocate(data_);
         }
 
-        data_         = other.data_;
-        size_         = other.size_;
-        device_type_  = other.device_type_;
+        data_        = other.data_;
+        size_        = other.size_;
+        device_type_ = other.device_type_;
         device_index_ = other.device_index_;
-        ref_count_    = other.ref_count_.load();
-        allocator_    = std::move(other.allocator_);
+        allocator_  = std::move(other.allocator_);
 
-        other.data_      = nullptr;
-        other.size_      = 0;
-        other.ref_count_ = 0;
+        other.data_ = nullptr;
+        other.size_ = 0;
     }
     return *this;
 }
@@ -65,20 +61,6 @@ Storage &Storage::operator=(Storage &&other) noexcept
 std::shared_ptr<Storage> Storage::create(size_t size, DeviceType device_type, int device_index)
 {
     return std::shared_ptr<Storage>(new Storage(size, device_type, device_index));
-}
-
-void Storage::add_ref()
-{
-    ref_count_.fetch_add(1);
-}
-
-void Storage::release()
-{
-    int count = ref_count_.fetch_sub(1);
-    if (count == 1)
-    {
-        delete this;
-    }
 }
 
 std::shared_ptr<Storage> Storage::to_device(DeviceType target_device_type, int target_device_index) const

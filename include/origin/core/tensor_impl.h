@@ -31,7 +31,7 @@ public:
     FunctionPtr creator_;
     int generation_;
 
-    // 核心构造函数 - 接受 unique_ptr 并转换为 shared_ptr（底层返回 unique_ptr，上层转换为 shared_ptr）
+    // 核心构造函数 - 接受 unique_ptr 并转换为 shared_ptr（底层返回 unique_ptr，表示数据所有权转移）
     TensorImpl(std::unique_ptr<Mat> data)
         : data_(std::shared_ptr<Mat>(std::move(data))), grad_(nullptr), creator_(nullptr), generation_(0)
     {}
@@ -115,7 +115,7 @@ private:
     // 移除所有私有辅助方法，直接实现核心逻辑
 };
 
-using TensorImplPtr = std::shared_ptr<TensorImpl>;
+using TensorImplPtr = std::shared_ptr<TensorImpl>; // TODO：删掉这个定义，直接用std::shared_ptr<TensorImpl>
 
 }  // namespace origin
 

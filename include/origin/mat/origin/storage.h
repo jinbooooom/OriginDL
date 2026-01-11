@@ -1,7 +1,6 @@
 #ifndef __ORIGIN_DL_STORAGE_H__
 #define __ORIGIN_DL_STORAGE_H__
 
-#include <atomic>
 #include <memory>
 #include <stdexcept>
 #include "../basic_types.h"
@@ -13,8 +12,8 @@ namespace origin
 /**
  * @brief 存储类，管理原始内存
  *
- * 类似于LibTorch的Storage，负责管理实际的数据存储，
- * 包括内存分配、释放、引用计数等
+ * 负责管理实际的数据存储，包括内存分配、释放等。
+ * 
  */
 class Storage
 {
@@ -23,7 +22,6 @@ private:
     size_t size_;  // Size in bytes
     DeviceType device_type_;
     int device_index_;
-    std::atomic<int> ref_count_;
     std::unique_ptr<Allocator> allocator_;
 
     // Disable copy constructor and copy assignment
@@ -83,16 +81,6 @@ public:
      * @return 设备索引
      */
     int device_index() const { return device_index_; }
-
-    /**
-     * @brief 增加引用计数
-     */
-    void add_ref();
-
-    /**
-     * @brief 减少引用计数
-     */
-    void release();
 
     /**
      * @brief 将数据复制到另一个设备

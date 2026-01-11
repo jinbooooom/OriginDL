@@ -14,21 +14,29 @@ namespace origin
 // 内部构造函数实现
 Tensor::Tensor(TensorImplPtr impl) : impl_(impl) {}
 
-// 拷贝和移动构造函数实现
+// 拷贝构造函数并不会深拷贝，只是共享底层数据
 Tensor::Tensor(const Tensor &other) : impl_(other.impl_) {}
 
+// 移动构造函数会转移所有权，原对象变为无效状态
 Tensor::Tensor(Tensor &&other) noexcept : impl_(std::move(other.impl_)) {}
 
-// 赋值运算符实现
+// 拷贝赋值运算符并不会深拷贝，只是共享底层数据，原对象保持不变
 Tensor &Tensor::operator=(const Tensor &other)
 {
-    impl_ = other.impl_;
+    if (this != &other)
+    {
+        impl_ = other.impl_;
+    }
     return *this;
 }
 
+// 移动赋值运算符会转移所有权，原对象变为无效状态，当前对象获得所有权
 Tensor &Tensor::operator=(Tensor &&other) noexcept
 {
-    impl_ = std::move(other.impl_);
+    if (this != &other)
+    {
+        impl_ = std::move(other.impl_);
+    }
     return *this;
 }
 
