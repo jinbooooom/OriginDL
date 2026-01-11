@@ -7,9 +7,6 @@
 #include <random>
 #include <sstream>
 #include <stdexcept>
-#include "origin/core/operator.h"
-#include "origin/core/tensor.h"
-#include "origin/core/tensor_impl.h"
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/cpu/factory.h"
 #include "origin/mat/origin/origin_mat_utils.h"
@@ -23,21 +20,6 @@
 
 // 前向声明
 class OriginMat;
-
-// TODO: jinbo 前向声明 add_inplace 函数（在 add.cpp 和 add.cu 中定义）
-namespace origin
-{
-namespace cpu
-{
-void add_inplace(::origin::OriginMat &a, const ::origin::OriginMat &b);
-}
-#ifdef WITH_CUDA
-namespace cuda
-{
-void add_inplace(::origin::OriginMat &a, const ::origin::OriginMat &b);
-}
-#endif
-}  // namespace origin
 
 namespace origin
 {
