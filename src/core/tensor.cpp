@@ -12,7 +12,7 @@ namespace origin
 // === 构造函数和析构函数实现 ===
 
 // 内部构造函数实现
-Tensor::Tensor(TensorImplPtr impl) : impl_(impl) {}
+Tensor::Tensor(std::shared_ptr<TensorImpl> impl) : impl_(impl) {}
 
 // 拷贝构造函数并不会深拷贝，只是共享底层数据
 Tensor::Tensor(const Tensor &other) : impl_(other.impl_) {}
@@ -168,7 +168,7 @@ Tensor Tensor::grad() const
     return Tensor(grad_impl);
 }
 
-void Tensor::set_creator(const FunctionPtr &func)
+void Tensor::set_creator(const std::shared_ptr<Operator> &func)
 {
     impl_->set_creator(func);
 }

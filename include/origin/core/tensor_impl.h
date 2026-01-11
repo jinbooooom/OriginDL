@@ -9,11 +9,10 @@
 #include "../mat/shape.h"
 #include "tensor_options.h"
 
-// 前向声明
-class Operator;
-
 namespace origin
 {
+// 前向声明
+class Operator;
 /*
 为了使 Tensor 看起来像是值语义的指针，把Tensor中所有的数据下沉到 TensorImpl,
 Tensor中只保留一个智能指针，方便值传递。
@@ -28,7 +27,7 @@ class TensorImpl
 public:
     std::shared_ptr<Mat> data_;  // 使用Mat抽象层，支持共享（与PyTorch行为一致）
     std::shared_ptr<Mat> grad_;  // 使用Mat抽象层，支持共享（与PyTorch行为一致）
-    FunctionPtr creator_;
+    std::shared_ptr<Operator> creator_;
     int generation_;
 
     // 核心构造函数 - 接受 unique_ptr 并转换为 shared_ptr（底层返回 unique_ptr，表示数据所有权转移）
@@ -74,7 +73,7 @@ public:
     ~TensorImpl() = default;
 
     // 核心方法
-    void set_creator(const FunctionPtr &func);
+    void set_creator(const std::shared_ptr<Operator> &func);
     void backward();
     void clear_grad();
 
@@ -110,12 +109,7 @@ public:
 
     // 类型转换
     TensorImpl to(const TensorOptions &options) const;
-
-private:
-    // 移除所有私有辅助方法，直接实现核心逻辑
 };
-
-using TensorImplPtr = std::shared_ptr<TensorImpl>; // TODO：删掉这个定义，直接用std::shared_ptr<TensorImpl>
 
 }  // namespace origin
 

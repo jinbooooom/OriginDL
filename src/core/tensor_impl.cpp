@@ -73,7 +73,7 @@ TensorImpl &TensorImpl::operator=(TensorImpl &&other) noexcept
     return *this;
 }
 
-void TensorImpl::set_creator(const FunctionPtr &func)
+void TensorImpl::set_creator(const std::shared_ptr<Operator> &func)
 {
     creator_    = func;
     generation_ = creator_->generation_ + 1;
@@ -96,24 +96,24 @@ void TensorImpl::backward()
         grad_                 = std::shared_ptr<Mat>(Mat_t::from_scalar(1, data_->shape(), options));
     }
 
-    auto funcs    = std::list<FunctionPtr>();
-    auto func_set = std::set<FunctionPtr>();
+    auto funcs    = std::list<std::shared_ptr<Operator>>();
+    auto func_set = std::set<std::shared_ptr<Operator>>();
 
-    auto add_func = [&funcs, &func_set](const FunctionPtr &f) {
+    auto add_func = [&funcs, &func_set](const std::shared_ptr<Operator> &f) {
         if (f && func_set.find(f) == func_set.end())
         {
             funcs.push_back(f);
             func_set.insert(f);
             funcs.sort(
-                [](const FunctionPtr &lhs, const FunctionPtr &rhs) { return lhs->generation_ < rhs->generation_; });
+                [](const std::shared_ptr<Operator> &lhs, const std::shared_ptr<Operator> &rhs) { return lhs->generation_ < rhs->generation_; });
         }
     };
 
     add_func(this->creator_);
 
     // 记录已处理的Operator和tensor，用于后续清理
-    std::vector<FunctionPtr> processed_ops;
-    std::set<TensorImplPtr> processed_tensors;
+    std::vector<std::shared_ptr<Operator>> processed_ops;
+    std::set<std::shared_ptr<TensorImpl>> processed_tensors;
 
     while (!funcs.empty())
     {
@@ -133,7 +133,7 @@ void TensorImpl::backward()
 
         // 收集所有输出tensor的impl_，用于后续清理
         // 将 weak_ptr 转换为 shared_ptr（如果有效）
-        std::vector<TensorImplPtr> valid_outputs;  // 临时保存有效的 shared_ptr，确保在 backward() 期间有效
+        std::vector<std::shared_ptr<TensorImpl>> valid_outputs;  // 临时保存有效的 shared_ptr，确保在 backward() 期间有效
         for (const auto &weak_output : f->outputs_)
         {
             // 将 weak_ptr 转换为 shared_ptr
@@ -207,7 +207,7 @@ void TensorImpl::backward()
     // 4. 清理所有相关tensor的grad_和creator_，彻底断开循环引用并释放内存
 
     // 第一步：收集输入tensor信息（在清理inputs_之前）
-    std::set<TensorImplPtr> input_tensors;
+    std::set<std::shared_ptr<TensorImpl>> input_tensors;
     for (const auto &f : processed_ops)
     {
         if (f)
@@ -288,10 +288,10 @@ void TensorImpl::detach()
     }
 
     // 收集所有相关的Operator和tensor，递归清理整个计算图
-    std::set<FunctionPtr> processed_ops;
-    std::set<TensorImplPtr> processed_tensors;
+    std::set<std::shared_ptr<Operator>> processed_ops;
+    std::set<std::shared_ptr<TensorImpl>> processed_tensors;
 
-    std::function<void(const FunctionPtr &)> collect_ops = [&](const FunctionPtr &op) {
+    std::function<void(const std::shared_ptr<Operator> &)> collect_ops = [&](const std::shared_ptr<Operator> &op) {
         if (!op || processed_ops.find(op) != processed_ops.end())
         {
             return;

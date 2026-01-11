@@ -318,7 +318,7 @@ int main(int argc, char* argv[]) {
     }
     
     loga("Class with max probability: %s (index: %d, probability: %.4f)\n", 
-         class_name, max_index, max_prob);
+         class_name.c_str(), max_index, max_prob);
     
     return 0;
 }

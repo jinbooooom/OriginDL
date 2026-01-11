@@ -22,7 +22,7 @@ Mat (抽象接口)
 TorchMat/OriginMat (具体后端)
 
     Tensor (值语义包装)
-    └─> TensorImplPtr (shared_ptr<TensorImpl>)
+    └─> std::shared_ptr<TensorImpl>
           └─> data_: shared_ptr<Mat>
                 └─> OriginMat::storage_: shared_ptr<Storage>
                       └─> Storage::data_: void* (真正的数据)
@@ -78,10 +78,10 @@ data_->reshape(shape)  // 返回 unique_ptr<Mat>
 class Tensor
 {
 private:
-    TensorImplPtr impl_;  // 唯一的成员：智能指针
+    std::shared_ptr<TensorImpl> impl_;  // 唯一的成员：智能指针
 
     // 内部构造函数 - 仅限内部使用
-    Tensor(TensorImplPtr impl);
+    Tensor(std::shared_ptr<TensorImpl> impl);
 
 public:
 
@@ -219,7 +219,7 @@ public:
 
     // === 梯度相关 ===
     Tensor grad() const;
-    void set_creator(const FunctionPtr &func);
+    void set_creator(const std::shared_ptr<Operator> &func);
     void backward();
     void clear_grad();
     void accumulate_grad(const Tensor &grad_to_add);
