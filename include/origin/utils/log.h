@@ -16,6 +16,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 #include "spdlog/details/os.h"
+#include "spdlog/fmt/fmt.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -98,6 +99,7 @@ public:
 #define logw(format, ...) SPDLOG_LOGGER_WARN(origin_logger, format, ##__VA_ARGS__)
 #define loge(format, ...) SPDLOG_LOGGER_ERROR(origin_logger, format, ##__VA_ARGS__)
 #define logc(format, ...) SPDLOG_LOGGER_CRITICAL(origin_logger, format, ##__VA_ARGS__)
-#define loga(format, ...) printf(format, ##__VA_ARGS__)  // log always: 始终输出，不受日志级别限制
+// fmt::print不换行，fmt::println 会自动在输出后添加换行符
+#define loga(format, ...) fmt::println(format, ##__VA_ARGS__)  // log always: 始终输出，不受日志级别限制，支持fmt格式，自动换行
 
 #endif
