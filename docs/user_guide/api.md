@@ -587,6 +587,46 @@ for (int i = 0; i < epochs; ++i) {
 }
 ```
 
+#### clone
+
+```cpp
+Tensor clone() const
+```
+
+克隆张量（深拷贝数据，保留计算图连接）。类似于 PyTorch 的 `clone()` 方法。
+
+**返回值:** Tensor – 新的张量，与原始张量数据独立但保留计算图连接
+
+**注意:**
+- 深拷贝 `data_`（创建独立的数据副本）
+- 不复制 `grad_`（初始化为 `nullptr`，需要重新计算梯度）
+- 复制 `creator_` 和 `generation_`（保留计算图连接，仍可参与梯度计算）
+- 如果需要完全独立（断开计算图），使用 `clone().detach()`
+
+**例子:**
+```cpp
+auto x = Tensor::ones({2, 2});
+auto y = x * x;
+auto loss = sum(y);
+
+// 克隆tensor，保留计算图连接
+auto cloned_loss = loss.clone();
+// cloned_loss 与 loss 数据独立，但仍可参与梯度计算
+
+// 反向传播（对原始loss）
+loss.backward();
+// 此时 loss 有梯度，但 cloned_loss 没有梯度（需要重新计算）
+
+// 如果需要完全独立的tensor（断开计算图）
+auto independent_loss = loss.clone().detach();
+// independent_loss 数据独立，且不参与梯度计算
+
+// 典型用法：在需要修改tensor数据但不想影响原始tensor时
+auto x_cloned = x.clone();
+x_cloned.data_ptr<float>()[0] = 999.0f;  // 修改克隆的tensor
+// x 的值不受影响，因为数据是独立的
+```
+
 ---
 
 ## 张量操作

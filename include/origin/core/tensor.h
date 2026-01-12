@@ -240,6 +240,17 @@ public:
      */
     Tensor detach() const;
 
+    /**
+     * @brief 克隆tensor（深拷贝数据，保留计算图连接）
+     * @return 新的tensor，与原始tensor数据独立但保留计算图连接
+     * @details 类似于PyTorch的clone()方法：
+     *          - 深拷贝data_（创建独立的数据副本）
+     *          - 不复制grad_（初始化为nullptr，需要重新计算梯度）
+     *          - 复制creator_和generation_（保留计算图连接，仍可参与梯度计算）
+     *          - 如果需要完全独立（断开计算图），使用clone().detach()
+     */
+    Tensor clone() const;
+
     // === 张量操作 ===
     Tensor reshape(const Shape &shape) const;
     Tensor transpose() const;

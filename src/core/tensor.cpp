@@ -193,7 +193,22 @@ Tensor Tensor::detach() const
 {
     // 创建一个新的TensorImpl，只复制data_，不复制creator_和grad_
     // 这样新tensor就不会参与计算图，可以安全释放
+    // 注意：原始tensor保持不变（因为detach是const方法）
+    // 对于clone().detach()，clone()返回的中间tensor会在超出作用域时自动释放
     auto new_impl = std::make_shared<TensorImpl>(impl_->data_);
+    return Tensor(new_impl);
+}
+
+Tensor Tensor::clone() const
+{
+    // 1. 深拷贝data_（创建独立的数据副本）
+    // 2. 不复制grad_（初始化为nullptr，需要重新计算梯度）
+    // 3. 复制creator_和generation_（保留计算图连接，仍可参与梯度计算）
+    auto cloned_data = impl_->data_ ? impl_->data_->clone() : nullptr;
+    auto new_impl    = std::make_shared<TensorImpl>(std::move(cloned_data));
+    // 复制计算图信息
+    new_impl->creator_    = impl_->creator_;
+    new_impl->generation_ = impl_->generation_;
     return Tensor(new_impl);
 }
 
