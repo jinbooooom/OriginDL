@@ -8,6 +8,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/parameter.h"
 #include "origin/core/tensor.h"
+#include "origin/mat/shape.h"
 
 // ============================================================================
 // Neural Network 神经网络模块

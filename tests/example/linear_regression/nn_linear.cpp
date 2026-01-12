@@ -52,6 +52,7 @@ int main(int argc, char **argv)
 
     // 确定设备类型
     Device device(DeviceType::kCPU);
+    DataType data_type = DataType::kFloat32;
     bool use_gpu = (device_id >= 0);
 
     if (use_gpu)
@@ -83,18 +84,9 @@ int main(int argc, char **argv)
     size_t input_size = 100;
     Tensor x, noise, y;
 
-    if (use_gpu)
-    {
-        x     = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(device));
-        noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(device)) * 0.1f;
-        y     = x * 2.0f + 5.0f + noise;
-    }
-    else
-    {
-        x     = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32));
-        noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32)) * 0.1f;
-        y     = x * 2.0f + 5.0f + noise;
-    }
+    x     = Tensor::randn(Shape{input_size, 1}, dtype(data_type).device(device));
+    noise = Tensor::randn(Shape{input_size, 1}, dtype(data_type).device(device)) * 0.1f;
+    y     = x * 2.0f + 5.0f + noise;
 
     // 2. Creating model
     Sequential model;
@@ -120,21 +112,7 @@ int main(int argc, char **argv)
 
         auto diff       = y_pred - y;
         auto sum_result = F::sum(F::pow(diff, Scalar(2)));
-
-        Tensor loss;
-        if (use_gpu)
-        {
-            // Create elements tensor on GPU
-            auto elements_value  = static_cast<float>(diff.elements());
-            auto elements_tensor = Tensor(elements_value, sum_result.shape(), dtype(DataType::kFloat32).device(device));
-            loss                 = sum_result / elements_tensor;
-        }
-        else
-        {
-            auto elements = Tensor(diff.elements(), sum_result.shape(), DataType::kFloat32);
-            loss          = sum_result / elements;
-        }
-
+        Tensor loss = sum_result / static_cast<float>(diff.elements());
         loss.backward();
 
         optimizer.step();

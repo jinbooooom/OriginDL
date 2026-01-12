@@ -21,10 +21,8 @@ Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
 Tensor MSE(const Tensor &x0, const Tensor &x1)
 {
     auto diff       = x0 - x1;
-    auto sum_result = F::sum(F::pow(diff, Scalar(2)));
-    // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
-    auto elements = Tensor(diff.elements(), sum_result.shape(), dtype(DataType::kFloat32).device(x0.device()));
-    auto result = sum_result / elements;
+    auto sum_result = F::sum(F::pow(diff, Scalar(2.0f)));
+    auto result = sum_result / static_cast<float>(diff.elements()); // 强转为float类型，避免类型提升。
     return result;
 }
 
@@ -91,14 +89,15 @@ int main(int argc, char **argv)
 
     // 生成随机数据
     size_t input_size = 100;
-    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(device));
+    DataType data_type = DataType::kFloat32;
+    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(data_type).device(device));
     // 设置一个噪声，使真实值在预测结果附近
-    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(DataType::kFloat32).device(device)) * 0.1f;
+    auto noise = Tensor::randn(Shape{input_size, 1}, dtype(data_type).device(device)) * 0.1f;
     auto y     = x * 2.0f + 5.0f + noise;
 
     // 初始化权重和偏置 - 确保使用float类型以匹配输入数据
-    auto w = Tensor(0.0f, Shape{1, 1}, dtype(DataType::kFloat32).device(device));
-    auto b = Tensor(0.0f, Shape{1, 1}, dtype(DataType::kFloat32).device(device));
+    auto w = Tensor(0.0f, Shape{1, 1}, dtype(data_type).device(device));
+    auto b = Tensor(0.0f, Shape{1, 1}, dtype(data_type).device(device));
 
     // 设置学习率和迭代次数
     float lr  = 0.1f;
@@ -126,7 +125,7 @@ int main(int argc, char **argv)
         float w_val    = w.item<float>();
         float b_val    = b.item<float>();
 
-        logi("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
+        loga("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
     }
 
     return 0;

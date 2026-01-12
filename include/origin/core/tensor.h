@@ -3,6 +3,7 @@
 
 #include "../common/inner_types.h"
 #include "../utils/static_assert.h"
+#include "../mat/shape.h"
 #include "tensor_impl.h"
 #include "tensor_options.h"
 

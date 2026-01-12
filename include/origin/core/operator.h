@@ -3,6 +3,7 @@
 
 #include "../utils/exception.h"
 #include "origin/mat/scalar.h"
+#include "origin/mat/shape.h"
 #include "tensor.h"
 
 namespace origin

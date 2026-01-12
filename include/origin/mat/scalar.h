@@ -51,7 +51,7 @@ private:
         // 布尔类型
         bool b;  // kBool
     } v;
-    DataType type_;  // 使用OriginDL现有的DataType
+    DataType type_;
 
 public:
     // 构造函数 - 支持所有类型
