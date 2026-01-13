@@ -3,6 +3,9 @@
 namespace origin
 {
 
+// 定义静态成员变量：用于标记空 Tensor，区分一元和二元原地操作
+const Tensor Operator::kNullTensor_{};
+
 void Operator::setup_computation_graph(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs)
 {
     int max_gen = 0;

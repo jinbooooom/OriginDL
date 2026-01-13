@@ -4,7 +4,6 @@
 
 using namespace origin;
 namespace F = origin::functional;
-
 namespace nn = origin::nn;
 
 int main(int argc, char *argv[])
@@ -83,6 +82,8 @@ int main(int argc, char *argv[])
         int train_correct = 0;
         int train_total   = 0;
 
+        // 在每个 epoch 开始时调用 reset()，清空并重新生成索引列表, 随机打乱索引。
+        // 确保每个 epoch 都能遍历完整的训练集，且数据顺序不同，有助于模型训练。
         train_loader.reset();
         // while (train_batches < 30 && train_loader.has_next()) // 为了加快速度，所以只训练30个batch
         while (train_loader.has_next())
@@ -105,7 +106,7 @@ int main(int argc, char *argv[])
                 // 计算准确率（使用no_grad避免保留计算图）
                 float acc_value = 0.0f;
                 {
-                    auto guard = no_grad();
+                    auto guard = no_grad(); // 类似 torch.no_grad()，在作用域内禁用梯度计算
                     auto acc   = accuracy(y, t);
                     acc_value  = acc.item<float>();
                 }
@@ -140,7 +141,6 @@ int main(int argc, char *argv[])
                 train_loss += loss_value;
                 train_batches++;
 
-                // 根据log_interval控制打印频率
                 if (train_batches % log_interval == 0)
                 {
                     float avg_loss = train_loss / train_batches;
@@ -206,7 +206,6 @@ int main(int argc, char *argv[])
                     test_loss += loss_val;
                     test_batches++;
 
-                    // 根据log_interval控制打印频率
                     if (test_batches % log_interval == 0)
                     {
                         float avg_test_loss_so_far = test_loss / test_batches;

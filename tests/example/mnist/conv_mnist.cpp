@@ -445,7 +445,6 @@ int main(int argc, char *argv[])
     // 解析命令行参数
     TrainingConfig config = parse_args(argc, argv);
 
-    // 设置随机种子
     std::srand(config.random_seed);
 
     // 检测并选择设备（GPU优先，如果没有GPU则使用CPU）
@@ -480,7 +479,7 @@ int main(int argc, char *argv[])
     // 创建模型
     logi("Creating CNN model...");
     SimpleCNN model;
-    model.to(device);  // 将模型移到指定设备
+    model.to(device);
     logi("Model created with {} parameters", model.parameters().size());
 
     // 创建优化器
@@ -490,7 +489,6 @@ int main(int argc, char *argv[])
     WeightDecay weight_decay(config.weight_decay_rate);
     optimizer.register_hook(weight_decay.hook());
 
-    // 训练循环
     logi("Starting training...");
     for (int epoch = 0; epoch < config.max_epoch; ++epoch)
     {
@@ -503,6 +501,8 @@ int main(int argc, char *argv[])
         int train_correct = 0;
         int train_total   = 0;
 
+        // 在每个 epoch 开始时调用 reset()，清空并重新生成索引列表, 随机打乱索引。
+        // 确保每个 epoch 都能遍历完整的训练集，且数据顺序不同，有助于模型训练。
         train_loader.reset();
         // while (train_loader.has_next() && train_batches < 10)
         while (train_loader.has_next())  // 完整训练：训练整个 epoch
@@ -552,9 +552,7 @@ int main(int argc, char *argv[])
                 train_total += current_batch_size;
                 train_loss += loss_value;
                 train_batches++;
-                // train_iter_count++;  // 快速测试模式计数（已注释）
 
-                // 根据log_interval控制打印频率
                 if (train_batches % config.log_interval == 0)
                 {
                     float avg_loss = train_loss / train_batches;
@@ -578,13 +576,11 @@ int main(int argc, char *argv[])
         int test_batches = 0;
         int test_correct = 0;
         int test_total   = 0;
-        // 快速测试模式（已注释，恢复完整测试）
-        // const int max_test_iters = 5;  // 快速测试：只测试5个批次
 
         {
             auto guard = no_grad();  // 测试时禁用梯度计算
             test_loader.reset();
-            // int test_iter_count = 0;  // 快速测试模式计数（已注释）
+
             while (test_loader.has_next())  // 完整测试：测试整个测试集
             {
                 {
@@ -603,7 +599,7 @@ int main(int argc, char *argv[])
                     }
                     auto t_int32 = Tensor(t_int32_data, t.shape(), dtype(DataType::kInt32).device(device));
 
-                    // 前向传播（不需要梯度，已在no_grad作用域内）
+                    //在 no_grad 作用域内, 无梯度计算, 前向传播
                     auto y         = model(x);
                     auto loss      = F::softmax_cross_entropy(y, t_int32);
                     float loss_val = loss.item<float>();
@@ -618,9 +614,7 @@ int main(int argc, char *argv[])
                     test_total += current_batch_size;
                     test_loss += loss_val;
                     test_batches++;
-                    // test_iter_count++;  // 快速测试模式计数（已注释）
 
-                    // 根据log_interval控制打印频率
                     if (test_batches % config.log_interval == 0)
                     {
                         float avg_test_loss_so_far = test_loss / test_batches;
@@ -646,10 +640,8 @@ int main(int argc, char *argv[])
         {
             try
             {
-                // 确保 checkpoint 目录存在（忽略返回值）
                 std::string ckpt_dir = config.checkpoint_dir();
                 (void)system(("mkdir -p " + ckpt_dir).c_str());
-
                 std::string checkpoint_path = ckpt_dir + "/checkpoint_epoch_" + std::to_string(epoch + 1) + ".ckpt";
 
                 Checkpoint checkpoint;
@@ -680,10 +672,9 @@ int main(int argc, char *argv[])
     logi("Saving model to {}...", config.model_path);
     try
     {
-        // 确保 model 目录存在（忽略返回值）
         (void)system("mkdir -p model");
 
-        model.eval();  // 设置为评估模式
+        model.eval();
         save(model.state_dict(), config.model_path);
         logi("Model saved successfully to {}", config.model_path);
     }

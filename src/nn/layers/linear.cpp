@@ -13,7 +13,7 @@ namespace nn
 Linear::Linear(int in_features, int out_features, bool bias)
     : in_features_(in_features), out_features_(out_features), use_bias_(bias)
 {
-    // 初始化参数（必须在成员变量初始化后才能调用）
+    // 初始化参数
     weight_ = init_weight();
     if (use_bias_)
     {

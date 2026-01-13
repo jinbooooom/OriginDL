@@ -18,6 +18,7 @@ YOLOv5 推理示例（使用 PNNX 模型）
 
 #include "origin.h"
 #include "class_labels.h"
+#include "origin/utils/log.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -55,10 +56,7 @@ bool get_input_shape_from_param_file(const std::string& param_path,
                                 int32_t& input_w) {
     std::ifstream file(param_path);
     if (!file.is_open()) {
-        logw("Failed to open param file: {}, using default values", param_path);
-        batch_size = 1;
-        input_h = 640;
-        input_w = 640;
+        logw("Failed to open param file: {}", param_path);
         return false;
     }
 
@@ -99,17 +97,14 @@ bool get_input_shape_from_param_file(const std::string& param_path,
                              batch_size, input_h, input_w);
                         return true;
                     } catch (const std::exception& e) {
-                        logw("Failed to parse shape dimensions, error: {}, using default values", e.what());
+                        logw("Failed to parse shape dimensions, error: {}", e.what());
                     }
                 }
             }
         }
     }
     
-    logw("Failed to parse input shape from param file: {}, using default values", param_path);
-    batch_size = 1;
-    input_h = 640;
-    input_w = 640;
+    logw("Failed to parse input shape from param file: {}", param_path);
     return false;
 }
 
@@ -206,17 +201,6 @@ UserCfg parse_args(int argc, char *argv[]) {
         }
     }
     
-    // 兼容旧的参数格式：位置参数
-    if (cfg.param_path.empty() && optind < argc) {
-        cfg.param_path = argv[optind++];
-    }
-    if (cfg.bin_path.empty() && optind < argc) {
-        cfg.bin_path = argv[optind++];
-    }
-    if (cfg.image_dir.empty() && optind < argc) {
-        cfg.image_dir = argv[optind++];
-    }
-    
     // 如果未指定模型路径，尝试自动检测
     if (cfg.param_path.empty() || cfg.bin_path.empty()) {
         // 尝试多个可能的路径
@@ -239,24 +223,21 @@ UserCfg parse_args(int argc, char *argv[]) {
  * @brief 打印帮助信息
  */
 void usage(const char *program_name) {
-    loga("Usage: %s [OPTIONS]\n", program_name);
-    loga("\n");
-    loga("Options:\n");
-    loga("  -p, --param PATH      PNNX param file path (default: model/pnnx/yolo/yolov5n_small.pnnx.param)\n");
-    loga("  -b, --bin PATH        PNNX bin file path (default: model/pnnx/yolo/yolov5n_small.pnnx.bin)\n");
-    loga("\n");
-    loga("Optional options:\n");
-    loga("  -i, --image DIR       Input image directory path (default: use test input)\n");
-    loga("  -o, --output DIR      Output image directory path (default: ./tmp)\n");
+    loga("Usage: {} [OPTIONS]", program_name);
+    loga("Options:");
+    loga("  -p, --param PATH      PNNX param file path (default: model/pnnx/yolo/yolov5n_small.pnnx.param)");
+    loga("  -b, --bin PATH        PNNX bin file path (default: model/pnnx/yolo/yolov5n_small.pnnx.bin)");
+    loga("Optional options:");
+    loga("  -i, --image DIR       Input image directory path (default: use test input)");
+    loga("  -o, --output DIR      Output image directory path (default: ./tmp)");
     loga("  -c, --confidence FLOAT Confidence threshold (default: 0.25)\n");
-    loga("  -u, --iou FLOAT       IOU threshold for NMS (default: 0.45)\n");
-    loga("  -g, --gpu INT         GPU device ID (default: 0)\n");
-    loga("  -d, --debug           Enable debug logging\n");
-    loga("  -h, --help            Show this help message\n");
-    loga("\n");
-    loga("Examples:\n");
-    loga("  %s -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output\n", program_name);
-    loga("  %s -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output -c 0.5 -u 0.5\n", program_name);
+    loga("  -u, --iou FLOAT       IOU threshold for NMS (default: 0.45)");
+    loga("  -g, --gpu INT         GPU device ID (default: 0)");
+    loga("  -d, --debug           Enable debug logging");
+    loga("  -h, --help            Show this help message");
+    loga("Examples:");
+    loga("  {} -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output", program_name);
+    loga("  {} -p model.pnnx.param -b model.pnnx.bin -i ./images -o ./output -c 0.5 -u 0.5", program_name);
 }
 
 // 检测结果结构
@@ -654,7 +635,7 @@ void process_and_save_detection(const std::vector<float>& output_data,
                    font_face, current_font_scale,
                    box_color, thickness);
 
-        loga("%s: %s\n", std::filesystem::path(image_path).filename().string().c_str(), label.c_str());
+        loga("{}: {}", std::filesystem::path(image_path).filename().string(), label);
     }
     
     // 保存结果
@@ -849,10 +830,10 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
                 }
             }
             
-            loga("Processed %zu images in total\n", image_files.size());
+            loga("Processed {} images in total", image_files.size());
         }
         
-        loga("=== YOLOv5 Inference Complete ===\n");
+        loga("=== YOLOv5 Inference Complete ===");
     }
     catch (const std::exception &e)
     {
@@ -884,19 +865,12 @@ int main(int argc, char *argv[])
     
     // 从 param 文件中自动解析输入形状
     uint32_t parsed_batch_size = 1;
-    int32_t parsed_input_h = 640, parsed_input_w = 640;
-    if (get_input_shape_from_param_file(cfg.param_path, parsed_batch_size, parsed_input_h, parsed_input_w)) {
-        // 如果使用默认值（640x640），使用解析出的值
-        if (cfg.input_h == 640 && cfg.input_w == 640) {
-            cfg.input_h = parsed_input_h;
-            cfg.input_w = parsed_input_w;
-        }
-        logi("Using batch_size={}, input_h={}, input_w={}", 
-             parsed_batch_size, cfg.input_h, cfg.input_w);
-    } else {
-        logi("Using default batch_size=1, input_h={}, input_w={}", 
-             cfg.input_h, cfg.input_w);
+    if (!get_input_shape_from_param_file(cfg.param_path, parsed_batch_size, cfg.input_h, cfg.input_w)) {
+        cfg.input_h = 640;
+        cfg.input_w = 640;
+        logw("Failed to parse input shape from param file: {}, using default values: input_h={}, input_w={}", cfg.param_path, cfg.input_h, cfg.input_w);
     }
+    logi("Using batch_size={}, input_h={}, input_w={}", parsed_batch_size, cfg.input_h, cfg.input_w);
     
     try
     {
