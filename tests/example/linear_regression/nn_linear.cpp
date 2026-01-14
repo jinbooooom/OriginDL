@@ -112,9 +112,7 @@ int main(int argc, char **argv)
 
     // 5. Starting training
     int iters = 200;
-
     model.train();
-
     for (int i = 0; i < iters; ++i)
     {
         optimizer.zero_grad();

@@ -1,7 +1,6 @@
 #ifndef __ORIGIN_DL_SGD_H__
 #define __ORIGIN_DL_SGD_H__
 
-#include "../core/operator.h"
 #include "../core/tensor.h"
 #include "optimizer.h"
 

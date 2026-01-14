@@ -43,6 +43,23 @@ if [ "$BACKEND" != "TORCH" ] && [ "$BACKEND" != "ORIGIN" ]; then
     exit 1
 fi
 
+# Auto-detect CUDA support if not explicitly enabled
+if [ "$ENABLE_CUDA" != true ]; then
+    # Check if nvcc is available and get its path
+    NVCC_FOUND=$(which nvcc 2>/dev/null)
+    if [ -n "$NVCC_FOUND" ]; then
+        # Check if CUDA libraries are available
+        # Try common CUDA library paths
+        if [ -f "/usr/local/cuda/lib64/libcudart.so" ] || \
+           [ -f "/usr/lib/x86_64-linux-gnu/libcudart.so" ] || \
+           ldconfig -p 2>/dev/null | grep -q libcudart; then
+            ENABLE_CUDA=true
+            NVCC_PATH="$NVCC_FOUND"
+            echo "CUDA detected automatically, enabling CUDA support (nvcc: $NVCC_PATH)"
+        fi
+    fi
+fi
+
 echo "OriginDL using backend: $BACKEND"
 # Set LibTorch path
 if [ "$BACKEND" = "TORCH" ]; then
