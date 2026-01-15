@@ -15,10 +15,7 @@ std::vector<Tensor> Sum::forward(const std::vector<Tensor> &xs)
     // 使用抽象层进行求和运算
     auto result = mat(xs[0]).sum(this->axis_);
     auto y      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Sum::backward(const std::vector<Tensor> &gys)
@@ -34,10 +31,7 @@ std::vector<Tensor> Sum::backward(const std::vector<Tensor> &gys)
     auto x_shape   = x->shape();
     auto gx_result = gy->broadcast_to(x_shape);
     auto gx        = convert_mat_to_tensor(std::move(gx_result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor sum(const std::vector<Tensor> &xs)

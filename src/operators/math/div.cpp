@@ -29,18 +29,13 @@ std::vector<Tensor> Div::forward(const std::vector<Tensor> &xs)
         // 使用提升后的张量进行运算
         auto result = mat(x0) / mat(x1);
         auto y      = convert_mat_to_tensor(std::move(result));
-
-        std::vector<Tensor> outputs;
-        outputs.push_back(y);
-        return outputs;
+        return std::vector<Tensor>{std::move(y)};
     }
 
     // 类型匹配，直接运算
     auto result = mat(xs[0]) / mat(xs[1]);
     auto y      = convert_mat_to_tensor(std::move(result));
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Div::backward(const std::vector<Tensor> &gys)

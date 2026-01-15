@@ -109,10 +109,7 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
     // 执行矩阵乘法
     auto result = mat(x0).matmul(mat(x1));
     auto y      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
@@ -178,11 +175,7 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
 
     auto gx = convert_mat_to_tensor(std::move(gx_result));
     auto gw = convert_mat_to_tensor(std::move(gw_result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    outputs.push_back(gw);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx), std::move(gw)};
 }
 
 Tensor matmul(const std::vector<Tensor> &xs)

@@ -72,12 +72,13 @@ std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
     }
 
     std::vector<Tensor> outputs;
-    outputs.push_back(y);
+    outputs.reserve(training_ ? 3 : 1);
+    outputs.push_back(std::move(y));
     // 如果训练模式，返回当前 batch 的 mean 和 var，用于更新 running_mean 和 running_var
     if (training_)
     {
-        outputs.push_back(saved_mean_);  // 当前 batch 的 mean
-        outputs.push_back(saved_var_);   // 当前 batch 的 var
+        outputs.push_back(std::move(saved_mean_));  // 当前 batch 的 mean
+        outputs.push_back(std::move(saved_var_));   // 当前 batch 的 var
     }
     return outputs;
 }
@@ -110,12 +111,13 @@ std::vector<Tensor> BatchNorm::backward(const std::vector<Tensor> &gys)
     auto dbeta  = convert_mat_to_tensor(std::move(results[2]));
 
     std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    outputs.push_back(dgamma);
-    outputs.push_back(dbeta);
+    outputs.reserve(5);
+    outputs.push_back(std::move(gx));
+    outputs.push_back(std::move(dgamma));
+    outputs.push_back(std::move(dbeta));
     // running_mean 和 running_var 不需要梯度
-    outputs.push_back(Tensor::zeros(this->inputs_[3].shape(), dtype(DataType::kFloat32).device(x.device())));
-    outputs.push_back(Tensor::zeros(this->inputs_[4].shape(), dtype(DataType::kFloat32).device(x.device())));
+    outputs.emplace_back(Tensor::zeros(this->inputs_[3].shape(), dtype(DataType::kFloat32).device(x.device())));
+    outputs.emplace_back(Tensor::zeros(this->inputs_[4].shape(), dtype(DataType::kFloat32).device(x.device())));
     return outputs;
 }
 

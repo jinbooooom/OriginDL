@@ -24,14 +24,14 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
         auto promoted_tensors = TypePromotion::promote_tensors(xs);
         auto result           = mat(promoted_tensors[0]) + mat(promoted_tensors[1]);
         auto y                = convert_mat_to_tensor(std::move(result));
-        return std::vector<Tensor>{y};
+        return std::vector<Tensor>{std::move(y)};
     }
 
     // 类型匹配，直接运算
     auto result = mat(xs[0]) + mat(xs[1]);
     
     auto y      = convert_mat_to_tensor(std::move(result));
-    return std::vector<Tensor>{y};
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
@@ -60,7 +60,7 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
                 gx1 = functional::sum_to(gx1, shape1_);
             }
         }
-        return std::vector<Tensor>{gx0, gx1};
+        return std::vector<Tensor>{std::move(gx0), std::move(gx1)};
     }
 
     // 类型匹配，直接处理
@@ -78,7 +78,7 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
             gx1 = functional::sum_to(gx1, shape1_);
         }
     }
-    return std::vector<Tensor>{gx0, gx1};
+    return std::vector<Tensor>{std::move(gx0), std::move(gx1)};
 }
 
 void Add::forward_inplace(Tensor &input0, const Tensor &input1)

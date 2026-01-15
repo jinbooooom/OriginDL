@@ -74,10 +74,7 @@ std::vector<Tensor> SoftmaxCrossEntropy::forward(const std::vector<Tensor> &xs)
 
     // 创建标量损失张量
     auto loss = Tensor({loss_value}, Shape{}, dtype(DataType::kFloat32).device(x.device()));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(loss);
-    return outputs;
+    return std::vector<Tensor>{std::move(loss)};
 }
 
 std::vector<Tensor> SoftmaxCrossEntropy::backward(const std::vector<Tensor> &gys)
@@ -121,11 +118,7 @@ std::vector<Tensor> SoftmaxCrossEntropy::backward(const std::vector<Tensor> &gys
 
     // 5. target 不需要梯度（它是标签）
     auto gtarget = Tensor::zeros(target.shape(), dtype(DataType::kFloat32).device(target.device()));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    outputs.push_back(gtarget);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx), std::move(gtarget)};
 }
 
 Tensor softmax_cross_entropy(const Tensor &x, const Tensor &target)

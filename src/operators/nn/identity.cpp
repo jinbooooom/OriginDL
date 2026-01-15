@@ -19,12 +19,12 @@ std::vector<Tensor> Identity::forward(const std::vector<Tensor> &xs)
     // 但为了兼容性，如果有多个输入，返回所有输入
     if (xs.size() == 1)
     {
-        return std::vector<Tensor>{xs[0]};
+        return std::vector<Tensor>{std::move(xs[0])};
     }
     else
     {
         // 多个输入时，返回最后一个（Detect 层的输出）
-        return std::vector<Tensor>{xs.back()};
+        return std::vector<Tensor>{std::move(xs.back())};
     }
 }
 
@@ -38,7 +38,7 @@ std::vector<Tensor> Identity::backward(const std::vector<Tensor> &gys)
     auto &gy = gys[0];
     auto &x = this->inputs_[0];
     
-    return std::vector<Tensor>{gy};
+    return std::vector<Tensor>{std::move(gy)};
 }
 
 Tensor identity(const Tensor &x)

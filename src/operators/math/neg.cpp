@@ -11,9 +11,7 @@ std::vector<Tensor> Neg::forward(const std::vector<Tensor> &xs)
     // 使用抽象层进行负号运算
     auto result = -mat(xs[0]);
     auto y      = convert_mat_to_tensor(std::move(result));
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Neg::backward(const std::vector<Tensor> &gys)
@@ -26,10 +24,7 @@ std::vector<Tensor> Neg::backward(const std::vector<Tensor> &gys)
     // 使用抽象层进行梯度计算
     auto result = -mat(gys[0]);
     auto gx     = convert_mat_to_tensor(std::move(result));
-    std::vector<Tensor> gxs;
-    gxs.push_back(gx);
-
-    return gxs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 void Neg::forward_inplace(Tensor &input0, const Tensor &input1)

@@ -32,10 +32,7 @@ std::vector<Tensor> Sigmoid::forward(const std::vector<Tensor> &xs)
 
     // 计算 1 / (1 + exp(-x))
     auto result = ones / one_plus_exp;
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(result);
-    return outputs;
+    return std::vector<Tensor>{std::move(result)};
 }
 
 std::vector<Tensor> Sigmoid::backward(const std::vector<Tensor> &gys)
@@ -63,10 +60,7 @@ std::vector<Tensor> Sigmoid::backward(const std::vector<Tensor> &gys)
     // 计算 gx = gy * sigmoid(x) * (1 - sigmoid(x))
     auto temp = gy * sigmoid_x;
     auto gx   = temp * one_minus_sigmoid;
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor sigmoid(const Tensor &x)

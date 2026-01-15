@@ -53,10 +53,7 @@ std::vector<Tensor> Conv2dOp::forward(const std::vector<Tensor> &xs)
 
     auto result = x_mat.conv2d(W_mat, b_mat, stride_, pad_);
     auto y      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Conv2dOp::backward(const std::vector<Tensor> &gys)
@@ -80,12 +77,13 @@ std::vector<Tensor> Conv2dOp::backward(const std::vector<Tensor> &gys)
     auto grads = gy_mat.conv2d_backward(gy_mat, x_mat, W_mat, b_mat, stride_, pad_);
 
     std::vector<Tensor> outputs;
+    outputs.reserve((b != nullptr && grads.size() > 2) ? 3 : 2);
     // grads 顺序为 {gx, gW, [gb]}
-    outputs.push_back(convert_mat_to_tensor(std::move(grads[0])));
-    outputs.push_back(convert_mat_to_tensor(std::move(grads[1])));
+    outputs.emplace_back(convert_mat_to_tensor(std::move(grads[0])));
+    outputs.emplace_back(convert_mat_to_tensor(std::move(grads[1])));
     if (b != nullptr && grads.size() > 2)
     {
-        outputs.push_back(convert_mat_to_tensor(std::move(grads[2])));
+        outputs.emplace_back(convert_mat_to_tensor(std::move(grads[2])));
     }
     return outputs;
 }

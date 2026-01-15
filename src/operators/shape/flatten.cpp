@@ -67,10 +67,7 @@ std::vector<Tensor> FlattenOp::forward(const std::vector<Tensor> &xs)
     
     // 使用 reshape，这会自动处理 GPU
     auto y = functional::reshape(x, output_shape);
-    
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> FlattenOp::backward(const std::vector<Tensor> &gys)
@@ -85,10 +82,7 @@ std::vector<Tensor> FlattenOp::backward(const std::vector<Tensor> &gys)
     
     // 反向传播就是 reshape 回原始形状
     auto gx = functional::reshape(gy, x.shape());
-    
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor flatten(const Tensor &x, int start_dim, int end_dim)

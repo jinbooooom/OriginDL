@@ -13,10 +13,7 @@ std::vector<Tensor> Reshape::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("Reshape operator requires exactly 1 input, but got {}", xs.size());
     }
     auto y = xs[0].reshape(this->shape_);
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Reshape::backward(const std::vector<Tensor> &gys)
@@ -28,10 +25,7 @@ std::vector<Tensor> Reshape::backward(const std::vector<Tensor> &gys)
     auto x_shape = this->inputs_[0].shape();
     auto result  = mat(gys[0]).reshape(x_shape);
     auto gx      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor reshape(const Tensor &x, const Shape &shape)

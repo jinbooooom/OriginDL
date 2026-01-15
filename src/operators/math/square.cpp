@@ -16,10 +16,7 @@ std::vector<Tensor> Square::forward(const std::vector<Tensor> &xs)
     // 使用抽象层进行平方运算
     auto result = mat(xs[0]) * mat(xs[0]);
     auto y      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
@@ -37,10 +34,7 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
     auto scalar_2  = Tensor(2, Shape({}), dtype(x.dtype()).device(x.device()));
     auto gx_result = *temp_mult * mat(scalar_2);
     auto gx        = convert_mat_to_tensor(std::move(gx_result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 void Square::forward_inplace(Tensor &input0, const Tensor &input1)

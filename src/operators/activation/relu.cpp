@@ -19,10 +19,7 @@ std::vector<Tensor> ReLU::forward(const std::vector<Tensor> &xs)
     // 通过 Mat 层调用 relu
     auto result = mat(xs[0]).relu();
     auto y      = convert_mat_to_tensor(std::move(result));
-    
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> ReLU::backward(const std::vector<Tensor> &gys)
@@ -63,10 +60,7 @@ std::vector<Tensor> ReLU::backward(const std::vector<Tensor> &gys)
     const OriginMat &mask_mat = static_cast<const OriginMat &>(mat(mask));
     auto gx_result = gy_mat * mask_mat;
     auto gx = convert_mat_to_tensor(std::move(gx_result));
-    
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 void ReLU::forward_inplace(Tensor &input0, const Tensor &input1)

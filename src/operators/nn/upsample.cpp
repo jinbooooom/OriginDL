@@ -80,7 +80,7 @@ std::vector<Tensor> Upsample::forward(const std::vector<Tensor> &xs)
     }
     
     auto y = Tensor(output_data, output_shape, x.dtype());
-    return std::vector<Tensor>{y};
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Upsample::backward(const std::vector<Tensor> &gys)
@@ -127,7 +127,7 @@ std::vector<Tensor> Upsample::backward(const std::vector<Tensor> &gys)
     }
     
     auto gx = Tensor(gx_data, x_shape, gy.dtype());
-    return std::vector<Tensor>{gx};
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor upsample(const Tensor &x, const std::string &mode, std::pair<float, float> scale_factor)

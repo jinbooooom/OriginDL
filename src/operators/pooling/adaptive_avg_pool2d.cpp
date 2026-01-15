@@ -31,10 +31,7 @@ std::vector<Tensor> AdaptiveAvgPool2d::forward(const std::vector<Tensor> &xs)
 
     auto result = x_mat.adaptive_avg_pool2d(output_size_);
     auto y       = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> AdaptiveAvgPool2d::backward(const std::vector<Tensor> &gys)
@@ -52,10 +49,7 @@ std::vector<Tensor> AdaptiveAvgPool2d::backward(const std::vector<Tensor> &gys)
     const OriginMat &x_mat  = static_cast<const OriginMat &>(mat(x));
 
     auto gx = x_mat.adaptive_avg_pool2d_backward(gy_mat, output_size_);
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(convert_mat_to_tensor(std::move(gx)));
-    return outputs;
+    return std::vector<Tensor>{convert_mat_to_tensor(std::move(gx))};
 }
 
 Tensor adaptive_avg_pool2d(const Tensor &x, std::pair<int, int> output_size)

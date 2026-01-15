@@ -110,10 +110,7 @@ std::vector<Tensor> LinearOp::forward(const std::vector<Tensor> &xs)
         auto y_plus_bias_result = y_mat + bias_broadcast_mat;
         y = convert_mat_to_tensor(std::move(y_plus_bias_result));
     }
-    
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> LinearOp::backward(const std::vector<Tensor> &gys)
@@ -181,8 +178,9 @@ std::vector<Tensor> LinearOp::backward(const std::vector<Tensor> &gys)
     gweight = convert_mat_to_tensor(std::move(gweight_t_result));
     
     std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    outputs.push_back(gweight);
+    outputs.reserve(use_bias_ ? 3 : 2);  // 预分配空间
+    outputs.push_back(std::move(gx));
+    outputs.push_back(std::move(gweight));
     
     if (use_bias_)
     {
@@ -190,7 +188,7 @@ std::vector<Tensor> LinearOp::backward(const std::vector<Tensor> &gys)
         // 通过 Mat 层调用 sum
         auto gbias_result = gy_mat.sum(0);  // 沿 batch 维度求和
         auto gbias = convert_mat_to_tensor(std::move(gbias_result));
-        outputs.push_back(gbias);
+        outputs.push_back(std::move(gbias));
     }
     
     return outputs;

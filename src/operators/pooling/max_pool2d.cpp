@@ -38,10 +38,7 @@ std::vector<Tensor> MaxPool2d::forward(const std::vector<Tensor> &xs)
     indices_shape_ = x_shape;  // 保存输入形状，用于验证
 
     auto y = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> MaxPool2d::backward(const std::vector<Tensor> &gys)
@@ -65,10 +62,7 @@ std::vector<Tensor> MaxPool2d::backward(const std::vector<Tensor> &gys)
     const OriginMat &x_mat  = static_cast<const OriginMat &>(mat(x));
 
     auto gx = x_mat.max_pool2d_backward(gy_mat, kernel_size_, stride_, pad_, indices_);
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(convert_mat_to_tensor(std::move(gx)));
-    return outputs;
+    return std::vector<Tensor>{convert_mat_to_tensor(std::move(gx))};
 }
 
 Tensor max_pool2d(const Tensor &x, std::pair<int, int> kernel_size, std::pair<int, int> stride, std::pair<int, int> pad)

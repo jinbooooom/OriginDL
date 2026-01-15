@@ -95,10 +95,7 @@ std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
 
     // exp(x - max(x)) / sum(exp(x - max(x)))
     auto result = exp_x / sum_broadcast;
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(result);
-    return outputs;
+    return std::vector<Tensor>{std::move(result)};
 }
 
 std::vector<Tensor> Softmax::backward(const std::vector<Tensor> &gys)
@@ -145,9 +142,7 @@ std::vector<Tensor> Softmax::backward(const std::vector<Tensor> &gys)
     // y * (gy - sum(gy * y))
     auto gx = y * gy_minus_sum;
 
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor softmax(const Tensor &x, int axis)

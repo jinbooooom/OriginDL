@@ -20,8 +20,7 @@ std::vector<Tensor> SiLU::forward(const std::vector<Tensor> &xs)
     // SiLU(x) = x * sigmoid(x)
     auto sigmoid_x = sigmoid(x);
     auto result = x * sigmoid_x;
-    
-    return std::vector<Tensor>{result};
+    return std::vector<Tensor>{std::move(result)};
 }
 
 std::vector<Tensor> SiLU::backward(const std::vector<Tensor> &gys)
@@ -41,10 +40,7 @@ std::vector<Tensor> SiLU::backward(const std::vector<Tensor> &gys)
     auto one_minus_sigmoid = one - sigmoid_x;
     auto gx = sigmoid_x * (one + x * one_minus_sigmoid);
     gx = gx * gy;
-    
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor silu(const Tensor &x)

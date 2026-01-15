@@ -16,9 +16,7 @@ std::vector<Tensor> Log::forward(const std::vector<Tensor> &xs)
     // 使用抽象层进行自然对数运算
     auto result = mat(xs[0]).log();
     auto y      = convert_mat_to_tensor(std::move(result));
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Log::backward(const std::vector<Tensor> &gys)
@@ -35,9 +33,7 @@ std::vector<Tensor> Log::backward(const std::vector<Tensor> &gys)
 
     auto gx_result = gy / x;
     auto gx        = convert_mat_to_tensor(std::move(gx_result));
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 void Log::forward_inplace(Tensor &input0, const Tensor &input1)

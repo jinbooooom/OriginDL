@@ -14,10 +14,7 @@ std::vector<Tensor> SumTo::forward(const std::vector<Tensor> &xs)
     }
     auto result = mat(xs[0]).sum_to(this->shape_);
     auto y      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> SumTo::backward(const std::vector<Tensor> &gys)
@@ -29,10 +26,7 @@ std::vector<Tensor> SumTo::backward(const std::vector<Tensor> &gys)
     auto x_shape = this->inputs_[0].shape();
     auto result  = mat(gys[0]).broadcast_to(x_shape);
     auto gx      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor sum_to(const std::vector<Tensor> &xs, const Shape &shape)

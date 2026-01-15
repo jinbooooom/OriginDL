@@ -15,10 +15,7 @@ std::vector<Tensor> BroadcastTo::forward(const std::vector<Tensor> &xs)
     this->x_shape_ = xs[0].shape();
     auto result    = mat(xs[0]).broadcast_to(this->shape_);
     auto y         = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> BroadcastTo::backward(const std::vector<Tensor> &gys)
@@ -29,10 +26,7 @@ std::vector<Tensor> BroadcastTo::backward(const std::vector<Tensor> &gys)
     }
     auto result = mat(gys[0]).sum_to(this->x_shape_);
     auto gx     = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor broadcast_to(const Tensor &x, const Shape &shape)

@@ -32,10 +32,7 @@ std::vector<Tensor> AvgPool2d::forward(const std::vector<Tensor> &xs)
 
     auto result = x_mat.avg_pool2d(kernel_size_, stride_, pad_);
     auto y      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> AvgPool2d::backward(const std::vector<Tensor> &gys)
@@ -53,10 +50,7 @@ std::vector<Tensor> AvgPool2d::backward(const std::vector<Tensor> &gys)
     const OriginMat &x_mat  = static_cast<const OriginMat &>(mat(x));
 
     auto gx = x_mat.avg_pool2d_backward(gy_mat, kernel_size_, stride_, pad_);
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(convert_mat_to_tensor(std::move(gx)));
-    return outputs;
+    return std::vector<Tensor>{convert_mat_to_tensor(std::move(gx))};
 }
 
 Tensor avg_pool2d(const Tensor &x, std::pair<int, int> kernel_size, std::pair<int, int> stride, std::pair<int, int> pad)

@@ -283,7 +283,7 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
     // 使用 cat 操作在维度1上拼接
     if (stage_outputs.size() == 1)
     {
-        return std::vector<Tensor>{stage_outputs[0]};
+        return std::vector<Tensor>{std::move(stage_outputs[0])};
     }
     
     auto cat_op = std::make_shared<functional::Cat>(1);  // 在维度1上拼接

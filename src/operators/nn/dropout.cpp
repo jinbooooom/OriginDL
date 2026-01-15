@@ -66,10 +66,7 @@ std::vector<Tensor> Dropout::forward(const std::vector<Tensor> &xs)
     mask_ = Tensor(mask_data, x_shape, dtype(DataType::kFloat32).device(x.device()));
 
     auto y = Tensor(y_data, x_shape, dtype(DataType::kFloat32).device(x.device()));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
@@ -84,9 +81,7 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
     if (!training_)
     {
         // 推理模式：梯度直接传递
-        std::vector<Tensor> outputs;
-        outputs.push_back(gy);
-        return outputs;
+        return std::vector<Tensor>{std::move(gy)};
     }
 
     // 训练模式：根据 mask 计算梯度
@@ -101,10 +96,7 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
     }
 
     auto gx = Tensor(gx_data, gy_shape, dtype(DataType::kFloat32).device(gy.device()));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 }  // namespace functional
