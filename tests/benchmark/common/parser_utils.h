@@ -1,11 +1,11 @@
 #ifndef __BENCHMARK_COMMON_PARSER_UTILS_H__
 #define __BENCHMARK_COMMON_PARSER_UTILS_H__
 
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
-#include "origin/mat/shape.h"
 #include "origin/mat/basic_types.h"
+#include "origin/mat/shape.h"
 
 /**
  * @brief 解析shape字符串，例如 "100,100" -> Shape({100, 100})
@@ -17,7 +17,7 @@ inline origin::Shape parse_shape_string(const std::string &shape_str)
     std::vector<size_t> dims;
     std::stringstream ss(shape_str);
     std::string item;
-    
+
     while (std::getline(ss, item, ','))
     {
         try
@@ -34,7 +34,7 @@ inline origin::Shape parse_shape_string(const std::string &shape_str)
             return origin::Shape({});  // 返回空shape表示解析失败
         }
     }
-    
+
     return origin::Shape(dims);
 }
 
@@ -48,7 +48,7 @@ inline std::vector<origin::Shape> parse_multiple_shapes_string(const std::string
     std::vector<origin::Shape> shapes;
     std::stringstream ss(shapes_str);
     std::string shape_item;
-    
+
     while (std::getline(ss, shape_item, ':'))
     {
         origin::Shape shape = parse_shape_string(shape_item);
@@ -58,7 +58,7 @@ inline std::vector<origin::Shape> parse_multiple_shapes_string(const std::string
         }
         shapes.push_back(shape);
     }
-    
+
     return shapes;
 }
 

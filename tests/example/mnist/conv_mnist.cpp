@@ -5,7 +5,7 @@
 #include "origin.h"
 
 using namespace origin;
-namespace F = origin::functional;
+namespace F  = origin::functional;
 namespace nn = origin::nn;
 
 /**
@@ -277,9 +277,9 @@ public:
  */
 struct TrainingConfig
 {
-    int max_epoch           = 10;
-    int batch_size          = 256;
-    float learning_rate     = 0.0001f;  // 降低学习率：0.0005 -> 0.0001，学习率太大，训练到后期越训精度越低
+    int max_epoch  = 10;
+    int batch_size = 256;
+    float learning_rate = 0.0001f;  // 降低学习率：0.0005 -> 0.0001，学习率太大，训练到后期越训精度越低
     float weight_decay_rate = 1e-4f;
     int log_interval        = 50;
     std::string model_path  = "model/mnist_model.odl";

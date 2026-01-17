@@ -882,7 +882,7 @@ template __global__ void unary_kernel<uint16_t, NegOp>(const uint16_t *, uint16_
 template __global__ void unary_kernel<uint32_t, NegOp>(const uint32_t *, uint32_t *, size_t, NegOp);  // kUInt32
 template __global__ void unary_kernel<uint64_t, NegOp>(const uint64_t *, uint64_t *, size_t, NegOp);  // kUInt64
 template __global__ void unary_kernel<bool, NegOp>(const bool *, bool *, size_t, NegOp);              // kBool
-template __global__ void unary_kernel<float, ReLUOp>(const float *, float *, size_t, ReLUOp);                 // kFloat32
+template __global__ void unary_kernel<float, ReLUOp>(const float *, float *, size_t, ReLUOp);         // kFloat32
 template __global__ void unary_kernel<double, ReLUOp>(const double *, double *, size_t, ReLUOp);     // kFloat64/kDouble
 template __global__ void unary_kernel<int8_t, ReLUOp>(const int8_t *, int8_t *, size_t, ReLUOp);     // kInt8
 template __global__ void unary_kernel<int16_t, ReLUOp>(const int16_t *, int16_t *, size_t, ReLUOp);  // kInt16
@@ -1406,30 +1406,30 @@ template void launch_unary_kernel<bool, NegOp>(const bool *, bool *, size_t, Neg
 // ReLUOp 实例化
 template void launch_unary_kernel<float, ReLUOp>(const float *, float *, size_t, ReLUOp, cudaStream_t);  // kFloat32
 template void launch_unary_kernel<double, ReLUOp>(const double *,
-                                                 double *,
-                                                 size_t,
-                                                 ReLUOp,
-                                                 cudaStream_t);  // kFloat64/kDouble
+                                                  double *,
+                                                  size_t,
+                                                  ReLUOp,
+                                                  cudaStream_t);  // kFloat64/kDouble
 template void launch_unary_kernel<int8_t, ReLUOp>(const int8_t *, int8_t *, size_t, ReLUOp, cudaStream_t);     // kInt8
 template void launch_unary_kernel<int16_t, ReLUOp>(const int16_t *, int16_t *, size_t, ReLUOp, cudaStream_t);  // kInt16
 template void launch_unary_kernel<int32_t, ReLUOp>(const int32_t *, int32_t *, size_t, ReLUOp, cudaStream_t);  // kInt32
 template void launch_unary_kernel<int64_t, ReLUOp>(const int64_t *, int64_t *, size_t, ReLUOp, cudaStream_t);  // kInt64
 template void launch_unary_kernel<uint8_t, ReLUOp>(const uint8_t *, uint8_t *, size_t, ReLUOp, cudaStream_t);  // kUInt8
 template void launch_unary_kernel<uint16_t, ReLUOp>(const uint16_t *,
-                                                   uint16_t *,
-                                                   size_t,
-                                                   ReLUOp,
-                                                   cudaStream_t);  // kUInt16
+                                                    uint16_t *,
+                                                    size_t,
+                                                    ReLUOp,
+                                                    cudaStream_t);  // kUInt16
 template void launch_unary_kernel<uint32_t, ReLUOp>(const uint32_t *,
-                                                   uint32_t *,
-                                                   size_t,
-                                                   ReLUOp,
-                                                   cudaStream_t);  // kUInt32
+                                                    uint32_t *,
+                                                    size_t,
+                                                    ReLUOp,
+                                                    cudaStream_t);  // kUInt32
 template void launch_unary_kernel<uint64_t, ReLUOp>(const uint64_t *,
-                                                   uint64_t *,
-                                                   size_t,
-                                                   ReLUOp,
-                                                   cudaStream_t);                                   // kUInt64
+                                                    uint64_t *,
+                                                    size_t,
+                                                    ReLUOp,
+                                                    cudaStream_t);                                    // kUInt64
 template void launch_unary_kernel<bool, ReLUOp>(const bool *, bool *, size_t, ReLUOp, cudaStream_t);  // kBool
 
 template void launch_scalar_kernel<float, AddOp>(const float *, float, float *, size_t, AddOp, cudaStream_t);
@@ -1639,21 +1639,21 @@ template __global__ void vectorized_unary_kernel<int8_t, ReLUOp>(const int8_t *,
 template __global__ void vectorized_unary_kernel<short, ReLUOp>(const short *, short *, size_t, ReLUOp);
 template __global__ void vectorized_unary_kernel<long, ReLUOp>(const long *, long *, size_t, ReLUOp);
 template __global__ void vectorized_unary_kernel<unsigned char, ReLUOp>(const unsigned char *,
-                                                                      unsigned char *,
-                                                                      size_t,
-                                                                      ReLUOp);
-template __global__ void vectorized_unary_kernel<unsigned short, ReLUOp>(const unsigned short *,
-                                                                        unsigned short *,
+                                                                        unsigned char *,
                                                                         size_t,
                                                                         ReLUOp);
+template __global__ void vectorized_unary_kernel<unsigned short, ReLUOp>(const unsigned short *,
+                                                                         unsigned short *,
+                                                                         size_t,
+                                                                         ReLUOp);
 template __global__ void vectorized_unary_kernel<unsigned int, ReLUOp>(const unsigned int *,
-                                                                      unsigned int *,
-                                                                      size_t,
-                                                                      ReLUOp);
-template __global__ void vectorized_unary_kernel<unsigned long, ReLUOp>(const unsigned long *,
-                                                                       unsigned long *,
+                                                                       unsigned int *,
                                                                        size_t,
                                                                        ReLUOp);
+template __global__ void vectorized_unary_kernel<unsigned long, ReLUOp>(const unsigned long *,
+                                                                        unsigned long *,
+                                                                        size_t,
+                                                                        ReLUOp);
 template __global__ void vectorized_unary_kernel<bool, ReLUOp>(const bool *, bool *, size_t, ReLUOp);
 
 // 共享内存内核的显式实例化

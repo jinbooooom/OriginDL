@@ -35,4 +35,3 @@ Tensor cat(const std::vector<Tensor> &xs, int dim = 0);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_CAT_H__
-

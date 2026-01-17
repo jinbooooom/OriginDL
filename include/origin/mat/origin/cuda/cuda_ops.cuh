@@ -348,8 +348,8 @@ std::unique_ptr<Mat> adaptive_avg_pool2d(const OriginMat &x, std::pair<int, int>
  * @return 输入梯度 (N, C, H, W)
  */
 std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
-                                                    const OriginMat &x,
-                                                    std::pair<int, int> output_size);
+                                                  const OriginMat &x,
+                                                  std::pair<int, int> output_size);
 
 /**
  * @brief CUDA max_pool2d：最大池化操作（前向传播）
@@ -393,9 +393,9 @@ std::unique_ptr<Mat> max_pool2d_backward(const OriginMat &gy,
 struct BatchNormForwardResult
 {
     std::unique_ptr<Mat> y;       // 输出
-    std::unique_ptr<Mat> mean;     // 当前 batch 的均值
-    std::unique_ptr<Mat> var;      // 当前 batch 的方差
-    std::unique_ptr<Mat> x_norm;   // 归一化后的 x
+    std::unique_ptr<Mat> mean;    // 当前 batch 的均值
+    std::unique_ptr<Mat> var;     // 当前 batch 的方差
+    std::unique_ptr<Mat> x_norm;  // 归一化后的 x
 };
 
 /**
@@ -435,14 +435,14 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
  * @return 输出张量，形状与输入相同
  */
 std::unique_ptr<Mat> batch_norm(const OriginMat &x,
-                                 const OriginMat &gamma,
-                                 const OriginMat &beta,
-                                 const OriginMat &running_mean,
-                                 const OriginMat &running_var,
-                                 bool training,
-                                 float eps,
-                                 float momentum,
-                                 int num_dims);
+                                const OriginMat &gamma,
+                                const OriginMat &beta,
+                                const OriginMat &running_mean,
+                                const OriginMat &running_var,
+                                bool training,
+                                float eps,
+                                float momentum,
+                                int num_dims);
 
 /**
  * @brief CUDA batch_norm_backward：BatchNorm 反向传播

@@ -92,8 +92,9 @@ void Mul::forward_inplace(Tensor &input0, const Tensor &input1)
         {
             input0 = input0.to(promoted_tensors[0].dtype());
         }
-        Tensor input1_promoted = (input1.dtype() != promoted_tensors[1].dtype()) ? input1.to(promoted_tensors[1].dtype()) : input1;
-        
+        Tensor input1_promoted =
+            (input1.dtype() != promoted_tensors[1].dtype()) ? input1.to(promoted_tensors[1].dtype()) : input1;
+
         // 使用 mat() 方法获取 Mat 引用并执行原地操作
         mat(input0).mul_inplace(mat(input1_promoted));
     }

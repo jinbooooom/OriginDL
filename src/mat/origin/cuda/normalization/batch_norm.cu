@@ -5,11 +5,11 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_ops.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
-#include "origin/mat/origin/device_common/type_dispatcher.h"
-#include "origin/utils/exception.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -32,8 +32,8 @@ __global__ void compute_mean_var_1d_kernel(const T *__restrict__ x,
 
     if (c < C)
     {
-        T sum    = T(0);
-        T sum_sq = T(0);
+        T sum        = T(0);
+        T sum_sq     = T(0);
         size_t count = 0;
 
         for (size_t n = 0; n < N; ++n)
@@ -70,8 +70,8 @@ __global__ void compute_mean_var_2d_kernel(const T *__restrict__ x,
 
     if (c < C)
     {
-        T sum    = T(0);
-        T sum_sq = T(0);
+        T sum        = T(0);
+        T sum_sq     = T(0);
         size_t count = 0;
 
         for (size_t n = 0; n < N; ++n)
@@ -113,7 +113,7 @@ __global__ void normalize_and_affine_1d_kernel(const T *__restrict__ x,
                                                size_t C,
                                                T eps)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C;
 
     if (idx < total_elements)
@@ -161,17 +161,17 @@ __global__ void normalize_and_affine_2d_kernel(const T *__restrict__ x,
                                                size_t W,
                                                T eps)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * H * W;
 
     if (idx < total_elements)
     {
-        size_t n = idx / (C * H * W);
+        size_t n   = idx / (C * H * W);
         size_t rem = idx % (C * H * W);
-        size_t c = rem / (H * W);
-        rem = rem % (H * W);
-        size_t h = rem / W;
-        size_t w = rem % W;
+        size_t c   = rem / (H * W);
+        rem        = rem % (H * W);
+        size_t h   = rem / W;
+        size_t w   = rem % W;
 
         T mean_val = mean[c];
         T var_val  = var[c];
@@ -201,13 +201,13 @@ __global__ void normalize_and_affine_2d_kernel(const T *__restrict__ x,
  */
 template <typename T>
 __global__ void compute_dgamma_dbeta_1d_kernel(const T *__restrict__ gy,
-                                                const T *__restrict__ x_norm,
-                                                T *__restrict__ dgamma,
-                                                T *__restrict__ dbeta,
-                                                T *__restrict__ mean_gy,
-                                                T *__restrict__ mean_gy_xnorm,
-                                                size_t N,
-                                                size_t C)
+                                               const T *__restrict__ x_norm,
+                                               T *__restrict__ dgamma,
+                                               T *__restrict__ dbeta,
+                                               T *__restrict__ mean_gy,
+                                               T *__restrict__ mean_gy_xnorm,
+                                               size_t N,
+                                               size_t C)
 {
     size_t c = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -235,15 +235,15 @@ __global__ void compute_dgamma_dbeta_1d_kernel(const T *__restrict__ gy,
  */
 template <typename T>
 __global__ void compute_dgamma_dbeta_2d_kernel(const T *__restrict__ gy,
-                                                 const T *__restrict__ x_norm,
-                                                 T *__restrict__ dgamma,
-                                                 T *__restrict__ dbeta,
-                                                 T *__restrict__ mean_gy,
-                                                 T *__restrict__ mean_gy_xnorm,
-                                                 size_t N,
-                                                 size_t C,
-                                                 size_t H,
-                                                 size_t W)
+                                               const T *__restrict__ x_norm,
+                                               T *__restrict__ dgamma,
+                                               T *__restrict__ dbeta,
+                                               T *__restrict__ mean_gy,
+                                               T *__restrict__ mean_gy_xnorm,
+                                               size_t N,
+                                               size_t C,
+                                               size_t H,
+                                               size_t W)
 {
     size_t c = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -280,20 +280,19 @@ __global__ void compute_dgamma_dbeta_2d_kernel(const T *__restrict__ gy,
  */
 template <typename T>
 __global__ void compute_gx_1d_kernel(const T *__restrict__ gy,
-                                      const T *__restrict__ gamma,
-                                      const T *__restrict__ x_norm,
-                                      const T *__restrict__ saved_var,
-                                      const T *__restrict__ mean_gy,
-                                      const T *__restrict__ mean_gy_xnorm,
-                                      T *__restrict__ gx,
-                                      size_t N,
-                                      size_t C,
-                                      T eps)
+                                     const T *__restrict__ gamma,
+                                     const T *__restrict__ x_norm,
+                                     const T *__restrict__ saved_var,
+                                     const T *__restrict__ mean_gy,
+                                     const T *__restrict__ mean_gy_xnorm,
+                                     T *__restrict__ gx,
+                                     size_t N,
+                                     size_t C,
+                                     T eps)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C;
 
-    
     if (idx < total_elements)
     {
         size_t c = idx % C;
@@ -322,19 +321,19 @@ __global__ void compute_gx_1d_kernel(const T *__restrict__ gy,
  */
 template <typename T>
 __global__ void compute_gx_2d_kernel(const T *__restrict__ gy,
-                                      const T *__restrict__ gamma,
-                                      const T *__restrict__ x_norm,
-                                      const T *__restrict__ saved_var,
-                                      const T *__restrict__ mean_gy,
-                                      const T *__restrict__ mean_gy_xnorm,
-                                      T *__restrict__ gx,
-                                      size_t N,
-                                      size_t C,
-                                      size_t H,
-                                      size_t W,
-                                      T eps)
+                                     const T *__restrict__ gamma,
+                                     const T *__restrict__ x_norm,
+                                     const T *__restrict__ saved_var,
+                                     const T *__restrict__ mean_gy,
+                                     const T *__restrict__ mean_gy_xnorm,
+                                     T *__restrict__ gx,
+                                     size_t N,
+                                     size_t C,
+                                     size_t H,
+                                     size_t W,
+                                     T eps)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * H * W;
 
     if (idx < total_elements)
@@ -402,8 +401,9 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
     if (gamma.dtype() != x.dtype() || beta.dtype() != x.dtype() || running_mean.dtype() != x.dtype() ||
         running_var.dtype() != x.dtype())
     {
-        THROW_INVALID_ARG("batch_norm_forward: all inputs (x, gamma, beta, running_mean, running_var) must have the "
-                          "same floating-point dtype");
+        THROW_INVALID_ARG(
+            "batch_norm_forward: all inputs (x, gamma, beta, running_mean, running_var) must have the "
+            "same floating-point dtype");
     }
 
     VALIDATE_CUDA_DEVICE(x);
@@ -416,10 +416,10 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
 
     // 获取数据指针
     const void *x_data            = x.storage()->data();
-    const void *gamma_data         = gamma.storage()->data();
-    const void *beta_data          = beta.storage()->data();
-    const void *running_mean_data  = running_mean.storage()->data();
-    const void *running_var_data   = running_var.storage()->data();
+    const void *gamma_data        = gamma.storage()->data();
+    const void *beta_data         = beta.storage()->data();
+    const void *running_mean_data = running_mean.storage()->data();
+    const void *running_var_data  = running_var.storage()->data();
 
     void *y_data      = y->storage()->data();
     void *mean_data   = mean->storage()->data();
@@ -450,16 +450,16 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
             if (num_dims == 2)  // BatchNorm1d: (N, C)
             {
                 size_t N = x_shape[0];
-                compute_mean_var_1d_kernel<float><<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, N,
-                                                                                     num_channels);
+                compute_mean_var_1d_kernel<float>
+                    <<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, N, num_channels);
             }
             else if (num_dims == 4)  // BatchNorm2d: (N, C, H, W)
             {
                 size_t N = x_shape[0];
                 size_t H = x_shape[2];
                 size_t W = x_shape[3];
-                compute_mean_var_2d_kernel<float><<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, N,
-                                                                                     num_channels, H, W);
+                compute_mean_var_2d_kernel<float>
+                    <<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, N, num_channels, H, W);
             }
             CUDA_CHECK_ASYNC();
         }
@@ -479,18 +479,18 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
         if (num_dims == 2)  // BatchNorm1d: (N, C)
         {
             size_t N = x_shape[0];
-            normalize_and_affine_1d_kernel<float><<<num_blocks, threads_per_block>>>(
-                x_ptr, mean_ptr, var_ptr, gamma_ptr, beta_ptr, y_ptr, x_norm_ptr, N, num_channels,
-                static_cast<float>(eps));
+            normalize_and_affine_1d_kernel<float>
+                <<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, gamma_ptr, beta_ptr, y_ptr, x_norm_ptr, N,
+                                                    num_channels, static_cast<float>(eps));
         }
         else if (num_dims == 4)  // BatchNorm2d: (N, C, H, W)
         {
             size_t N = x_shape[0];
             size_t H = x_shape[2];
             size_t W = x_shape[3];
-            normalize_and_affine_2d_kernel<float><<<num_blocks, threads_per_block>>>(
-                x_ptr, mean_ptr, var_ptr, gamma_ptr, beta_ptr, y_ptr, x_norm_ptr, N, num_channels, H, W,
-                static_cast<float>(eps));
+            normalize_and_affine_2d_kernel<float>
+                <<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, gamma_ptr, beta_ptr, y_ptr, x_norm_ptr, N,
+                                                    num_channels, H, W, static_cast<float>(eps));
         }
         CUDA_CHECK_ASYNC();
     }
@@ -517,16 +517,16 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
             if (num_dims == 2)  // BatchNorm1d: (N, C)
             {
                 size_t N = x_shape[0];
-                compute_mean_var_1d_kernel<double><<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, N,
-                                                                                       num_channels);
+                compute_mean_var_1d_kernel<double>
+                    <<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, N, num_channels);
             }
             else if (num_dims == 4)  // BatchNorm2d: (N, C, H, W)
             {
                 size_t N = x_shape[0];
                 size_t H = x_shape[2];
                 size_t W = x_shape[3];
-                compute_mean_var_2d_kernel<double><<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, N,
-                                                                                       num_channels, H, W);
+                compute_mean_var_2d_kernel<double>
+                    <<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, N, num_channels, H, W);
             }
             CUDA_CHECK_ASYNC();
         }
@@ -546,18 +546,18 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
         if (num_dims == 2)  // BatchNorm1d: (N, C)
         {
             size_t N = x_shape[0];
-            normalize_and_affine_1d_kernel<double><<<num_blocks, threads_per_block>>>(
-                x_ptr, mean_ptr, var_ptr, gamma_ptr, beta_ptr, y_ptr, x_norm_ptr, N, num_channels,
-                static_cast<double>(eps));
+            normalize_and_affine_1d_kernel<double>
+                <<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, gamma_ptr, beta_ptr, y_ptr, x_norm_ptr, N,
+                                                    num_channels, static_cast<double>(eps));
         }
         else if (num_dims == 4)  // BatchNorm2d: (N, C, H, W)
         {
             size_t N = x_shape[0];
             size_t H = x_shape[2];
             size_t W = x_shape[3];
-            normalize_and_affine_2d_kernel<double><<<num_blocks, threads_per_block>>>(
-                x_ptr, mean_ptr, var_ptr, gamma_ptr, beta_ptr, y_ptr, x_norm_ptr, N, num_channels, H, W,
-                static_cast<double>(eps));
+            normalize_and_affine_2d_kernel<double>
+                <<<num_blocks, threads_per_block>>>(x_ptr, mean_ptr, var_ptr, gamma_ptr, beta_ptr, y_ptr, x_norm_ptr, N,
+                                                    num_channels, H, W, static_cast<double>(eps));
         }
         CUDA_CHECK_ASYNC();
     }
@@ -571,14 +571,14 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
 }
 
 std::unique_ptr<Mat> batch_norm(const OriginMat &x,
-                                 const OriginMat &gamma,
-                                 const OriginMat &beta,
-                                 const OriginMat &running_mean,
-                                 const OriginMat &running_var,
-                                 bool training,
-                                 float eps,
-                                 float momentum,
-                                 int num_dims)
+                                const OriginMat &gamma,
+                                const OriginMat &beta,
+                                const OriginMat &running_mean,
+                                const OriginMat &running_var,
+                                bool training,
+                                float eps,
+                                float momentum,
+                                int num_dims)
 {
     auto result = batch_norm_forward(x, gamma, beta, running_mean, running_var, training, eps, num_dims);
     return std::move(result.y);
@@ -587,13 +587,13 @@ std::unique_ptr<Mat> batch_norm(const OriginMat &x,
 // ==================== batch_norm 反向传播 ====================
 
 std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
-                                                       const OriginMat &x,
-                                                       const OriginMat &gamma,
-                                                       const OriginMat &saved_mean,
-                                                       const OriginMat &saved_var,
-                                                       const OriginMat &saved_x_norm,
-                                                       float eps,
-                                                       int num_dims)
+                                                      const OriginMat &x,
+                                                      const OriginMat &gamma,
+                                                      const OriginMat &saved_mean,
+                                                      const OriginMat &saved_var,
+                                                      const OriginMat &saved_x_norm,
+                                                      float eps,
+                                                      int num_dims)
 {
     // 输入验证
     auto x_shape = x.shape();
@@ -627,8 +627,9 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
     if (gy.dtype() != x.dtype() || gamma.dtype() != x.dtype() || saved_mean.dtype() != x.dtype() ||
         saved_var.dtype() != x.dtype() || saved_x_norm.dtype() != x.dtype())
     {
-        THROW_INVALID_ARG("batch_norm_backward: all inputs (gy, x, gamma, saved_mean, saved_var, saved_x_norm) must "
-                          "have the same floating-point dtype");
+        THROW_INVALID_ARG(
+            "batch_norm_backward: all inputs (gy, x, gamma, saved_mean, saved_var, saved_x_norm) must "
+            "have the same floating-point dtype");
     }
 
     VALIDATE_CUDA_DEVICE(x);
@@ -672,28 +673,24 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
 
         // 计算 dgamma 和 dbeta（同时计算 mean_gy 和 mean_gy_xnorm）
         // 创建临时缓冲区存储 mean_gy 和 mean_gy_xnorm
-        auto mean_gy       = std::make_unique<OriginMat>(Shape({num_channels}), x.dtype(), x.device());
-        auto mean_gy_xnorm = std::make_unique<OriginMat>(Shape({num_channels}), x.dtype(), x.device());
+        auto mean_gy             = std::make_unique<OriginMat>(Shape({num_channels}), x.dtype(), x.device());
+        auto mean_gy_xnorm       = std::make_unique<OriginMat>(Shape({num_channels}), x.dtype(), x.device());
         float *mean_gy_ptr       = mean_gy->data_ptr<float>();
         float *mean_gy_xnorm_ptr = mean_gy_xnorm->data_ptr<float>();
 
         if (num_dims == 2)  // BatchNorm1d: (N, C)
         {
             size_t N = x_shape[0];
-            compute_dgamma_dbeta_1d_kernel<float><<<num_blocks, threads_per_block>>>(gy_ptr, saved_x_norm_ptr,
-                                                                                      dgamma_ptr, dbeta_ptr,
-                                                                                      mean_gy_ptr, mean_gy_xnorm_ptr,
-                                                                                      N, num_channels);
+            compute_dgamma_dbeta_1d_kernel<float><<<num_blocks, threads_per_block>>>(
+                gy_ptr, saved_x_norm_ptr, dgamma_ptr, dbeta_ptr, mean_gy_ptr, mean_gy_xnorm_ptr, N, num_channels);
         }
         else if (num_dims == 4)  // BatchNorm2d: (N, C, H, W)
         {
             size_t N = x_shape[0];
             size_t H = x_shape[2];
             size_t W = x_shape[3];
-            compute_dgamma_dbeta_2d_kernel<float><<<num_blocks, threads_per_block>>>(gy_ptr, saved_x_norm_ptr,
-                                                                                      dgamma_ptr, dbeta_ptr,
-                                                                                      mean_gy_ptr, mean_gy_xnorm_ptr,
-                                                                                      N, num_channels, H, W);
+            compute_dgamma_dbeta_2d_kernel<float><<<num_blocks, threads_per_block>>>(
+                gy_ptr, saved_x_norm_ptr, dgamma_ptr, dbeta_ptr, mean_gy_ptr, mean_gy_xnorm_ptr, N, num_channels, H, W);
         }
         CUDA_CHECK_ASYNC();
 
@@ -704,20 +701,18 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
         if (num_dims == 2)  // BatchNorm1d: (N, C)
         {
             size_t N = x_shape[0];
-            compute_gx_1d_kernel<float><<<num_blocks, threads_per_block>>>(gy_ptr, gamma_ptr, saved_x_norm_ptr,
-                                                                          saved_var_ptr, mean_gy_ptr, mean_gy_xnorm_ptr,
-                                                                          gx_ptr, N, num_channels,
-                                                                          static_cast<float>(eps));
+            compute_gx_1d_kernel<float><<<num_blocks, threads_per_block>>>(
+                gy_ptr, gamma_ptr, saved_x_norm_ptr, saved_var_ptr, mean_gy_ptr, mean_gy_xnorm_ptr, gx_ptr, N,
+                num_channels, static_cast<float>(eps));
         }
         else if (num_dims == 4)  // BatchNorm2d: (N, C, H, W)
         {
             size_t N = x_shape[0];
             size_t H = x_shape[2];
             size_t W = x_shape[3];
-            compute_gx_2d_kernel<float><<<num_blocks, threads_per_block>>>(gy_ptr, gamma_ptr, saved_x_norm_ptr,
-                                                                             saved_var_ptr, mean_gy_ptr, mean_gy_xnorm_ptr,
-                                                                             gx_ptr, N, num_channels, H, W,
-                                                                             static_cast<float>(eps));
+            compute_gx_2d_kernel<float><<<num_blocks, threads_per_block>>>(
+                gy_ptr, gamma_ptr, saved_x_norm_ptr, saved_var_ptr, mean_gy_ptr, mean_gy_xnorm_ptr, gx_ptr, N,
+                num_channels, H, W, static_cast<float>(eps));
         }
         CUDA_CHECK_ASYNC();
     }
@@ -737,28 +732,24 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
 
         // 计算 dgamma 和 dbeta（同时计算 mean_gy 和 mean_gy_xnorm）
         // 创建临时缓冲区存储 mean_gy 和 mean_gy_xnorm
-        auto mean_gy       = std::make_unique<OriginMat>(Shape({num_channels}), x.dtype(), x.device());
-        auto mean_gy_xnorm = std::make_unique<OriginMat>(Shape({num_channels}), x.dtype(), x.device());
+        auto mean_gy              = std::make_unique<OriginMat>(Shape({num_channels}), x.dtype(), x.device());
+        auto mean_gy_xnorm        = std::make_unique<OriginMat>(Shape({num_channels}), x.dtype(), x.device());
         double *mean_gy_ptr       = mean_gy->data_ptr<double>();
         double *mean_gy_xnorm_ptr = mean_gy_xnorm->data_ptr<double>();
 
         if (num_dims == 2)  // BatchNorm1d: (N, C)
         {
             size_t N = x_shape[0];
-            compute_dgamma_dbeta_1d_kernel<double><<<num_blocks, threads_per_block>>>(gy_ptr, saved_x_norm_ptr,
-                                                                                      dgamma_ptr, dbeta_ptr,
-                                                                                      mean_gy_ptr, mean_gy_xnorm_ptr,
-                                                                                      N, num_channels);
+            compute_dgamma_dbeta_1d_kernel<double><<<num_blocks, threads_per_block>>>(
+                gy_ptr, saved_x_norm_ptr, dgamma_ptr, dbeta_ptr, mean_gy_ptr, mean_gy_xnorm_ptr, N, num_channels);
         }
         else if (num_dims == 4)  // BatchNorm2d: (N, C, H, W)
         {
             size_t N = x_shape[0];
             size_t H = x_shape[2];
             size_t W = x_shape[3];
-            compute_dgamma_dbeta_2d_kernel<double><<<num_blocks, threads_per_block>>>(gy_ptr, saved_x_norm_ptr,
-                                                                                       dgamma_ptr, dbeta_ptr,
-                                                                                       mean_gy_ptr, mean_gy_xnorm_ptr,
-                                                                                       N, num_channels, H, W);
+            compute_dgamma_dbeta_2d_kernel<double><<<num_blocks, threads_per_block>>>(
+                gy_ptr, saved_x_norm_ptr, dgamma_ptr, dbeta_ptr, mean_gy_ptr, mean_gy_xnorm_ptr, N, num_channels, H, W);
         }
         CUDA_CHECK_ASYNC();
 
@@ -769,20 +760,18 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
         if (num_dims == 2)  // BatchNorm1d: (N, C)
         {
             size_t N = x_shape[0];
-            compute_gx_1d_kernel<double><<<num_blocks, threads_per_block>>>(gy_ptr, gamma_ptr, saved_x_norm_ptr,
-                                                                            saved_var_ptr, mean_gy_ptr, mean_gy_xnorm_ptr,
-                                                                            gx_ptr, N, num_channels,
-                                                                            static_cast<double>(eps));
+            compute_gx_1d_kernel<double><<<num_blocks, threads_per_block>>>(
+                gy_ptr, gamma_ptr, saved_x_norm_ptr, saved_var_ptr, mean_gy_ptr, mean_gy_xnorm_ptr, gx_ptr, N,
+                num_channels, static_cast<double>(eps));
         }
         else if (num_dims == 4)  // BatchNorm2d: (N, C, H, W)
         {
             size_t N = x_shape[0];
             size_t H = x_shape[2];
             size_t W = x_shape[3];
-            compute_gx_2d_kernel<double><<<num_blocks, threads_per_block>>>(gy_ptr, gamma_ptr, saved_x_norm_ptr,
-                                                                            saved_var_ptr, mean_gy_ptr, mean_gy_xnorm_ptr,
-                                                                            gx_ptr, N, num_channels, H, W,
-                                                                            static_cast<double>(eps));
+            compute_gx_2d_kernel<double><<<num_blocks, threads_per_block>>>(
+                gy_ptr, gamma_ptr, saved_x_norm_ptr, saved_var_ptr, mean_gy_ptr, mean_gy_xnorm_ptr, gx_ptr, N,
+                num_channels, H, W, static_cast<double>(eps));
         }
         CUDA_CHECK_ASYNC();
     }
@@ -796,4 +785,3 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
 
 }  // namespace cuda
 }  // namespace origin
-

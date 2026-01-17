@@ -13,7 +13,7 @@ namespace origin
  * @brief 存储类，管理原始内存
  *
  * 负责管理实际的数据存储，包括内存分配、释放等。
- * 
+ *
  */
 class Storage
 {

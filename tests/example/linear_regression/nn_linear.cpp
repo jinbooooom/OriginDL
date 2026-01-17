@@ -2,7 +2,7 @@
 #include "origin.h"
 
 using namespace origin;
-namespace F = origin::functional;
+namespace F  = origin::functional;
 namespace nn = origin::nn;
 
 void usage(const char *program_name)
@@ -24,10 +24,7 @@ int main(int argc, char **argv)
 
     // 定义命令行选项
     static struct option long_options[] = {
-        {"device", required_argument, 0, 'd'},
-        {"help", no_argument, 0, 'h'},
-        {0, 0, 0, 0}
-    };
+        {"device", required_argument, 0, 'd'}, {"help", no_argument, 0, 'h'}, {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;
@@ -53,7 +50,7 @@ int main(int argc, char **argv)
     // 确定设备类型
     Device device(DeviceType::kCPU);
     DataType data_type = DataType::kFloat32;
-    bool use_gpu = (device_id >= 0);
+    bool use_gpu       = (device_id >= 0);
 
     if (use_gpu)
     {
@@ -112,7 +109,7 @@ int main(int argc, char **argv)
 
         auto diff       = y_pred - y;
         auto sum_result = F::sum(F::pow(diff, Scalar(2)));
-        Tensor loss = sum_result / static_cast<float>(diff.elements());
+        Tensor loss     = sum_result / static_cast<float>(diff.elements());
         loss.backward();
 
         optimizer.step();

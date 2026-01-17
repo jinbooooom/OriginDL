@@ -2,8 +2,8 @@
 #define __ORIGIN_DL_TENSOR_H__
 
 #include "../common/inner_types.h"
-#include "../utils/static_assert.h"
 #include "../mat/shape.h"
+#include "../utils/static_assert.h"
 #include "tensor_impl.h"
 #include "tensor_options.h"
 
@@ -85,7 +85,6 @@ private:
     Tensor(std::shared_ptr<TensorImpl> impl);
 
 public:
-
     Tensor() = default;  // TODO，可以去掉
 
     Tensor(const Tensor &other);

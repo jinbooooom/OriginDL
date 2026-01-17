@@ -27,4 +27,3 @@ extern void square_(Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SQUARE_H__
-

@@ -19,20 +19,20 @@ namespace pnnx
 struct Parameter
 {
     int type = 0;  // 0=null, 1=bool, 2=int, 3=float, 4=string, 5=int_array, 6=float_array
-    bool b = false;
-    int i = 0;
-    float f = 0.0f;
+    bool b   = false;
+    int i    = 0;
+    float f  = 0.0f;
     std::string s;
     std::vector<int> ai;
     std::vector<float> af;
-    
+
     Parameter() = default;
     Parameter(bool _b) : type(1), b(_b) {}
     Parameter(int _i) : type(2), i(_i) {}
     Parameter(float _f) : type(3), f(_f) {}
-    Parameter(const std::string& _s) : type(4), s(_s) {}
-    Parameter(const std::vector<int>& _ai) : type(5), ai(_ai) {}
-    Parameter(const std::vector<float>& _af) : type(6), af(_af) {}
+    Parameter(const std::string &_s) : type(4), s(_s) {}
+    Parameter(const std::vector<int> &_ai) : type(5), ai(_ai) {}
+    Parameter(const std::vector<float> &_af) : type(6), af(_af) {}
 };
 
 /**
@@ -43,7 +43,7 @@ struct Attribute
     int type = 1;  // 1=f32
     std::vector<int> shape;
     std::vector<float> data;  // 权重数据（float 格式）
-    
+
     Attribute() = default;
 };
 
@@ -54,8 +54,8 @@ struct Attribute
 class PNNXNode
 {
 public:
-    std::string name;           // 节点名称
-    std::string type;           // 算子类型（如 nn.Conv2d, nn.SiLU）
+    std::string name;              // 节点名称
+    std::string type;              // 算子类型（如 nn.Conv2d, nn.SiLU）
     std::shared_ptr<Operator> op;  // 对应的 origindl Operator
 
     // 输入输出连接
@@ -73,8 +73,8 @@ public:
     int execution_order = -1;
 
     // 输入输出 Tensor（运行时填充）
-    std::map<std::string, Tensor> input_tensors;   // 输入 Tensor，key 为提供者节点名
-    std::vector<Tensor> output_tensors;            // 输出 Tensor
+    std::map<std::string, Tensor> input_tensors;  // 输入 Tensor，key 为提供者节点名
+    std::vector<Tensor> output_tensors;           // 输出 Tensor
 
     PNNXNode() = default;
 };
@@ -83,4 +83,3 @@ public:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_PNNX_NODE_H__
-

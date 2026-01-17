@@ -22,4 +22,3 @@ extern Tensor transpose(const Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_TRANSPOSE_H__
-

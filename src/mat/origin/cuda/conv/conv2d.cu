@@ -10,8 +10,10 @@
 #include "origin/utils/exception.h"
 
 // 前向声明 GPU matmul 函数
-namespace origin {
-namespace cuda {
+namespace origin
+{
+namespace cuda
+{
 std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
 }  // namespace cuda
 }  // namespace origin
@@ -294,25 +296,29 @@ __global__ void pad_image_kernel(const T *__restrict__ src,
  * @param KW 卷积核宽度
  */
 template <typename T>
-__global__ void convert_filter_row_to_col_major_kernel(const T *__restrict__ src, T *__restrict__ dst,
-                                                       size_t OC, size_t C, int KH, int KW)
+__global__ void convert_filter_row_to_col_major_kernel(const T *__restrict__ src,
+                                                       T *__restrict__ dst,
+                                                       size_t OC,
+                                                       size_t C,
+                                                       int KH,
+                                                       int KW)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = OC * C * KH * KW;
 
     if (idx < total_elements)
     {
         // 计算列主序索引 (oc, c, kh, kw)
-        size_t oc = idx % OC;
+        size_t oc  = idx % OC;
         size_t rem = idx / OC;
-        size_t c = rem % C;
-        rem = rem / C;
-        int kh = rem % KH;
-        int kw = rem / KH;
+        size_t c   = rem % C;
+        rem        = rem / C;
+        int kh     = rem % KH;
+        int kw     = rem / KH;
 
         // 行主序索引: oc * (C*KH*KW) + c * (KH*KW) + kh * KW + kw
         size_t row_major_idx = oc * (C * KH * KW) + c * (KH * KW) + kh * KW + kw;
-        dst[idx] = src[row_major_idx];
+        dst[idx]             = src[row_major_idx];
     }
 }
 
@@ -658,36 +664,36 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
     auto col = im2col_impl(x, std::make_pair(static_cast<int>(KH), static_cast<int>(KW)), stride, pad, true);
 
     // 2. 将卷积核 reshape 为 (OC, C*KH*KW)
-    auto W_reshaped = W.reshape(Shape{OC, C * KH * KW});
+    auto W_reshaped                 = W.reshape(Shape{OC, C * KH * KW});
     const OriginMat &W_reshaped_mat = static_cast<const OriginMat &>(*W_reshaped);
-    const OriginMat &col_mat = static_cast<const OriginMat &>(*col);
+    const OriginMat &col_mat        = static_cast<const OriginMat &>(*col);
 
     // 3. 直接使用 cuBLAS GEMM 进行矩阵乘法: col @ W^T -> (N*OH*OW, OC)
     // col: (N*OH*OW, C*KH*KW), W: (OC, C*KH*KW), 需要计算 col @ W^T
     // 在列主序中，这等价于计算 C^T = W^T @ col^T
-    size_t M = N * OH * OW;  // col 的行数
-    size_t K = C * KH * KW;  // 公共维度
-    size_t N_out = OC;       // 输出通道数
-    
+    size_t M     = N * OH * OW;  // col 的行数
+    size_t K     = C * KH * KW;  // 公共维度
+    size_t N_out = OC;           // 输出通道数
+
     Shape y_flat_shape{M, N_out};
     auto y_flat = std::make_unique<OriginMat>(y_flat_shape, x.dtype(), x.device());
-    
+
     // 使用 GPU matmul 实现（避免 cuBLAS 的行列主序转换问题）
     // 计算: y_flat = col @ W^T
-    auto W_T = W_reshaped_mat.transpose();
+    auto W_T                 = W_reshaped_mat.transpose();
     const OriginMat &W_T_mat = static_cast<const OriginMat &>(*W_T);
-    
+
     // 使用 GPU matmul
     if (col_mat.device().type() == DeviceType::kCUDA && W_T_mat.device().type() == DeviceType::kCUDA)
     {
         auto y_flat_matmul = cuda::matmul(col_mat, W_T_mat);
-        y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat*>(y_flat_matmul.release()));
+        y_flat             = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(y_flat_matmul.release()));
     }
     else
     {
         // 回退到 CPU matmul
         auto y_flat_matmul = col_mat.matmul(W_T_mat);
-        y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat*>(y_flat_matmul.release()));
+        y_flat             = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(y_flat_matmul.release()));
     }
 
     // 4. 添加偏置（如果存在）
@@ -697,8 +703,8 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
         auto b_broadcast            = b->broadcast_to(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
         const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
         const OriginMat &b_broadcast_mat = static_cast<const OriginMat &>(*b_broadcast);
-        auto y_flat_with_bias = y_flat_mat.operator+(b_broadcast_mat);
-        y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat*>(y_flat_with_bias.release()));
+        auto y_flat_with_bias            = y_flat_mat.operator+(b_broadcast_mat);
+        y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(y_flat_with_bias.release()));
     }
 
     // 5. Reshape 并转置: (N*OH*OW, OC) -> (N, OH, OW, OC) -> (N, OC, OH, OW)

@@ -28,4 +28,3 @@ extern Tensor reshape(const Tensor &x, const Shape &shape);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_RESHAPE_H__
-

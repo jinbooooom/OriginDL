@@ -46,11 +46,11 @@ Storage &Storage::operator=(Storage &&other) noexcept
             allocator_->deallocate(data_);
         }
 
-        data_        = other.data_;
-        size_        = other.size_;
-        device_type_ = other.device_type_;
+        data_         = other.data_;
+        size_         = other.size_;
+        device_type_  = other.device_type_;
         device_index_ = other.device_index_;
-        allocator_  = std::move(other.allocator_);
+        allocator_    = std::move(other.allocator_);
 
         other.data_ = nullptr;
         other.size_ = 0;

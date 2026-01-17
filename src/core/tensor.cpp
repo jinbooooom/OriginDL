@@ -186,7 +186,7 @@ void Tensor::clear_grad()
 bool Tensor::requires_grad() const
 {
     // TODO: jinbo 当前的origindl不支持requires_grad=false，所以默认是true，未来支持后，需要修改
-    return true;//Config::enable_backprop && impl_ && impl_->creator_ != nullptr;
+    return true;  // Config::enable_backprop && impl_ && impl_->creator_ != nullptr;
 }
 
 Tensor Tensor::detach() const

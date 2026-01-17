@@ -507,7 +507,8 @@ void OriginMat::square_inplace()
     }
     else
     {
-        THROW_RUNTIME_ERROR("Unsupported device type for square_inplace: {}", static_cast<int>(storage_->device_type()));
+        THROW_RUNTIME_ERROR("Unsupported device type for square_inplace: {}",
+                            static_cast<int>(storage_->device_type()));
     }
 }
 
@@ -1142,8 +1143,7 @@ std::unique_ptr<Mat> OriginMat::adaptive_avg_pool2d(std::pair<int, int> output_s
     }
 }
 
-std::unique_ptr<Mat> OriginMat::adaptive_avg_pool2d_backward(const OriginMat &gy,
-                                                             std::pair<int, int> output_size) const
+std::unique_ptr<Mat> OriginMat::adaptive_avg_pool2d_backward(const OriginMat &gy, std::pair<int, int> output_size) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -1218,12 +1218,12 @@ std::unique_ptr<Mat> OriginMat::max_pool2d_backward(const OriginMat &gy,
 // === 归一化相关操作实现 ===
 
 OriginMat::BatchNormResult OriginMat::batch_norm_forward(const OriginMat &gamma,
-                                                          const OriginMat &beta,
-                                                          const OriginMat &running_mean,
-                                                          const OriginMat &running_var,
-                                                          bool training,
-                                                          float eps,
-                                                          int num_dims) const
+                                                         const OriginMat &beta,
+                                                         const OriginMat &running_mean,
+                                                         const OriginMat &running_var,
+                                                         bool training,
+                                                         float eps,
+                                                         int num_dims) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -1258,13 +1258,13 @@ OriginMat::BatchNormResult OriginMat::batch_norm_forward(const OriginMat &gamma,
 }
 
 std::unique_ptr<Mat> OriginMat::batch_norm(const OriginMat &gamma,
-                                            const OriginMat &beta,
-                                            const OriginMat &running_mean,
-                                            const OriginMat &running_var,
-                                            bool training,
-                                            float eps,
-                                            float momentum,
-                                            int num_dims) const
+                                           const OriginMat &beta,
+                                           const OriginMat &running_mean,
+                                           const OriginMat &running_var,
+                                           bool training,
+                                           float eps,
+                                           float momentum,
+                                           int num_dims) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
@@ -1286,12 +1286,12 @@ std::unique_ptr<Mat> OriginMat::batch_norm(const OriginMat &gamma,
 }
 
 std::vector<std::unique_ptr<Mat>> OriginMat::batch_norm_backward(const OriginMat &gy,
-                                                                   const OriginMat &gamma,
-                                                                   const OriginMat &saved_mean,
-                                                                   const OriginMat &saved_var,
-                                                                   const OriginMat &saved_x_norm,
-                                                                   float eps,
-                                                                   int num_dims) const
+                                                                 const OriginMat &gamma,
+                                                                 const OriginMat &saved_mean,
+                                                                 const OriginMat &saved_var,
+                                                                 const OriginMat &saved_x_norm,
+                                                                 float eps,
+                                                                 int num_dims) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)

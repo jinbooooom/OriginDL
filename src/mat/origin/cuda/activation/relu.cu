@@ -38,7 +38,7 @@ std::unique_ptr<Mat> relu(const OriginMat &mat)
     // 使用类型分发器执行 ReLU 运算
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
         launch_unary_kernel<T, ReLUOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(),
-                                        ReLUOp{}, 0);
+                                       ReLUOp{}, 0);
     });
 
     CUDA_CHECK_ASYNC();
@@ -65,7 +65,7 @@ void relu_inplace(OriginMat &mat)
     // 使用类型分发器执行原地ReLU运算
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
         launch_unary_kernel<T, ReLUOp>(static_cast<const T *>(a_data), static_cast<T *>(a_data), mat.elements(),
-                                        ReLUOp{}, 0);
+                                       ReLUOp{}, 0);
     });
 
     CUDA_CHECK_ASYNC();
@@ -73,4 +73,3 @@ void relu_inplace(OriginMat &mat)
 
 }  // namespace cuda
 }  // namespace origin
-

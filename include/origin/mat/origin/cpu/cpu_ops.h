@@ -139,8 +139,8 @@ std::unique_ptr<Mat> adaptive_avg_pool2d(const OriginMat &x, std::pair<int, int>
  * @return 输入梯度 (N, C, H, W)
  */
 std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
-                                                   const OriginMat &x,
-                                                   std::pair<int, int> output_size);
+                                                  const OriginMat &x,
+                                                  std::pair<int, int> output_size);
 
 /**
  * @brief 最大池化操作（前向传播）
@@ -201,13 +201,13 @@ struct BatchNormForwardResult
  * @return BatchNormForwardResult 包含输出和中间结果
  */
 BatchNormForwardResult batch_norm_forward(const OriginMat &x,
-                                           const OriginMat &gamma,
-                                           const OriginMat &beta,
-                                           const OriginMat &running_mean,
-                                           const OriginMat &running_var,
-                                           bool training,
-                                           float eps,
-                                           int num_dims);
+                                          const OriginMat &gamma,
+                                          const OriginMat &beta,
+                                          const OriginMat &running_mean,
+                                          const OriginMat &running_var,
+                                          bool training,
+                                          float eps,
+                                          int num_dims);
 
 /**
  * @brief BatchNorm 前向传播（只返回输出）
@@ -224,14 +224,14 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
  * @return 输出张量，形状与输入相同
  */
 std::unique_ptr<Mat> batch_norm(const OriginMat &x,
-                                 const OriginMat &gamma,
-                                 const OriginMat &beta,
-                                 const OriginMat &running_mean,
-                                 const OriginMat &running_var,
-                                 bool training,
-                                 float eps,
-                                 float momentum,
-                                 int num_dims);
+                                const OriginMat &gamma,
+                                const OriginMat &beta,
+                                const OriginMat &running_mean,
+                                const OriginMat &running_var,
+                                bool training,
+                                float eps,
+                                float momentum,
+                                int num_dims);
 
 /**
  * @brief BatchNorm 反向传播

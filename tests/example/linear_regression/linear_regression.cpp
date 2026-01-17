@@ -22,7 +22,7 @@ Tensor MSE(const Tensor &x0, const Tensor &x1)
 {
     auto diff       = x0 - x1;
     auto sum_result = F::sum(F::pow(diff, Scalar(2.0f)));
-    auto result = sum_result / static_cast<float>(diff.elements()); // 强转为float类型，避免类型提升。
+    auto result     = sum_result / static_cast<float>(diff.elements());  // 强转为float类型，避免类型提升。
     return result;
 }
 
@@ -32,10 +32,7 @@ int main(int argc, char **argv)
 
     // 定义命令行选项
     static struct option long_options[] = {
-        {"device", required_argument, 0, 'd'},
-        {"help", no_argument, 0, 'h'},
-        {0, 0, 0, 0}
-    };
+        {"device", required_argument, 0, 'd'}, {"help", no_argument, 0, 'h'}, {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;
@@ -88,9 +85,9 @@ int main(int argc, char **argv)
     }
 
     // 生成随机数据
-    size_t input_size = 100;
+    size_t input_size  = 100;
     DataType data_type = DataType::kFloat32;
-    auto x            = Tensor::randn(Shape{input_size, 1}, dtype(data_type).device(device));
+    auto x             = Tensor::randn(Shape{input_size, 1}, dtype(data_type).device(device));
     // 设置一个噪声，使真实值在预测结果附近
     auto noise = Tensor::randn(Shape{input_size, 1}, dtype(data_type).device(device)) * 0.1f;
     auto y     = x * 2.0f + 5.0f + noise;

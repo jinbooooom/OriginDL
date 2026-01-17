@@ -30,4 +30,3 @@ extern Tensor silu(const Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SILU_H__
-

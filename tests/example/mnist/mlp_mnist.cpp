@@ -3,7 +3,7 @@
 #include "origin/nn/models/mlp.h"
 
 using namespace origin;
-namespace F = origin::functional;
+namespace F  = origin::functional;
 namespace nn = origin::nn;
 
 int main(int argc, char *argv[])
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
                 // 计算准确率（使用no_grad避免保留计算图）
                 float acc_value = 0.0f;
                 {
-                    auto guard = no_grad(); // 类似 torch.no_grad()，在作用域内禁用梯度计算
+                    auto guard = no_grad();  // 类似 torch.no_grad()，在作用域内禁用梯度计算
                     auto acc   = accuracy(y, t);
                     acc_value  = acc.item<float>();
                 }

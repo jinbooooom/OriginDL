@@ -1,11 +1,11 @@
 #ifndef __ORIGIN_DL_YOLO_DETECT_H__
 #define __ORIGIN_DL_YOLO_DETECT_H__
 
+#include <cstdint>
+#include <memory>
+#include <vector>
 #include "../../core/operator.h"
 #include "../../core/tensor.h"
-#include <vector>
-#include <memory>
-#include <cstdint>
 
 namespace origin
 {
@@ -14,11 +14,11 @@ namespace functional
 
 /**
  * @brief YOLO Detect 算子：YOLOv5 检测层
- * 
+ *
  * 输入：
  * - 3个特征图，形状分别为 (N, C1, H1, W1), (N, C2, H2, W2), (N, C3, H3, W3)
  *   通常为 (N, 128, 80, 80), (N, 256, 40, 40), (N, 512, 20, 20)
- * 
+ *
  * 输出：
  * - 检测结果，形状为 (N, num_boxes, 85)
  *   其中 85 = 4(bbox坐标) + 1(objectness) + 80(类别分数)
@@ -38,8 +38,8 @@ public:
      * @param conv_weights 卷积权重（3个阶段）
      * @param conv_biases 卷积偏置（3个阶段）
      */
-    YoloDetect(int32_t stages, 
-               int32_t num_classes, 
+    YoloDetect(int32_t stages,
+               int32_t num_classes,
                int32_t num_anchors,
                std::vector<float> strides,
                std::vector<Tensor> anchor_grids,
@@ -88,4 +88,3 @@ Tensor custom_yolo_detect(const std::vector<Tensor> &xs,
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_YOLO_DETECT_H__
-

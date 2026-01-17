@@ -4,11 +4,11 @@
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_ops.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
-#include "origin/mat/origin/device_common/type_dispatcher.h"
-#include "origin/utils/exception.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -32,18 +32,18 @@ __global__ void adaptive_avg_pool2d_forward_kernel(const T *__restrict__ x,
                                                    int kernel_h,
                                                    int kernel_w)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * H_out * W_out;
 
     if (idx < total_elements)
     {
         // 计算输出位置 (n, c, h_out, w_out)
-        size_t n     = idx / (C * H_out * W_out);
-        size_t rem   = idx % (C * H_out * W_out);
-        size_t c     = rem / (H_out * W_out);
-        rem          = rem % (H_out * W_out);
-        int h_out    = rem / W_out;
-        int w_out    = rem % W_out;
+        size_t n   = idx / (C * H_out * W_out);
+        size_t rem = idx % (C * H_out * W_out);
+        size_t c   = rem / (H_out * W_out);
+        rem        = rem % (H_out * W_out);
+        int h_out  = rem / W_out;
+        int w_out  = rem % W_out;
 
         // 计算输入区域的起始和结束位置
         int h_start = h_out * kernel_h;
@@ -52,7 +52,7 @@ __global__ void adaptive_avg_pool2d_forward_kernel(const T *__restrict__ x,
         int w_end   = min(w_start + kernel_w, static_cast<int>(W_in));
 
         // 计算平均值
-        T sum   = T(0);
+        T sum     = T(0);
         int count = 0;
 
         for (int h = h_start; h < h_end; ++h)
@@ -60,14 +60,14 @@ __global__ void adaptive_avg_pool2d_forward_kernel(const T *__restrict__ x,
             for (int w = w_start; w < w_end; ++w)
             {
                 // 行主序索引：n * (C*H*W) + c * (H*W) + h * W + w
-                size_t x_idx = n * (C * H_in * W_in) + c * (H_in * W_in) + static_cast<size_t>(h) * W_in +
-                                static_cast<size_t>(w);
+                size_t x_idx =
+                    n * (C * H_in * W_in) + c * (H_in * W_in) + static_cast<size_t>(h) * W_in + static_cast<size_t>(w);
                 sum += x[x_idx];
                 count++;
             }
         }
 
-        T avg = (count > 0) ? sum / static_cast<T>(count) : T(0);
+        T avg  = (count > 0) ? sum / static_cast<T>(count) : T(0);
         y[idx] = avg;
     }
 }
@@ -77,17 +77,17 @@ __global__ void adaptive_avg_pool2d_forward_kernel(const T *__restrict__ x,
  */
 template <typename T>
 __global__ void adaptive_avg_pool2d_backward_kernel(const T *__restrict__ gy,
-                                                     T *__restrict__ gx,
-                                                     size_t N,
-                                                     size_t C,
-                                                     size_t H_in,
-                                                     size_t W_in,
-                                                     size_t H_out,
-                                                     size_t W_out,
-                                                     int kernel_h,
-                                                     int kernel_w)
+                                                    T *__restrict__ gx,
+                                                    size_t N,
+                                                    size_t C,
+                                                    size_t H_in,
+                                                    size_t W_in,
+                                                    size_t H_out,
+                                                    size_t W_out,
+                                                    int kernel_h,
+                                                    int kernel_w)
 {
-    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
     size_t total_elements = N * C * H_out * W_out;
 
     if (idx < total_elements)
@@ -106,19 +106,19 @@ __global__ void adaptive_avg_pool2d_backward_kernel(const T *__restrict__ gy,
         int w_start = static_cast<int>(w_out) * kernel_w;
         int w_end   = min(w_start + kernel_w, static_cast<int>(W_in));
 
-        int count = (h_end - h_start) * (w_end - w_start);
-        T grad_value = gy[idx];
+        int count          = (h_end - h_start) * (w_end - w_start);
+        T grad_value       = gy[idx];
         T grad_per_element = (count > 0) ? grad_value / static_cast<T>(count) : T(0);
 
-                // 将梯度分配到输入区域
+        // 将梯度分配到输入区域
         // 注意：atomicAdd 只支持 float, double, int32, uint32, uint64
         // 对于其他类型，使用类型特化
         for (int h = h_start; h < h_end; ++h)
         {
             for (int w = w_start; w < w_end; ++w)
             {
-                size_t gx_idx = n * (C * H_in * W_in) + c * (H_in * W_in) + static_cast<size_t>(h) * W_in +
-                                 static_cast<size_t>(w);
+                size_t gx_idx =
+                    n * (C * H_in * W_in) + c * (H_in * W_in) + static_cast<size_t>(h) * W_in + static_cast<size_t>(w);
                 if constexpr (std::is_same_v<T, float>)
                 {
                     atomicAdd(reinterpret_cast<float *>(&gx[gx_idx]), static_cast<float>(grad_per_element));
@@ -193,8 +193,8 @@ std::unique_ptr<Mat> adaptive_avg_pool2d(const OriginMat &x, std::pair<int, int>
         int threads_per_block = 256;
         int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
-        adaptive_avg_pool2d_forward_kernel<T><<<num_blocks, threads_per_block>>>(x_ptr, y_ptr, N, C, H_in, W_in, H_out,
-                                                                                 W_out, kernel_h, kernel_w);
+        adaptive_avg_pool2d_forward_kernel<T>
+            <<<num_blocks, threads_per_block>>>(x_ptr, y_ptr, N, C, H_in, W_in, H_out, W_out, kernel_h, kernel_w);
     });
 
     CUDA_CHECK_ASYNC();
@@ -203,8 +203,8 @@ std::unique_ptr<Mat> adaptive_avg_pool2d(const OriginMat &x, std::pair<int, int>
 }
 
 std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
-                                                    const OriginMat &x,
-                                                    std::pair<int, int> output_size)
+                                                  const OriginMat &x,
+                                                  std::pair<int, int> output_size)
 {
     // 输入验证：确保 gy 形状为 (N, C, OH, OW)
     if (gy.shape().size() != 4)
@@ -262,20 +262,20 @@ std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
         int threads_per_block = 256;
         int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
-        adaptive_avg_pool2d_backward_kernel<float><<<num_blocks, threads_per_block>>>(gy_ptr, gx_ptr, N, C, H_in, W_in,
-                                                                                       H_out, W_out, kernel_h, kernel_w);
+        adaptive_avg_pool2d_backward_kernel<float>
+            <<<num_blocks, threads_per_block>>>(gy_ptr, gx_ptr, N, C, H_in, W_in, H_out, W_out, kernel_h, kernel_w);
     }
     else if (gy.dtype() == DataType::kFloat64)
     {
         const double *gy_ptr = static_cast<const double *>(gy_data);
-        double *gx_ptr        = static_cast<double *>(gx_data);
+        double *gx_ptr       = static_cast<double *>(gx_data);
 
         size_t total_elements = N * C * H_out * W_out;
         int threads_per_block = 256;
         int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
-        adaptive_avg_pool2d_backward_kernel<double><<<num_blocks, threads_per_block>>>(gy_ptr, gx_ptr, N, C, H_in, W_in,
-                                                                                        H_out, W_out, kernel_h, kernel_w);
+        adaptive_avg_pool2d_backward_kernel<double>
+            <<<num_blocks, threads_per_block>>>(gy_ptr, gx_ptr, N, C, H_in, W_in, H_out, W_out, kernel_h, kernel_w);
     }
     else
     {
@@ -290,4 +290,3 @@ std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
 
 }  // namespace cuda
 }  // namespace origin
-

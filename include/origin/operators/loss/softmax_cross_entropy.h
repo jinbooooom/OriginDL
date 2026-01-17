@@ -42,4 +42,3 @@ extern Tensor softmax_cross_entropy(const Tensor &x, const Tensor &target);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SOFTMAX_CROSS_ENTROPY_H__
-

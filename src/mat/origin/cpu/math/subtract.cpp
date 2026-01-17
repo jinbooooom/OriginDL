@@ -87,7 +87,7 @@ void subtract_inplace(OriginMat &a, const OriginMat &b)
     // 执行原地减法：a = a - b
     device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
         cpu_elementwise_kernel<T, SubtractOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                                             static_cast<T *>(a_data), a.elements(), SubtractOp{});
+                                              static_cast<T *>(a_data), a.elements(), SubtractOp{});
     });
 }
 

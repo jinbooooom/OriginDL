@@ -194,8 +194,7 @@ public:
      * @param output_size 输出尺寸 (OH, OW)
      * @return 输入梯度 (N, C, H, W)
      */
-    std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
-                                                       std::pair<int, int> output_size) const;
+    std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy, std::pair<int, int> output_size) const;
 
     /**
      * @brief max_pool2d：最大池化操作
@@ -226,16 +225,16 @@ public:
                                              const std::vector<size_t> &indices) const;
 
     // === 归一化相关操作 ===
-    
+
     /**
      * @brief BatchNorm 前向传播结果结构体
      */
     struct BatchNormResult
     {
         std::unique_ptr<Mat> y;       // 输出
-        std::unique_ptr<Mat> mean;   // 当前 batch 的均值
+        std::unique_ptr<Mat> mean;    // 当前 batch 的均值
         std::unique_ptr<Mat> var;     // 当前 batch 的方差
-        std::unique_ptr<Mat> x_norm; // 归一化后的 x
+        std::unique_ptr<Mat> x_norm;  // 归一化后的 x
     };
 
     /**
@@ -270,13 +269,13 @@ public:
      * @return 输出张量，形状与输入相同
      */
     std::unique_ptr<Mat> batch_norm(const OriginMat &gamma,
-                                     const OriginMat &beta,
-                                     const OriginMat &running_mean,
-                                     const OriginMat &running_var,
-                                     bool training,
-                                     float eps,
-                                     float momentum,
-                                     int num_dims) const;
+                                    const OriginMat &beta,
+                                    const OriginMat &running_mean,
+                                    const OriginMat &running_var,
+                                    bool training,
+                                    float eps,
+                                    float momentum,
+                                    int num_dims) const;
 
     /**
      * @brief batch_norm_backward：BatchNorm 反向传播
@@ -290,12 +289,12 @@ public:
      * @return 梯度向量：{gx, dgamma, dbeta}
      */
     std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
-                                                           const OriginMat &gamma,
-                                                           const OriginMat &saved_mean,
-                                                           const OriginMat &saved_var,
-                                                           const OriginMat &saved_x_norm,
-                                                           float eps,
-                                                           int num_dims) const;
+                                                          const OriginMat &gamma,
+                                                          const OriginMat &saved_mean,
+                                                          const OriginMat &saved_var,
+                                                          const OriginMat &saved_x_norm,
+                                                          float eps,
+                                                          int num_dims) const;
 
     // 形状和维度
     Shape shape() const override;

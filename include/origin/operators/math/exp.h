@@ -27,4 +27,3 @@ extern void exp_(Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_EXP_H__
-

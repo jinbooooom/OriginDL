@@ -34,4 +34,3 @@ extern Tensor sigmoid(const Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SIGMOID_H__
-

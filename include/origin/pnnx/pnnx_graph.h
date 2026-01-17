@@ -5,8 +5,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "pnnx_node.h"
 #include "../core/tensor.h"
+#include "pnnx_node.h"
 
 namespace origin
 {
@@ -58,7 +58,8 @@ private:
     std::string bin_path_;
     std::vector<std::shared_ptr<PNNXNode>> nodes_;
     std::map<std::string, std::shared_ptr<PNNXNode>> node_map_;  // 名称到节点的映射
-    std::map<std::string, std::pair<std::shared_ptr<PNNXNode>, size_t>> output_name_map_;  // 输出名称到(节点, 索引)的映射
+    std::map<std::string, std::pair<std::shared_ptr<PNNXNode>, size_t>>
+        output_name_map_;  // 输出名称到(节点, 索引)的映射
 
     // 输入输出节点
     std::vector<std::shared_ptr<PNNXNode>> input_nodes_;
@@ -91,8 +92,9 @@ private:
     /**
      * @brief 递归拓扑排序辅助函数
      */
-    void topological_sort_dfs(std::shared_ptr<PNNXNode> node, std::map<std::string, bool> &visited,
-                               std::vector<std::shared_ptr<PNNXNode>> &sorted);
+    void topological_sort_dfs(std::shared_ptr<PNNXNode> node,
+                              std::map<std::string, bool> &visited,
+                              std::vector<std::shared_ptr<PNNXNode>> &sorted);
 
     /**
      * @brief 检查是否为输入节点
@@ -108,7 +110,7 @@ private:
      * @brief 传播节点输出到下游节点输入
      */
     void propagate_outputs(std::shared_ptr<PNNXNode> node);
-    
+
     /**
      * @brief 构建输出名称到节点的映射，加速查找
      */
@@ -119,4 +121,3 @@ private:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_PNNX_GRAPH_H__
-

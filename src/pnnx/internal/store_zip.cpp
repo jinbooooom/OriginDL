@@ -1,8 +1,8 @@
 // StoreZipReader 实现
 #include "origin/pnnx/internal/store_zip.hpp"
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <cstdint>
 
 namespace origin
 {
@@ -63,7 +63,7 @@ int StoreZipReader::open(const std::string &path)
 
             StoreZipMeta fm;
             fm.offset = ftell(fp);
-            fm.size = lfh.compressed_size;
+            fm.size   = lfh.compressed_size;
 
             filemetas[name] = fm;
 
@@ -119,7 +119,7 @@ int StoreZipReader::read_file(const std::string &name, char *data)
     }
 
     size_t offset = filemetas[name].offset;
-    size_t size = filemetas[name].size;
+    size_t size   = filemetas[name].size;
 
     fseek(fp, offset, SEEK_SET);
     fread(data, size, 1, fp);

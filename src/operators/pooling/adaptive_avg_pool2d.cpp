@@ -1,8 +1,8 @@
 #include "origin/operators/pooling/adaptive_avg_pool2d.h"
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/utils/exception.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -23,14 +23,14 @@ std::vector<Tensor> AdaptiveAvgPool2d::forward(const std::vector<Tensor> &xs)
     if (x_shape.size() != 4)
     {
         THROW_RUNTIME_ERROR("AdaptiveAvgPool2d forward: x must be 4D (N, C, H, W), but got shape {}",
-                           x_shape.to_string());
+                            x_shape.to_string());
     }
 
     // 获取 Mat 引用并调用底层 adaptive_avg_pool2d
     const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
 
     auto result = x_mat.adaptive_avg_pool2d(output_size_);
-    auto y       = convert_mat_to_tensor(std::move(result));
+    auto y      = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
 }
 
@@ -65,4 +65,3 @@ Tensor adaptive_avg_pool2d(const Tensor &x, int output_size)
 
 }  // namespace functional
 }  // namespace origin
-

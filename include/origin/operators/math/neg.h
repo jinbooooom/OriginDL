@@ -32,4 +32,3 @@ Tensor operator-(const Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_NEG_H__
-

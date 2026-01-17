@@ -26,9 +26,7 @@ int main()
     Tensor t5(data5, Shape{3, 2}, dtype(Float32));
     t5.print("t5");
 
-    auto t6 = Tensor::ones(
-        Shape{2, 2},
-        dtype(DataType::kFloat32).device(Device(DeviceType::kCPU)));
+    auto t6 = Tensor::ones(Shape{2, 2}, dtype(DataType::kFloat32).device(Device(DeviceType::kCPU)));
     t6.print("t6");
 
     return 0;

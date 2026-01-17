@@ -27,7 +27,7 @@ inline bool is_available()
 #ifdef WITH_CUDA
     return is_cuda_available();
 #else
-    return false; 
+    return false;
 #endif
 }
 
@@ -71,7 +71,7 @@ inline void set_device(int device_id)
 #ifdef WITH_CUDA
     set_cuda_device(device_id);
 #else
-    (void)device_id; 
+    (void)device_id;
     THROW_RUNTIME_ERROR("CUDA support is not enabled. Please rebuild with --cuda flag: ./build.sh origin --cuda");
 #endif
 }

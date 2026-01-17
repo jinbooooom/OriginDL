@@ -2,10 +2,10 @@
 #include <cstring>
 #include <vector>
 #include "origin/mat/origin/cpu/cpu_ops.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
-#include "origin/utils/exception.h"
+#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -56,7 +56,7 @@ std::unique_ptr<Mat> adaptive_avg_pool2d(const OriginMat &x, std::pair<int, int>
 
     // 获取数据指针
     const void *x_data = x.storage()->data();
-    void *y_data      = result->storage()->data();
+    void *y_data       = result->storage()->data();
 
     // 使用类型分发器执行计算
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
@@ -79,7 +79,7 @@ std::unique_ptr<Mat> adaptive_avg_pool2d(const OriginMat &x, std::pair<int, int>
                         int w_end   = std::min(w_start + kernel_w, static_cast<int>(W_in));
 
                         // 计算平均值
-                        T sum   = T(0);
+                        T sum     = T(0);
                         int count = 0;
 
                         for (int h = h_start; h < h_end; ++h)
@@ -175,9 +175,8 @@ std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
                         int w_start = static_cast<int>(w_out) * kernel_w;
                         int w_end   = std::min(w_start + kernel_w, static_cast<int>(W_in));
 
-                        int count = (h_end - h_start) * (w_end - w_start);
-                        T grad_value =
-                            gy_ptr[n * (C * H_out * W_out) + c * (H_out * W_out) + h_out * W_out + w_out];
+                        int count    = (h_end - h_start) * (w_end - w_start);
+                        T grad_value = gy_ptr[n * (C * H_out * W_out) + c * (H_out * W_out) + h_out * W_out + w_out];
                         T grad_per_element = (count > 0) ? grad_value / static_cast<T>(count) : T(0);
 
                         for (int h = h_start; h < h_end; ++h)
@@ -200,4 +199,3 @@ std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const OriginMat &gy,
 
 }  // namespace cpu
 }  // namespace origin
-

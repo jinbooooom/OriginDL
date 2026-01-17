@@ -10,7 +10,7 @@ class Timer
 {
 public:
     void start() { start_time_ = std::chrono::high_resolution_clock::now(); }
-    
+
     double elapsed_us() const
     {
         auto end_time = std::chrono::high_resolution_clock::now();

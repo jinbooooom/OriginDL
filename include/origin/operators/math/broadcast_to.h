@@ -28,4 +28,3 @@ extern Tensor broadcast_to(const Tensor &x, const Shape &shape);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_BROADCAST_TO_H__
-

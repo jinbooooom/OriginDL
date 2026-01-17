@@ -5,8 +5,8 @@
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
-#include "origin/utils/exception.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -16,13 +16,13 @@ namespace cpu
 // ==================== batch_norm 前向传播 ====================
 
 BatchNormForwardResult batch_norm_forward(const OriginMat &x,
-                                               const OriginMat &gamma,
-                                               const OriginMat &beta,
-                                               const OriginMat &running_mean,
-                                               const OriginMat &running_var,
-                                               bool training,
-                                               float eps,
-                                               int num_dims)
+                                          const OriginMat &gamma,
+                                          const OriginMat &beta,
+                                          const OriginMat &running_mean,
+                                          const OriginMat &running_var,
+                                          bool training,
+                                          float eps,
+                                          int num_dims)
 {
     // 输入验证
     auto x_shape = x.shape();
@@ -53,16 +53,17 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
     if (gamma.dtype() != x.dtype() || beta.dtype() != x.dtype() || running_mean.dtype() != x.dtype() ||
         running_var.dtype() != x.dtype())
     {
-        THROW_INVALID_ARG("batch_norm: all inputs (x, gamma, beta, running_mean, running_var) must have the same "
-                          "floating-point dtype");
+        THROW_INVALID_ARG(
+            "batch_norm: all inputs (x, gamma, beta, running_mean, running_var) must have the same "
+            "floating-point dtype");
     }
 
     // 获取数据指针
     const void *x_data            = x.storage()->data();
-    const void *gamma_data         = gamma.storage()->data();
-    const void *beta_data          = beta.storage()->data();
-    const void *running_mean_data  = running_mean.storage()->data();
-    const void *running_var_data   = running_var.storage()->data();
+    const void *gamma_data        = gamma.storage()->data();
+    const void *beta_data         = beta.storage()->data();
+    const void *running_mean_data = running_mean.storage()->data();
+    const void *running_var_data  = running_var.storage()->data();
 
     // 创建输出
     auto y      = std::make_unique<OriginMat>(x_shape, x.dtype(), x.device());
@@ -94,7 +95,7 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
             // 训练模式：计算当前 batch 的均值和方差
             for (size_t c = 0; c < num_channels; ++c)
             {
-                T sum    = T(0);
+                T sum        = T(0);
                 size_t count = 0;
 
                 if (num_dims == 2)  // BatchNorm1d: (N, C)
@@ -174,11 +175,11 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
             {
                 for (size_t c = 0; c < num_channels; ++c)
                 {
-                    size_t idx       = n * num_channels + c;
-                    T mean_val       = mean_ptr[c];
-                    T var_val        = var_ptr[c];
-                    T std_val        = std::sqrt(var_val + static_cast<T>(eps));
-                    x_norm_ptr[idx]  = (x_ptr[idx] - mean_val) / std_val;
+                    size_t idx      = n * num_channels + c;
+                    T mean_val      = mean_ptr[c];
+                    T var_val       = var_ptr[c];
+                    T std_val       = std::sqrt(var_val + static_cast<T>(eps));
+                    x_norm_ptr[idx] = (x_ptr[idx] - mean_val) / std_val;
                 }
             }
         }
@@ -245,14 +246,14 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
 }
 
 std::unique_ptr<Mat> batch_norm(const OriginMat &x,
-                                 const OriginMat &gamma,
-                                 const OriginMat &beta,
-                                 const OriginMat &running_mean,
-                                 const OriginMat &running_var,
-                                 bool training,
-                                 float eps,
-                                 float momentum,
-                                 int num_dims)
+                                const OriginMat &gamma,
+                                const OriginMat &beta,
+                                const OriginMat &running_mean,
+                                const OriginMat &running_var,
+                                bool training,
+                                float eps,
+                                float momentum,
+                                int num_dims)
 {
     auto result = batch_norm_forward(x, gamma, beta, running_mean, running_var, training, eps, num_dims);
     return std::move(result.y);
@@ -261,13 +262,13 @@ std::unique_ptr<Mat> batch_norm(const OriginMat &x,
 // ==================== batch_norm 反向传播 ====================
 
 std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
-                                                       const OriginMat &x,
-                                                       const OriginMat &gamma,
-                                                       const OriginMat &saved_mean,
-                                                       const OriginMat &saved_var,
-                                                       const OriginMat &saved_x_norm,
-                                                       float eps,
-                                                       int num_dims)
+                                                      const OriginMat &x,
+                                                      const OriginMat &gamma,
+                                                      const OriginMat &saved_mean,
+                                                      const OriginMat &saved_var,
+                                                      const OriginMat &saved_x_norm,
+                                                      float eps,
+                                                      int num_dims)
 {
     // 输入验证
     auto x_shape = x.shape();
@@ -301,8 +302,9 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
     if (gy.dtype() != x.dtype() || gamma.dtype() != x.dtype() || saved_mean.dtype() != x.dtype() ||
         saved_var.dtype() != x.dtype() || saved_x_norm.dtype() != x.dtype())
     {
-        THROW_INVALID_ARG("batch_norm_backward: all inputs (gy, x, gamma, saved_mean, saved_var, saved_x_norm) must "
-                          "have the same floating-point dtype");
+        THROW_INVALID_ARG(
+            "batch_norm_backward: all inputs (gy, x, gamma, saved_mean, saved_var, saved_x_norm) must "
+            "have the same floating-point dtype");
     }
 
     // 创建输出
@@ -397,7 +399,7 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
                     {
                         for (size_t w = 0; w < x_shape[3]; ++w)
                         {
-                            size_t idx = ((n * num_channels + c) * x_shape[2] + h) * x_shape[3] + w;
+                            size_t idx  = ((n * num_channels + c) * x_shape[2] + h) * x_shape[3] + w;
                             gx_ptr[idx] = (gamma_ptr[c] / std_val) *
                                           (gy_ptr[idx] - mean_gy - saved_x_norm_ptr[idx] * mean_gy_xnorm);
                         }
@@ -416,4 +418,3 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
 
 }  // namespace cpu
 }  // namespace origin
-

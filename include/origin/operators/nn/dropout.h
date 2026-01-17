@@ -28,4 +28,3 @@ private:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_DROPOUT_H__
-

@@ -114,9 +114,9 @@ private:
 #include "origin/operators/conv/conv2d.h"
 
 // Pooling operators
-#include "origin/operators/pooling/max_pool2d.h"
-#include "origin/operators/pooling/avg_pool2d.h"
 #include "origin/operators/pooling/adaptive_avg_pool2d.h"
+#include "origin/operators/pooling/avg_pool2d.h"
+#include "origin/operators/pooling/max_pool2d.h"
 
 // Normalization operators
 #include "origin/operators/normalization/batch_norm.h"
@@ -126,24 +126,24 @@ private:
 
 // Math operators
 #include "origin/operators/math/add.h"
-#include "origin/operators/math/sub.h"
-#include "origin/operators/math/mul.h"
+#include "origin/operators/math/broadcast_to.h"
 #include "origin/operators/math/div.h"
 #include "origin/operators/math/exp.h"
 #include "origin/operators/math/log.h"
-#include "origin/operators/math/pow.h"
-#include "origin/operators/math/neg.h"
-#include "origin/operators/math/square.h"
 #include "origin/operators/math/mat_mul.h"
+#include "origin/operators/math/mul.h"
+#include "origin/operators/math/neg.h"
+#include "origin/operators/math/pow.h"
+#include "origin/operators/math/square.h"
+#include "origin/operators/math/sub.h"
 #include "origin/operators/math/sum.h"
-#include "origin/operators/math/broadcast_to.h"
 #include "origin/operators/math/sum_to.h"
 
 // Shape operators
+#include "origin/operators/shape/cat.h"
+#include "origin/operators/shape/flatten.h"
 #include "origin/operators/shape/reshape.h"
 #include "origin/operators/shape/transpose.h"
-#include "origin/operators/shape/flatten.h"
-#include "origin/operators/shape/cat.h"
 
 // Neural network operators
 #include "origin/operators/nn/dropout.h"

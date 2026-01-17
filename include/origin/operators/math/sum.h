@@ -28,4 +28,3 @@ extern Tensor sum(const Tensor &x, int axis = -1);  // -1 意味着所有元素�
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SUM_H__
-

@@ -41,4 +41,3 @@ extern void log_(Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_LOG_H__
-

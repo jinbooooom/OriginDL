@@ -28,4 +28,3 @@ extern Tensor sum_to(const Tensor &x, const Shape &shape);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SUM_TO_H__
-

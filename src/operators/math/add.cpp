@@ -29,8 +29,8 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
 
     // 类型匹配，直接运算
     auto result = mat(xs[0]) + mat(xs[1]);
-    
-    auto y      = convert_mat_to_tensor(std::move(result));
+
+    auto y = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
 }
 
@@ -98,8 +98,9 @@ void Add::forward_inplace(Tensor &input0, const Tensor &input1)
             input0 = input0.to(promoted_tensors[0].dtype());
         }
         // 如果input1需要类型提升，需要先转换
-        Tensor input1_promoted = (input1.dtype() != promoted_tensors[1].dtype()) ? input1.to(promoted_tensors[1].dtype()) : input1;
-        
+        Tensor input1_promoted =
+            (input1.dtype() != promoted_tensors[1].dtype()) ? input1.to(promoted_tensors[1].dtype()) : input1;
+
         // 使用 mat() 方法获取 Mat 引用并执行原地操作
         mat(input0).add_inplace(mat(input1_promoted));
     }

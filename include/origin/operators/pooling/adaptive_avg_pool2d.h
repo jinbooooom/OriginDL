@@ -38,4 +38,3 @@ Tensor adaptive_avg_pool2d(const Tensor &x, int output_size);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_ADAPTIVE_AVG_POOL2D_H__
-

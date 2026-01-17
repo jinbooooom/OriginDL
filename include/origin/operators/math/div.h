@@ -37,4 +37,3 @@ Tensor operator/(const Scalar &lhs, const Tensor &rhs);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_DIV_H__
-

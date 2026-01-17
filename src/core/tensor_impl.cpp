@@ -104,8 +104,9 @@ void TensorImpl::backward()
         {
             funcs.push_back(f);
             func_set.insert(f);
-            funcs.sort(
-                [](const std::shared_ptr<Operator> &lhs, const std::shared_ptr<Operator> &rhs) { return lhs->generation_ < rhs->generation_; });
+            funcs.sort([](const std::shared_ptr<Operator> &lhs, const std::shared_ptr<Operator> &rhs) {
+                return lhs->generation_ < rhs->generation_;
+            });
         }
     };
 
@@ -133,7 +134,8 @@ void TensorImpl::backward()
 
         // 收集所有输出tensor的impl_，用于后续清理
         // 将 weak_ptr 转换为 shared_ptr（如果有效）
-        std::vector<std::shared_ptr<TensorImpl>> valid_outputs;  // 临时保存有效的 shared_ptr，确保在 backward() 期间有效
+        std::vector<std::shared_ptr<TensorImpl>>
+            valid_outputs;  // 临时保存有效的 shared_ptr，确保在 backward() 期间有效
         for (const auto &weak_output : f->outputs_)
         {
             // 将 weak_ptr 转换为 shared_ptr

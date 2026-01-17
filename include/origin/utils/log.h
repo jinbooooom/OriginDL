@@ -12,14 +12,14 @@
 #include "spdlog/cfg/env.h"   // support for loading levels from the environment variable
 #include "spdlog/fmt/ostr.h"  // support for user defined types
 
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/spdlog.h"
-#include "spdlog/details/os.h"
-#include "spdlog/fmt/fmt.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include "spdlog/details/os.h"
+#include "spdlog/fmt/fmt.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h"
 
 class OriginLog final
 {
@@ -100,6 +100,7 @@ public:
 #define loge(format, ...) SPDLOG_LOGGER_ERROR(origin_logger, format, ##__VA_ARGS__)
 #define logc(format, ...) SPDLOG_LOGGER_CRITICAL(origin_logger, format, ##__VA_ARGS__)
 // fmt::print不换行，fmt::println 会自动在输出后添加换行符
-#define loga(format, ...) fmt::println(format, ##__VA_ARGS__)  // log always: 始终输出，不受日志级别限制，支持fmt格式，自动换行
+#define loga(format, ...) \
+    fmt::println(format, ##__VA_ARGS__)  // log always: 始终输出，不受日志级别限制，支持fmt格式，自动换行
 
 #endif

@@ -1,8 +1,8 @@
 #ifndef __ORIGIN_DL_UPSAMPLE_H__
 #define __ORIGIN_DL_UPSAMPLE_H__
 
-#include "../../core/operator.h"
 #include <string>
+#include "../../core/operator.h"
 
 namespace origin
 {
@@ -16,16 +16,16 @@ namespace functional
 class Upsample : public Operator
 {
 public:
-    std::string mode_;  // "nearest" 或 "bilinear"
+    std::string mode_;                      // "nearest" 或 "bilinear"
     std::pair<float, float> scale_factor_;  // 缩放因子 (scale_h, scale_w)
-    std::pair<int, int> size_;  // 目标大小 (H, W)，如果指定则忽略 scale_factor
+    std::pair<int, int> size_;              // 目标大小 (H, W)，如果指定则忽略 scale_factor
 
-    Upsample(const std::string &mode = "nearest", 
-             std::pair<float, float> scale_factor = {2.0f, 2.0f})
-        : mode_(mode), scale_factor_(scale_factor), size_({0, 0}) {}
+    Upsample(const std::string &mode = "nearest", std::pair<float, float> scale_factor = {2.0f, 2.0f})
+        : mode_(mode), scale_factor_(scale_factor), size_({0, 0})
+    {}
 
-    Upsample(const std::string &mode, std::pair<int, int> size)
-        : mode_(mode), scale_factor_({0.0f, 0.0f}), size_(size) {}
+    Upsample(const std::string &mode, std::pair<int, int> size) : mode_(mode), scale_factor_({0.0f, 0.0f}), size_(size)
+    {}
 
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
@@ -38,11 +38,11 @@ public:
  * @param scale_factor 缩放因子 (scale_h, scale_w)
  * @return 上采样后的张量
  */
-Tensor upsample(const Tensor &x, const std::string &mode = "nearest",
+Tensor upsample(const Tensor &x,
+                const std::string &mode              = "nearest",
                 std::pair<float, float> scale_factor = {2.0f, 2.0f});
 
 }  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_UPSAMPLE_H__
-

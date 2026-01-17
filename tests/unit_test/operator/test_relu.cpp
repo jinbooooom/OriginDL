@@ -248,22 +248,22 @@ TEST_P(ReLUOperatorTest, InplaceBasic)
 {
     // 测试基本原地ReLU运算
     auto x = Tensor({-1.0f, 0.0f, 1.0f, 2.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::relu_(x);
-    
+
     std::vector<float> expected_data = {0.0f, 0.0f, 1.0f, 2.0f};
-    auto expected = Tensor(expected_data, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(ReLUOperatorTest, InplaceAllPositive)
 {
     // 测试全正数原地ReLU
-    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     auto x_original = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::relu_(x);
-    
+
     // ReLU 应该保持不变
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, x_original, origin::test::TestTolerance::kDefault);
 }
@@ -272,9 +272,9 @@ TEST_P(ReLUOperatorTest, InplaceAllNegative)
 {
     // 测试全负数原地ReLU
     auto x = Tensor({-1.0f, -2.0f, -3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::relu_(x);
-    
+
     // ReLU 应该全部变为 0
     auto expected = Tensor::zeros(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);

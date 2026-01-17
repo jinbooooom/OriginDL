@@ -23,14 +23,14 @@ TEST_P(BatchNormOperatorTest, BatchNorm1dForwardTraining)
     // 测试 BatchNorm1d 训练模式前向传播
     // 输入: (N=2, C=3)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
-    auto x = Tensor(x_data, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 参数: gamma, beta, running_mean, running_var
     std::vector<float> gamma_data = {1.0f, 1.0f, 1.0f};
-    auto gamma = Tensor(gamma_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gamma                    = Tensor(gamma_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> beta_data = {0.0f, 0.0f, 0.0f};
-    auto beta = Tensor(beta_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto beta                    = Tensor(beta_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> running_mean_data = {0.0f, 0.0f, 0.0f};
     auto running_mean = Tensor(running_mean_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
@@ -63,13 +63,13 @@ TEST_P(BatchNormOperatorTest, BatchNorm1dForwardEval)
 {
     // 测试 BatchNorm1d 评估模式前向传播
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
-    auto x = Tensor(x_data, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> gamma_data = {1.0f, 1.0f, 1.0f};
-    auto gamma = Tensor(gamma_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gamma                    = Tensor(gamma_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> beta_data = {0.0f, 0.0f, 0.0f};
-    auto beta = Tensor(beta_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto beta                    = Tensor(beta_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> running_mean_data = {2.0f, 3.0f, 4.0f};
     auto running_mean = Tensor(running_mean_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
@@ -102,15 +102,15 @@ TEST_P(BatchNormOperatorTest, BatchNorm2dForwardTraining)
 {
     // 测试 BatchNorm2d 训练模式前向传播
     // 输入: (N=2, C=2, H=2, W=2)
-    std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f,
-                                  9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
-    auto x = Tensor(x_data, Shape{2, 2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    std::vector<float> x_data = {1.0f, 2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,
+                                 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
+    auto x                    = Tensor(x_data, Shape{2, 2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> gamma_data = {1.0f, 1.0f};
-    auto gamma = Tensor(gamma_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gamma                    = Tensor(gamma_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> beta_data = {0.0f, 0.0f};
-    auto beta = Tensor(beta_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto beta                    = Tensor(beta_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> running_mean_data = {0.0f, 0.0f};
     auto running_mean = Tensor(running_mean_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -140,15 +140,15 @@ TEST_P(BatchNormOperatorTest, BatchNorm2dForwardTraining)
 TEST_P(BatchNormOperatorTest, BatchNorm2dForwardEval)
 {
     // 测试 BatchNorm2d 评估模式前向传播
-    std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f,
-                                  9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
-    auto x = Tensor(x_data, Shape{2, 2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    std::vector<float> x_data = {1.0f, 2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,
+                                 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
+    auto x                    = Tensor(x_data, Shape{2, 2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> gamma_data = {1.0f, 1.0f};
-    auto gamma = Tensor(gamma_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gamma                    = Tensor(gamma_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> beta_data = {0.0f, 0.0f};
-    auto beta = Tensor(beta_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto beta                    = Tensor(beta_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> running_mean_data = {5.0f, 6.0f};
     auto running_mean = Tensor(running_mean_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -182,14 +182,14 @@ TEST_P(BatchNormOperatorTest, BatchNorm1dWithGammaBeta)
     // 测试 BatchNorm1d 使用 gamma 和 beta 的情况
     // 输入: (N=2, C=2)
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto x = Tensor(x_data, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     // gamma = 2, beta = 1
     std::vector<float> gamma_data = {2.0f, 2.0f};
-    auto gamma = Tensor(gamma_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gamma                    = Tensor(gamma_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> beta_data = {1.0f, 1.0f};
-    auto beta = Tensor(beta_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto beta                    = Tensor(beta_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> running_mean_data = {0.0f, 0.0f};
     auto running_mean = Tensor(running_mean_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -215,13 +215,13 @@ TEST_P(BatchNormOperatorTest, BatchNorm2dWithGammaBeta)
 {
     // 测试 BatchNorm2d 使用 gamma 和 beta 的情况
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> gamma_data = {2.0f};
-    auto gamma = Tensor(gamma_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gamma                    = Tensor(gamma_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> beta_data = {1.0f};
-    auto beta = Tensor(beta_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto beta                    = Tensor(beta_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> running_mean_data = {0.0f};
     auto running_mean = Tensor(running_mean_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
@@ -249,13 +249,13 @@ TEST_P(BatchNormOperatorTest, BatchNorm1dSingleBatch)
 {
     // 测试单个 batch 的情况
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f};
-    auto x = Tensor(x_data, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> gamma_data = {1.0f, 1.0f, 1.0f};
-    auto gamma = Tensor(gamma_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gamma                    = Tensor(gamma_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> beta_data = {0.0f, 0.0f, 0.0f};
-    auto beta = Tensor(beta_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto beta                    = Tensor(beta_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> running_mean_data = {0.0f, 0.0f, 0.0f};
     auto running_mean = Tensor(running_mean_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
@@ -279,13 +279,13 @@ TEST_P(BatchNormOperatorTest, BatchNorm2dSingleChannel)
 {
     // 测试单个通道的情况
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> gamma_data = {1.0f};
-    auto gamma = Tensor(gamma_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto gamma                    = Tensor(gamma_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> beta_data = {0.0f};
-    auto beta = Tensor(beta_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto beta                    = Tensor(beta_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
     std::vector<float> running_mean_data = {0.0f};
     auto running_mean = Tensor(running_mean_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
@@ -311,13 +311,13 @@ TEST_P(BatchNormOperatorTest, BatchNorm1dFloat64)
 {
     // 测试 float64 类型
     std::vector<double> x_data = {1.0, 2.0, 3.0, 4.0};
-    auto x = Tensor(x_data, Shape{2, 2}, dtype(DataType::kFloat64).device(deviceType()));
+    auto x                     = Tensor(x_data, Shape{2, 2}, dtype(DataType::kFloat64).device(deviceType()));
 
     std::vector<double> gamma_data = {1.0, 1.0};
-    auto gamma = Tensor(gamma_data, Shape{2}, dtype(DataType::kFloat64).device(deviceType()));
+    auto gamma                     = Tensor(gamma_data, Shape{2}, dtype(DataType::kFloat64).device(deviceType()));
 
     std::vector<double> beta_data = {0.0, 0.0};
-    auto beta = Tensor(beta_data, Shape{2}, dtype(DataType::kFloat64).device(deviceType()));
+    auto beta                     = Tensor(beta_data, Shape{2}, dtype(DataType::kFloat64).device(deviceType()));
 
     std::vector<double> running_mean_data = {0.0, 0.0};
     auto running_mean = Tensor(running_mean_data, Shape{2}, dtype(DataType::kFloat64).device(deviceType()));
@@ -340,4 +340,3 @@ TEST_P(BatchNormOperatorTest, BatchNorm1dFloat64)
 // ==================== 参数化测试实例化 ====================
 
 INSTANTIATE_DEVICE_TEST_SUITE_P(BatchNormOperatorTest);
-

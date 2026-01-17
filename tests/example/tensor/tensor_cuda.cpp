@@ -18,10 +18,8 @@ int main()
 
     {
 
-        Tensor a({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3},
-                         dtype(Float32).device(kCUDA));
-        Tensor b({10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f}, Shape{2, 3},
-                         dtype(Float32).device(kCUDA));
+        Tensor a({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(Float32).device(kCUDA));
+        Tensor b({10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f}, Shape{2, 3}, dtype(Float32).device(kCUDA));
 
         a.print("A");
 

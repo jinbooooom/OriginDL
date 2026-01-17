@@ -230,9 +230,9 @@ TEST_P(MulOperatorTest, InplaceBasic)
     // 测试基本原地乘法运算
     auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({2.0f, 3.0f, 4.0f, 5.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::mul_(x0, x1);
-    
+
     auto expected = Tensor({2.0f, 6.0f, 12.0f, 20.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
 }
@@ -242,9 +242,9 @@ TEST_P(MulOperatorTest, InplaceZeroTensor)
     // 测试零张量原地乘法
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::mul_(x0, x1);
-    
+
     auto expected = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
 }

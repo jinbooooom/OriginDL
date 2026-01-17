@@ -13,7 +13,7 @@ std::vector<Tensor> Identity::forward(const std::vector<Tensor> &xs)
     {
         THROW_RUNTIME_ERROR("Identity operator requires at least 1 input, but got 0");
     }
-    
+
     // Identity 算子：直接返回输入
     // 对于 Detect 层，如果有多个输入，返回最后一个（通常是检测结果）
     // 但为了兼容性，如果有多个输入，返回所有输入
@@ -34,10 +34,10 @@ std::vector<Tensor> Identity::backward(const std::vector<Tensor> &gys)
     {
         THROW_RUNTIME_ERROR("Identity backward requires exactly 1 gradient, but got {}", gys.size());
     }
-    
+
     auto &gy = gys[0];
-    auto &x = this->inputs_[0];
-    
+    auto &x  = this->inputs_[0];
+
     return std::vector<Tensor>{std::move(gy)};
 }
 
@@ -49,4 +49,3 @@ Tensor identity(const Tensor &x)
 
 }  // namespace functional
 }  // namespace origin
-

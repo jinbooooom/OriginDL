@@ -211,11 +211,11 @@ TEST_P(LogOperatorTest, InplaceBasic)
 {
     // 测试基本原地对数运算
     auto x = Tensor({1.0f, std::exp(1.0f), std::exp(2.0f)}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::log_(x);
-    
+
     std::vector<float> expected_data = {0.0f, 1.0f, 2.0f};
-    auto expected = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -223,9 +223,9 @@ TEST_P(LogOperatorTest, InplaceOne)
 {
     // 测试 log(1) = 0 的原地操作
     auto x = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::log_(x);
-    
+
     auto expected = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
 }

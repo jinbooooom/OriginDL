@@ -32,9 +32,9 @@ std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
     auto &running_var  = xs[4];
 
     // 获取 Mat 引用
-    const OriginMat &x_mat           = static_cast<const OriginMat &>(mat(x));
-    const OriginMat &gamma_mat       = static_cast<const OriginMat &>(mat(gamma));
-    const OriginMat &beta_mat        = static_cast<const OriginMat &>(mat(beta));
+    const OriginMat &x_mat            = static_cast<const OriginMat &>(mat(x));
+    const OriginMat &gamma_mat        = static_cast<const OriginMat &>(mat(gamma));
+    const OriginMat &beta_mat         = static_cast<const OriginMat &>(mat(beta));
     const OriginMat &running_mean_mat = static_cast<const OriginMat &>(mat(running_mean));
     const OriginMat &running_var_mat  = static_cast<const OriginMat &>(mat(running_var));
 
@@ -46,8 +46,8 @@ std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
     if (x.requires_grad())
     {
         // 需要梯度计算：使用 batch_norm_forward 保存中间结果
-        auto result = x_mat.batch_norm_forward(gamma_mat, beta_mat, running_mean_mat, running_var_mat, training_,
-                                                eps_, num_dims_);
+        auto result = x_mat.batch_norm_forward(gamma_mat, beta_mat, running_mean_mat, running_var_mat, training_, eps_,
+                                               num_dims_);
 
         // 转换结果
         y = convert_mat_to_tensor(std::move(result.y));
@@ -62,7 +62,7 @@ std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
         // 不需要梯度计算：使用 batch_norm 只返回输出（节省内存）
         auto result = x_mat.batch_norm(gamma_mat, beta_mat, running_mean_mat, running_var_mat, training_, eps_,
                                        momentum_, num_dims_);
-        y = convert_mat_to_tensor(std::move(result));
+        y           = convert_mat_to_tensor(std::move(result));
 
         // 不需要保存中间结果（反向传播已禁用或输入不在计算图中）
         // 为了安全起见，仍然初始化这些成员（虽然不会被使用）
@@ -95,15 +95,15 @@ std::vector<Tensor> BatchNorm::backward(const std::vector<Tensor> &gys)
     auto &gamma = this->inputs_[1];
 
     // 获取 Mat 引用并调用底层 batch_norm_backward
-    const OriginMat &gy_mat          = static_cast<const OriginMat &>(mat(gy));
-    const OriginMat &x_mat          = static_cast<const OriginMat &>(mat(x));
-    const OriginMat &gamma_mat       = static_cast<const OriginMat &>(mat(gamma));
-    const OriginMat &saved_mean_mat  = static_cast<const OriginMat &>(mat(saved_mean_));
+    const OriginMat &gy_mat           = static_cast<const OriginMat &>(mat(gy));
+    const OriginMat &x_mat            = static_cast<const OriginMat &>(mat(x));
+    const OriginMat &gamma_mat        = static_cast<const OriginMat &>(mat(gamma));
+    const OriginMat &saved_mean_mat   = static_cast<const OriginMat &>(mat(saved_mean_));
     const OriginMat &saved_var_mat    = static_cast<const OriginMat &>(mat(saved_var_));
     const OriginMat &saved_x_norm_mat = static_cast<const OriginMat &>(mat(saved_x_norm_));
 
-    auto results = x_mat.batch_norm_backward(gy_mat, gamma_mat, saved_mean_mat, saved_var_mat, saved_x_norm_mat,
-                                             eps_, num_dims_);
+    auto results =
+        x_mat.batch_norm_backward(gy_mat, gamma_mat, saved_mean_mat, saved_var_mat, saved_x_norm_mat, eps_, num_dims_);
 
     // 转换结果
     auto gx     = convert_mat_to_tensor(std::move(results[0]));

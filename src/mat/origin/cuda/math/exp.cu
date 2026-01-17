@@ -58,7 +58,7 @@ void exp_inplace(OriginMat &mat)
     // 直接调用一元内核执行原地指数运算
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
         launch_unary_kernel<T, ExpOp>(static_cast<const T *>(a_data), static_cast<T *>(a_data), mat.elements(), ExpOp{},
-                                     0);
+                                      0);
     });
 
     CUDA_CHECK_ASYNC();

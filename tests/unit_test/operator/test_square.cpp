@@ -234,9 +234,9 @@ TEST_P(SquareOperatorTest, InplaceBasic)
 {
     // 测试基本原地平方运算
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::square_(x);
-    
+
     auto expected = Tensor({1.0f, 4.0f, 9.0f, 16.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
 }
@@ -244,11 +244,11 @@ TEST_P(SquareOperatorTest, InplaceBasic)
 TEST_P(SquareOperatorTest, InplaceZeroTensor)
 {
     // 测试零张量原地平方
-    auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x          = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x_original = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::square_(x);
-    
+
     // 结果应该还是零
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, x_original, origin::test::TestTolerance::kDefault);
 }
@@ -257,9 +257,9 @@ TEST_P(SquareOperatorTest, InplaceNegativeValues)
 {
     // 测试负值原地平方
     auto x = Tensor({-1.0f, -2.0f, -3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::square_(x);
-    
+
     auto expected = Tensor({1.0f, 4.0f, 9.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
 }

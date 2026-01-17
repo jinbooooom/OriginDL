@@ -30,4 +30,3 @@ Tensor identity(const Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_IDENTITY_H__
-

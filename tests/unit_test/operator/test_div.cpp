@@ -234,9 +234,9 @@ TEST_P(DivOperatorTest, InplaceBasic)
     // 测试基本原地除法运算
     auto x0 = Tensor({6.0f, 8.0f, 10.0f, 12.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({2.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::div_(x0, x1);
-    
+
     auto expected = Tensor({3.0f, 2.0f, 2.0f, 2.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
 }
@@ -246,11 +246,11 @@ TEST_P(DivOperatorTest, InplaceOneTensor)
     // 测试除以1的张量原地操作
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     auto x0_original = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::div_(x0, x1);
-    
+
     // 结果应该等于x0的原始值
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, x0_original, origin::test::TestTolerance::kDefault);
 }

@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "origin.h"
-#include "origin/operators/activation/silu.h"
 #include "../../common/device_test_base.h"
 #include "../../common/gtest_utils.h"
 #include "../../common/test_utils.h"
+#include "origin.h"
+#include "origin/operators/activation/silu.h"
 
 using namespace origin;
 namespace F = origin::functional;
@@ -14,8 +14,7 @@ namespace F = origin::functional;
  * @brief SiLU 算子测试类（参数化版本）
  */
 class SiLUOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -32,14 +31,14 @@ TEST_P(SiLUOperatorTest, ForwardBasic)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 计算期望值
-    float sigmoid_0 = 0.5f;
-    float sigmoid_1 = 1.0f / (1.0f + std::exp(-1.0f));
+    float sigmoid_0    = 0.5f;
+    float sigmoid_1    = 1.0f / (1.0f + std::exp(-1.0f));
     float sigmoid_neg1 = 1.0f / (1.0f + std::exp(1.0f));
-    
+
     std::vector<float> expected_data = {
-        0.0f * sigmoid_0,      // 0
+        0.0f * sigmoid_0,     // 0
         1.0f * sigmoid_1,     // ≈ 0.731
         -1.0f * sigmoid_neg1  // ≈ -0.269
     };
@@ -67,7 +66,7 @@ TEST_P(SiLUOperatorTest, ForwardPositiveValues)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 计算期望值
     std::vector<float> expected_data;
     for (float val : x.to_vector<float>())
@@ -88,7 +87,7 @@ TEST_P(SiLUOperatorTest, ForwardNegativeValues)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     // 计算期望值
     std::vector<float> expected_data;
     for (float val : x.to_vector<float>())
@@ -109,7 +108,7 @@ TEST_P(SiLUOperatorTest, ForwardTwoDimensional)
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data;
     for (float val : x.to_vector<float>())
     {
@@ -136,7 +135,7 @@ TEST_P(SiLUOperatorTest, BackwardBasic)
     for (float val : x.to_vector<float>())
     {
         float sigmoid_val = 1.0f / (1.0f + std::exp(-val));
-        float grad = sigmoid_val * (1.0f + val * (1.0f - sigmoid_val));
+        float grad        = sigmoid_val * (1.0f + val * (1.0f - sigmoid_val));
         expected_grad_data.push_back(grad);
     }
     auto expected_grad = Tensor(expected_grad_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
@@ -167,7 +166,7 @@ TEST_P(SiLUOperatorTest, IdentityProperty)
 
     // 对于大正数，F::sigmoid(x) ≈ 1，所以 SiLU(x) ≈ x
     auto result_data = result.to_vector<float>();
-    auto x_data = x.to_vector<float>();
+    auto x_data      = x.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_NEAR(result_data[i], x_data[i], 0.1f);  // 允许一定误差
@@ -191,4 +190,3 @@ TEST_P(SiLUOperatorTest, NegativeProperty)
 
 // Instantiate test suite: automatically generate tests for CPU and available CUDA
 INSTANTIATE_DEVICE_TEST_SUITE_P(SiLUOperatorTest);
-

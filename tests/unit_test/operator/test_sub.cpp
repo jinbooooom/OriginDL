@@ -232,9 +232,9 @@ TEST_P(SubOperatorTest, InplaceBasic)
     // 测试基本原地减法运算
     auto x0 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::sub_(x0, x1);
-    
+
     auto expected = Tensor({4.0f, 4.0f, 4.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
 }
@@ -244,11 +244,11 @@ TEST_P(SubOperatorTest, InplaceZeroTensor)
     // 测试零张量原地减法
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     auto x0_original = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::sub_(x0, x1);
-    
+
     // 结果应该等于x0的原始值
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, x0_original, origin::test::TestTolerance::kDefault);
 }

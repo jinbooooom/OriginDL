@@ -81,10 +81,7 @@ protected:
      *       每次测试运行时，device_type_ 只取其中一个值
      *       使用方式：Tensor(data, shape, dtype(DataType::kFloat32).device(deviceType()))
      */
-    DeviceType deviceType() const
-    {
-        return device_type_;
-    }
+    DeviceType deviceType() const { return device_type_; }
 
     /**
      * @brief 精度容忍度

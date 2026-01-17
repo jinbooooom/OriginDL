@@ -41,4 +41,3 @@ extern Tensor softmax(const Tensor &x, int axis = -1);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_SOFTMAX_H__
-

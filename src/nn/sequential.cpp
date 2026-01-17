@@ -27,8 +27,8 @@ std::vector<Parameter *> Sequential::parameters()
 {
     std::vector<Parameter *> params;
 
-    // Sequential 是容器模块，通常不直接注册参数, 参数通常由子模块（如 Linear、Conv2d）持有, Sequential 只负责按顺序组织子模块.
-    // 考虑到未来 Sequential 可能直接注册参数，所以还是调用基类方法首先收集当前模块自己的参数。
+    // Sequential 是容器模块，通常不直接注册参数, 参数通常由子模块（如 Linear、Conv2d）持有, Sequential
+    // 只负责按顺序组织子模块. 考虑到未来 Sequential 可能直接注册参数，所以还是调用基类方法首先收集当前模块自己的参数。
     auto base_params = Module::parameters();
     params.insert(params.end(), base_params.begin(), base_params.end());
 

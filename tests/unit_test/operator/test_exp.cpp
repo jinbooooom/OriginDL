@@ -250,11 +250,11 @@ TEST_P(ExpOperatorTest, InplaceBasic)
 {
     // 测试基本原地指数运算
     auto x = Tensor({0.0f, 1.0f, 2.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::exp_(x);
-    
+
     std::vector<float> expected_data = {1.0f, static_cast<float>(std::exp(1.0)), static_cast<float>(std::exp(2.0))};
-    auto expected = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -262,9 +262,9 @@ TEST_P(ExpOperatorTest, InplaceZero)
 {
     // 测试零值原地指数运算
     auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    
+
     F::exp_(x);
-    
+
     auto expected = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
 }

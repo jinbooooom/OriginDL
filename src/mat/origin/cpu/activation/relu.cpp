@@ -36,8 +36,7 @@ std::unique_ptr<Mat> relu(const OriginMat &mat)
 
     // 使用类型分发器执行 ReLU 运算
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-        cpu_unary_kernel<T, ReLUOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(),
-                                     ReLUOp{});
+        cpu_unary_kernel<T, ReLUOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(), ReLUOp{});
     });
 
     return result;
@@ -67,4 +66,3 @@ void relu_inplace(OriginMat &mat)
 
 }  // namespace cpu
 }  // namespace origin
-

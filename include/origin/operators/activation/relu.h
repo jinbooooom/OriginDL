@@ -39,4 +39,3 @@ extern void relu_(Tensor &x);
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_RELU_H__
-

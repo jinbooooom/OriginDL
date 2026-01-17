@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "origin.h"
-#include "origin/operators/shape/cat.h"
 #include "../../common/device_test_base.h"
 #include "../../common/gtest_utils.h"
 #include "../../common/test_utils.h"
+#include "origin.h"
+#include "origin/operators/shape/cat.h"
 
 using namespace origin;
 namespace F = origin::functional;
@@ -13,8 +13,7 @@ namespace F = origin::functional;
  * @brief Cat 算子测试类（参数化版本）
  */
 class CatOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -28,7 +27,7 @@ TEST_P(CatOperatorTest, ForwardBasic)
 
     Shape expected_shape{4};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -44,7 +43,7 @@ TEST_P(CatOperatorTest, ForwardDim1)
 
     Shape expected_shape{1, 4};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data = {1.0f, 2.0f, 3.0f, 4.0f};
     auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -61,7 +60,7 @@ TEST_P(CatOperatorTest, ForwardMultipleTensors)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data = {1.0f, 2.0f, 3.0f};
     auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -77,7 +76,7 @@ TEST_P(CatOperatorTest, ForwardTwoDimensional)
     auto result0 = F::cat({x0, x1}, 0);
     Shape expected_shape0{4, 2};
     EXPECT_EQ(result0.shape(), expected_shape0);
-    
+
     // 在 dim=1 上拼接
     auto result1 = F::cat({x0, x1}, 1);
     Shape expected_shape1{2, 4};
@@ -109,7 +108,7 @@ TEST_P(CatOperatorTest, BackwardBasic)
     // 验证梯度形状
     EXPECT_EQ(x0.grad().shape(), x0.shape());
     EXPECT_EQ(x1.grad().shape(), x1.shape());
-    
+
     // 梯度应该被分割回各个输入
     // 由于输出梯度是全1（默认），每个输入的梯度应该是全1
     auto expected_grad = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -143,7 +142,7 @@ TEST_P(CatOperatorTest, SingleElement)
 
     Shape expected_shape{2};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data = {5.0f, 6.0f};
     auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -159,7 +158,7 @@ TEST_P(CatOperatorTest, DifferentSizes)
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
-    
+
     std::vector<float> expected_data = {1.0f, 2.0f, 3.0f};
     auto expected = Tensor(expected_data, expected_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -167,4 +166,3 @@ TEST_P(CatOperatorTest, DifferentSizes)
 
 // Instantiate test suite: automatically generate tests for CPU and available CUDA
 INSTANTIATE_DEVICE_TEST_SUITE_P(CatOperatorTest);
-
