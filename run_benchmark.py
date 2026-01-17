@@ -95,6 +95,91 @@ def import_pytorch_benchmark_module(operator: str, project_root: Path):
     return module
 
 
+def run_cpp_benchmark(executable_path: str,
+                      device_filter: Optional[str] = None,
+                      shape_filter: Optional[str] = None,
+                      warmup_cnt: Optional[int] = None,
+                      repeat_cnt: Optional[int] = None) -> List[Dict]:
+    """运行C++ benchmark可执行文件并解析输出
+    
+    Args:
+        executable_path: C++可执行文件路径
+        device_filter: 设备过滤，'cpu' 或 'cuda'
+        shape_filter: shape过滤，例如 '1000,1000'
+        warmup_cnt: 预热次数
+        repeat_cnt: 重复次数
+    
+    Returns:
+        OriginDL测试结果列表，每个元素为:
+        {'shape': str, 'device': str, 'dtype': str, 'time_us': float, 'repeat_cnt': int}
+    """
+    # 构建命令行参数
+    cmd = [executable_path]
+    
+    if device_filter:
+        cmd.extend(['-d', device_filter])
+    
+    if shape_filter:
+        cmd.extend(['-s', shape_filter])
+    
+    if warmup_cnt is not None:
+        cmd.extend(['-w', str(warmup_cnt)])
+    
+    if repeat_cnt is not None:
+        cmd.extend(['-r', str(repeat_cnt)])
+    
+    try:
+        # 运行C++程序并捕获输出
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output_lines = result.stdout.strip().split('\n')
+        
+        # 跳过表头行（第一行）
+        if len(output_lines) < 2:
+            return []
+        
+        results = []
+        for line in output_lines[1:]:  # 跳过表头
+            if not line.strip():
+                continue
+            
+            # 解析制表符分隔的行: shape \t repeat \t device \t dtype \t origindl_time_us
+            parts = line.split('\t')
+            if len(parts) < 5:
+                continue
+            
+            shape_str = parts[0].strip()
+            repeat_str = parts[1].strip()
+            device_str = parts[2].strip()
+            dtype_str = parts[3].strip()
+            time_str = parts[4].strip()
+            
+            # 统一shape格式：移除空格，例如 {1, 1} -> {1,1}
+            # 保持与Python输出格式一致
+            shape_str = shape_str.replace(' ', '')
+            
+            try:
+                time_us = float(time_str)
+                repeat_cnt_value = int(repeat_str) if repeat_str.isdigit() else None
+                
+                results.append({
+                    'shape': shape_str,
+                    'device': device_str,
+                    'dtype': dtype_str,
+                    'time_us': time_us,
+                    'repeat_cnt': repeat_cnt_value
+                })
+            except ValueError:
+                continue
+        
+        return results
+        
+    except subprocess.CalledProcessError as e:
+        # C++程序执行失败
+        return []
+    except Exception as e:
+        return []
+
+
 def run_operator_benchmark(operator: str, 
                           project_root: Path,
                           device_filter: Optional[str] = None,
@@ -115,7 +200,22 @@ def run_operator_benchmark(operator: str,
         (origindl_results, pytorch_results) 元组，如果失败返回None
     """
     try:
-        # 导入PyTorch benchmark模块
+        # 1. 调用C++可执行文件获取OriginDL结果
+        executable_path = find_benchmark_executable(operator, project_root)
+        origindl_results = []
+        
+        if executable_path:
+            origindl_results = run_cpp_benchmark(
+                executable_path=executable_path,
+                device_filter=device_filter,
+                shape_filter=shape_filter,
+                warmup_cnt=warmup_cnt,
+                repeat_cnt=repeat_cnt
+            )
+        elif verbose:
+            print(f"Warning: C++ executable not found for operator '{operator}'", file=sys.stderr)
+        
+        # 2. 调用Python函数获取PyTorch结果
         module = import_pytorch_benchmark_module(operator, project_root)
         
         # 查找benchmark函数（例如 benchmark_add_comparison）
@@ -128,17 +228,12 @@ def run_operator_benchmark(operator: str,
         
         benchmark_func = getattr(module, benchmark_func_name)
         
-        # 查找可执行文件
-        executable_path = find_benchmark_executable(operator, project_root)
-        
-        # 运行对比测试
-        # 检查函数是否支持 warmup_cnt 和 repeat_cnt 参数
+        # 运行PyTorch benchmark测试
+        # 检查函数是否支持参数
         import inspect
         func_sig = inspect.signature(benchmark_func)
         func_params = {}
         
-        if 'executable_path' in func_sig.parameters:
-            func_params['executable_path'] = executable_path
         if 'device_filter' in func_sig.parameters:
             func_params['device_filter'] = device_filter
         if 'shape_filter' in func_sig.parameters:
@@ -150,13 +245,16 @@ def run_operator_benchmark(operator: str,
         if 'verbose' in func_sig.parameters:
             func_params['verbose'] = verbose
         
-        origindl_results, pytorch_results = benchmark_func(**func_params)
+        # 调用Python函数获取PyTorch结果
+        pytorch_results = benchmark_func(**func_params)
         
         return origindl_results, pytorch_results
         
     except Exception as e:
         if verbose:
             print(f"Error running benchmark for operator '{operator}': {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
         return None
 
 
