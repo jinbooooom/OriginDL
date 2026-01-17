@@ -3,11 +3,13 @@
 
 #include <memory>
 #include <stdexcept>
-#include "../basic_types.h"
-#include "allocator.h"
+#include "../../basic_types.h"
 
 namespace origin
 {
+
+// 前向声明
+class MemoryPool;
 
 /**
  * @brief 存储类，管理原始内存
@@ -22,7 +24,7 @@ private:
     size_t size_;  // Size in bytes
     DeviceType device_type_;
     int device_index_;
-    std::unique_ptr<Allocator> allocator_;
+    MemoryPool *pool_;
 
     // Disable copy constructor and copy assignment
     Storage(const Storage &)            = delete;

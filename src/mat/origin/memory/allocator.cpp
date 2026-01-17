@@ -1,4 +1,4 @@
-#include "origin/mat/origin/allocator.h"
+#include "origin/mat/origin/memory/allocator.h"
 #include <cstdlib>  // For std::aligned_alloc, std::free
 #include <stdexcept>
 #include "origin/utils/exception.h"

@@ -1,6 +1,8 @@
-#include "origin/mat/origin/storage.h"
+#include "origin/mat/origin/memory/storage.h"
 #include <cstring>  // For std::memcpy
 #include <stdexcept>
+#include "origin/mat/origin/memory/memory_pool.h"
+#include "origin/mat/origin/memory/memory_pool_manager.h"
 #include "origin/utils/exception.h"
 
 #ifdef WITH_CUDA
@@ -13,15 +15,15 @@ namespace origin
 Storage::Storage(size_t size, DeviceType device_type, int device_index)
     : data_(nullptr), size_(size), device_type_(device_type), device_index_(device_index)
 {
-    allocator_ = AllocatorFactory::create_allocator(device_type_, device_index_);
-    data_      = allocator_->allocate(size_);
+    pool_ = MemoryPoolManager::get_instance().get_memory_pool(device_type_, device_index_);
+    data_ = pool_->malloc(size_);
 }
 
 Storage::~Storage()
 {
     if (data_ != nullptr)
     {
-        allocator_->deallocate(data_);
+        pool_->free(data_);
         data_ = nullptr;
     }
 }
@@ -31,7 +33,7 @@ Storage::Storage(Storage &&other) noexcept
       size_(other.size_),
       device_type_(other.device_type_),
       device_index_(other.device_index_),
-      allocator_(std::move(other.allocator_))
+      pool_(other.pool_)
 {
     other.data_ = nullptr;
     other.size_ = 0;
@@ -43,14 +45,14 @@ Storage &Storage::operator=(Storage &&other) noexcept
     {
         if (data_ != nullptr)
         {
-            allocator_->deallocate(data_);
+            pool_->free(data_);
         }
 
         data_         = other.data_;
         size_         = other.size_;
         device_type_  = other.device_type_;
         device_index_ = other.device_index_;
-        allocator_    = std::move(other.allocator_);
+        pool_         = other.pool_;
 
         other.data_ = nullptr;
         other.size_ = 0;

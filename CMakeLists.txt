@@ -41,8 +41,11 @@ elseif(MAT_BACKEND STREQUAL "ORIGIN")
     file(GLOB_RECURSE ORIGIN_CPU_SRCS 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/cpu/*.cpp
     )
+    # 收集 memory 目录下的源文件
+    file(GLOB ORIGIN_MEMORY_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/memory/*.cpp)
     list(APPEND MY_LIB_SRCS ${ORIGIN_SRCS})
     list(APPEND MY_LIB_SRCS ${ORIGIN_CPU_SRCS})
+    list(APPEND MY_LIB_SRCS ${ORIGIN_MEMORY_SRCS})
     
     # 如果启用CUDA，添加CUDA子项目
     if(ENABLE_CUDA)

@@ -7,7 +7,7 @@
 #include "../basic_types.h"
 #include "../mat.h"
 #include "../shape.h"
-#include "storage.h"
+#include "memory/storage.h"
 
 namespace origin
 {

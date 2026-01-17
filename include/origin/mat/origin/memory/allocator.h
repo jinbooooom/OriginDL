@@ -3,8 +3,8 @@
 
 #include <memory>
 #include <stdexcept>
-#include "../../common/inner_types.h"
-#include "../basic_types.h"
+#include "../../../common/inner_types.h"
+#include "../../basic_types.h"
 
 namespace origin
 {
