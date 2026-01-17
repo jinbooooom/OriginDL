@@ -15,8 +15,8 @@
 #     doc: 仅仅修改了文档，比如 README 等等
 #     test: 增加/修改测试用例，包括单元测试、集成测试等
 #     style: 修改了空行、缩进格式、引用包排序（不改变代码逻辑）、文件夹变更、文件名变更等
-#     perf(或者performance): 优化相关内容，比如提升性能、体验、算法等
-#     ref(或者refactor): 代码重构，没有新功能或者bug修复。但是架构有很大的调整。
+#     perf(全称performance): 优化相关内容，比如提升性能、体验、算法等
+#     ref(全称refactor): 代码重构，没有新功能或者bug修复。但是架构有很大的调整。
 #     chore: 项目依赖升级、配置文件调整、构建脚本优化等不影响项目功能的杂务
 #     revert: 回滚到上一个版本
 #     merge: 代码合并
@@ -24,7 +24,7 @@
 #     tmp(或者temporary): 临时保存
 
 # scope（可选）
-# 对于本项目来说可以是 3rd, log, op, tensor, mat, comm, model, layer, test 等
+# 对于本项目来说可以是 3rd, log, operator(简写op), tensor, mat, comm, model, layer, test 等
 # scope用于说明 commit 影响的范围，根据不同项目有不同层次描述。若没有特殊规定，也可以描述影响的哪些功能等。
 
 # subject（必须）
