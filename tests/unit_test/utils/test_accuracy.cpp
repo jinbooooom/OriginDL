@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "../../common/device_test_base.h"
-#include "../../common/gtest_utils.h"
-#include "../../common/test_utils.h"
+#include "../common/device_test_base.h"
+#include "../common/gtest_utils.h"
+#include "../common/test_utils.h"
 #include "origin.h"
 #include "origin/utils/metrics.h"
 
