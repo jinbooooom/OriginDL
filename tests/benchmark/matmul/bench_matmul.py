@@ -41,9 +41,30 @@ class MatMulBenchmark(BenchmarkFramework):
         x0 = torch.ones(shape_a, dtype=dtype, device=device)
         x1 = torch.full(shape_b, 2.0, dtype=dtype, device=device)
         
+        # 对于就地操作，需要预先创建输出张量
+        out = None
+        if config.inplace:
+            # 计算输出形状
+            if len(shape_a) == 2 and len(shape_b) == 2:
+                # 2D x 2D: {m, k} x {k, n} -> {m, n}
+                output_shape = (shape_a[0], shape_b[1])
+            elif len(shape_a) == 3 and len(shape_b) == 2:
+                # 3D x 2D: {batch, m, k} x {k, n} -> {batch, m, n}
+                output_shape = (shape_a[0], shape_a[1], shape_b[1])
+            elif len(shape_a) == 3 and len(shape_b) == 3:
+                # 3D x 3D: {batch, m, k} x {batch, k, n} -> {batch, m, n}
+                output_shape = (shape_a[0], shape_a[1], shape_b[2])
+            else:
+                raise ValueError(f"MatMul inplace operation only supports 2D x 2D, 3D x 2D, or 3D x 3D matrices, got {shape_a} x {shape_b}")
+            out = torch.empty(output_shape, dtype=dtype, device=device)
+        
         # 预热
-        for _ in range(config.warmup_cnt):
-            result = torch.matmul(x0, x1)
+        if config.inplace:
+            for _ in range(config.warmup_cnt):
+                torch.matmul(x0, x1, out=out)
+        else:
+            for _ in range(config.warmup_cnt):
+                result = torch.matmul(x0, x1)
         # 预热结束后同步，确保预热完成
         if device.type == 'cuda':
             torch.cuda.synchronize()
@@ -52,8 +73,13 @@ class MatMulBenchmark(BenchmarkFramework):
         timer = Timer()
         timer.start()
         
-        for _ in range(config.repeat_cnt):
-            result = torch.matmul(x0, x1)
+        if config.inplace:
+            # 对于就地操作，使用 out 参数
+            for _ in range(config.repeat_cnt):
+                torch.matmul(x0, x1, out=out)
+        else:
+            for _ in range(config.repeat_cnt):
+                result = torch.matmul(x0, x1)
         # 正式测试结束后同步，确保所有计算完成
         if device.type == 'cuda':
             torch.cuda.synchronize()
@@ -114,6 +140,7 @@ def benchmark_matmul_comparison(device_filter=None,
                                 shape_filter=None,
                                 warmup_cnt=5,
                                 repeat_cnt=100,
+                                inplace=False,
                                 verbose=False):
     """
     运行matmul算子的PyTorch性能测试
@@ -123,6 +150,7 @@ def benchmark_matmul_comparison(device_filter=None,
         shape_filter: shape过滤，例如 '100,200:200,50'
         warmup_cnt: 预热次数
         repeat_cnt: 重复次数
+        inplace: 是否使用就地操作
         verbose: 是否输出详细信息
     
     Returns:
@@ -135,6 +163,7 @@ def benchmark_matmul_comparison(device_filter=None,
         shape_filter=shape_filter,
         warmup_cnt=warmup_cnt,
         repeat_cnt=repeat_cnt,
+        inplace=inplace,
         verbose=verbose
     )
     

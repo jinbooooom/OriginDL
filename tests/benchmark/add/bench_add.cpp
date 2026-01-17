@@ -33,9 +33,19 @@ public:
         auto x1 = Tensor(data1, shape, origin::dtype(config.dtype).device(config.device));
 
         // 预热
-        for (int i = 0; i < config.warmup_cnt; ++i)
+        if (config.inplace)
         {
-            auto result = F::add(x0, x1);
+            for (int i = 0; i < config.warmup_cnt; ++i)
+            {
+                F::add_(x0, x1);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < config.warmup_cnt; ++i)
+            {
+                auto result = F::add(x0, x1);
+            }
         }
         // 预热结束后同步，确保预热完成
         if (config.device.type() == DeviceType::kCUDA)
@@ -47,9 +57,19 @@ public:
         Timer timer;
         timer.start();
 
-        for (int i = 0; i < config.repeat_cnt; ++i)
+        if (config.inplace)
         {
-            auto result = F::add(x0, x1);
+            for (int i = 0; i < config.repeat_cnt; ++i)
+            {
+                F::add_(x0, x1);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < config.repeat_cnt; ++i)
+            {
+                auto result = F::add(x0, x1);
+            }
         }
         // 正式测试结束后同步，确保所有计算完成
         if (config.device.type() == DeviceType::kCUDA)

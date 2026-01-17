@@ -42,8 +42,12 @@ class AddBenchmark(BenchmarkFramework):
         x1 = torch.full(shape, 2.0, dtype=dtype, device=device)
         
         # 预热
-        for _ in range(config.warmup_cnt):
-            result = x0 + x1
+        if config.inplace:
+            for _ in range(config.warmup_cnt):
+                x0.add_(x1)
+        else:
+            for _ in range(config.warmup_cnt):
+                result = x0 + x1
         # 预热结束后同步，确保预热完成
         if device.type == 'cuda':
             torch.cuda.synchronize()
@@ -52,8 +56,12 @@ class AddBenchmark(BenchmarkFramework):
         timer = Timer()
         timer.start()
         
-        for _ in range(config.repeat_cnt):
-            result = x0 + x1
+        if config.inplace:
+            for _ in range(config.repeat_cnt):
+                x0.add_(x1)
+        else:
+            for _ in range(config.repeat_cnt):
+                result = x0 + x1
         # 正式测试结束后同步，确保所有计算完成
         if device.type == 'cuda':
             torch.cuda.synchronize()
@@ -71,6 +79,7 @@ def benchmark_add_comparison(device_filter=None,
                              shape_filter=None,
                              warmup_cnt=5,
                              repeat_cnt=100,
+                             inplace=False,
                              verbose=False):
     """
     运行add算子的PyTorch性能测试
@@ -80,6 +89,7 @@ def benchmark_add_comparison(device_filter=None,
         shape_filter: shape过滤，例如 '1000,1000'
         warmup_cnt: 预热次数
         repeat_cnt: 重复次数
+        inplace: 是否使用就地操作
         verbose: 是否输出详细信息
     
     Returns:
@@ -92,6 +102,7 @@ def benchmark_add_comparison(device_filter=None,
         shape_filter=shape_filter,
         warmup_cnt=warmup_cnt,
         repeat_cnt=repeat_cnt,
+        inplace=inplace,
         verbose=verbose
     )
     

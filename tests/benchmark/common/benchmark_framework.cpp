@@ -44,6 +44,7 @@ void BenchmarkFramework::usage(const char *program_name) const
     }
     loga("  -w, --warmup ITERATIONS   Number of warmup iterations (default: 5)");
     loga("  -r, --repeat ITERATIONS   Number of repeat iterations (default: 100)");
+    loga("  --inplace                 Use inplace operations (default: false)");
     loga("  -h, --help                Show this help message");
 }
 
@@ -52,23 +53,29 @@ bool BenchmarkFramework::parse_arguments(int argc,
                                          std::vector<std::vector<Shape>> &shapes_list,
                                          std::vector<Device> &devices,
                                          int &warmup_cnt,
-                                         int &repeat_cnt) const
+                                         int &repeat_cnt,
+                                         bool &inplace) const
 {
     bool use_default_shapes      = true;
     bool use_default_devices     = true;
     warmup_cnt                   = 5;
     repeat_cnt                   = 100;
+    inplace                      = false;
     size_t required_shapes_count = get_required_shapes_count();
 
     // 解析命令行参数
-    static struct option long_options[] = {{"device", required_argument, 0, 'd'}, {"shape", required_argument, 0, 's'},
-                                           {"warmup", required_argument, 0, 'w'}, {"repeat", required_argument, 0, 'r'},
-                                           {"help", no_argument, 0, 'h'},         {0, 0, 0, 0}};
+    static struct option long_options[] = {{"device", required_argument, 0, 'd'},
+                                           {"shape", required_argument, 0, 's'},
+                                           {"warmup", required_argument, 0, 'w'},
+                                           {"repeat", required_argument, 0, 'r'},
+                                           {"inplace", no_argument, 0, 'i'},
+                                           {"help", no_argument, 0, 'h'},
+                                           {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "d:s:w:r:h", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "d:s:w:r:ih", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -213,6 +220,9 @@ bool BenchmarkFramework::parse_arguments(int argc,
                 }
                 break;
             }
+            case 'i':
+                inplace = true;
+                break;
             case 'h':
                 usage(argv[0]);
                 return false;  // 返回false表示需要退出
@@ -284,9 +294,10 @@ int BenchmarkFramework::run(int argc, char *argv[])
     std::vector<Device> devices;
     int warmup_cnt;
     int repeat_cnt;
+    bool inplace;
 
     // 解析命令行参数
-    if (!parse_arguments(argc, argv, shapes_list, devices, warmup_cnt, repeat_cnt))
+    if (!parse_arguments(argc, argv, shapes_list, devices, warmup_cnt, repeat_cnt, inplace))
     {
         // parse_arguments 返回 false 表示需要退出（如显示帮助）
         return 0;
@@ -330,7 +341,7 @@ int BenchmarkFramework::run(int argc, char *argv[])
 
                 try
                 {
-                    BenchmarkConfig config{shapes, dtype, device, warmup_cnt, repeat_cnt};
+                    BenchmarkConfig config{shapes, dtype, device, warmup_cnt, repeat_cnt, inplace};
 
                     double avg_time_us = run_benchmark(config);
 

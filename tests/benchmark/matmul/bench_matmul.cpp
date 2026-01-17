@@ -34,6 +34,13 @@ public:
         auto x0 = Tensor(data_a, shape_a, origin::dtype(config.dtype).device(config.device));
         auto x1 = Tensor(data_b, shape_b, origin::dtype(config.dtype).device(config.device));
 
+        // 检查是否启用了就地操作
+        if (config.inplace)
+        {
+            loge("Error: MatMul operator does not support inplace operations in OriginDL");
+            THROW_RUNTIME_ERROR("MatMul operator does not support inplace operations in OriginDL");
+        }
+
         // 预热
         for (int i = 0; i < config.warmup_cnt; ++i)
         {

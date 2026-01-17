@@ -20,6 +20,7 @@ class BenchmarkConfig:
     device: str = 'cpu'             # 设备（'cpu'或'cuda:0'等）
     warmup_cnt: int = 5             # 预热次数
     repeat_cnt: int = 100           # 重复次数
+    inplace: bool = False           # 是否使用就地操作
     
     def __post_init__(self):
         """确保warmup_cnt和repeat_cnt有默认值"""
@@ -198,6 +199,7 @@ class BenchmarkFramework(ABC):
             shape_filter: Optional[str] = None,
             warmup_cnt: int = 5,
             repeat_cnt: int = 100,
+            inplace: bool = False,
             verbose: bool = False) -> List[Dict]:
         """运行基准测试主函数
         
@@ -209,6 +211,7 @@ class BenchmarkFramework(ABC):
             shape_filter: shape过滤（例如'1000,1000'），None表示使用默认shapes
             warmup_cnt: 预热次数
             repeat_cnt: 重复次数
+            inplace: 是否使用就地操作
             verbose: 是否输出详细信息
             
         Returns:
@@ -239,7 +242,8 @@ class BenchmarkFramework(ABC):
                             dtype=dtype,
                             device=device_str,
                             warmup_cnt=warmup_cnt,
-                            repeat_cnt=repeat_cnt
+                            repeat_cnt=repeat_cnt,
+                            inplace=inplace
                         )
                         
                         avg_time_us = self.run_benchmark(config)
@@ -279,6 +283,7 @@ class BenchmarkFramework(ABC):
         parser.add_argument('-s', '--shape', help='Tensor shape filter')
         parser.add_argument('-w', '--warmup', type=int, help='Number of warmup iterations (default: 5)')
         parser.add_argument('-r', '--repeat', type=int, help='Number of repeat iterations (default: 100)')
+        parser.add_argument('--inplace', action='store_true', help='Use inplace operations (default: false)')
         parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
         
         args = parser.parse_args(argv)
@@ -289,6 +294,7 @@ class BenchmarkFramework(ABC):
             shape_filter=args.shape,
             warmup_cnt=args.warmup,
             repeat_cnt=args.repeat,
+            inplace=args.inplace,
             verbose=args.verbose
         )
         

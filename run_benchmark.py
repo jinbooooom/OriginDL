@@ -99,7 +99,8 @@ def run_cpp_benchmark(executable_path: str,
                       device_filter: Optional[str] = None,
                       shape_filter: Optional[str] = None,
                       warmup_cnt: Optional[int] = None,
-                      repeat_cnt: Optional[int] = None) -> List[Dict]:
+                      repeat_cnt: Optional[int] = None,
+                      inplace: bool = False) -> List[Dict]:
     """运行C++ benchmark可执行文件并解析输出
     
     Args:
@@ -108,6 +109,7 @@ def run_cpp_benchmark(executable_path: str,
         shape_filter: shape过滤，例如 '1000,1000'
         warmup_cnt: 预热次数
         repeat_cnt: 重复次数
+        inplace: 是否使用就地操作
     
     Returns:
         OriginDL测试结果列表，每个元素为:
@@ -127,6 +129,9 @@ def run_cpp_benchmark(executable_path: str,
     
     if repeat_cnt is not None:
         cmd.extend(['-r', str(repeat_cnt)])
+    
+    if inplace:
+        cmd.append('--inplace')
     
     try:
         # 运行C++程序并捕获输出
@@ -186,6 +191,7 @@ def run_operator_benchmark(operator: str,
                           shape_filter: Optional[str] = None,
                           warmup_cnt: Optional[int] = None,
                           repeat_cnt: Optional[int] = None,
+                          inplace: bool = False,
                           verbose: bool = False) -> Optional[Tuple[List[Dict], List[Dict]]]:
     """运行单个算子的性能对比测试
     
@@ -194,6 +200,7 @@ def run_operator_benchmark(operator: str,
         project_root: 项目根目录路径
         device_filter: 设备过滤，'cpu' 或 'cuda'
         shape_filter: shape过滤，例如 '1000,1000'
+        inplace: 是否使用就地操作
         verbose: 是否输出详细信息
     
     Returns:
@@ -210,7 +217,8 @@ def run_operator_benchmark(operator: str,
                 device_filter=device_filter,
                 shape_filter=shape_filter,
                 warmup_cnt=warmup_cnt,
-                repeat_cnt=repeat_cnt
+                repeat_cnt=repeat_cnt,
+                inplace=inplace
             )
         elif verbose:
             print(f"Warning: C++ executable not found for operator '{operator}'", file=sys.stderr)
@@ -242,6 +250,8 @@ def run_operator_benchmark(operator: str,
             func_params['warmup_cnt'] = warmup_cnt
         if 'repeat_cnt' in func_sig.parameters and repeat_cnt is not None:
             func_params['repeat_cnt'] = repeat_cnt
+        if 'inplace' in func_sig.parameters:
+            func_params['inplace'] = inplace
         if 'verbose' in func_sig.parameters:
             func_params['verbose'] = verbose
         
@@ -260,13 +270,15 @@ def run_operator_benchmark(operator: str,
 
 def print_comparison_table(operator: str,
                           origindl_results: List[Dict], 
-                          pytorch_results: List[Dict]):
+                          pytorch_results: List[Dict],
+                          inplace: bool = False):
     """打印性能对比表格
     
     Args:
         operator: 算子名称
         origindl_results: OriginDL测试结果列表
         pytorch_results: PyTorch测试结果列表
+        inplace: 是否使用就地操作
     """
 
     origindl_map = {(r['shape'], r['device'], r['dtype']): {'time_us': r['time_us'], 'repeat_cnt': r.get('repeat_cnt', 100)} 
@@ -276,6 +288,9 @@ def print_comparison_table(operator: str,
     
     # 算子名称（首字母大写）
     operator_name = operator.capitalize()
+    
+    # 如果使用就地操作，在标题中显示
+    mode_suffix = " (Inplace)" if inplace else ""
     
     # 收集所有需要输出的行，用于计算列宽
     all_keys = sorted(set(origindl_map.keys()) | set(pytorch_map.keys()))
@@ -346,7 +361,7 @@ def print_comparison_table(operator: str,
         max_line_width = max(max_line_width, len(data_line))
     
     print("\n" + "="*max_line_width)
-    print(f"{operator_name} Operator Performance Comparison")
+    print(f"{operator_name} Operator Performance Comparison{mode_suffix}")
     print("="*max_line_width)
     print(header_line)
     print("-"*max_line_width)
@@ -382,6 +397,7 @@ Examples:
   python3 benchmark.py -f add -d cpu      # Test add operator on CPU only
   python3 benchmark.py -f add -d cpu -s 1000,1000  # Test add with specific shape
   python3 benchmark.py -f add -w 5 -r 50  # Test with custom warmup and repeat counts
+  python3 benchmark.py -f add --inplace   # Test with inplace operations
         """
     )
     
@@ -407,6 +423,11 @@ Examples:
         '-r', '--repeat',
         type=int,
         help='Number of repeat iterations (default: 100)'
+    )
+    parser.add_argument(
+        '--inplace',
+        action='store_true',
+        help='Use inplace operations (default: false)'
     )
     
     args = parser.parse_args()
@@ -446,12 +467,13 @@ Examples:
             shape_filter=args.shape,
             warmup_cnt=args.warmup,
             repeat_cnt=args.repeat,
+            inplace=args.inplace,
             verbose=(len(operators_to_test) == 1)  # 只在测试单个算子时输出详细信息
         )
         
         if result is not None:
             origindl_results, pytorch_results = result
-            print_comparison_table(operator, origindl_results, pytorch_results)
+            print_comparison_table(operator, origindl_results, pytorch_results, inplace=args.inplace)
             success_count += 1
         else:
             print(f"\nError: Failed to run benchmark for operator '{operator}'", file=sys.stderr)

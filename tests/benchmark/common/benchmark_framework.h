@@ -22,6 +22,7 @@ struct BenchmarkConfig
     Device device;              // 设备
     int warmup_cnt;             // 预热次数
     int repeat_cnt;             // 重复测试次数
+    bool inplace;               // 是否使用就地操作
 };
 
 /**
@@ -105,7 +106,8 @@ private:
                          std::vector<std::vector<Shape>> &shapes_list,
                          std::vector<Device> &devices,
                          int &warmup_cnt,
-                         int &repeat_cnt) const;
+                         int &repeat_cnt,
+                         bool &inplace) const;
 
     /**
      * @brief 处理设备列表，设置默认设备或验证CUDA可用性
