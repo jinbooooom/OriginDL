@@ -38,11 +38,11 @@ public:
         for (int i = 0; i < config.warmup_cnt; ++i)
         {
             auto result = F::mat_mul(x0, x1);
-            // 确保计算完成（对于CUDA，需要同步）
-            if (config.device.type() == DeviceType::kCUDA)
-            {
-                cuda::synchronize();
-            }
+        }
+        // 预热结束后同步，确保预热完成
+        if (config.device.type() == DeviceType::kCUDA)
+        {
+            cuda::synchronize();
         }
 
         // 正式测试
@@ -52,11 +52,11 @@ public:
         for (int i = 0; i < config.repeat_cnt; ++i)
         {
             auto result = F::mat_mul(x0, x1);
-            // 确保计算完成
-            if (config.device.type() == DeviceType::kCUDA)
-            {
-                cuda::synchronize();
-            }
+        }
+        // 正式测试结束后同步，确保所有计算完成
+        if (config.device.type() == DeviceType::kCUDA)
+        {
+            cuda::synchronize();
         }
 
         double total_time_us = timer.elapsed_us();

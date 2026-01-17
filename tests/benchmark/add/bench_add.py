@@ -44,9 +44,9 @@ class AddBenchmark(BenchmarkFramework):
         # 预热
         for _ in range(config.warmup_cnt):
             result = x0 + x1
-            # 确保计算完成（对于CUDA，需要同步）
-            if device.type == 'cuda':
-                torch.cuda.synchronize()
+        # 预热结束后同步，确保预热完成
+        if device.type == 'cuda':
+            torch.cuda.synchronize()
         
         # 正式测试
         timer = Timer()
@@ -54,9 +54,9 @@ class AddBenchmark(BenchmarkFramework):
         
         for _ in range(config.repeat_cnt):
             result = x0 + x1
-            # 确保计算完成
-            if device.type == 'cuda':
-                torch.cuda.synchronize()
+        # 正式测试结束后同步，确保所有计算完成
+        if device.type == 'cuda':
+            torch.cuda.synchronize()
         
         total_time_us = timer.elapsed_us()
         return total_time_us / config.repeat_cnt
