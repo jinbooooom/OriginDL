@@ -54,4 +54,28 @@ set_target_properties(bench_matmul PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BENCHMARK_OUTPUT_DIR}
 )
 
+# Conv2d算子性能测试
+add_executable(bench_conv2d conv2d/bench_conv2d.cpp common/benchmark_framework.cpp)
+add_dependencies(bench_conv2d origindl)
+target_link_libraries(bench_conv2d 
+    origindl
+    pthread
+)
+
+# Origin后端：如果启用CUDA，添加CUDA相关链接
+if(ENABLE_CUDA)
+    target_link_libraries(bench_conv2d originmat_cuda ${CUDA_LIBRARIES})
+endif()
+
+target_include_directories(bench_conv2d PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/tests
+)
+
+set_target_properties(bench_conv2d PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${BENCHMARK_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BENCHMARK_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BENCHMARK_OUTPUT_DIR}
+)
+
 message(STATUS "Benchmark tests configuration completed")
