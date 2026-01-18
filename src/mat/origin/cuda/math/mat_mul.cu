@@ -1,9 +1,14 @@
+#include <type_traits>
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
+
+#ifdef ENABLE_CUBLAS
+#    include "origin/mat/origin/cuda/cublas_algo.cuh"
+#endif
 
 namespace origin
 {
@@ -226,9 +231,27 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     VALIDATE_SAME_DTYPE(a, b);
     VALIDATE_SAME_CUDA_DEVICE(a, b);
 
+    // 检查输入矩阵是否连续，cuBLAS需要连续内存
+    // 对于非连续矩阵，我们需要创建连续副本（避免多余的拷贝，只在必要时拷贝）
+    std::unique_ptr<Mat> a_contiguous;
+    std::unique_ptr<Mat> b_contiguous;
+    const OriginMat *a_ptr = &a;
+    const OriginMat *b_ptr = &b;
+
+    if (!a.is_contiguous())
+    {
+        a_contiguous = a.contiguous();
+        a_ptr        = static_cast<const OriginMat *>(a_contiguous.get());
+    }
+    if (!b.is_contiguous())
+    {
+        b_contiguous = b.contiguous();
+        b_ptr        = static_cast<const OriginMat *>(b_contiguous.get());
+    }
+
     // 获取输入形状
-    const auto &shape_a = a.shape();
-    const auto &shape_b = b.shape();
+    const auto &shape_a = a_ptr->shape();
+    const auto &shape_b = b_ptr->shape();
 
     // 验证矩阵乘法维度要求
     if (shape_a.size() < 2 || shape_b.size() < 2)
@@ -270,16 +293,45 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     }
 
     Shape output_shape(output_dims);
-    auto result = std::make_unique<OriginMat>(output_shape, a.dtype(), a.device());
+    auto result = std::make_unique<OriginMat>(output_shape, a_ptr->dtype(), a_ptr->device());
 
-    // 临时禁用 cuBLAS，使用 CPU 实现进行对比测试
     // 使用类型分发器执行矩阵乘法
-    device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-        // 临时禁用 cuBLAS，使用自定义 kernel（行主序）
-        // 对于所有类型，使用自定义 kernel，不使用 cuBLAS
-        launch_matmul_2d_kernel(a.data_ptr<T>(), b.data_ptr<T>(), result->data_ptr<T>(), M, N, K);
+    device_common::TypeDispatcher::dispatch_void(a_ptr->dtype(), [&]<typename T>() {
+#ifdef ENABLE_CUBLAS
+        // 如果启用cuBLAS，并且是支持的类型（float或double），使用cuBLAS
+        // 阈值：对于大矩阵（M*N*K >= 阈值）使用cuBLAS，小矩阵使用自定义kernel
+        const int kCublasThreshold = 1024 * 1024;  // 1M元素
+
+        // cuBLAS只支持float和double类型
+        constexpr bool is_supported_type = std::is_same_v<T, float> || std::is_same_v<T, double>;
+
+        if constexpr (is_supported_type)
+        {
+            if (M * N * K >= kCublasThreshold)
+            {
+                // 大矩阵使用cuBLAS
+                cublas_matmul<T>(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
+            }
+            else
+            {
+                // 小矩阵使用自定义kernel
+                launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
+            }
+        }
+        else
+        {
+            // 不支持的类型，使用自定义kernel
+            launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
+        }
+#else
+        // 未启用cuBLAS，使用自定义kernel
+        launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
+#endif
     });
 
+    // 注意：cuBLAS调用是异步的，不需要立即同步
+    // CUDA_CHECK_ASYNC()只检查错误，不会阻塞执行
+    // 实际的同步会在后续需要结果时自动进行
     CUDA_CHECK_ASYNC();
 
     return result;

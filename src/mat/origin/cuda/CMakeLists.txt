@@ -14,6 +14,32 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 # 查找CUDA（使用现代方式）
 find_package(CUDAToolkit REQUIRED)
 
+# 自动检测cuBLAS库（仅在CUDA启用时）
+# 如果找到cuBLAS库，自动启用cuBLAS支持
+set(CUBLAS_FOUND false)
+set(ENABLE_CUBLAS OFF)
+
+# 查找cuBLAS库（尝试多个路径）
+find_library(CUBLAS_LIBRARY 
+    NAMES cublas
+    PATHS
+        ${CUDAToolkit_LIBRARY_DIR}
+        /usr/local/cuda/lib64
+        /usr/lib/x86_64-linux-gnu
+    NO_DEFAULT_PATH
+)
+
+if(CUBLAS_LIBRARY)
+    message(STATUS "cuBLAS library found: ${CUBLAS_LIBRARY}")
+    message(STATUS "Auto-enabling cuBLAS support for matrix multiplication optimization")
+    set(CUBLAS_FOUND true)
+    set(ENABLE_CUBLAS ON)
+else()
+    message(STATUS "cuBLAS library not found, using custom CUDA matrix multiplication kernels")
+    set(CUBLAS_FOUND false)
+    set(ENABLE_CUBLAS OFF)
+endif()
+
 # 自动检测CUDA架构
 function(detect_cuda_architecture)
     # 尝试使用nvidia-smi检测GPU架构
@@ -73,6 +99,11 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -rdc=true")
 # 添加编译定义
 target_compile_definitions(originmat_cuda PRIVATE WITH_CUDA)
 
+# 如果启用cuBLAS，添加编译定义
+if(CUBLAS_FOUND)
+    target_compile_definitions(originmat_cuda PRIVATE ENABLE_CUBLAS)
+endif()
+
 # 启用CUDA可重定位设备代码
 set_target_properties(originmat_cuda PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -80,6 +111,12 @@ set_target_properties(originmat_cuda PROPERTIES
 
 # 链接CUDA库
 target_link_libraries(originmat_cuda CUDA::cudart CUDA::curand)
+
+# 如果启用cuBLAS，链接cuBLAS库
+if(CUBLAS_FOUND AND CUBLAS_LIBRARY)
+    target_link_libraries(originmat_cuda ${CUBLAS_LIBRARY})
+    message(STATUS "Linking with cuBLAS library: ${CUBLAS_LIBRARY}")
+endif()
 
 # 设置输出目录
 set_target_properties(originmat_cuda PROPERTIES
