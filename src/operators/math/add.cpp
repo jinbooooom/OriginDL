@@ -18,19 +18,9 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
     shape0_ = xs[0].shape();
     shape1_ = xs[1].shape();
 
-    // 使用统一的类型提升工具
-    if (TypePromotion::needs_promotion(xs))
-    {
-        auto promoted_tensors = TypePromotion::promote_tensors(xs);
-        auto result           = mat(promoted_tensors[0]) + mat(promoted_tensors[1]);
-        auto y                = convert_mat_to_tensor(std::move(result));
-        return std::vector<Tensor>{std::move(y)};
-    }
-
-    // 类型匹配，直接运算
-    auto result = mat(xs[0]) + mat(xs[1]);
-
-    auto y = convert_mat_to_tensor(std::move(result));
+    auto [x0, x1] = TypePromotion::promote_tensors(xs[0], xs[1]);
+    auto result   = mat(x0) + mat(x1);
+    auto y        = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
 }
 

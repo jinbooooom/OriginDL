@@ -20,7 +20,7 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
     if (xs[0].dtype() != xs[1].dtype())
     {
         // 自动类型提升
-        DataType promoted_type = promote_types_rule(xs[0].dtype(), xs[1].dtype());
+        DataType promoted_type = TypePromotion::promote_types_rule(xs[0].dtype(), xs[1].dtype());
         x0                     = xs[0].dtype() == promoted_type ? xs[0] : xs[0].to(promoted_type);
         x1                     = xs[1].dtype() == promoted_type ? xs[1] : xs[1].to(promoted_type);
     }

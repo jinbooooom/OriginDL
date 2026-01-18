@@ -17,16 +17,6 @@ bool TypePromotion::needs_promotion(const std::vector<Tensor> &tensors)
                        [first_type](const Tensor &t) { return t.dtype() != first_type; });
 }
 
-bool TypePromotion::needs_promotion(const Tensor &a, const Tensor &b)
-{
-    return a.dtype() != b.dtype();
-}
-
-bool TypePromotion::needs_promotion(DataType a, DataType b)
-{
-    return a != b;
-}
-
 std::vector<Tensor> TypePromotion::promote_tensors(const std::vector<Tensor> &tensors)
 {
     if (tensors.empty())
@@ -60,12 +50,6 @@ std::pair<Tensor, Tensor> TypePromotion::promote_tensors(const Tensor &a, const 
     return {to_type(a, promoted_type), to_type(b, promoted_type)};
 }
 
-DataType TypePromotion::promote_types(DataType a, DataType b)
-{
-    // 使用类型提升规则函数
-    return ::origin::promote_types_rule(a, b);
-}
-
 DataType TypePromotion::promote_types(const std::vector<Tensor> &tensors)
 {
     if (tensors.empty())
@@ -80,11 +64,6 @@ DataType TypePromotion::promote_types(const std::vector<Tensor> &tensors)
     }
 
     return result;
-}
-
-bool TypePromotion::is_type_match(const Tensor &tensor, DataType target_type)
-{
-    return tensor.dtype() == target_type;
 }
 
 Tensor TypePromotion::to_type(const Tensor &tensor, DataType target_type)
