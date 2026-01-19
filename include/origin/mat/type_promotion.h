@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "origin/core/tensor.h"
+#include "origin/utils/maybe_owned.h"
 #include "origin/mat/basic_types.h"
 
 namespace origin
@@ -53,6 +54,16 @@ public:
      * @return 提升后的张量对
      */
     static std::pair<Tensor, Tensor> promote_tensors(const Tensor &a, const Tensor &b);
+
+    /**
+     * @brief 对两个张量进行类型提升（MaybeOwned 优化版本）
+     * @param a 第一个张量
+     * @param b 第二个张量
+     * @return 提升后的张量对（使用 MaybeOwned 优化，类型匹配时零开销）
+     * @details 如果类型匹配，返回借用的引用（不增加引用计数）
+     *          如果类型不匹配，只有需要转换的 tensor 才会创建新对象
+     */
+    static std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> promote_tensors_maybe_owned(const Tensor &a, const Tensor &b);
 
     /**
      * @brief 类型提升规则
@@ -134,6 +145,16 @@ public:
      * @return 转换后的张量
      */
     static Tensor to_type(const Tensor &tensor, DataType target_type);
+
+    /**
+     * @brief 将张量转换为目标类型（MaybeOwned 优化版本）
+     * @param tensor 原始张量
+     * @param target_type 目标类型
+     * @return 转换后的张量（使用 MaybeOwned 优化，类型匹配时零开销）
+     * @details 如果类型匹配，返回借用的引用（不增加引用计数）
+     *          如果类型不匹配，创建新对象并拥有所有权
+     */
+    static MaybeOwned<Tensor> to_type_maybe_owned(const Tensor &tensor, DataType target_type);
 };
 
 }  // namespace origin

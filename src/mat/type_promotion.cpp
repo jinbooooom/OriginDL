@@ -66,6 +66,23 @@ DataType TypePromotion::promote_types(const std::vector<Tensor> &tensors)
     return result;
 }
 
+std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> TypePromotion::promote_tensors_maybe_owned(const Tensor &a, const Tensor &b)
+{
+    if (!needs_promotion(a, b))
+    {
+        // 类型相同，直接借用，零开销
+        return {MaybeOwned<Tensor>::borrowed(a), MaybeOwned<Tensor>::borrowed(b)};
+    }
+
+    DataType promoted_type = promote_types(a.dtype(), b.dtype());
+    
+    // 使用 MaybeOwned 优化：类型匹配时借用，不匹配时拥有
+    return {
+        to_type_maybe_owned(a, promoted_type),
+        to_type_maybe_owned(b, promoted_type)
+    };
+}
+
 Tensor TypePromotion::to_type(const Tensor &tensor, DataType target_type)
 {
     if (is_type_match(tensor, target_type))
@@ -73,6 +90,17 @@ Tensor TypePromotion::to_type(const Tensor &tensor, DataType target_type)
         return tensor;
     }
     return tensor.to(target_type);
+}
+
+MaybeOwned<Tensor> TypePromotion::to_type_maybe_owned(const Tensor &tensor, DataType target_type)
+{
+    if (is_type_match(tensor, target_type))
+    {
+        // 类型匹配，借用引用，零开销（不增加 shared_ptr 引用计数）
+        return MaybeOwned<Tensor>::borrowed(tensor);
+    }
+    // 类型不匹配，创建新对象并拥有所有权
+    return MaybeOwned<Tensor>::owned(tensor.to(target_type));
 }
 
 }  // namespace origin

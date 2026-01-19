@@ -18,7 +18,8 @@ std::vector<Tensor> Add::forward(const std::vector<Tensor> &xs)
     shape0_ = xs[0].shape();
     shape1_ = xs[1].shape();
 
-    auto [x0, x1] = TypePromotion::promote_tensors(xs[0], xs[1]);
+    // 使用 MaybeOwned 优化版本：类型匹配时零开销
+    auto [x0, x1] = TypePromotion::promote_tensors_maybe_owned(xs[0], xs[1]);
     auto result   = mat(x0) + mat(x1);
     auto y        = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
