@@ -32,34 +32,14 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
         THROW_RUNTIME_ERROR("Add backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
-    // 使用统一的类型提升工具
-    if (TypePromotion::needs_promotion(this->inputs_))
-    {
-        auto promoted_inputs = TypePromotion::promote_tensors(this->inputs_);
-        // 使用提升后的输入进行梯度计算
-        auto gx0 = gys[0];
-        auto gx1 = gys[0];
-        if (shape0_ != shape1_)
-        {
-            // 实现 sum_to 功能：将梯度广播回原始形状
-            if (gx0.shape() != shape0_)
-            {
-                gx0 = functional::sum_to(gx0, shape0_);
-            }
-            if (gx1.shape() != shape1_)
-            {
-                gx1 = functional::sum_to(gx1, shape1_);
-            }
-        }
-        return std::vector<Tensor>{std::move(gx0), std::move(gx1)};
-    }
-
-    // 类型匹配，直接处理
+    // Add的梯度直接传递：gx0 = gy, gx1 = gy
+    // 梯度类型已经和forward输出一致（提升后的类型），无需额外类型提升
     auto gx0 = gys[0];
     auto gx1 = gys[0];
+    
+    // 统一处理形状广播：将梯度广播回原始形状
     if (shape0_ != shape1_)
     {
-        // 实现 sum_to 功能：将梯度广播回原始形状
         if (gx0.shape() != shape0_)
         {
             gx0 = functional::sum_to(gx0, shape0_);
@@ -69,6 +49,7 @@ std::vector<Tensor> Add::backward(const std::vector<Tensor> &gys)
             gx1 = functional::sum_to(gx1, shape1_);
         }
     }
+    
     return std::vector<Tensor>{std::move(gx0), std::move(gx1)};
 }
 
@@ -80,26 +61,24 @@ void Add::forward_inplace(Tensor &input0, const Tensor &input1)
     }
 
     // 原地操作：input0 = input0 + input1
-    if (TypePromotion::needs_promotion({input0, input1}))
+    // 统一处理：无论是否需要类型提升，都使用相同的逻辑
+    DataType promoted_type = TypePromotion::promote_types(input0.dtype(), input1.dtype());
+    
+    // 这里的处理和 forward 有细微的区别。
+    // 在 forward 中不管是否需要转换，都直接使用 TypePromotion::promote_tensors_maybe_owned 生成两个 MaybeOwned<Tensor>，
+    // 代码如下： auto [x0, x1] = TypePromotion::promote_tensors_maybe_owned(xs[0], xs[1]);
+    // 而在 forward_inplace 中需要手动转换。
+    // 因为 input0 需要原地修改，所以不用临时的 MaybeOwned<Tensor>，而是直接修改 input0。
+    if (input0.dtype() != promoted_type)
     {
-        auto promoted_tensors = TypePromotion::promote_tensors({input0, input1});
-        // 如果input0需要类型提升，需要先转换
-        if (input0.dtype() != promoted_tensors[0].dtype())
-        {
-            input0 = input0.to(promoted_tensors[0].dtype());
-        }
-        // 如果input1需要类型提升，需要先转换
-        Tensor input1_promoted =
-            (input1.dtype() != promoted_tensors[1].dtype()) ? input1.to(promoted_tensors[1].dtype()) : input1;
+        input0 = input0.to(promoted_type);
+    }
+    
+    // input1 使用 MaybeOwned 优化：类型匹配时借用，不匹配时创建新的 Tensor 并拥有所有权
+    auto x1_maybe = TypePromotion::to_type_maybe_owned(input1, promoted_type);
 
-        // 使用 mat() 方法获取 Mat 引用并执行原地操作
-        mat(input0).add_inplace(mat(input1_promoted));
-    }
-    else
-    {
-        // 类型匹配，直接执行原地操作
-        mat(input0).add_inplace(mat(input1));
-    }
+    // 使用 mat() 方法获取 Mat 引用并执行原地操作
+    mat(input0).add_inplace(mat(x1_maybe));
 }
 
 Tensor add(const std::vector<Tensor> &xs)

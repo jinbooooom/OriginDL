@@ -15,20 +15,9 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("MatMul operator requires exactly 2 inputs, but got {}", xs.size());
     }
 
-    // 检查类型是否匹配，如果不匹配则进行类型提升
-    Tensor x0, x1;
-    if (xs[0].dtype() != xs[1].dtype())
-    {
-        // 自动类型提升
-        DataType promoted_type = TypePromotion::promote_types_rule(xs[0].dtype(), xs[1].dtype());
-        x0                     = xs[0].dtype() == promoted_type ? xs[0] : xs[0].to(promoted_type);
-        x1                     = xs[1].dtype() == promoted_type ? xs[1] : xs[1].to(promoted_type);
-    }
-    else
-    {
-        x0 = xs[0];
-        x1 = xs[1];
-    }
+    // 先使用原始输入进行形状检查和维度处理
+    Tensor x0 = xs[0];
+    Tensor x1 = xs[1];
 
     // 处理维度：确保两个输入至少是2维的
     auto shape0 = x0.shape();
@@ -106,6 +95,11 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
                             shape0.to_string(), shape1.to_string());
     }
 
+    // 在所有异常检测和形状处理完成后，进行类型提升
+    auto [x0_maybe, x1_maybe] = TypePromotion::promote_tensors_maybe_owned(x0, x1);
+    x0                        = Tensor(x0_maybe);
+    x1                        = Tensor(x1_maybe);
+
     // 执行矩阵乘法
     auto result = mat(x0).matmul(mat(x1));
     auto y      = convert_mat_to_tensor(std::move(result));
@@ -119,12 +113,11 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
         THROW_RUNTIME_ERROR("MatMul backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
-    // TODO: 未来需要在backward中也实现类型提升逻辑
-
-    // 获取输入张量并处理维度（与forward中的处理保持一致）
-    Tensor x_tensor  = this->inputs_[0];
-    Tensor w_tensor  = this->inputs_[1];
-    Tensor gy_tensor = gys[0];
+    // MatMul的梯度计算需要使用提升后的输入
+    auto [x0_maybe, x1_maybe] = TypePromotion::promote_tensors_maybe_owned(this->inputs_[0], this->inputs_[1]);
+    Tensor x_tensor            = Tensor(x0_maybe);
+    Tensor w_tensor            = Tensor(x1_maybe);
+    Tensor gy_tensor           = gys[0];
 
     // 处理维度：确保至少是2维（与forward中的逻辑一致）
     auto x_shape = x_tensor.shape();

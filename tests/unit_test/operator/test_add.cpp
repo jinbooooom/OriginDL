@@ -280,5 +280,150 @@ TEST_P(AddOperatorTest, InplaceNegativeValues)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
 }
 
+// ==================== 类型提升测试 ====================
+
+TEST_P(AddOperatorTest, TypePromotionFloat32Float64)
+{
+    // 测试 float32 + float64 → float64
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({5.0, 6.0, 7.0, 8.0}, Shape{2, 2}, dtype(DataType::kFloat64).device(deviceType()));
+
+    auto result = F::add(x0, x1);
+
+    // 结果类型应该是 float64
+    EXPECT_EQ(result.dtype(), DataType::kFloat64);
+    EXPECT_EQ(result.shape(), Shape({2, 2}));
+
+    // 验证值正确
+    auto expected = Tensor({6.0, 8.0, 10.0, 12.0}, Shape{2, 2}, dtype(DataType::kFloat64).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, TypePromotionFloat64Float32)
+{
+    // 测试 float64 + float32 → float64（float64优先级更高）
+    auto x0 = Tensor({1.0, 2.0, 3.0, 4.0}, Shape{2, 2}, dtype(DataType::kFloat64).device(deviceType()));
+    auto x1 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto result = F::add(x0, x1);
+
+    // 结果类型应该是 float64
+    EXPECT_EQ(result.dtype(), DataType::kFloat64);
+    EXPECT_EQ(result.shape(), Shape({2, 2}));
+}
+
+TEST_P(AddOperatorTest, TypePromotionInt32Float32)
+{
+    // 测试 int32 + float32 → float32（浮点优先级高于整数）
+    auto x0 = Tensor({1, 2, 3, 4}, Shape{2, 2}, dtype(DataType::kInt32).device(deviceType()));
+    auto x1 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto result = F::add(x0, x1);
+
+    // 结果类型应该是 float32
+    EXPECT_EQ(result.dtype(), DataType::kFloat32);
+    EXPECT_EQ(result.shape(), Shape({2, 2}));
+
+    // 验证值正确（整数转换为浮点数）
+    auto expected = Tensor({6.0f, 8.0f, 10.0f, 12.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, TypePromotionFloat32Int32)
+{
+    // 测试 float32 + int32 → float32（浮点优先级高于整数）
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({5, 6, 7, 8}, Shape{2, 2}, dtype(DataType::kInt32).device(deviceType()));
+
+    auto result = F::add(x0, x1);
+
+    // 结果类型应该是 float32
+    EXPECT_EQ(result.dtype(), DataType::kFloat32);
+    EXPECT_EQ(result.shape(), Shape({2, 2}));
+}
+
+TEST_P(AddOperatorTest, TypePromotionInt32Int64)
+{
+    // 测试 int32 + int64 → int64
+    auto x0 = Tensor({1, 2, 3, 4}, Shape{2, 2}, dtype(DataType::kInt32).device(deviceType()));
+    auto x1 = Tensor({5L, 6L, 7L, 8L}, Shape{2, 2}, dtype(DataType::kInt64).device(deviceType()));
+
+    auto result = F::add(x0, x1);
+
+    // 结果类型应该是 int64
+    EXPECT_EQ(result.dtype(), DataType::kInt64);
+    EXPECT_EQ(result.shape(), Shape({2, 2}));
+
+    // 验证值正确（通过转换为float32来验证，因为EXPECT_TENSORS_EQ不支持int64）
+    auto result_f32 = result.to(DataType::kFloat32);
+    auto expected_f32 = Tensor({6.0f, 8.0f, 10.0f, 12.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result_f32, expected_f32, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, TypePromotionInt64Int32)
+{
+    // 测试 int64 + int32 → int64
+    auto x0 = Tensor({1L, 2L, 3L, 4L}, Shape{2, 2}, dtype(DataType::kInt64).device(deviceType()));
+    auto x1 = Tensor({5, 6, 7, 8}, Shape{2, 2}, dtype(DataType::kInt32).device(deviceType()));
+
+    auto result = F::add(x0, x1);
+
+    // 结果类型应该是 int64
+    EXPECT_EQ(result.dtype(), DataType::kInt64);
+    EXPECT_EQ(result.shape(), Shape({2, 2}));
+}
+
+TEST_P(AddOperatorTest, TypePromotionInt64Double)
+{
+    // 测试 int64 + double → double（浮点优先级高于整数）
+    auto x0 = Tensor({1L, 2L, 3L, 4L}, Shape{2, 2}, dtype(DataType::kInt64).device(deviceType()));
+    auto x1 = Tensor({5.5, 6.5, 7.5, 8.5}, Shape{2, 2}, dtype(DataType::kFloat64).device(deviceType()));
+
+    auto result = F::add(x0, x1);
+
+    // 结果类型应该是 float64
+    EXPECT_EQ(result.dtype(), DataType::kFloat64);
+    EXPECT_EQ(result.shape(), Shape({2, 2}));
+
+    // 验证值正确
+    auto expected = Tensor({6.5, 8.5, 10.5, 12.5}, Shape{2, 2}, dtype(DataType::kFloat64).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, TypePromotionSameType)
+{
+    // 测试相同类型不提升：float32 + float32 → float32
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto result = F::add(x0, x1);
+
+    // 结果类型应该是 float32（不提升）
+    EXPECT_EQ(result.dtype(), DataType::kFloat32);
+    EXPECT_EQ(result.shape(), Shape({2, 2}));
+}
+
+TEST_P(AddOperatorTest, TypePromotionBackward)
+{
+    // 测试类型提升后的反向传播
+    auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x1 = Tensor({3.0, 4.0}, Shape{2}, dtype(DataType::kFloat64).device(deviceType()).requires_grad(true));
+
+    auto y = F::add(x0, x1);
+    y.backward();
+
+    // 结果类型应该是 float64
+    EXPECT_EQ(y.dtype(), DataType::kFloat64);
+
+    // 梯度类型应该和输出类型一致（提升后的类型）
+    EXPECT_EQ(x0.grad().dtype(), DataType::kFloat64);
+    EXPECT_EQ(x1.grad().dtype(), DataType::kFloat64);
+
+    // 梯度值应该都是1
+    auto expected_grad = Tensor::ones(Shape{2}, dtype(DataType::kFloat64).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0.grad(), expected_grad, origin::test::TestTolerance::kDefault);
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1.grad(), expected_grad, origin::test::TestTolerance::kDefault);
+}
+
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(AddOperatorTest);

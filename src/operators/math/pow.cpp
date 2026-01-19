@@ -17,24 +17,15 @@ std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("Pow operator requires exactly 1 input, but got {}", xs.size());
     }
 
-    // 使用统一的类型提升工具
+    // 统一处理类型提升：Tensor 和 Scalar 之间的类型提升
     DataType base_dtype     = xs[0].dtype();
     DataType exponent_dtype = exponent_.dtype();
-
-    if (TypePromotion::needs_promotion(base_dtype, exponent_dtype))
-    {
-        // 自动类型提升
-        DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
-        Tensor promoted_base    = TypePromotion::to_type(xs[0], promoted_dtype);
-
-        // 使用提升后的base进行运算
-        auto &x     = mat(promoted_base);
-        auto result = x.pow(exponent_);
-        return std::vector<Tensor>{convert_mat_to_tensor(std::move(result))};
-    }
-
-    // 类型匹配，直接运算
-    auto &x     = mat(xs[0]);
+    DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
+    
+    auto base_maybe = TypePromotion::to_type_maybe_owned(xs[0], promoted_dtype);
+    
+    // 使用提升后的base进行运算
+    auto &x     = mat(base_maybe);
     auto result = x.pow(exponent_);
     return std::vector<Tensor>{convert_mat_to_tensor(std::move(result))};
 }
@@ -46,50 +37,26 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
         THROW_RUNTIME_ERROR("Pow backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
-    // 使用统一的类型提升工具
+    // Pow的梯度计算：∂y/∂x = exponent * x^(exponent-1) * gy
+    // 需要使用提升后的输入进行梯度计算
     DataType base_dtype     = this->inputs_[0].dtype();
     DataType exponent_dtype = exponent_.dtype();
-
-    if (TypePromotion::needs_promotion(base_dtype, exponent_dtype))
-    {
-        // 自动类型提升
-        DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
-        Tensor promoted_base    = TypePromotion::to_type(this->inputs_[0], promoted_dtype);
-
-        // 使用提升后的base进行梯度计算
-        auto &x  = mat(promoted_base);
-        auto &gy = mat(gys[0]);
-
-        // ∂y/∂x = exponent * x^(exponent-1) * gy
-        Scalar exponent_minus_1 = Scalar(exponent_.to_float32() - 1.0f);
-        auto x_pow_minus_1      = x.pow(exponent_minus_1);
-        auto temp_mult          = *x_pow_minus_1 * gy;
-        // 创建值为exponent的维度为0的张量
-        auto scalar_exponent = Tensor(exponent_, Shape({}), dtype(promoted_dtype).device(x.device()));
-        auto gx_result       = mat(scalar_exponent) * *temp_mult;
-        auto gx              = convert_mat_to_tensor(std::move(gx_result));
-
-        std::vector<Tensor> result;
-        result.push_back(gx);
-        return result;
-    }
-
-    // 类型匹配，直接计算
-    auto &x  = mat(this->inputs_[0]);
-    auto &gy = mat(gys[0]);
+    DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
+    
+    auto base_maybe = TypePromotion::to_type_maybe_owned(this->inputs_[0], promoted_dtype);
+    auto &x         = mat(base_maybe);
+    auto &gy        = mat(gys[0]);
 
     // ∂y/∂x = exponent * x^(exponent-1) * gy
     Scalar exponent_minus_1 = Scalar(exponent_.to_float32() - 1.0f);
     auto x_pow_minus_1      = x.pow(exponent_minus_1);
     auto temp_mult          = *x_pow_minus_1 * gy;
     // 创建值为exponent的维度为0的张量
-    auto scalar_exponent = Tensor(exponent_, Shape({}), dtype(x.dtype()).device(x.device()));
+    auto scalar_exponent = Tensor(exponent_, Shape({}), dtype(promoted_dtype).device(x.device()));
     auto gx_result       = mat(scalar_exponent) * *temp_mult;
     auto gx              = convert_mat_to_tensor(std::move(gx_result));
 
-    std::vector<Tensor> result;
-    result.push_back(gx);
-    return result;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 // 支持Scalar类型的pow函数
