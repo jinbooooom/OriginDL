@@ -4,6 +4,7 @@
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 #ifdef ENABLE_CUBLAS
@@ -110,7 +111,7 @@ __global__ void matmul_2d_kernel(const T *__restrict__ a,
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (row < M && col < N)
+    if (likely(row < M && col < N))
     {
         T sum = 0;
         // 计算矩阵乘法的内积
@@ -158,12 +159,12 @@ __global__ void matmul_tiled_kernel(const T *__restrict__ a,
         int a_col = tile * TILE_SIZE + threadIdx.x;
         int b_row = tile * TILE_SIZE + threadIdx.y;
 
-        if (row < M && a_col < K)
+        if (likely(row < M && a_col < K))
             shared_a[threadIdx.y][threadIdx.x] = a[row * K + a_col];
         else
             shared_a[threadIdx.y][threadIdx.x] = 0;
 
-        if (b_row < K && col < N)
+        if (likely(b_row < K && col < N))
             shared_b[threadIdx.y][threadIdx.x] = b[b_row * N + col];
         else
             shared_b[threadIdx.y][threadIdx.x] = 0;
@@ -180,7 +181,7 @@ __global__ void matmul_tiled_kernel(const T *__restrict__ a,
     }
 
     // 写入结果
-    if (row < M && col < N)
+    if (likely(row < M && col < N))
     {
         c[row * N + col] = sum;
     }
@@ -238,12 +239,12 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     const OriginMat *a_ptr = &a;
     const OriginMat *b_ptr = &b;
 
-    if (!a.is_contiguous())
+    if (unlikely(!a.is_contiguous()))
     {
         a_contiguous = a.contiguous();
         a_ptr        = static_cast<const OriginMat *>(a_contiguous.get());
     }
-    if (!b.is_contiguous())
+    if (unlikely(!b.is_contiguous()))
     {
         b_contiguous = b.contiguous();
         b_ptr        = static_cast<const OriginMat *>(b_contiguous.get());
@@ -254,7 +255,7 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     const auto &shape_b = b_ptr->shape();
 
     // 验证矩阵乘法维度要求
-    if (shape_a.size() < 2 || shape_b.size() < 2)
+    if (unlikely(shape_a.size() < 2 || shape_b.size() < 2))
     {
         THROW_INVALID_ARG("MatMul requires at least 2D tensors, got shapes {} and {}", shape_a.to_string(),
                           shape_b.to_string());
@@ -266,7 +267,7 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     int K2 = static_cast<int>(shape_b[shape_b.size() - 2]);
     int N  = static_cast<int>(shape_b[shape_b.size() - 1]);
 
-    if (K != K2)
+    if (unlikely(K != K2))
     {
         THROW_INVALID_ARG("MatMul dimension mismatch: {} vs {}", shape_a.to_string(), shape_b.to_string());
     }
@@ -275,12 +276,12 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     std::vector<size_t> output_dims;
 
     // 处理批量维度（简化实现，只支持相同批量维度）
-    if (shape_a.size() == 2 && shape_b.size() == 2)
+    if (likely(shape_a.size() == 2 && shape_b.size() == 2))
     {
         // 2D矩阵乘法
         output_dims = {static_cast<size_t>(M), static_cast<size_t>(N)};
     }
-    else if (shape_a.size() == shape_b.size())
+    else if (likely(shape_a.size() == shape_b.size()))
     {
         // 批量矩阵乘法（相同批量维度）
         output_dims                         = shape_a.dims();
@@ -299,40 +300,21 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     device_common::TypeDispatcher::dispatch_void(a_ptr->dtype(), [&]<typename T>() {
 #ifdef ENABLE_CUBLAS
         // 如果启用cuBLAS，并且是支持的类型（float或double），使用cuBLAS
-        // 阈值：对于大矩阵（M*N*K >= 阈值）使用cuBLAS，小矩阵使用自定义kernel
-        const int kCublasThreshold = 1024 * 1024;  // 1M元素
-
         // cuBLAS只支持float和double类型
         constexpr bool is_supported_type = std::is_same_v<T, float> || std::is_same_v<T, double>;
 
         if constexpr (is_supported_type)
         {
-            if (M * N * K >= kCublasThreshold)
-            {
-                // 大矩阵使用cuBLAS
-                cublas_matmul<T>(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
-            }
-            else
-            {
-                // 小矩阵使用自定义kernel
-                launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
-            }
+            cublas_matmul<T>(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
         }
         else
         {
-            // 不支持的类型，使用自定义kernel
             launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
         }
 #else
-        // 未启用cuBLAS，使用自定义kernel
         launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
 #endif
     });
-
-    // 注意：cuBLAS调用是异步的，不需要立即同步
-    // CUDA_CHECK_ASYNC()只检查错误，不会阻塞执行
-    // 实际的同步会在后续需要结果时自动进行
-    CUDA_CHECK_ASYNC();
 
     return result;
 }

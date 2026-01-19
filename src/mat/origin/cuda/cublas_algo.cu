@@ -3,6 +3,7 @@
 #    include <cuda_runtime.h>
 #    include <mutex>
 #    include "origin/mat/origin/cuda/cublas_algo.cuh"
+#    include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
@@ -139,13 +140,10 @@ void cublas_matmul<float>(const float *a, const float *b, float *c, int M, int N
                                         c,            // C (M×N行主序)，在列主序中是C^T (N×M)
                                         N);           // ldc: C^T的leading dimension = N（C的行主序列数）
 
-    if (status != CUBLAS_STATUS_SUCCESS)
+    if (unlikely(status != CUBLAS_STATUS_SUCCESS))
     {
         THROW_RUNTIME_ERROR("cuBLAS SGEMM failed: {}", static_cast<int>(status));
     }
-
-    // 注意：cuBLAS调用是异步的，不需要显式同步
-    // 结果会在后续的CUDA操作中自动同步
 }
 
 template <>
@@ -178,7 +176,7 @@ void cublas_matmul<double>(const double *a, const double *b, double *c, int M, i
                                         c,            // C (M×N行主序，作为C^T N×M列主序)，ldc = N
                                         N);           // ldc: 行主序C的列数
 
-    if (status != CUBLAS_STATUS_SUCCESS)
+    if (unlikely(status != CUBLAS_STATUS_SUCCESS))
     {
         THROW_RUNTIME_ERROR("cuBLAS DGEMM failed: {}", static_cast<int>(status));
     }

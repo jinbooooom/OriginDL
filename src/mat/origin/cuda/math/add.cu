@@ -1,8 +1,8 @@
 #include <cuda_runtime.h>
 #include <memory>
 #include "origin/mat/basic_types.h"
-#include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/device_common/operation_templates.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
@@ -13,6 +13,47 @@ namespace origin
 {
 namespace cuda
 {
+
+/**
+ * @brief 元素级加法kernel（相同形状）
+ * @details 每个线程处理一个元素的加法运算
+ */
+template <typename T>
+__global__ void add_elementwise_kernel(const T *__restrict__ A,
+                                       const T *__restrict__ B,
+                                       T *__restrict__ C,
+                                       size_t N)
+{
+    size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < N)
+    {
+        C[i] = A[i] + B[i];
+    }
+}
+
+/**
+ * @brief 简单广播加法kernel
+ * @details 处理标量广播情况，其中一个操作数是标量（只有1个元素）
+ */
+template <typename T>
+__global__ void add_broadcast_kernel(const T *__restrict__ A,
+                                     const T *__restrict__ B,
+                                     T *__restrict__ C,
+                                     size_t a_elements,
+                                     size_t b_elements,
+                                     size_t c_elements)
+{
+    size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < c_elements)
+    {
+        size_t a_idx = (a_elements == 1) ? 0 : i;
+        size_t b_idx = (b_elements == 1) ? 0 : i;
+
+        C[i] = A[a_idx] + B[b_idx];
+    }
+}
 
 /**
  * @brief add算子实现
@@ -39,27 +80,37 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
     if (a.shape() == b.shape())
     {
         // 相同形状：直接元素级运算（最常见）
+        // 使用256线程块，这是CUDA文档推荐的常见选择
+        const size_t threads_per_block = 256;
+        const size_t num_elements      = a.elements();
+        const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+
         device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            launch_elementwise_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                                                static_cast<T *>(c_data), a.elements(), AddOp{}, 0);
+            // 直接使用<<<grid, block>>>语法启动kernel（按照CUDA文档风格）
+            add_elementwise_kernel<T><<<num_blocks, threads_per_block>>>(
+                static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
+                num_elements);
         });
     }
     else if (a.elements() == 1 || b.elements() == 1)
     {
         // 简单广播：一个操作数是标量（次常见）
+        const size_t threads_per_block = 256;
+        const size_t num_elements      = result->elements();
+        const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+
         device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            launch_simple_broadcast_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                                                     static_cast<T *>(c_data), a.elements(), b.elements(),
-                                                     result->elements(), AddOp{}, 0);
+            // 直接使用<<<grid, block>>>语法启动kernel（按照CUDA文档风格）
+            add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(
+                static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
+                a.elements(), b.elements(), num_elements);
         });
     }
     else
     {
         // 复杂广播：需要计算步长信息
         THROW_RUNTIME_ERROR("Complex broadcasting not yet implemented for CUDA add operation");
-    }
-
-    CUDA_CHECK_ASYNC();
+    };
 
     return result;
 }
@@ -87,10 +138,17 @@ void add_inplace(OriginMat &a, const OriginMat &b)
     void *a_data       = a.storage()->data();
     const void *b_data = b.storage()->data();
 
+    // 使用256线程块，这是CUDA文档推荐的常见选择
+    const size_t threads_per_block = 256;
+    const size_t num_elements      = a.elements();
+    const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+
     // 执行原地加法：a = a + b
+    // 直接使用<<<grid, block>>>语法启动kernel（按照CUDA文档风格）
     device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-        launch_elementwise_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                                            static_cast<T *>(a_data), a.elements(), AddOp{}, 0);
+        add_elementwise_kernel<T><<<num_blocks, threads_per_block>>>(
+            static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(a_data),
+            num_elements);
     });
 
     CUDA_CHECK_ASYNC();
