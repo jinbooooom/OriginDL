@@ -139,21 +139,18 @@ struct InferenceConfig
  */
 void usage(const char *program_name)
 {
-    loga("Usage: %s [OPTIONS]\n", program_name);
-    loga("\n");
-    loga("Required options:\n");
-    loga("  -i, --image PATH     Input image file path\n");
-    loga("\n");
-    loga("Optional options:\n");
-    loga("  -p, --param PATH     PNNX param file path (default: auto-detect)\n");
-    loga("  -b, --bin PATH       PNNX bin file path (default: auto-detect)\n");
-    loga("  -g, --gpu INT        GPU device ID (default: 0)\n");
-    loga("  -h, --help           Show this help message\n");
-    loga("\n");
+    loga("Usage: {} [OPTIONS]", program_name);
+    loga("Required options:");
+    loga("  -i, --image PATH     Input image file path");
+    loga("Optional options:");
+    loga("  -p, --param PATH     PNNX param file path (default: auto-detect)");
+    loga("  -b, --bin PATH       PNNX bin file path (default: auto-detect)");
+    loga("  -g, --gpu INT        GPU device ID (default: 0)");
+    loga("  -h, --help           Show this help message");
     loga("Examples:\n");
-    loga("  %s -i path/to/image.jpg\n", program_name);
-    loga("  %s -i path/to/image.jpg -p model.pnnx.param -b model.pnnx.bin\n", program_name);
-    loga("  %s -i path/to/image.jpg -g 0\n", program_name);
+    loga("  {} -i path/to/image.jpg", program_name);
+    loga("  {} -i path/to/image.jpg -p model.pnnx.param -b model.pnnx.bin", program_name);
+    loga("  {} -i path/to/image.jpg -g 0", program_name);
 }
 
 /**
@@ -330,7 +327,7 @@ int main(int argc, char *argv[])
         class_name = IMAGENET_CLASSES[max_index];
     }
 
-    loga("Class with max probability: %s (index: %d, probability: %.4f)\n", class_name.c_str(), max_index, max_prob);
+    loga("Class with max probability: {} (index: {}, probability: {:.4f})", class_name, max_index, max_prob);
 
     return 0;
 }

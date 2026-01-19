@@ -24,6 +24,152 @@ class OriginMat;
 namespace origin
 {
 
+/**
+ * @brief 统一的二元操作设备分发辅助函数（有返回值）
+ * @param device_type 设备类型
+ * @param a 输入矩阵A
+ * @param b 输入矩阵B
+ * @param out 输出矩阵指针
+ * @param cpu_op CPU操作函数
+ * @param cuda_op CUDA操作函数
+ * @param op_name 操作名称（用于错误信息）
+ * @return 操作结果
+ */
+template <typename OpFunc>
+inline std::unique_ptr<Mat> device_dispatch_binary_op(DeviceType device_type,
+                                                       const OriginMat &a,
+                                                       const OriginMat &b,
+                                                       OriginMat *out,
+                                                       OpFunc cpu_op,
+                                                       OpFunc cuda_op,
+                                                       const char *op_name)
+{
+    if (device_type == DeviceType::kCPU)
+    {
+        return cpu_op(a, b, out);
+    }
+    else if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda_op(a, b, out);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for {}: {}", op_name, static_cast<int>(device_type));
+    }
+}
+
+/**
+ * @brief 统一的二元操作设备分发辅助函数（原地操作，无返回值）
+ * @param device_type 设备类型
+ * @param a 输入矩阵A
+ * @param b 输入矩阵B
+ * @param out 输出矩阵指针
+ * @param cpu_op CPU操作函数
+ * @param cuda_op CUDA操作函数
+ * @param op_name 操作名称（用于错误信息）
+ */
+template <typename OpFunc>
+inline void device_dispatch_binary_inplace_op(DeviceType device_type,
+                                               const OriginMat &a,
+                                               const OriginMat &b,
+                                               OriginMat *out,
+                                               OpFunc cpu_op,
+                                               OpFunc cuda_op,
+                                               const char *op_name)
+{
+    if (device_type == DeviceType::kCPU)
+    {
+        cpu_op(a, b, out);
+    }
+    else if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        cuda_op(a, b, out);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for {}: {}", op_name, static_cast<int>(device_type));
+    }
+}
+
+/**
+ * @brief 统一的一元操作设备分发辅助函数（有返回值）
+ * @param device_type 设备类型
+ * @param a 输入矩阵
+ * @param out 输出矩阵指针
+ * @param cpu_op CPU操作函数
+ * @param cuda_op CUDA操作函数
+ * @param op_name 操作名称（用于错误信息）
+ * @return 操作结果
+ */
+template <typename OpFunc>
+inline std::unique_ptr<Mat> device_dispatch_unary_op(DeviceType device_type,
+                                                     const OriginMat &a,
+                                                     OriginMat *out,
+                                                     OpFunc cpu_op,
+                                                     OpFunc cuda_op,
+                                                     const char *op_name)
+{
+    if (device_type == DeviceType::kCPU)
+    {
+        return cpu_op(a, out);
+    }
+    else if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda_op(a, out);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for {}: {}", op_name, static_cast<int>(device_type));
+    }
+}
+
+/**
+ * @brief 统一的一元操作设备分发辅助函数（原地操作，无返回值）
+ * @param device_type 设备类型
+ * @param a 输入矩阵
+ * @param out 输出矩阵指针
+ * @param cpu_op CPU操作函数
+ * @param cuda_op CUDA操作函数
+ * @param op_name 操作名称（用于错误信息）
+ */
+template <typename OpFunc>
+inline void device_dispatch_unary_inplace_op(DeviceType device_type,
+                                             const OriginMat &a,
+                                             OriginMat *out,
+                                             OpFunc cpu_op,
+                                             OpFunc cuda_op,
+                                             const char *op_name)
+{
+    if (device_type == DeviceType::kCPU)
+    {
+        cpu_op(a, out);
+    }
+    else if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        cuda_op(a, out);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for {}: {}", op_name, static_cast<int>(device_type));
+    }
+}
+
 // 构造函数实现
 OriginMat::OriginMat(std::shared_ptr<Storage> storage, const Shape &shape, DataType dtype)
     : storage_(storage), shape_(shape), dtype_(dtype)
@@ -248,268 +394,72 @@ std::unique_ptr<Mat> OriginMat::transpose() const
     }
 }
 
-// TODO：
 std::unique_ptr<Mat> OriginMat::operator+(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-
-    // 根据设备类型选择实现
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::add(*this, other_mat);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::add(*this, other_mat);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for addition: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::add, cuda::add, "add");
 }
 
 void OriginMat::add_inplace(const Mat &other)
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-
-    // 根据设备类型选择实现
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::add_inplace(*this, other_mat);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::add_inplace(*this, other_mat);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for add_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::add, cuda::add, "add_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::operator-(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::subtract(*this, other_mat);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::subtract(*this, other_mat);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for subtraction: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::subtract, cuda::subtract, "subtract");
 }
 
 void OriginMat::sub_inplace(const Mat &other)
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-
-    // 根据设备类型选择实现
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::subtract_inplace(*this, other_mat);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::subtract_inplace(*this, other_mat);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for sub_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::subtract, cuda::subtract, "sub_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::operator*(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::multiply(*this, other_mat);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::multiply(*this, other_mat);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for multiplication: {}",
-                            static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::multiply, cuda::multiply, "multiply");
 }
 
 void OriginMat::mul_inplace(const Mat &other)
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-
-    // 根据设备类型选择实现
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::multiply_inplace(*this, other_mat);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::multiply_inplace(*this, other_mat);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for mul_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::multiply, cuda::multiply, "mul_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::operator/(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::divide(*this, other_mat);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::divide(*this, other_mat);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for division: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::divide, cuda::divide, "divide");
 }
 
 void OriginMat::div_inplace(const Mat &other)
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-
-    // 根据设备类型选择实现
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::divide_inplace(*this, other_mat);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::divide_inplace(*this, other_mat);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for div_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::divide, cuda::divide, "div_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::operator-() const
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::negate(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::negate(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for negate: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::negate, cuda::negate, "negate");
 }
 
 void OriginMat::neg_inplace()
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::negate_inplace(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::negate_inplace(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for neg_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::negate, cuda::negate, "neg_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::square() const
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::square(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::square(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for square: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::square, cuda::square, "square");
 }
 
 void OriginMat::square_inplace()
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::square_inplace(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::square_inplace(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for square_inplace: {}",
-                            static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::square, cuda::square, "square_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::pow(const Scalar &exponent) const
@@ -682,123 +632,32 @@ std::vector<data_t> OriginMat::to_vector() const
 // 数学函数
 std::unique_ptr<Mat> OriginMat::exp() const
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::exp(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::exp(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for exp: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::exp, cuda::exp, "exp");
 }
 
 void OriginMat::exp_inplace()
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::exp_inplace(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::exp_inplace(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for exp_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::exp, cuda::exp, "exp_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::relu() const
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::relu(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::relu(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for relu: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::relu, cuda::relu, "relu");
 }
 
 void OriginMat::relu_inplace()
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::relu_inplace(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::relu_inplace(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for relu_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::relu, cuda::relu, "relu_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::log() const
 {
-    // 自然对数运算（以 e 为底）
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::log(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::log(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for log: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::log, cuda::log, "log");
 }
 
 void OriginMat::log_inplace()
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::log_inplace(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::log_inplace(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for log_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::log, cuda::log, "log_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::sin() const
@@ -815,43 +674,12 @@ std::unique_ptr<Mat> OriginMat::cos() const
 
 std::unique_ptr<Mat> OriginMat::sqrt() const
 {
-    // 根据设备类型选择实现
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        return cpu::sqrt(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        return cuda::sqrt(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for sqrt: {}", static_cast<int>(storage_->device_type()));
-    }
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::sqrt, cuda::sqrt, "sqrt");
 }
 
 void OriginMat::sqrt_inplace()
 {
-    if (storage_->device_type() == DeviceType::kCPU)
-    {
-        cpu::sqrt_inplace(*this);
-    }
-    else if (storage_->device_type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        cuda::sqrt_inplace(*this);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type for sqrt_inplace: {}", static_cast<int>(storage_->device_type()));
-    }
+    device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::sqrt, cuda::sqrt, "sqrt_inplace");
 }
 
 // 类型和设备

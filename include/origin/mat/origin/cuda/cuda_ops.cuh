@@ -20,150 +20,97 @@ namespace cuda
 // ============================================================================
 
 /**
- * @brief CUDA加法算子
+ * @brief CUDA加法算子统一实现
  * @param a 输入矩阵A
  * @param b 输入矩阵B
- * @return 加法结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> add(const origin::OriginMat &a, const origin::OriginMat &b);
+std::unique_ptr<Mat> add(const origin::OriginMat &a, const origin::OriginMat &b, origin::OriginMat *out = nullptr);
 
 /**
- * @brief CUDA减法算子
+ * @brief CUDA减法算子统一实现
  * @param a 输入矩阵A
  * @param b 输入矩阵B
- * @return 减法结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> subtract(const origin::OriginMat &a, const origin::OriginMat &b);
+std::unique_ptr<Mat> subtract(const origin::OriginMat &a, const origin::OriginMat &b, origin::OriginMat *out = nullptr);
 
 /**
- * @brief CUDA乘法算子
+ * @brief CUDA乘法算子统一实现
  * @param a 输入矩阵A
  * @param b 输入矩阵B
- * @return 乘法结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> multiply(const origin::OriginMat &a, const origin::OriginMat &b);
+std::unique_ptr<Mat> multiply(const origin::OriginMat &a, const origin::OriginMat &b, origin::OriginMat *out = nullptr);
 
 /**
- * @brief CUDA除法算子
+ * @brief CUDA除法算子统一实现
  * @param a 输入矩阵A
  * @param b 输入矩阵B
- * @return 除法结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> divide(const origin::OriginMat &a, const origin::OriginMat &b);
+std::unique_ptr<Mat> divide(const origin::OriginMat &a, const origin::OriginMat &b, origin::OriginMat *out = nullptr);
 
 // ============================================================================
 // 一元运算算子
 // ============================================================================
 
 /**
- * @brief CUDA指数算子
+ * @brief CUDA指数算子统一实现
  * @param mat 输入矩阵
- * @return 指数运算结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> exp(const origin::OriginMat &mat);
+std::unique_ptr<Mat> exp(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 
 /**
- * @brief CUDA对数算子
+ * @brief CUDA对数算子统一实现
  * @param mat 输入矩阵
- * @return 对数运算结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> log(const origin::OriginMat &mat);
+std::unique_ptr<Mat> log(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 
 /**
- * @brief CUDA平方根算子
+ * @brief CUDA平方根算子统一实现
  * @param mat 输入矩阵
- * @return 平方根运算结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> sqrt(const origin::OriginMat &mat);
+std::unique_ptr<Mat> sqrt(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 
 /**
- * @brief CUDA平方算子
+ * @brief CUDA平方算子统一实现
  * @param mat 输入矩阵
- * @return 平方运算结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> square(const origin::OriginMat &mat);
+std::unique_ptr<Mat> square(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 
 /**
- * @brief CUDA取负算子
+ * @brief CUDA取负算子统一实现
  * @param mat 输入矩阵
- * @return 取负运算结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> negate(const origin::OriginMat &mat);
+std::unique_ptr<Mat> negate(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 
 /**
- * @brief CUDA ReLU 激活函数算子
+ * @brief CUDA ReLU 激活函数算子统一实现
  * @param mat 输入矩阵
- * @return ReLU 运算结果矩阵，y = max(0, x)
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> relu(const origin::OriginMat &mat);
+std::unique_ptr<Mat> relu(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 
 // ============================================================================
 // 原地操作算子
 // ============================================================================
 
-/**
- * @brief CUDA原地加法算子
- * @param a 目标矩阵（会被修改）
- * @param b 源矩阵（不会被修改）
- */
-void add_inplace(OriginMat &a, const OriginMat &b);
-
-/**
- * @brief CUDA原地减法算子
- * @param a 目标矩阵（会被修改）
- * @param b 源矩阵（不会被修改）
- */
-void subtract_inplace(OriginMat &a, const OriginMat &b);
-
-/**
- * @brief CUDA原地乘法算子
- * @param a 目标矩阵（会被修改）
- * @param b 源矩阵（不会被修改）
- */
-void multiply_inplace(OriginMat &a, const OriginMat &b);
-
-/**
- * @brief CUDA原地除法算子
- * @param a 目标矩阵（会被修改）
- * @param b 源矩阵（不会被修改）
- */
-void divide_inplace(OriginMat &a, const OriginMat &b);
-
-/**
- * @brief CUDA原地指数算子
- * @param mat 输入矩阵（会被修改）
- */
-void exp_inplace(OriginMat &mat);
-
-/**
- * @brief CUDA原地对数算子
- * @param mat 输入矩阵（会被修改）
- */
-void log_inplace(OriginMat &mat);
-
-/**
- * @brief CUDA原地平方根算子
- * @param mat 输入矩阵（会被修改）
- */
-void sqrt_inplace(OriginMat &mat);
-
-/**
- * @brief CUDA原地平方算子
- * @param mat 输入矩阵（会被修改）
- */
-void square_inplace(OriginMat &mat);
-
-/**
- * @brief CUDA原地取负算子
- * @param mat 输入矩阵（会被修改）
- */
-void negate_inplace(OriginMat &mat);
-
-/**
- * @brief CUDA原地ReLU激活函数算子
- * @param mat 输入矩阵（会被修改）
- */
-void relu_inplace(OriginMat &mat);
 
 // ============================================================================
 // 形状操作算子

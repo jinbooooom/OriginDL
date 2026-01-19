@@ -361,6 +361,14 @@ public:
     // 访问storage（用于CUDA运算）
     std::shared_ptr<Storage> storage() const { return storage_; }
 
+    // 相等运算符（判断是否是同一块内存，比较 storage_）
+    bool operator==(const OriginMat &other) const
+    {
+        return storage_ == other.storage_;
+    }
+
+    bool operator!=(const OriginMat &other) const { return !(*this == other); }
+
     // 调试
     void print(const std::string &desc = "") const override;
     int backend_type() const override;

@@ -11,31 +11,28 @@ namespace cpu
 {
 
 // === 基础运算 ===
-std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b);
-void add_inplace(OriginMat &a, const OriginMat &b);
-std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b);
-void subtract_inplace(OriginMat &a, const OriginMat &b);
-std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b);
-void multiply_inplace(OriginMat &a, const OriginMat &b);
-std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b);
-void divide_inplace(OriginMat &a, const OriginMat &b);
+/**
+ * @brief CPU加法算子统一实现
+ * @param a 输入矩阵A
+ * @param b 输入矩阵B
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
+ */
+std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out = nullptr);
+std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b, OriginMat *out = nullptr);
+std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b, OriginMat *out = nullptr);
+std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *out = nullptr);
 std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
 
-std::unique_ptr<Mat> negate(const OriginMat &mat);
-void negate_inplace(OriginMat &mat);
+std::unique_ptr<Mat> negate(const OriginMat &mat, OriginMat *out = nullptr);
 
 // === 数学函数 ===
-std::unique_ptr<Mat> exp(const OriginMat &mat);
-void exp_inplace(OriginMat &mat);
-std::unique_ptr<Mat> log(const OriginMat &mat);
-void log_inplace(OriginMat &mat);
-std::unique_ptr<Mat> sqrt(const OriginMat &mat);
-void sqrt_inplace(OriginMat &mat);
-std::unique_ptr<Mat> square(const OriginMat &mat);
-void square_inplace(OriginMat &mat);
+std::unique_ptr<Mat> exp(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> log(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> sqrt(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> square(const OriginMat &mat, OriginMat *out = nullptr);
 std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
-std::unique_ptr<Mat> relu(const OriginMat &mat);
-void relu_inplace(OriginMat &mat);
+std::unique_ptr<Mat> relu(const OriginMat &mat, OriginMat *out = nullptr);
 
 // === 统计函数 ===
 std::unique_ptr<Mat> sum(const OriginMat &mat, int axis);
