@@ -1,13 +1,11 @@
 #include "origin/operators/custom/yolo_detect.h"
-#include <cmath>
 #include <vector>
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/operators/conv/conv2d.h"
+#include "origin/mat/origin/origin_mat.h"
 #include "origin/operators/shape/cat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
-#include "origin/utils/log.h"
 
 namespace origin
 {
@@ -67,10 +65,6 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("YoloDetect forward: expected {} inputs (stages), but got {}", stages_, xs.size());
     }
 
-    // 获取 batch size
-    size_t batch_size    = xs[0].shape()[0];
-    int32_t classes_info = num_classes_ + 5;  // 4(bbox) + 1(objectness) + num_classes
-
     // 存储每个阶段的输出
     std::vector<Tensor> stage_outputs;
 
@@ -87,188 +81,38 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
                                 input_shape.to_string());
         }
 
-        size_t H         = input_shape[2];
-        size_t W         = input_shape[3];
-        size_t num_boxes = H * W * num_anchors_;
+        // 确保所有张量都在同一设备上（与输入张量相同）
+        Device input_device = input.device();
+        Tensor conv_weight_on_device =
+            conv_weights_[stage].device() == input_device ? conv_weights_[stage] : conv_weights_[stage].to(input_device);
+        Tensor conv_bias_on_device =
+            conv_biases_[stage].device() == input_device ? conv_biases_[stage] : conv_biases_[stage].to(input_device);
+        Tensor grid_on_device =
+            grids_[stage].device() == input_device ? grids_[stage] : grids_[stage].to(input_device);
+        Tensor anchor_grid_on_device = anchor_grids_[stage].device() == input_device ? anchor_grids_[stage]
+                                                                                      : anchor_grids_[stage].to(input_device);
 
-        // 步骤1：对输入特征图应用卷积
-        // 使用 Conv2dOp 进行卷积操作
-        auto conv_op = std::make_shared<functional::Conv2dOp>(std::make_pair(1, 1), std::make_pair(0, 0));
-        std::vector<Tensor> conv_inputs = {input, conv_weights_[stage], conv_biases_[stage]};
-        auto conv_outputs               = conv_op->forward(conv_inputs);
-        Tensor conv_output              = conv_outputs[0];
+        // 使用 mat 层的 yolo_detect_forward 实现
+        const OriginMat &input_mat         = static_cast<const OriginMat &>(mat(input));
+        const OriginMat &conv_weight_mat   = static_cast<const OriginMat &>(mat(conv_weight_on_device));
+        const OriginMat *conv_bias_mat     = conv_bias_on_device.shape().elements() > 0
+                                                 ? &static_cast<const OriginMat &>(mat(conv_bias_on_device))
+                                                 : nullptr;
+        const OriginMat &grid_mat         = static_cast<const OriginMat &>(mat(grid_on_device));
+        const OriginMat &anchor_grid_mat   = static_cast<const OriginMat &>(mat(anchor_grid_on_device));
 
-        // conv_output 形状应该是 (N, OC, H, W)，其中 OC = num_anchors * (num_classes + 5)
-        auto conv_shape = conv_output.shape();
-        if (conv_shape[2] != H || conv_shape[3] != W)
-        {
-            THROW_RUNTIME_ERROR("YoloDetect forward: conv output shape mismatch at stage {}", stage);
-        }
+        auto stage_result = input_mat.yolo_detect_forward(
+            conv_weight_mat,
+            conv_bias_mat,
+            grid_mat,
+            anchor_grid_mat,
+            strides_[stage],
+            num_anchors_,
+            num_classes_
+        );
 
-        // 步骤2：reshape 为 (N, num_anchors, classes_info, H, W)
-        // 然后转置/重组为 (N, num_anchors * H * W, classes_info)
-        Shape reshape_shape{batch_size, static_cast<size_t>(num_anchors_), static_cast<size_t>(classes_info), H, W};
-        Tensor reshaped = conv_output.reshape(reshape_shape);
-
-        // 重新排列为 (N, num_anchors * H * W, classes_info)
-        // 需要将 (N, num_anchors, classes_info, H, W) 转换为 (N, num_anchors * H * W, classes_info)
-        // 这需要手动重新排列数据
-        Shape target_shape{batch_size, num_boxes, static_cast<size_t>(classes_info)};
-
-        // 将数据复制到 CPU 进行重新排列
-        auto reshaped_data = reshaped.to_vector<float>();
-        std::vector<float> output_data(target_shape.elements());
-
-        // 重新排列数据：从 (N, num_anchors, classes_info, H, W) 到 (N, num_anchors * H * W, classes_info)
-        // 对于行主序数据布局，索引计算应该是：
-        // input_idx = b * num_anchors * classes_info * H * W + na * classes_info * H * W + c * H * W + h * W + w
-        for (size_t b = 0; b < batch_size; ++b)
-        {
-            for (size_t na = 0; na < static_cast<size_t>(num_anchors_); ++na)
-            {
-                for (size_t h = 0; h < H; ++h)
-                {
-                    for (size_t w = 0; w < W; ++w)
-                    {
-                        size_t output_idx = b * num_boxes * classes_info + (na * H * W + h * W + w) * classes_info;
-
-                        for (size_t c = 0; c < static_cast<size_t>(classes_info); ++c)
-                        {
-                            // 行主序索引：b * num_anchors * classes_info * H * W + na * classes_info * H * W + c * H *
-                            // W + h * W + w
-                            size_t input_idx = b * num_anchors_ * classes_info * H * W + na * classes_info * H * W +
-                                               c * H * W + h * W + w;
-                            output_data[output_idx + c] = reshaped_data[input_idx];
-                        }
-                    }
-                }
-            }
-        }
-
-        Tensor stage_tensor(output_data, target_shape, dtype(DataType::kFloat32).device(input.device()));
-
-        // if (stage == 0) {
-        //     size_t batch_idx = 0;
-        //     size_t box_idx = 0;
-        //     size_t base_idx = batch_idx * num_boxes * classes_info + box_idx * classes_info;
-        //     logd("YoloDetect Stage {} Before Sigmoid: First box raw values (first 5): {}", stage, ...);
-        // }
-
-        // 步骤3：应用 sigmoid 到坐标部分（前4个通道：x, y, w, h）
-        // 注意：这里只对前4个通道应用 sigmoid，objectness 和类别分数保持原样
-        // 但实际上，根据 YOLOv5 的实现，前4个通道需要 sigmoid，第5个通道（objectness）也需要 sigmoid
-
-        // 提取坐标部分 (N, num_boxes, 4) 和 objectness/类别部分 (N, num_boxes, classes_info - 4)
-        // 由于 Tensor API 的限制，我们需要手动处理
-
-        // 简化实现：对整个 tensor 应用 sigmoid（虽然只有前5个通道需要）
-        // 更精确的实现需要分别处理不同通道
-        auto sigmoid_op                    = std::make_shared<functional::Sigmoid>();
-        std::vector<Tensor> sigmoid_inputs = {stage_tensor};
-        auto sigmoid_outputs               = sigmoid_op->forward(sigmoid_inputs);
-        Tensor sigmoid_output              = sigmoid_outputs[0];
-
-        // if (stage == 0) {
-        //     auto sigmoid_data = sigmoid_output.to_vector<float>();
-        //     size_t batch_idx = 0;
-        //     size_t box_idx = 0;
-        //     size_t base_idx = batch_idx * num_boxes * classes_info + box_idx * classes_info;
-        //     logd("YoloDetect Stage {} After Sigmoid: First box sigmoid values (first 5): {}", stage, ...);
-        // }
-
-        // 步骤4：进行坐标变换
-        // xy = (xy * 2 + grid) * stride
-        // wh = (wh * 2)^2 * anchor_grid
-
-        // 将数据复制到 CPU 进行处理
-        auto sigmoid_data = sigmoid_output.to_vector<float>();
-
-        // 获取 grid 和 anchor_grid 数据
-        auto grid_shape        = grids_[stage].shape();
-        auto anchor_grid_shape = anchor_grids_[stage].shape();
-        auto grid_data         = grids_[stage].to_vector<float>();
-        auto anchor_grid_data  = anchor_grids_[stage].to_vector<float>();
-        float stride           = strides_[stage];
-
-        // 进行坐标变换
-        for (size_t b = 0; b < batch_size; ++b)
-        {
-            for (size_t i = 0; i < num_boxes; ++i)
-            {
-                size_t base_idx = b * num_boxes * classes_info + i * classes_info;
-
-                // 计算在 grid 和 anchor_grid 中的索引
-                size_t box_idx     = i;                  // 在 num_boxes 中的索引
-                size_t anchor_idx  = box_idx / (H * W);  // anchor 索引
-                size_t spatial_idx = box_idx % (H * W);  // 空间位置索引
-                size_t h_idx       = spatial_idx / W;
-                size_t w_idx       = spatial_idx % W;
-
-                // 获取 grid 值（grid 形状为 (1, num_anchors, H, W, 2)）
-                // 简化：假设 grid 已经展平为 (num_anchors * H * W * 2)
-                size_t grid_base = anchor_idx * H * W * 2 + h_idx * W * 2 + w_idx * 2;
-                float grid_x     = (grid_base < grid_data.size()) ? grid_data[grid_base] : 0.0f;
-                float grid_y     = (grid_base + 1 < grid_data.size()) ? grid_data[grid_base + 1] : 0.0f;
-
-                // 获取 anchor_grid 值
-                // anchor_grid 的形状是 (1, num_anchors, anchor_H, anchor_W, 2)
-                // 其中 anchor_H 和 anchor_W 可能小于输入特征图的 H 和 W
-                // 需要根据 anchor_grid 的实际形状计算索引
-                auto anchor_grid_shape = anchor_grids_[stage].shape();
-                size_t anchor_H        = (anchor_grid_shape.size() >= 3) ? anchor_grid_shape[2] : H;
-                size_t anchor_W        = (anchor_grid_shape.size() >= 4) ? anchor_grid_shape[3] : W;
-
-                // 计算 anchor_grid 中的索引（需要缩放）
-                size_t scale_h      = (anchor_H > 0 && H > anchor_H) ? H / anchor_H : 1;
-                size_t scale_w      = (anchor_W > 0 && W > anchor_W) ? W / anchor_W : 1;
-                size_t anchor_h_idx = h_idx / scale_h;
-                size_t anchor_w_idx = w_idx / scale_w;
-
-                // 确保索引在有效范围内
-                anchor_h_idx = std::min(anchor_h_idx, anchor_H - 1);
-                anchor_w_idx = std::min(anchor_w_idx, anchor_W - 1);
-
-                // 计算 anchor_grid 的索引（行主序）
-                size_t anchor_grid_base =
-                    anchor_idx * anchor_H * anchor_W * 2 + anchor_h_idx * anchor_W * 2 + anchor_w_idx * 2;
-                float anchor_w =
-                    (anchor_grid_base < anchor_grid_data.size()) ? anchor_grid_data[anchor_grid_base] : 1.0f;
-                float anchor_h =
-                    (anchor_grid_base + 1 < anchor_grid_data.size()) ? anchor_grid_data[anchor_grid_base + 1] : 1.0f;
-
-                // if (b == 0 && i == 0 && stage == 0) {
-                //     logd("YoloDetect Coordinate Transform (stage {}, box 0): H={}, W={}, num_anchors={}",
-                //          stage, H, W, num_anchors_);
-                //     logd("grid_shape: {}, anchor_grid_shape: {}", grid_shape.to_string(),
-                //     anchor_grid_shape.to_string()); logd("anchor_w={}, anchor_h={}, stride={}", anchor_w, anchor_h,
-                //     stride); logd("Before transform: sigmoid_x={}, sigmoid_y={}, sigmoid_w={}, sigmoid_h={}",
-                //          sigmoid_data[base_idx + 0], sigmoid_data[base_idx + 1],
-                //          sigmoid_data[base_idx + 2], sigmoid_data[base_idx + 3]);
-                // }
-
-                // 变换坐标
-                // x = (sigmoid_x * 2 + grid_x) * stride
-                // y = (sigmoid_y * 2 + grid_y) * stride
-                sigmoid_data[base_idx + 0] = (sigmoid_data[base_idx + 0] * 2.0f + grid_x) * stride;
-                sigmoid_data[base_idx + 1] = (sigmoid_data[base_idx + 1] * 2.0f + grid_y) * stride;
-
-                // w = (sigmoid_w * 2)^2 * anchor_w
-                // h = (sigmoid_h * 2)^2 * anchor_h
-                float sigmoid_w            = sigmoid_data[base_idx + 2];
-                float sigmoid_h            = sigmoid_data[base_idx + 3];
-                sigmoid_data[base_idx + 2] = std::pow(sigmoid_w * 2.0f, 2.0f) * anchor_w;
-                sigmoid_data[base_idx + 3] = std::pow(sigmoid_h * 2.0f, 2.0f) * anchor_h;
-
-                // if (b == 0 && i == 0 && stage == 0) {
-                //     logd("After transform: x={}, y={}, w={}, h={}",
-                //          sigmoid_data[base_idx + 0], sigmoid_data[base_idx + 1],
-                //          sigmoid_data[base_idx + 2], sigmoid_data[base_idx + 3]);
-                // }
-            }
-        }
-
-        Tensor transformed_tensor(sigmoid_data, target_shape, dtype(DataType::kFloat32).device(input.device()));
-        stage_outputs.push_back(transformed_tensor);
+        Tensor stage_tensor = convert_mat_to_tensor(std::move(stage_result));
+        stage_outputs.push_back(std::move(stage_tensor));
     }
 
     // 步骤5：拼接所有阶段的输出

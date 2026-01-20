@@ -1,25 +1,24 @@
-#include <cuda_runtime.h>
+#include <cstring>
 #include <memory>
-#include <vector>
 #include "origin/mat/basic_types.h"
-#include "origin/mat/origin/cuda/cuda_utils.cuh"
-#include "origin/mat/origin/device_common/type_dispatcher.h"
+#include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
 {
-namespace cuda
+namespace cpu
 {
 
 /**
- * @brief cat算子实现（在GPU上直接拼接，避免CPU-GPU传输）
+ * @brief CPU cat算子实现
  * @param inputs 输入矩阵列表
  * @param dim 拼接维度
  * @return 拼接结果矩阵
  */
-std::unique_ptr<Mat> cat(const std::vector<const origin::OriginMat *> &inputs, int dim)
+std::unique_ptr<Mat> cat(const std::vector<const OriginMat *> &inputs, int dim)
 {
     if (inputs.empty())
     {
@@ -34,8 +33,8 @@ std::unique_ptr<Mat> cat(const std::vector<const origin::OriginMat *> &inputs, i
 
     // 检查所有输入的形状和设备
     auto first_shape = inputs[0]->shape();
-    Device device    = inputs[0]->device();
-    DataType dtype   = inputs[0]->dtype();
+    Device device     = inputs[0]->device();
+    DataType dtype    = inputs[0]->dtype();
 
     for (size_t i = 1; i < inputs.size(); ++i)
     {
@@ -54,7 +53,7 @@ std::unique_ptr<Mat> cat(const std::vector<const origin::OriginMat *> &inputs, i
         }
 
         VALIDATE_SAME_DTYPE(*inputs[0], *inputs[i]);
-        VALIDATE_SAME_CUDA_DEVICE(*inputs[0], *inputs[i]);
+        VALIDATE_SAME_CPU_DEVICE(*inputs[0], *inputs[i]);
     }
 
     // 计算输出形状
@@ -119,7 +118,7 @@ std::unique_ptr<Mat> cat(const std::vector<const origin::OriginMat *> &inputs, i
         size_t output_slice_elements = output_shape[dim] * slice_size;
         size_t output_slice_bytes    = output_slice_elements * element_size_bytes;
 
-        // 使用 cudaMemcpy 批量复制每个切片
+        // 使用 memcpy 批量复制每个切片
         const void *src = input->storage()->data();
         void *dst_base  = result->storage()->data();
 
@@ -129,19 +128,18 @@ std::unique_ptr<Mat> cat(const std::vector<const origin::OriginMat *> &inputs, i
             void *dst_slice =
                 static_cast<char *>(dst_base) +
                 (slice * output_slice_elements + output_offset_elements * slice_size) * element_size_bytes;
-            CUDA_CHECK(cudaMemcpy(dst_slice, src_slice, input_slice_bytes, cudaMemcpyDeviceToDevice));
+            std::memcpy(dst_slice, src_slice, input_slice_bytes);
         }
 
         // 更新输出偏移（以元素为单位）
         output_offset_elements += input_dim_size;
     }
 
-    CUDA_CHECK_ASYNC();
     return result;
 }
 
 /**
- * @brief CUDA split：将矩阵沿指定维度分割成多个矩阵（cat 的反向操作）
+ * @brief CPU split：将矩阵沿指定维度分割成多个矩阵（cat 的反向操作）
  * @param input 输入矩阵
  * @param output_shapes 输出形状列表
  * @param dim 分割维度
@@ -217,16 +215,15 @@ std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vecto
                                      (slice * input_slice_elements + input_offset_elements * slice_size) * element_size_bytes;
             void *output_slice = static_cast<char *>(output_data) + slice * output_slice_bytes;
 
-            CUDA_CHECK(cudaMemcpy(output_slice, input_slice, output_slice_bytes, cudaMemcpyDeviceToDevice));
+            std::memcpy(output_slice, input_slice, output_slice_bytes);
         }
 
         results.push_back(std::move(result));
         input_offset_elements += output_dim_size;
     }
 
-    CUDA_CHECK_ASYNC();
     return results;
 }
 
-}  // namespace cuda
+}  // namespace cpu
 }  // namespace origin

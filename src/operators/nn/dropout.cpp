@@ -1,9 +1,16 @@
 #include <random>
 #include <vector>
 #include "origin/core/operator.h"
+#include "origin/core/tensor.h"
 #include "origin/mat/mat.h"
+#include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
+
+#ifdef WITH_CUDA
+#include "origin/mat/origin/cuda/cuda_ops.cuh"
+#endif
 
 namespace origin
 {
@@ -27,46 +34,32 @@ std::vector<Tensor> Dropout::forward(const std::vector<Tensor> &xs)
 
     auto &x = xs[0];
 
-    if (!training_)
+    // 获取 Mat 引用并转换为 OriginMat
+    const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+
+    // 创建 mask OriginMat 用于保存 dropout mask
+    auto mask_mat_unique = std::make_unique<OriginMat>(x.shape(), DataType::kFloat32, x.device());
+    OriginMat *mask_mat = mask_mat_unique.get();
+
+    // 根据设备类型调用对应的实现
+    std::unique_ptr<Mat> result;
+    if (x.device().type() == DeviceType::kCUDA)
     {
-        // 推理模式：直接返回输入
-        std::vector<Tensor> outputs;
-        outputs.push_back(x);
-        return outputs;
+#ifdef WITH_CUDA
+        result = cuda::dropout(x_mat, p_, training_, mask_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
     }
-
-    // 训练模式：生成 dropout mask
-    auto x_shape = x.shape();
-    auto x_data  = x.to_vector<float>();
-
-    // 生成随机 mask：值为 0 或 1/(1-p)
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-
-    std::vector<float> mask_data(x_data.size());
-    std::vector<float> y_data(x_data.size());
-
-    float scale = 1.0f / (1.0f - p_);
-
-    for (size_t i = 0; i < x_data.size(); ++i)
+    else
     {
-        if (dist(gen) < p_)
-        {
-            mask_data[i] = 0.0f;
-            y_data[i]    = 0.0f;
-        }
-        else
-        {
-            mask_data[i] = scale;
-            y_data[i]    = x_data[i] * scale;
-        }
+        result = cpu::dropout(x_mat, p_, training_, mask_mat);
     }
 
     // 保存 mask 用于反向传播
-    mask_ = Tensor(mask_data, x_shape, dtype(DataType::kFloat32).device(x.device()));
+    mask_ = convert_mat_to_tensor(std::move(mask_mat_unique));
 
-    auto y = Tensor(y_data, x_shape, dtype(DataType::kFloat32).device(x.device()));
+    auto y = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
 }
 
@@ -86,17 +79,26 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
     }
 
     // 训练模式：根据 mask 计算梯度
-    auto gy_data   = gy.to_vector<float>();
-    auto mask_data = mask_.to_vector<float>();
-    auto gy_shape  = gy.shape();
+    // 获取 Mat 引用并转换为 OriginMat
+    const OriginMat &gy_mat  = static_cast<const OriginMat &>(mat(gy));
+    const OriginMat &mask_mat = static_cast<const OriginMat &>(mat(mask_));
 
-    std::vector<float> gx_data(gy_data.size());
-    for (size_t i = 0; i < gy_data.size(); ++i)
+    // 根据设备类型调用对应的实现
+    std::unique_ptr<Mat> result;
+    if (gy.device().type() == DeviceType::kCUDA)
     {
-        gx_data[i] = gy_data[i] * mask_data[i];
+#ifdef WITH_CUDA
+        result = cuda::dropout_backward(gy_mat, mask_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        result = cpu::dropout_backward(gy_mat, mask_mat);
     }
 
-    auto gx = Tensor(gx_data, gy_shape, dtype(DataType::kFloat32).device(gy.device()));
+    auto gx = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(gx)};
 }
 

@@ -158,6 +158,13 @@ public:
     virtual std::unique_ptr<Mat> sum(int axis = -1) const = 0;
 
     /**
+     * @brief 沿指定轴求最大值
+     * @param axis 轴索引，-1表示所有元素
+     * @return 最大值结果
+     */
+    virtual std::unique_ptr<Mat> max(int axis = -1) const = 0;
+
+    /**
      * @brief 获取矩阵形状
      * @return 矩阵形状
      */

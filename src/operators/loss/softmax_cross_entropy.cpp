@@ -1,7 +1,12 @@
 #include <algorithm>
 #include <cmath>
 #include "origin/core/operator.h"
+#include "origin/core/tensor.h"
 #include "origin/mat/mat.h"
+#include "origin/mat/origin/origin_mat.h"
+#include "origin/operators/activation/softmax.h"
+#include "origin/operators/math/log.h"
+#include "origin/operators/math/sum.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -46,32 +51,24 @@ std::vector<Tensor> SoftmaxCrossEntropy::forward(const std::vector<Tensor> &xs)
     // 1. 计算 softmax: p = softmax(x)
     auto p = softmax(x, -1);  // 沿最后一个维度计算 softmax
 
-    // 2. 计算交叉熵: loss = -mean(log(p[target]))
-    // 对于每个样本 i，选择 p[i][target[i]]，然后取 log
-    auto p_data      = p.to_vector<float>();
-    auto target_data = target.to_vector<int32_t>();
+    // 2. 使用 mat 层的 gather 提取 p[i][target[i]]
+    const OriginMat &p_mat = static_cast<const OriginMat &>(mat(p));
+    const OriginMat &target_mat = static_cast<const OriginMat &>(mat(target));
+    
+    // gather 从 p 中提取值：p.gather(target) 返回 (N,)
+    auto p_selected_mat = p_mat.gather(target_mat);
+    auto p_selected = convert_mat_to_tensor(std::move(p_selected_mat));
 
-    float total_loss = 0.0f;
-    for (size_t i = 0; i < N; ++i)
-    {
-        int32_t t = target_data[i];
-        if (unlikely(t < 0 || t >= static_cast<int32_t>(C)))
-        {
-            THROW_INVALID_ARG("SoftmaxCrossEntropy: target index {} out of range [0, {})", t, C);
-        }
+    // 3. 对提取的值取 log，并添加小的 epsilon 避免 log(0)
+    // 先创建一个小的 epsilon 张量
+    auto epsilon = Tensor({1e-8f}, Shape{}, dtype(DataType::kFloat32).device(x.device()));
+    auto p_selected_safe = p_selected + epsilon;
+    auto log_p = log(p_selected_safe);
 
-        // p[i][t] = p_data[i * C + t]
-        float prob = p_data[i * C + t];
-        if (prob <= 0.0f)
-        {
-            // 避免 log(0)，使用一个很小的值
-            prob = 1e-8f;
-        }
-        total_loss += std::log(prob);
-    }
-
-    // loss = -mean(log(p[target]))
-    float loss_value = -total_loss / static_cast<float>(N);
+    // 4. 计算 mean：sum 然后除以 N
+    auto sum_log_p = sum(log_p, -1);  // sum 所有元素
+    auto sum_value = sum_log_p.item<float>();
+    float loss_value = -sum_value / static_cast<float>(N);
 
     // 创建标量损失张量
     auto loss = Tensor({loss_value}, Shape{}, dtype(DataType::kFloat32).device(x.device()));
@@ -97,18 +94,10 @@ std::vector<Tensor> SoftmaxCrossEntropy::backward(const std::vector<Tensor> &gys
     // 1. 计算 softmax(x)
     auto p = softmax(x, -1);
 
-    // 2. 创建 one_hot(target) 编码
-    auto target_data = target.to_vector<int32_t>();
-    std::vector<float> one_hot_data(N * C, 0.0f);
-    for (size_t i = 0; i < N; ++i)
-    {
-        int32_t t = target_data[i];
-        if (t >= 0 && t < static_cast<int32_t>(C))
-        {
-            one_hot_data[i * C + t] = 1.0f;
-        }
-    }
-    auto one_hot = Tensor(one_hot_data, x_shape, dtype(DataType::kFloat32).device(x.device()));
+    // 2. 使用 mat 层的 one_hot 创建 one_hot(target) 编码
+    const OriginMat &target_mat = static_cast<const OriginMat &>(mat(target));
+    auto one_hot_mat = OriginMat::one_hot(target_mat, static_cast<int>(C));
+    auto one_hot = convert_mat_to_tensor(std::move(one_hot_mat));
 
     // 3. 计算 gx = (softmax(x) - one_hot(target)) / N
     auto diff = p - one_hot;

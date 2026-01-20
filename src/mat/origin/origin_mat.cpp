@@ -395,6 +395,27 @@ std::unique_ptr<Mat> OriginMat::transpose() const
     }
 }
 
+std::unique_ptr<Mat> OriginMat::permute(const std::vector<int> &dims) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::permute(*this, dims);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::permute(*this, dims);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for permute: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
 std::unique_ptr<Mat> OriginMat::operator+(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
@@ -522,6 +543,26 @@ std::unique_ptr<Mat> OriginMat::sum(int axis) const
     else
     {
         THROW_RUNTIME_ERROR("Unsupported device type for sum: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::max(int axis) const
+{
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::max(*this, axis);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::max(*this, axis);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for max: {}", static_cast<int>(storage_->device_type()));
     }
 }
 
@@ -681,6 +722,76 @@ std::unique_ptr<Mat> OriginMat::sqrt() const
 void OriginMat::sqrt_inplace()
 {
     device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::sqrt, cuda::sqrt, "sqrt_inplace");
+}
+
+// === 索引和选择操作 ===
+std::unique_ptr<Mat> OriginMat::gather(const OriginMat &indices) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::gather(*this, indices);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::gather(*this, indices);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for gather: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::one_hot(const OriginMat &indices, int num_classes)
+{
+    // 根据设备类型选择实现
+    if (indices.device().type() == DeviceType::kCPU)
+    {
+        return cpu::one_hot(indices, num_classes);
+    }
+    else if (indices.device().type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::one_hot(indices, num_classes);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for one_hot: {}", static_cast<int>(indices.device().type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::yolo_detect_forward(const OriginMat &conv_weight,
+                                                     const OriginMat *conv_bias,
+                                                     const OriginMat &grid,
+                                                     const OriginMat &anchor_grid,
+                                                     float stride,
+                                                     int32_t num_anchors,
+                                                     int32_t num_classes) const
+{
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::yolo_detect_forward(*this, conv_weight, conv_bias, grid, anchor_grid, stride, num_anchors, num_classes);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::yolo_detect_forward(*this, conv_weight, conv_bias, grid, anchor_grid, stride, num_anchors, num_classes);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for yolo_detect_forward: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 // 类型和设备

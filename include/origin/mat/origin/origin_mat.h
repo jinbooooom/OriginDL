@@ -80,6 +80,12 @@ public:
     std::unique_ptr<Mat> contiguous() const override;
     std::unique_ptr<Mat> reshape(const Shape &shape) const override;
     std::unique_ptr<Mat> transpose() const override;
+    /**
+     * @brief permute：按照指定顺序重新排列张量的维度
+     * @param dims 新的维度顺序，例如 {0, 2, 3, 1} 表示将维度 0,1,2,3 重新排列为 0,2,3,1
+     * @return 重排后的矩阵
+     */
+    std::unique_ptr<Mat> permute(const std::vector<int> &dims) const;
     std::unique_ptr<Mat> operator+(const Mat &other) const override;
     void add_inplace(const Mat &other) override;
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
@@ -93,7 +99,8 @@ public:
     std::unique_ptr<Mat> square() const override;
     std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
-    std::unique_ptr<Mat> sum(int axis) const override;
+    std::unique_ptr<Mat> sum(int axis = -1) const override;
+    std::unique_ptr<Mat> max(int axis = -1) const override;
     std::unique_ptr<Mat> broadcast_to(const Shape &target_shape) const override;
     std::unique_ptr<Mat> sum_to(const Shape &target_shape) const override;
     bool can_broadcast_to(const Shape &target_shape) const;
@@ -277,6 +284,26 @@ public:
                                     float momentum,
                                     int num_dims) const;
 
+    // === YOLO Detect 相关操作 ===
+    /**
+     * @brief yolo_detect_forward：YOLO Detect 前向传播（单个 stage）
+     * @param conv_weight 卷积权重 (OC, C, 1, 1)，其中 OC = num_anchors * (num_classes + 5)
+     * @param conv_bias 卷积偏置 (OC,)，可选，如果为 nullptr 则不添加偏置
+     * @param grid grid 坐标 (1, num_anchors, H, W, 2) 或展平后的形状
+     * @param anchor_grid anchor grid 坐标 (1, num_anchors, anchor_H, anchor_W, 2) 或展平后的形状
+     * @param stride stride 值
+     * @param num_anchors anchor 数量
+     * @param num_classes 类别数量
+     * @return 输出张量 (N, num_boxes, classes_info)，其中 num_boxes = H * W * num_anchors, classes_info = num_classes + 5
+     */
+    std::unique_ptr<Mat> yolo_detect_forward(const OriginMat &conv_weight,
+                                             const OriginMat *conv_bias,
+                                             const OriginMat &grid,
+                                             const OriginMat &anchor_grid,
+                                             float stride,
+                                             int32_t num_anchors,
+                                             int32_t num_classes) const;
+
     /**
      * @brief batch_norm_backward：BatchNorm 反向传播
      * @param gy 输出梯度，形状与输入 x 相同
@@ -327,6 +354,22 @@ public:
     void sqrt_inplace() override;
     void square_inplace() override;
     void neg_inplace() override;
+
+    // === 索引和选择操作 ===
+    /**
+     * @brief gather：根据索引从矩阵中提取值
+     * @param indices 索引向量 (N,)，每个元素在 [0, C) 范围内
+     * @return 提取的值 (N,)
+     */
+    std::unique_ptr<Mat> gather(const OriginMat &indices) const;
+
+    /**
+     * @brief one_hot：将索引转换为 one-hot 编码
+     * @param indices 索引向量 (N,)，每个元素在 [0, num_classes) 范围内
+     * @param num_classes 类别数量
+     * @return one-hot 编码矩阵 (N, num_classes)
+     */
+    static std::unique_ptr<Mat> one_hot(const OriginMat &indices, int num_classes);
 
     // 0维张量支持
     bool is_scalar() const override;

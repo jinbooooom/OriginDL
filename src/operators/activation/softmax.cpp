@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <cmath>
 #include "origin/core/operator.h"
+#include "origin/core/tensor.h"
 #include "origin/mat/mat.h"
+#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -32,46 +34,21 @@ std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
     }
 
     // 数值稳定性：先找到最大值（沿指定轴）
-    // 由于没有 max 操作，我们需要手动计算
-    // 为了简化，我们先实现 axis=-1 的情况（最后一个维度）
-    if (unlikely(axis != static_cast<int>(x_shape.size()) - 1))
-    {
-        THROW_RUNTIME_ERROR("Softmax currently only supports axis=-1 (last dimension)");
-    }
+    // 使用 mat 层的 max 操作
+    const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+    auto max_result        = x_mat.max(axis);
+    auto max_tensor        = convert_mat_to_tensor(std::move(max_result));
 
-    // 计算沿最后一个维度的最大值
-    // 对于形状 (N, C)，我们需要对每个样本找到最大值
-    auto x_data = x.to_vector<float>();
+    // 为了正确广播，需要先将 max_tensor reshape 为可以在指定维度广播的形状
+    // 例如：对于形状 (2, 3)，max(axis=1) 返回 (2,)，需要 reshape 为 (2, 1) 再 broadcast
     auto x_dims = x_shape.dims();
-
-    // 计算每个样本的最大值
-    size_t last_dim   = x_dims.back();
-    size_t outer_size = 1;
-    for (size_t i = 0; i < x_dims.size() - 1; ++i)
-    {
-        outer_size *= x_dims[i];
-    }
-
-    // 创建最大值张量（形状为去掉最后一个维度，但保留维度数）
-    // 例如：对于 (2, 3)，max_shape 应该是 (2, 1) 而不是 (2,)
     std::vector<size_t> max_shape_dims = x_dims;
-    max_shape_dims.back()              = 1;  // 将最后一个维度设为 1，而不是删除
+    max_shape_dims[axis]               = 1;  // 在 axis 维度设为 1
     Shape max_shape(max_shape_dims);
+    auto max_reshaped = reshape(max_tensor, max_shape);
 
-    std::vector<float> max_values(outer_size);
-    for (size_t i = 0; i < outer_size; ++i)
-    {
-        float max_val = x_data[i * last_dim];
-        for (size_t j = 1; j < last_dim; ++j)
-        {
-            max_val = std::max(max_val, x_data[i * last_dim + j]);
-        }
-        max_values[i] = max_val;
-    }
-
-    // 创建最大值张量并广播到原始形状
-    auto max_tensor    = Tensor(max_values, max_shape, dtype(DataType::kFloat32).device(x.device()));
-    auto max_broadcast = broadcast_to(max_tensor, x_shape);
+    // 广播 max 到原始形状
+    auto max_broadcast = broadcast_to(max_reshaped, x_shape);
 
     // x - max(x)
     auto x_sub_max = x - max_broadcast;
