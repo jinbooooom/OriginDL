@@ -1,5 +1,6 @@
 #include "origin/mat/origin/memory/memory_pool.h"
 #include "origin/mat/origin/memory/allocator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 #include "origin/utils/log.h"
 
@@ -11,7 +12,7 @@ MemoryPool::MemoryPool(DeviceType device_type, int device_index, size_t max_cach
 {
     // 根据设备类型和索引创建底层分配器
     backend_ = AllocatorFactory::create_allocator(device_type, device_index);
-    if (!backend_)
+    if (unlikely(!backend_))
     {
         THROW_INVALID_ARG("MemoryPool: failed to create backend allocator for device type {} index {}",
                           static_cast<int>(device_type), device_index);
@@ -124,7 +125,7 @@ void *MemoryPool::malloc(size_t size)
 
     // 缓存未命中，从底层分配器分配
     void *ptr = backend_->allocate(bin_size);
-    if (ptr == nullptr)
+    if (unlikely(ptr == nullptr))
     {
         THROW_RUNTIME_ERROR("MemoryPool: backend allocation failed for size {}", size);
     }

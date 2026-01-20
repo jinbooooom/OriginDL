@@ -1,6 +1,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/type_promotion.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -10,7 +11,7 @@ namespace functional
 
 std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 2)
+    if (unlikely(xs.size() != 2))
     {
         THROW_RUNTIME_ERROR("MatMul operator requires exactly 2 inputs, but got {}", xs.size());
     }
@@ -24,7 +25,7 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
     auto shape1 = x1.shape();
 
     // 检查shape是否有效
-    if (shape0.elements() == 0 || shape1.elements() == 0)
+    if (unlikely(shape0.elements() == 0 || shape1.elements() == 0))
     {
         THROW_RUNTIME_ERROR("MatMul forward: input shapes invalid - xs[0].shape() = {}, xs[1].shape() = {}",
                             shape0.to_string(), shape1.to_string());
@@ -62,7 +63,7 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
     }
 
     // 确保两个张量至少是2维的
-    if (shape0.size() < 2 || shape1.size() < 2)
+    if (unlikely(shape0.size() < 2 || shape1.size() < 2))
     {
         THROW_RUNTIME_ERROR(
             "MatMul forward: after reshape, shapes must be at least 2D - x0.shape() = {}, x1.shape() = {}",
@@ -72,7 +73,7 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
     // 检查矩阵乘法的维度兼容性
     if (shape0.size() == 2 && shape1.size() == 2)
     {
-        if (shape0[1] != shape1[0])
+        if (unlikely(shape0[1] != shape1[0]))
         {
             THROW_RUNTIME_ERROR(
                 "MatMul forward: dimension mismatch - x0.shape() = {}, x1.shape() = {}, x0[1]={} != x1[0]={}",
@@ -82,7 +83,7 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
     else if (shape0.size() == 3 && shape1.size() == 2)
     {
         // 批量矩阵乘法：{batch, m, k} x {k, n} -> {batch, m, n}
-        if (shape0[2] != shape1[0])
+        if (unlikely(shape0[2] != shape1[0]))
         {
             THROW_RUNTIME_ERROR(
                 "MatMul forward: dimension mismatch - x0.shape() = {}, x1.shape() = {}, x0[2]={} != x1[0]={}",
@@ -108,7 +109,7 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("MatMul backward requires exactly 1 gradient, but got {}", gys.size());
     }
@@ -147,7 +148,7 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
     }
 
     // 确保至少是2维
-    if (x_shape.size() < 2 || w_shape.size() < 2)
+    if (unlikely(x_shape.size() < 2 || w_shape.size() < 2))
     {
         THROW_RUNTIME_ERROR(
             "MatMul backward: after reshape, shapes must be at least 2D - x.shape() = {}, w.shape() = {}",

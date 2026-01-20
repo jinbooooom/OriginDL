@@ -1,6 +1,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/type_promotion.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -10,7 +11,7 @@ namespace functional
 
 std::vector<Tensor> Mul::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 2)
+    if (unlikely(xs.size() != 2))
     {
         THROW_RUNTIME_ERROR("Mul operator requires exactly 2 inputs, but got {}", xs.size());
     }
@@ -26,7 +27,7 @@ std::vector<Tensor> Mul::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Mul::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Mul backward requires exactly 1 gradient, but got {}", gys.size());
     }
@@ -61,7 +62,7 @@ std::vector<Tensor> Mul::backward(const std::vector<Tensor> &gys)
 
 void Mul::forward_inplace(Tensor &input0, const Tensor &input1)
 {
-    if (&input1 == &kNullTensor_)
+    if (unlikely(&input1 == &kNullTensor_))
     {
         THROW_INVALID_ARG("Mul requires two operands, cannot be used as unary operator");
     }

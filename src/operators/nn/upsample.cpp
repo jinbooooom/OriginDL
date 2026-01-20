@@ -2,6 +2,7 @@
 #include <cmath>
 #include "origin/core/tensor.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -11,7 +12,7 @@ namespace functional
 
 std::vector<Tensor> Upsample::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Upsample operator requires exactly 1 input, but got {}", xs.size());
     }
@@ -19,7 +20,7 @@ std::vector<Tensor> Upsample::forward(const std::vector<Tensor> &xs)
     auto &x      = xs[0];
     auto x_shape = x.shape();
 
-    if (x_shape.size() != 4)
+    if (unlikely(x_shape.size() != 4))
     {
         THROW_RUNTIME_ERROR("Upsample forward: x must be 4D (N, C, H, W), but got shape {}", x_shape.to_string());
     }
@@ -84,7 +85,7 @@ std::vector<Tensor> Upsample::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Upsample::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Upsample backward requires exactly 1 gradient, but got {}", gys.size());
     }

@@ -5,6 +5,7 @@
 #include "origin/core/tensor.h"
 #include "origin/operators/conv/conv2d.h"
 #include "origin/operators/shape/cat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 #include "origin/utils/log.h"
 
@@ -30,29 +31,29 @@ YoloDetect::YoloDetect(int32_t stages,
       conv_weights_(std::move(conv_weights)),
       conv_biases_(std::move(conv_biases))
 {
-    if (stages_ != 3)
+    if (unlikely(stages_ != 3))
     {
         THROW_RUNTIME_ERROR("YoloDetect only supports 3 stages, but got {}", stages_);
     }
-    if (strides_.size() != static_cast<size_t>(stages_))
+    if (unlikely(strides_.size() != static_cast<size_t>(stages_)))
     {
         THROW_RUNTIME_ERROR("YoloDetect: strides size ({}) does not match stages ({})", strides_.size(), stages_);
     }
-    if (anchor_grids_.size() != static_cast<size_t>(stages_))
+    if (unlikely(anchor_grids_.size() != static_cast<size_t>(stages_)))
     {
         THROW_RUNTIME_ERROR("YoloDetect: anchor_grids size ({}) does not match stages ({})", anchor_grids_.size(),
                             stages_);
     }
-    if (grids_.size() != static_cast<size_t>(stages_))
+    if (unlikely(grids_.size() != static_cast<size_t>(stages_)))
     {
         THROW_RUNTIME_ERROR("YoloDetect: grids size ({}) does not match stages ({})", grids_.size(), stages_);
     }
-    if (conv_weights_.size() != static_cast<size_t>(stages_))
+    if (unlikely(conv_weights_.size() != static_cast<size_t>(stages_)))
     {
         THROW_RUNTIME_ERROR("YoloDetect: conv_weights size ({}) does not match stages ({})", conv_weights_.size(),
                             stages_);
     }
-    if (conv_biases_.size() != static_cast<size_t>(stages_))
+    if (unlikely(conv_biases_.size() != static_cast<size_t>(stages_)))
     {
         THROW_RUNTIME_ERROR("YoloDetect: conv_biases size ({}) does not match stages ({})", conv_biases_.size(),
                             stages_);
@@ -61,7 +62,7 @@ YoloDetect::YoloDetect(int32_t stages,
 
 std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != static_cast<size_t>(stages_))
+    if (unlikely(xs.size() != static_cast<size_t>(stages_)))
     {
         THROW_RUNTIME_ERROR("YoloDetect forward: expected {} inputs (stages), but got {}", stages_, xs.size());
     }
@@ -80,7 +81,7 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         auto input_shape    = input.shape();
 
         // 检查输入形状：应该是 (N, C, H, W)
-        if (input_shape.size() != 4)
+        if (unlikely(input_shape.size() != 4))
         {
             THROW_RUNTIME_ERROR("YoloDetect forward: input {} must be 4D (N, C, H, W), but got shape {}", stage,
                                 input_shape.to_string());

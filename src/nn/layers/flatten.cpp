@@ -1,6 +1,7 @@
 #include "origin/nn/layers/flatten.h"
 #include <vector>
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -10,7 +11,7 @@ namespace nn
 
 Flatten::Flatten(int start_dim, int end_dim) : start_dim_(start_dim), end_dim_(end_dim)
 {
-    if (start_dim < 0)
+    if (unlikely(start_dim < 0))
     {
         THROW_INVALID_ARG("Flatten: start_dim must be non-negative, but got {}", start_dim);
     }
@@ -25,15 +26,15 @@ Tensor Flatten::forward(const Tensor &input)
     int actual_start_dim = start_dim_;
     int actual_end_dim   = (end_dim_ < 0) ? (ndim + end_dim_) : end_dim_;
 
-    if (actual_start_dim < 0 || actual_start_dim >= ndim)
+    if (unlikely(actual_start_dim < 0 || actual_start_dim >= ndim))
     {
         THROW_INVALID_ARG("Flatten: start_dim {} is out of range for input with {} dimensions", actual_start_dim, ndim);
     }
-    if (actual_end_dim < 0 || actual_end_dim >= ndim)
+    if (unlikely(actual_end_dim < 0 || actual_end_dim >= ndim))
     {
         THROW_INVALID_ARG("Flatten: end_dim {} is out of range for input with {} dimensions", actual_end_dim, ndim);
     }
-    if (actual_start_dim > actual_end_dim)
+    if (unlikely(actual_start_dim > actual_end_dim))
     {
         THROW_INVALID_ARG("Flatten: start_dim {} must be <= end_dim {}", actual_start_dim, actual_end_dim);
     }

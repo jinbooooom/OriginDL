@@ -1,4 +1,5 @@
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/log.h"
 
 namespace origin
@@ -29,7 +30,7 @@ std::vector<Tensor> Neg::backward(const std::vector<Tensor> &gys)
 
 void Neg::forward_inplace(Tensor &input0, const Tensor &input1)
 {
-    if (&input1 != &kNullTensor_)
+    if (unlikely(&input1 != &kNullTensor_))
     {
         THROW_INVALID_ARG("Neg is a unary operator, cannot accept two operands");
     }

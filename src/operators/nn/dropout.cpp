@@ -2,6 +2,7 @@
 #include <vector>
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -11,7 +12,7 @@ namespace functional
 
 Dropout::Dropout(float p, bool training) : p_(p), training_(training)
 {
-    if (p < 0.0f || p >= 1.0f)
+    if (unlikely(p < 0.0f || p >= 1.0f))
     {
         THROW_INVALID_ARG("Dropout: p must be in [0, 1), but got {}", p);
     }
@@ -19,7 +20,7 @@ Dropout::Dropout(float p, bool training) : p_(p), training_(training)
 
 std::vector<Tensor> Dropout::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Dropout operator requires exactly 1 input, but got {}", xs.size());
     }
@@ -71,7 +72,7 @@ std::vector<Tensor> Dropout::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Dropout backward requires exactly 1 gradient, but got {}", gys.size());
     }

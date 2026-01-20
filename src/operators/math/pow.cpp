@@ -3,6 +3,7 @@
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/scalar.h"
 #include "origin/mat/type_promotion.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -12,7 +13,7 @@ namespace functional
 
 std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Pow operator requires exactly 1 input, but got {}", xs.size());
     }
@@ -32,7 +33,7 @@ std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Pow backward requires exactly 1 gradient, but got {}", gys.size());
     }

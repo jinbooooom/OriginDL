@@ -6,6 +6,7 @@
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/conv_utils.h"
 #include "origin/utils/exception.h"
 
@@ -406,7 +407,7 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
     auto img_shape = img.shape();
 
     // 检查输入形状：必须是 (N, C, H, W)
-    if (img_shape.size() != 4)
+    if (unlikely(img_shape.size() != 4))
     {
         THROW_INVALID_ARG("im2col: input must be 4D (N, C, H, W), but got shape {}", img_shape.to_string());
     }
@@ -427,7 +428,7 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
     int OH = get_conv_outsize(static_cast<int>(H), KH, SH, PH);
     int OW = get_conv_outsize(static_cast<int>(W), KW, SW, PW);
 
-    if (OH <= 0 || OW <= 0)
+    if (unlikely(OH <= 0 || OW <= 0))
     {
         THROW_INVALID_ARG(
             "im2col: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
@@ -507,7 +508,7 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col,
                                  bool to_matrix)
 {
     // 检查输入形状
-    if (input_shape.size() != 4)
+    if (unlikely(input_shape.size() != 4))
     {
         THROW_INVALID_ARG("col2im: input_shape must be 4D (N, C, H, W), but got shape {}", input_shape.to_string());
     }
@@ -609,11 +610,11 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
                             std::pair<int, int> pad)
 {
     // 输入验证
-    if (x.shape().size() != 4)
+    if (unlikely(x.shape().size() != 4))
     {
         THROW_INVALID_ARG("conv2d: x must be 4D (N, C, H, W), but got shape {}", x.shape().to_string());
     }
-    if (W.shape().size() != 4)
+    if (unlikely(W.shape().size() != 4))
     {
         THROW_INVALID_ARG("conv2d: W must be 4D (OC, C, KH, KW), but got shape {}", W.shape().to_string());
     }
@@ -629,7 +630,7 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
     size_t KW   = W.shape()[3];
 
     // 检查通道数是否匹配
-    if (C != C_in)
+    if (unlikely(C != C_in))
     {
         THROW_INVALID_ARG("conv2d: channel mismatch - x has {} channels, but W expects {} channels", C, C_in);
     }
@@ -638,7 +639,7 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
     int OH = get_conv_outsize(static_cast<int>(H), static_cast<int>(KH), stride.first, pad.first);
     int OW = get_conv_outsize(static_cast<int>(W_in), static_cast<int>(KW), stride.second, pad.second);
 
-    if (OH <= 0 || OW <= 0)
+    if (unlikely(OH <= 0 || OW <= 0))
     {
         THROW_INVALID_ARG(
             "conv2d: invalid output size OH={}, OW={} for input H={}, W={}, kernel=({},{}), "
@@ -649,7 +650,7 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
     // 检查偏置
     if (b != nullptr)
     {
-        if (b->shape().size() != 1 || b->shape()[0] != OC)
+        if (unlikely(b->shape().size() != 1 || b->shape()[0] != OC))
         {
             THROW_INVALID_ARG("conv2d: b must be 1D with size {}, but got shape {}", OC, b->shape().to_string());
         }
@@ -737,15 +738,15 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy,
                                                   std::pair<int, int> pad)
 {
     // 输入验证
-    if (gy.shape().size() != 4)
+    if (unlikely(gy.shape().size() != 4)) 
     {
         THROW_INVALID_ARG("conv2d_backward: gy must be 4D (N, OC, OH, OW), but got shape {}", gy.shape().to_string());
     }
-    if (x.shape().size() != 4)
+    if (unlikely(x.shape().size() != 4))
     {
         THROW_INVALID_ARG("conv2d_backward: x must be 4D (N, C, H, W), but got shape {}", x.shape().to_string());
     }
-    if (W.shape().size() != 4)
+    if (unlikely(W.shape().size() != 4))
     {
         THROW_INVALID_ARG("conv2d_backward: W must be 4D (OC, C, KH, KW), but got shape {}", W.shape().to_string());
     }

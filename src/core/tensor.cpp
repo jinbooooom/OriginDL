@@ -4,6 +4,7 @@
 #include "origin/core/tensor_options.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -274,7 +275,7 @@ void Tensor::from_memory(const void *data, DataType user_dtype, const Shape &sha
     {
         for (size_t i = 0; i < shape.size(); ++i)
         {
-            if (shape[i] == 0)
+            if (unlikely(shape[i] == 0))
             {
                 THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
                                   shape.to_string());
@@ -294,7 +295,7 @@ void Tensor::from_scalar(const Scalar &scalar, const Shape &shape, const TensorO
     {
         for (size_t i = 0; i < shape.size(); ++i)
         {
-            if (shape[i] == 0)
+            if (unlikely(shape[i] == 0))
             {
                 THROW_INVALID_ARG("Tensor shape cannot have zero dimensions. Dimension {} is zero in shape {}", i,
                                   shape.to_string());

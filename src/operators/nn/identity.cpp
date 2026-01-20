@@ -1,5 +1,6 @@
 #include "origin/operators/nn/identity.h"
 #include "origin/core/tensor.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -9,7 +10,7 @@ namespace functional
 
 std::vector<Tensor> Identity::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.empty())
+    if (unlikely(xs.empty()))
     {
         THROW_RUNTIME_ERROR("Identity operator requires at least 1 input, but got 0");
     }
@@ -30,7 +31,7 @@ std::vector<Tensor> Identity::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Identity::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Identity backward requires exactly 1 gradient, but got {}", gys.size());
     }

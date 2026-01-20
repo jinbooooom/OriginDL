@@ -2,6 +2,7 @@
 #include <cmath>
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -11,7 +12,7 @@ namespace functional
 
 std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Softmax operator requires exactly 1 input, but got {}", xs.size());
     }
@@ -25,7 +26,7 @@ std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
     {
         axis = static_cast<int>(x_shape.size()) + axis;
     }
-    if (axis < 0 || axis >= static_cast<int>(x_shape.size()))
+    if (unlikely(axis < 0 || axis >= static_cast<int>(x_shape.size())))
     {
         THROW_INVALID_ARG("Invalid axis {} for softmax. Tensor has {} dimensions", axis_, x_shape.size());
     }
@@ -33,7 +34,7 @@ std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
     // 数值稳定性：先找到最大值（沿指定轴）
     // 由于没有 max 操作，我们需要手动计算
     // 为了简化，我们先实现 axis=-1 的情况（最后一个维度）
-    if (axis != static_cast<int>(x_shape.size()) - 1)
+    if (unlikely(axis != static_cast<int>(x_shape.size()) - 1))
     {
         THROW_RUNTIME_ERROR("Softmax currently only supports axis=-1 (last dimension)");
     }
@@ -100,7 +101,7 @@ std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Softmax::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Softmax backward requires exactly 1 gradient, but got {}", gys.size());
     }

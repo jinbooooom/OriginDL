@@ -10,6 +10,7 @@
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -123,7 +124,7 @@ void TensorImpl::backward()
 
         auto gys = std::vector<Tensor>();
         // 检查 outputs_ 是否为空
-        if (f->outputs_.empty())
+        if (unlikely(f->outputs_.empty()))
         {
             // 如果outputs_为空，跳过这个Operator
             continue;
@@ -159,13 +160,13 @@ void TensorImpl::backward()
         }
 
         // 如果所有 weak_ptr 都失效，跳过这个 Operator
-        if (gys.empty())
+        if (unlikely(gys.empty()))
         {
             continue;
         }
         auto gxs = f->backward(gys);
 
-        if (gxs.size() != f->inputs_.size())
+        if (unlikely(gxs.size() != f->inputs_.size()))
         {
             THROW_RUNTIME_ERROR("backward error!, gxs size {} inputs size {}", gxs.size(), f->inputs_.size());
         }
@@ -383,7 +384,7 @@ size_t TensorImpl::elements() const
 template <typename T>
 T TensorImpl::item() const
 {
-    if (elements() != 1)
+    if (unlikely(elements() != 1))
     {
         THROW_RUNTIME_ERROR("item() can only be called on scalar tensors, but tensor has {} elements", elements());
     }

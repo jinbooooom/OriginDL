@@ -26,7 +26,7 @@ BatchNormForwardResult batch_norm_forward(const OriginMat &x,
 {
     // 输入验证
     auto x_shape = x.shape();
-    if (x_shape.size() != static_cast<size_t>(num_dims))
+    if (unlikely(x_shape.size() != static_cast<size_t>(num_dims)))
     {
         THROW_INVALID_ARG("batch_norm: x must have {} dimensions, but got shape {}", num_dims, x_shape.to_string());
     }
@@ -272,7 +272,7 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
 {
     // 输入验证
     auto x_shape = x.shape();
-    if (x_shape.size() != static_cast<size_t>(num_dims))
+    if (unlikely(x_shape.size() != static_cast<size_t>(num_dims)))
     {
         THROW_INVALID_ARG("batch_norm_backward: x must have {} dimensions, but got shape {}", num_dims,
                           x_shape.to_string());

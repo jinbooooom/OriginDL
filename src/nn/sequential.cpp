@@ -1,4 +1,5 @@
 #include "origin/nn/sequential.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -56,7 +57,7 @@ void Sequential::to(Device device)
 
 Module &Sequential::operator[](size_t index)
 {
-    if (index >= modules_.size())
+    if (unlikely(index >= modules_.size()))
     {
         THROW_RUNTIME_ERROR("Index {} out of range for Sequential with {} modules", index, modules_.size());
     }
@@ -65,7 +66,7 @@ Module &Sequential::operator[](size_t index)
 
 const Module &Sequential::operator[](size_t index) const
 {
-    if (index >= modules_.size())
+    if (unlikely(index >= modules_.size()))
     {
         THROW_RUNTIME_ERROR("Index {} out of range for Sequential with {} modules", index, modules_.size());
     }

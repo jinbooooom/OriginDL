@@ -10,6 +10,7 @@
 #include "origin/core/tensor.h"
 #include "origin/pnnx/internal/store_zip.hpp"
 #include "origin/pnnx/pnnx_node.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -36,7 +37,7 @@ std::vector<std::shared_ptr<PNNXNode>> PNNXParser::parse(const std::string &para
 void PNNXParser::parse_param_file(const std::string &param_path, std::vector<std::shared_ptr<PNNXNode>> &nodes)
 {
     std::ifstream file(param_path);
-    if (!file.is_open())
+    if (unlikely(!file.is_open()))
     {
         THROW_RUNTIME_ERROR("Failed to open param file: {}", param_path);
     }
@@ -48,7 +49,7 @@ void PNNXParser::parse_param_file(const std::string &param_path, std::vector<std
     line.erase(0, line.find_first_not_of(" \t\r\n"));
     line.erase(line.find_last_not_of(" \t\r\n") + 1);
 
-    if (line.empty())
+    if (unlikely(line.empty()))
     {
         THROW_RUNTIME_ERROR("Empty magic number in param file");
     }

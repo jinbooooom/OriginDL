@@ -1,6 +1,7 @@
 #include "origin/operators/shape/flatten.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -10,7 +11,7 @@ namespace functional
 
 std::vector<Tensor> FlattenOp::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Flatten operator requires exactly 1 input, but got {}", xs.size());
     }
@@ -32,8 +33,8 @@ std::vector<Tensor> FlattenOp::forward(const std::vector<Tensor> &xs)
         end_dim = static_cast<int>(x_dims.size()) + end_dim;
     }
 
-    if (start_dim < 0 || start_dim >= static_cast<int>(x_dims.size()) || end_dim < 0 ||
-        end_dim >= static_cast<int>(x_dims.size()) || start_dim > end_dim)
+    if (unlikely(start_dim < 0 || start_dim >= static_cast<int>(x_dims.size()) || end_dim < 0 ||
+                 end_dim >= static_cast<int>(x_dims.size()) || start_dim > end_dim))
     {
         THROW_INVALID_ARG("Flatten: invalid dims - start_dim={}, end_dim={}, shape={}", start_dim_, end_dim_,
                           x_shape.to_string());
@@ -71,7 +72,7 @@ std::vector<Tensor> FlattenOp::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> FlattenOp::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Flatten backward requires exactly 1 gradient, but got {}", gys.size());
     }

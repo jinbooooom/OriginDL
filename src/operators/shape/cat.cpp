@@ -2,6 +2,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 #ifdef WITH_CUDA
 #    include "origin/mat/origin/cuda/factory.cuh"
@@ -14,7 +15,7 @@ namespace functional
 
 std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.empty())
+    if (unlikely(xs.empty()))
     {
         THROW_RUNTIME_ERROR("Cat operator requires at least 1 input, but got 0");
     }
@@ -32,14 +33,14 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
     for (size_t i = 1; i < xs.size(); ++i)
     {
         auto shape = xs[i].shape();
-        if (shape.size() != first_shape.size())
+        if (unlikely(shape.size() != first_shape.size()))
         {
             THROW_RUNTIME_ERROR("Cat forward: all inputs must have same number of dimensions");
         }
 
         for (size_t d = 0; d < shape.size(); ++d)
         {
-            if (d != static_cast<size_t>(dim_) && shape[d] != first_shape[d])
+            if (unlikely(d != static_cast<size_t>(dim_) && shape[d] != first_shape[d]))
             {
                 THROW_RUNTIME_ERROR("Cat forward: dimension {} mismatch: {} vs {}", d, shape[d], first_shape[d]);
             }
@@ -163,7 +164,7 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Cat::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Cat backward requires exactly 1 gradient, but got {}", gys.size());
     }

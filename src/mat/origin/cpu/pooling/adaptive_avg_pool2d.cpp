@@ -17,7 +17,7 @@ namespace cpu
 std::unique_ptr<Mat> adaptive_avg_pool2d(const OriginMat &x, std::pair<int, int> output_size)
 {
     // 输入验证：确保输入是4D张量 (N, C, H, W)
-    if (x.shape().size() != 4)
+    if (unlikely(x.shape().size() != 4))
     {
         THROW_INVALID_ARG("adaptive_avg_pool2d: x must be 4D (N, C, H, W), but got shape {}", x.shape().to_string());
     }

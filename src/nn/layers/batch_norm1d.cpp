@@ -1,6 +1,7 @@
 #include "origin/nn/layers/batch_norm1d.h"
 #include <cmath>
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -11,7 +12,7 @@ namespace nn
 BatchNorm1d::BatchNorm1d(int num_features, float eps, float momentum)
     : num_features_(num_features), eps_(eps), momentum_(momentum)
 {
-    if (num_features <= 0)
+    if (unlikely(num_features <= 0))
     {
         THROW_INVALID_ARG("BatchNorm1d: num_features must be positive, but got {}", num_features);
     }
@@ -39,12 +40,12 @@ Tensor BatchNorm1d::forward(const Tensor &input)
 {
     // 验证输入形状
     auto input_shape = input.shape();
-    if (input_shape.size() != 2)
+    if (unlikely(input_shape.size() != 2))
     {
         THROW_RUNTIME_ERROR("BatchNorm1d forward: input must be 2D (N, C), but got shape {}", input_shape.to_string());
     }
 
-    if (input_shape[1] != static_cast<size_t>(num_features_))
+    if (unlikely(input_shape[1] != static_cast<size_t>(num_features_)))
     {
         THROW_RUNTIME_ERROR("BatchNorm1d forward: input feature size {} does not match num_features {}", input_shape[1],
                             num_features_);

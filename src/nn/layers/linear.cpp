@@ -3,6 +3,7 @@
 #include <vector>
 #include "origin/core/operator.h"
 #include "origin/mat/scalar.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -39,7 +40,7 @@ Parameter Linear::init_weight()
 
     // 确保scaled_weight有正确的shape
     auto scaled_shape = scaled_weight.shape();
-    if (scaled_shape.elements() == 0)
+    if (unlikely(scaled_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR("init_weight: scaled_weight has empty shape!");
     }
@@ -49,7 +50,7 @@ Parameter Linear::init_weight()
 
     // 验证Parameter的shape
     auto w_shape = w.shape();
-    if (w_shape.elements() == 0)
+    if (unlikely(w_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR("init_weight: Parameter w has empty shape after construction! scaled_weight.shape() = {}",
                             scaled_shape.to_string());
@@ -87,7 +88,7 @@ Tensor Linear::forward(const Tensor &input)
     // 矩阵乘法：y = input * weight
     // 检查weight_的状态
     auto w_shape = weight_.shape();
-    if (w_shape.elements() == 0)
+    if (unlikely(w_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR("Weight is empty in forward! weight_.shape() = {}", w_shape.to_string());
     }

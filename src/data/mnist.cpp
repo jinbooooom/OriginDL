@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include "origin/core/tensor.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -39,7 +40,7 @@ MNIST::MNIST(const std::string &root, bool train) : train_(train), root_(root)
         std::filesystem::path script_path = std::filesystem::current_path() / "scripts" / "download_mnist.sh";
 
         // 检查脚本是否存在
-        if (!std::filesystem::exists(script_path))
+        if (unlikely(!std::filesystem::exists(script_path)))
         {
             THROW_RUNTIME_ERROR(
                 "MNIST data files not found and download script not found at: {}\n"
@@ -51,7 +52,7 @@ MNIST::MNIST(const std::string &root, bool train) : train_(train), root_(root)
         std::string cmd = "bash " + script_path.string();
         int ret         = std::system(cmd.c_str());
 
-        if (ret != 0)
+        if (unlikely(ret != 0))
         {
             THROW_RUNTIME_ERROR(
                 "Failed to download MNIST dataset. Download script returned error code: {}\n"
@@ -60,7 +61,7 @@ MNIST::MNIST(const std::string &root, bool train) : train_(train), root_(root)
         }
 
         // 再次检查文件是否存在
-        if (!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file))
+        if (unlikely(!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file)))
         {
             THROW_RUNTIME_ERROR(
                 "MNIST data files still not found after running download script.\n"
@@ -72,11 +73,11 @@ MNIST::MNIST(const std::string &root, bool train) : train_(train), root_(root)
     }
 
     // 加载数据
-    if (!load_images(images_file))
+    if (unlikely(!load_images(images_file)))
     {
         THROW_RUNTIME_ERROR("Failed to load MNIST images from: {}", images_file);
     }
-    if (!load_labels(labels_file))
+    if (unlikely(!load_labels(labels_file)))
     {
         THROW_RUNTIME_ERROR("Failed to load MNIST labels from: {}", labels_file);
     }
@@ -174,7 +175,7 @@ bool MNIST::load_labels(const std::string &filepath)
 
 std::pair<Tensor, Tensor> MNIST::get_item(size_t index)
 {
-    if (index >= size())
+    if (unlikely(index >= size()))
     {
         THROW_INVALID_ARG("Index {} out of range for MNIST dataset with {} samples", index, size());
     }

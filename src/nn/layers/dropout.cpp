@@ -1,5 +1,6 @@
 #include "origin/nn/layers/dropout.h"
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -9,7 +10,7 @@ namespace nn
 
 Dropout::Dropout(float p) : p_(p)
 {
-    if (p < 0.0f || p >= 1.0f)
+    if (unlikely(p < 0.0f || p >= 1.0f))
     {
         THROW_INVALID_ARG("Dropout: p must be in [0, 1), but got {}", p);
     }

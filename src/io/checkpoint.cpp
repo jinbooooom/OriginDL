@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include "origin/io/model_io.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -44,7 +45,7 @@ void save(const Checkpoint &checkpoint, const std::string &filepath)
     // 保存元数据（JSON 格式）
     std::string metadata_path = ckpt_dir + "/metadata.json";
     std::ofstream metadata_file(metadata_path);
-    if (!metadata_file.is_open())
+    if (unlikely(!metadata_file.is_open()))
     {
         THROW_RUNTIME_ERROR("Failed to open metadata file for writing: {}", metadata_path);
     }
@@ -83,7 +84,7 @@ Checkpoint load_checkpoint(const std::string &filepath)
     }
 
     // 检查目录是否存在
-    if (!fs::exists(ckpt_dir) || !fs::is_directory(ckpt_dir))
+    if (unlikely(!fs::exists(ckpt_dir) || !fs::is_directory(ckpt_dir)))
     {
         THROW_RUNTIME_ERROR("Checkpoint directory does not exist: {}", ckpt_dir);
     }
@@ -106,7 +107,7 @@ Checkpoint load_checkpoint(const std::string &filepath)
     if (fs::exists(metadata_path))
     {
         std::ifstream metadata_file(metadata_path);
-        if (!metadata_file.is_open())
+        if (unlikely(!metadata_file.is_open()))
         {
             THROW_RUNTIME_ERROR("Failed to open metadata file: {}", metadata_path);
         }

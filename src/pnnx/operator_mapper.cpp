@@ -14,6 +14,7 @@
 #include "origin/operators/shape/cat.h"
 #include "origin/operators/shape/flatten.h"
 #include "origin/pnnx/pnnx_node.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -141,7 +142,7 @@ std::shared_ptr<Operator> OperatorMapper::create_linear(std::shared_ptr<PNNXNode
         }
     }
 
-    if (in_features == 0 || out_features == 0)
+    if (unlikely(in_features == 0 || out_features == 0))
     {
         THROW_RUNTIME_ERROR("Linear operator: in_features and out_features must be specified");
     }

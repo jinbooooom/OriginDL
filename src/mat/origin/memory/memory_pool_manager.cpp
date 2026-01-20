@@ -1,6 +1,7 @@
 #include "origin/mat/origin/memory/memory_pool_manager.h"
 #include "origin/mat/origin/memory/allocator.h"
 #include "origin/mat/origin/memory/memory_pool.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 #ifdef WITH_CUDA
@@ -60,7 +61,7 @@ int MemoryPoolManager::get_pool_index(DeviceType device_type, int device_index) 
     else if (device_type == DeviceType::kCUDA)
     {
         // CUDA 设备索引直接对应
-        if (device_index < 0 || device_index >= max_cuda_devices_)
+        if (unlikely(device_index < 0 || device_index >= max_cuda_devices_))
         {
             THROW_INVALID_ARG("Invalid CUDA device index: {}, max devices: {}", device_index, max_cuda_devices_);
         }

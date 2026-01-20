@@ -2,6 +2,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -13,7 +14,7 @@ std::vector<Tensor> LinearOp::forward(const std::vector<Tensor> &xs)
 {
     // xs[0] = x (输入), xs[1] = weight, xs[2] = bias (可选)
     size_t expected_inputs = use_bias_ ? 3 : 2;
-    if (xs.size() != expected_inputs)
+    if (unlikely(xs.size() != expected_inputs))
     {
         THROW_RUNTIME_ERROR("Linear operator requires {} inputs (x, weight{}), but got {}", expected_inputs,
                             use_bias_ ? ", bias" : "", xs.size());
@@ -50,13 +51,13 @@ std::vector<Tensor> LinearOp::forward(const std::vector<Tensor> &xs)
     }
 
     // 检查维度
-    if (x_flat.shape().size() != 2)
+    if (unlikely(x_flat.shape().size() != 2))
     {
         THROW_RUNTIME_ERROR("Linear forward: x must be 2D after flattening, but got shape {}",
                             x_flat.shape().to_string());
     }
 
-    if (weight_shape.size() != 2)
+    if (unlikely(weight_shape.size() != 2))
     {
         THROW_RUNTIME_ERROR("Linear forward: weight must be 2D (out_features, in_features), but got shape {}",
                             weight_shape.to_string());
@@ -66,13 +67,13 @@ std::vector<Tensor> LinearOp::forward(const std::vector<Tensor> &xs)
     size_t weight_out = weight_shape[0];
     size_t weight_in  = weight_shape[1];
 
-    if (x_features != weight_in)
+    if (unlikely(x_features != weight_in))
     {
         THROW_RUNTIME_ERROR("Linear forward: feature mismatch - x has {} features, but weight expects {} features",
                             x_features, weight_in);
     }
 
-    if (weight_out != static_cast<size_t>(out_features_))
+    if (unlikely(weight_out != static_cast<size_t>(out_features_)))
     {
         THROW_RUNTIME_ERROR("Linear forward: output feature mismatch - weight has {} out_features, but expected {}",
                             weight_out, out_features_);
@@ -115,7 +116,7 @@ std::vector<Tensor> LinearOp::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> LinearOp::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Linear backward requires exactly 1 gradient, but got {}", gys.size());
     }

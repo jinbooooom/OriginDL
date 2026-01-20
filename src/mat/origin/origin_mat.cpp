@@ -10,6 +10,7 @@
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/cpu/factory.h"
 #include "origin/mat/origin/origin_mat_utils.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 #ifdef WITH_CUDA
@@ -187,7 +188,7 @@ OriginMat::OriginMat(std::shared_ptr<Storage> storage,
 {
     utils::validate_shape(shape);
     // 验证strides大小与shape匹配
-    if (strides.size() != shape.size())
+    if (unlikely(strides.size() != shape.size()))
     {
         THROW_INVALID_ARG("Strides size {} must match shape size {}", strides.size(), shape.size());
     }

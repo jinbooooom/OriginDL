@@ -32,7 +32,7 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
 
     if (out != nullptr)
     {
-        if (out->shape() != result_shape || out->dtype() != a.dtype() || out->device() != a.device())
+        if (unlikely(out->shape() != result_shape || out->dtype() != a.dtype() || out->device() != a.device()))
         {
             THROW_INVALID_ARG("Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
                               "dtype={}, device={}",

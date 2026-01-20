@@ -2,6 +2,7 @@
 #include <cmath>
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -11,7 +12,7 @@ namespace functional
 
 std::vector<Tensor> SoftmaxCrossEntropy::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 2)
+    if (unlikely(xs.size() != 2))
     {
         THROW_RUNTIME_ERROR("SoftmaxCrossEntropy operator requires exactly 2 inputs (x and target), but got {}",
                             xs.size());
@@ -24,16 +25,16 @@ std::vector<Tensor> SoftmaxCrossEntropy::forward(const std::vector<Tensor> &xs)
     auto target_shape = target.shape();
 
     // 验证输入形状
-    if (x_shape.size() != 2)
+    if (unlikely(x_shape.size() != 2))
     {
         THROW_INVALID_ARG("SoftmaxCrossEntropy expects x to be 2D (N, C), but got shape {}", x_shape.to_string());
     }
-    if (target_shape.size() != 1)
+    if (unlikely(target_shape.size() != 1))
     {
         THROW_INVALID_ARG("SoftmaxCrossEntropy expects target to be 1D (N,), but got shape {}",
                           target_shape.to_string());
     }
-    if (x_shape[0] != target_shape[0])
+    if (unlikely(x_shape[0] != target_shape[0]))
     {
         THROW_INVALID_ARG("SoftmaxCrossEntropy: batch size mismatch. x has {} samples, target has {} samples",
                           x_shape[0], target_shape[0]);
@@ -54,7 +55,7 @@ std::vector<Tensor> SoftmaxCrossEntropy::forward(const std::vector<Tensor> &xs)
     for (size_t i = 0; i < N; ++i)
     {
         int32_t t = target_data[i];
-        if (t < 0 || t >= static_cast<int32_t>(C))
+        if (unlikely(t < 0 || t >= static_cast<int32_t>(C)))
         {
             THROW_INVALID_ARG("SoftmaxCrossEntropy: target index {} out of range [0, {})", t, C);
         }
@@ -79,7 +80,7 @@ std::vector<Tensor> SoftmaxCrossEntropy::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> SoftmaxCrossEntropy::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("SoftmaxCrossEntropy backward requires exactly 1 gradient, but got {}", gys.size());
     }

@@ -3,6 +3,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/conv_utils.h"
 #include "origin/utils/exception.h"
 
@@ -13,7 +14,7 @@ namespace functional
 
 std::vector<Tensor> MaxPool2d::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("MaxPool2d operator requires exactly 1 input, but got {}", xs.size());
     }
@@ -22,7 +23,7 @@ std::vector<Tensor> MaxPool2d::forward(const std::vector<Tensor> &xs)
     auto x_shape = x.shape();
 
     // 检查输入形状
-    if (x_shape.size() != 4)
+    if (unlikely(x_shape.size() != 4))
     {
         THROW_RUNTIME_ERROR("MaxPool2d forward: x must be 4D (N, C, H, W), but got shape {}", x_shape.to_string());
     }
@@ -43,7 +44,7 @@ std::vector<Tensor> MaxPool2d::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> MaxPool2d::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("MaxPool2d backward requires exactly 1 gradient, but got {}", gys.size());
     }
@@ -52,7 +53,7 @@ std::vector<Tensor> MaxPool2d::backward(const std::vector<Tensor> &gys)
     auto &x  = this->inputs_[0];
 
     // 验证索引是否存在
-    if (indices_.empty())
+    if (unlikely(indices_.empty()))
     {
         THROW_RUNTIME_ERROR("MaxPool2d backward: indices not found. forward() must be called before backward()");
     }

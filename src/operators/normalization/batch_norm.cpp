@@ -4,6 +4,7 @@
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -18,7 +19,7 @@ BatchNorm::BatchNorm(bool training, float eps, float momentum, int num_dims)
 std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
 {
     // BatchNorm 需要 5 个输入：x, gamma, beta, running_mean, running_var
-    if (xs.size() != 5)
+    if (unlikely(xs.size() != 5))
     {
         THROW_RUNTIME_ERROR(
             "BatchNorm operator requires exactly 5 inputs (x, gamma, beta, running_mean, running_var), but got {}",
@@ -85,7 +86,7 @@ std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> BatchNorm::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("BatchNorm backward requires exactly 1 gradient, but got {}", gys.size());
     }

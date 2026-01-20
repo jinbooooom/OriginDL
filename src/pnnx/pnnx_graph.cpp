@@ -3,6 +3,7 @@
 #include "origin/core/config.h"
 #include "origin/pnnx/operator_mapper.h"
 #include "origin/pnnx/pnnx_parser.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 #include "origin/utils/log.h"
 #ifdef WITH_CUDA
@@ -32,7 +33,7 @@ PNNXGraph::PNNXGraph(const std::string &param_path, const std::string &bin_path)
 
 bool PNNXGraph::init()
 {
-    if (param_path_.empty() || bin_path_.empty())
+    if (unlikely(param_path_.empty() || bin_path_.empty()))
     {
         THROW_RUNTIME_ERROR("Param path or bin path is empty");
         return false;
@@ -41,7 +42,7 @@ bool PNNXGraph::init()
     // 解析模型文件
     nodes_ = PNNXParser::parse(param_path_, bin_path_);
 
-    if (nodes_.empty())
+    if (unlikely(nodes_.empty()))
     {
         THROW_RUNTIME_ERROR("Failed to parse PNNX model or model is empty");
         return false;
@@ -67,7 +68,7 @@ void PNNXGraph::build()
     if (graph_state_ == GraphState::NeedInit)
     {
         bool success = init();
-        if (!success || graph_state_ == GraphState::NeedInit)
+        if (unlikely(!success))
         {
             THROW_RUNTIME_ERROR("Failed to initialize graph");
         }
@@ -85,7 +86,7 @@ void PNNXGraph::build()
         if (node->type != "pnnx.Input" && node->type != "pnnx.Output")
         {
             node->op = OperatorMapper::create_operator(node);
-            if (!node->op)
+            if (unlikely(!node->op))
             {
                 THROW_RUNTIME_ERROR("Failed to create operator for node: {} type: {}", node->name, node->type);
             }
@@ -219,13 +220,13 @@ void PNNXGraph::topological_sort()
 
 void PNNXGraph::set_inputs(const std::string &input_name, const std::vector<Tensor> &inputs)
 {
-    if (graph_state_ != GraphState::Complete)
+    if (unlikely(graph_state_ != GraphState::Complete))
     {
         THROW_RUNTIME_ERROR("Graph must be built before setting inputs");
     }
 
     auto it = node_map_.find(input_name);
-    if (it == node_map_.end())
+    if (unlikely(it == node_map_.end()))
     {
         THROW_RUNTIME_ERROR("Input node not found: {}", input_name);
     }

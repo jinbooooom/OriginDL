@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <random>
 #include "origin/core/tensor.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -34,7 +35,7 @@ void DataLoader::reset_indices()
 
 std::pair<Tensor, Tensor> DataLoader::next()
 {
-    if (!has_next())
+    if (unlikely(!has_next()))
     {
         // 对于空数据集，抛出异常或返回特殊值
         // 实际使用中，应该在调用 next() 之前检查 has_next()

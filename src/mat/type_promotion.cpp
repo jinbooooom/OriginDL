@@ -1,13 +1,14 @@
 #include "origin/mat/type_promotion.h"
 #include <algorithm>
 #include "origin/mat/basic_types.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
 
 bool TypePromotion::needs_promotion(const std::vector<Tensor> &tensors)
 {
-    if (tensors.empty())
+    if (unlikely(tensors.empty()))
     {
         return false;
     }
@@ -19,7 +20,7 @@ bool TypePromotion::needs_promotion(const std::vector<Tensor> &tensors)
 
 std::vector<Tensor> TypePromotion::promote_tensors(const std::vector<Tensor> &tensors)
 {
-    if (tensors.empty())
+    if (unlikely(tensors.empty()))
     {
         return tensors;
     }
@@ -52,7 +53,7 @@ std::pair<Tensor, Tensor> TypePromotion::promote_tensors(const Tensor &a, const 
 
 DataType TypePromotion::promote_types(const std::vector<Tensor> &tensors)
 {
-    if (tensors.empty())
+    if (unlikely(tensors.empty()))
     {
         return DataType::kFloat32;  // 默认类型
     }

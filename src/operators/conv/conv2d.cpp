@@ -3,6 +3,7 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/conv_utils.h"
 #include "origin/utils/exception.h"
 
@@ -14,7 +15,7 @@ namespace functional
 std::vector<Tensor> Conv2dOp::forward(const std::vector<Tensor> &xs)
 {
     // xs[0] = x (输入), xs[1] = W (卷积核), xs[2] = b (偏置，可选)
-    if (xs.size() < 2 || xs.size() > 3)
+    if (unlikely(xs.size() < 2 || xs.size() > 3))
     {
         THROW_RUNTIME_ERROR("Conv2d operator requires 2 or 3 inputs (x, W, [b]), but got {}", xs.size());
     }
@@ -27,12 +28,12 @@ std::vector<Tensor> Conv2dOp::forward(const std::vector<Tensor> &xs)
     auto W_shape = W.shape();
 
     // 检查输入形状
-    if (x_shape.size() != 4)
+    if (unlikely(x_shape.size() != 4))
     {
         THROW_RUNTIME_ERROR("Conv2d forward: x must be 4D (N, C, H, W), but got shape {}", x_shape.to_string());
     }
 
-    if (W_shape.size() != 4)
+    if (unlikely(W_shape.size() != 4))
     {
         THROW_RUNTIME_ERROR("Conv2d forward: W must be 4D (OC, C, KH, KW), but got shape {}", W_shape.to_string());
     }
@@ -41,7 +42,7 @@ std::vector<Tensor> Conv2dOp::forward(const std::vector<Tensor> &xs)
     size_t C_in = W_shape[1];
 
     // 检查通道数是否匹配
-    if (C != C_in)
+    if (unlikely(C != C_in))
     {
         THROW_RUNTIME_ERROR("Conv2d forward: channel mismatch - x has {} channels, but W expects {} channels", C, C_in);
     }
@@ -58,7 +59,7 @@ std::vector<Tensor> Conv2dOp::forward(const std::vector<Tensor> &xs)
 
 std::vector<Tensor> Conv2dOp::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Conv2d backward requires exactly 1 gradient, but got {}", gys.size());
     }
