@@ -307,7 +307,7 @@ void PNNXGraph::forward(bool debug)
         // 检查是否重复执行
         if (executed_nodes.find(node->name) != executed_nodes.end())
         {
-            std::cerr << "ERROR: Node " << node->name << " is being executed multiple times!" << std::endl;
+            loge("ERROR: Node {} is being executed multiple times!", node->name);
             THROW_RUNTIME_ERROR("Node {} is being executed multiple times", node->name);
         }
         executed_nodes.insert(node->name);
@@ -315,8 +315,7 @@ void PNNXGraph::forward(bool debug)
         executed_count++;
         if (executed_count % 10 == 0 || executed_count == total_nodes)
         {
-            std::cerr << "Progress: " << executed_count << "/" << total_nodes
-                      << " nodes executed (current: " << node->name << ")" << std::endl;
+            logi("Progress: {}/{} nodes executed (current: {})", executed_count, total_nodes, node->name);
         }
 
         if (!node->op)
@@ -606,8 +605,8 @@ std::vector<Tensor> PNNXGraph::get_outputs(const std::string &output_name) const
                     else
                     {
                         // 调试：输出名称匹配但输出 Tensor 为空
-                        std::cerr << "Warning: Node " << node->name << " has output name '" << input_name
-                                  << "' but output_tensors[" << i << "] is empty" << std::endl;
+                        logw("Warning: Node {} has output name '{}' but output_tensors[{}] is empty", 
+                             node->name, input_name, i);
                     }
                 }
             }

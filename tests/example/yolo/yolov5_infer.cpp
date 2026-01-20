@@ -6,6 +6,7 @@ model/yolo/yolov5n_small.pnnx.bin
 */
 #include <getopt.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <filesystem>
@@ -761,7 +762,15 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
 
             graph.set_inputs("pnnx_input_0", {input});
             logi("Running inference...");
+            
+            // 记录推理时间
+            auto inference_start_time = std::chrono::high_resolution_clock::now();
             graph.forward(cfg.debug);
+            auto inference_end_time = std::chrono::high_resolution_clock::now();
+            auto inference_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                inference_end_time - inference_start_time);
+            double total_seconds = inference_duration.count() / 1000000.0;
+            double fps = batch_size / total_seconds;
 
             auto outputs = graph.get_outputs("pnnx_output_0");
             if (outputs.empty())
@@ -770,10 +779,16 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
                 return;
             }
             logi("Inference successful! Output count: {}", outputs.size());
+            loga("Input resolution: {}x{}", cfg.input_w, cfg.input_h);
+            loga("Inference time: {:.4f} seconds ({:.0f} us)", total_seconds, 
+                 static_cast<double>(inference_duration.count()));
+            loga("FPS: {:.2f}", fps);
         }
         else
         {
-            // 批量处理图像
+            // 用于累积推理时间（不包括预处理和后处理）
+            std::chrono::microseconds total_inference_time(0);
+            
             // 按 batch_size 分批处理
             for (size_t batch_start = 0; batch_start < image_files.size(); batch_start += batch_size)
             {
@@ -851,7 +866,15 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
                 // 设置输入并执行推理
                 graph.set_inputs("pnnx_input_0", {input});
                 logi("Running inference...");
+                
+                // 记录推理开始时间
+                auto inference_start_time = std::chrono::high_resolution_clock::now();
                 graph.forward(cfg.debug);
+                // 记录推理结束时间
+                auto inference_end_time = std::chrono::high_resolution_clock::now();
+                auto inference_duration = std::chrono::duration_cast<std::chrono::microseconds>(
+                    inference_end_time - inference_start_time);
+                total_inference_time += inference_duration;
 
                 // 获取输出
                 auto outputs = graph.get_outputs("pnnx_output_0");
@@ -886,10 +909,14 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
                 }
             }
 
-            loga("Processed {} images in total", image_files.size());
-        }
+            // 计算帧率（仅基于推理时间，不包括预处理和后处理）
+            double total_seconds = total_inference_time.count() / 1000000.0;
+            double fps = image_files.size() / total_seconds;
 
-        loga("=== YOLOv5 Inference Complete ===");
+            loga("Processed {} images in total, Input resolution: {}x{}, Batch size: {}", 
+                 image_files.size(), cfg.input_w, cfg.input_h, batch_size);
+            loga("Total inference time: {:.4f} seconds, Average FPS: {:.2f}", total_seconds, fps);
+        }
     }
     catch (const std::exception &e)
     {
