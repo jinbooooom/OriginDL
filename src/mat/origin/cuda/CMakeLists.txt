@@ -14,29 +14,33 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 # 查找CUDA（使用现代方式）
 find_package(CUDAToolkit REQUIRED)
 
-# 自动检测cuBLAS库（仅在CUDA启用时）
-# 如果找到cuBLAS库，自动启用cuBLAS支持
-set(CUBLAS_FOUND false)
+# cuBLAS支持（由用户选项USER_USE_CUBLAS控制）
+# 如果用户开启USER_USE_CUBLAS，则尝试查找cuBLAS库；若找到则启用cuBLAS支持（ENABLE_CUBLAS=ON）
+# 如果用户未开启USER_USE_CUBLAS，无论环境中是否安装cuBLAS，ENABLE_CUBLAS都将为OFF
 set(ENABLE_CUBLAS OFF)
 
-# 查找cuBLAS库（尝试多个路径）
-find_library(CUBLAS_LIBRARY 
-    NAMES cublas
-    PATHS
-        ${CUDAToolkit_LIBRARY_DIR}
-        /usr/local/cuda/lib64
-        /usr/lib/x86_64-linux-gnu
-    NO_DEFAULT_PATH
-)
+# 如果用户期望使用cuBLAS，则尝试查找cuBLAS库
+if(USER_USE_CUBLAS)
+    # 查找cuBLAS库（尝试多个路径）
+    find_library(CUBLAS_LIBRARY 
+        NAMES cublas
+        PATHS
+            ${CUDAToolkit_LIBRARY_DIR}
+            /usr/local/cuda/lib64
+            /usr/lib/x86_64-linux-gnu
+        NO_DEFAULT_PATH
+    )
 
-if(CUBLAS_LIBRARY)
-    message(STATUS "cuBLAS library found: ${CUBLAS_LIBRARY}")
-    message(STATUS "Auto-enabling cuBLAS support for matrix multiplication optimization")
-    set(CUBLAS_FOUND true)
-    set(ENABLE_CUBLAS ON)
+    if(CUBLAS_LIBRARY)
+        message(STATUS "cuBLAS library found: ${CUBLAS_LIBRARY}")
+        message(STATUS "Enabling cuBLAS support for matrix multiplication optimization")
+        set(ENABLE_CUBLAS ON)
+    else()
+        message(WARNING "cuBLAS library not found, but USER_USE_CUBLAS is enabled. Falling back to origindl's CUDA kernels")
+        set(ENABLE_CUBLAS OFF)
+    endif()
 else()
-    message(STATUS "cuBLAS library not found, using custom CUDA matrix multiplication kernels")
-    set(CUBLAS_FOUND false)
+    message(STATUS "USER_USE_CUBLAS is disabled, using origindl's CUDA kernels")
     set(ENABLE_CUBLAS OFF)
 endif()
 
@@ -100,7 +104,7 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -rdc=true")
 target_compile_definitions(originmat_cuda PRIVATE WITH_CUDA)
 
 # 如果启用cuBLAS，添加编译定义
-if(CUBLAS_FOUND)
+if(ENABLE_CUBLAS)
     target_compile_definitions(originmat_cuda PRIVATE ENABLE_CUBLAS)
 endif()
 
@@ -113,7 +117,7 @@ set_target_properties(originmat_cuda PROPERTIES
 target_link_libraries(originmat_cuda CUDA::cudart CUDA::curand)
 
 # 如果启用cuBLAS，链接cuBLAS库
-if(CUBLAS_FOUND AND CUBLAS_LIBRARY)
+if(ENABLE_CUBLAS AND CUBLAS_LIBRARY)
     target_link_libraries(originmat_cuda ${CUBLAS_LIBRARY})
     message(STATUS "Linking with cuBLAS library: ${CUBLAS_LIBRARY}")
 endif()

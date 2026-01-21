@@ -144,3 +144,104 @@ int main(int argc, char *argv[])
     MatMulBenchmark benchmark;
     return benchmark.run(argc, argv);
 }
+
+/*
+./build/bin/benchmark/bench_matmul -d cuda -r 20
+
+A100，ORIGIN_KERNEL_ALGO=0
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         7.8000              
+{10, 10}:{10, 10}                       20              cuda:0          float32         7.8500              
+{100, 100}:{100, 100}                   20              cuda:0          float32         8.0000              
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         638.5500            
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         1559682.3000 
+
+A100，ORIGIN_KERNEL_ALGO=1
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         7.6500              
+{10, 10}:{10, 10}                       20              cuda:0          float32         7.7000              
+{100, 100}:{100, 100}                   20              cuda:0          float32         7.9000              
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         604.7500            
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         983119.1000 
+
+A100，ORIGIN_KERNEL_ALGO=2
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         7.7500              
+{10, 10}:{10, 10}                       20              cuda:0          float32         7.6000              
+{100, 100}:{100, 100}                   20              cuda:0          float32         7.7000              
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         618.1500            
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         981852.6500
+
+A100，ORIGIN_KERNEL_ALGO=3
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         8.2000              
+{10, 10}:{10, 10}                       20              cuda:0          float32         8.0000              
+{100, 100}:{100, 100}                   20              cuda:0          float32         14.2000             
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         1206.1500           
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         1304046.5500
+
+A100，ORIGIN_KERNEL_ALGO=4
+
+A100，ORIGIN_KERNEL_ALGO=5
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         7.6000              
+{10, 10}:{10, 10}                       20              cuda:0          float32         7.5000              
+{100, 100}:{100, 100}                   20              cuda:0          float32         20.8000             
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         1229.9500           
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         1368403.3000 
+
+A100，ORIGIN_KERNEL_ALGO=6
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         7.4000              
+{10, 10}:{10, 10}                       20              cuda:0          float32         7.4500              
+{100, 100}:{100, 100}                   20              cuda:0          float32         20.6000             
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         1233.5000           
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         1353519.8500 
+
+A100，ORIGIN_KERNEL_ALGO=7
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         9.1500              
+{10, 10}:{10, 10}                       20              cuda:0          float32         10.5000             
+{100, 100}:{100, 100}                   20              cuda:0          float32         61.0000             
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         480.0000            
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         174940.3500
+
+A100，ORIGIN_KERNEL_ALGO=8
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         7.9000              
+{10, 10}:{10, 10}                       20              cuda:0          float32         7.8000              
+{100, 100}:{100, 100}                   20              cuda:0          float32         11.4500             
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         296.3500            
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         402449.2500
+
+A100，ORIGIN_KERNEL_ALGO=9
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         8.4000              
+{10, 10}:{10, 10}                       20              cuda:0          float32         8.0000              
+{100, 100}:{100, 100}                   20              cuda:0          float32         21.4500             
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         128.1500            
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         181679.7000 
+
+A100，ORIGIN_KERNEL_ALGO=6666
+shape                                   repeat          device          dtype           origindl_time_us    
+{1, 1}:{1, 1}                           20              cuda:0          float32         7.9500              
+{10, 10}:{10, 10}                       20              cuda:0          float32         8.2000              
+{100, 100}:{100, 100}                   20              cuda:0          float32         8.2500              
+{1000, 1000}:{1000, 1000}               20              cuda:0          float32         125.6500            
+{10000, 10000}:{10000, 10000}           20              cuda:0          float32         179499.2500
+
+
+export ORIGIN_KERNEL_ALGO=6666
+python3 run_benchmark.py -f matmul -d cuda -r 20
+
+=================================================================================================
+Matmul Operator Performance Comparison
+=================================================================================================
+Shape                         Repeat   Device   Dtype     OriginDL(us)    PyTorch(us)     Speedup
+-------------------------------------------------------------------------------------------------
+{1,1}:{1,1}                   20       cuda:0   float32   8.2000          23.4699         2.8622 
+{10,10}:{10,10}               20       cuda:0   float32   8.2000          22.2084         2.7083 
+{100,100}:{100,100}           20       cuda:0   float32   8.4000          21.8670         2.6032 
+{1000,1000}:{1000,1000}       20       cuda:0   float32   125.3500        142.9909        1.1407 
+{10000,10000}:{10000,10000}   20       cuda:0   float32   189848.7500     181272.7210     0.9548 
+*/

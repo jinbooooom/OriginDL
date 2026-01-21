@@ -10,6 +10,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # CUDA支持选项（不设置默认架构，由CUDA子项目自动检测）
 option(ENABLE_CUDA "Enable CUDA support for OriginMat" OFF)
+# cuBLAS支持选项（仅在启用CUDA时有效）
+# 如果用户开启此选项，CUDA子项目将尝试查找cuBLAS库；若找到则启用cuBLAS支持（ENABLE_CUBLAS=ON）
+# 如果用户未开启此选项，无论环境中是否安装cuBLAS，ENABLE_CUBLAS都将为OFF
+# 这样可以测试自定义的 CUDA 内核的性能，而不是使用 cuBLAS 库
+option(USER_USE_CUBLAS "User option to enable cuBLAS" OFF)
 
 set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
