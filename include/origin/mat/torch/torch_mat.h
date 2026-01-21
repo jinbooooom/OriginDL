@@ -195,6 +195,7 @@ public:
     void square_inplace() override;
     // 虚函数重写（与OriginMat接口对齐）
     std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
+    void pow_inplace(const Scalar &exponent) override;
     std::unique_ptr<Mat> relu() const override;
     void relu_inplace() override;
     void neg_inplace() override;

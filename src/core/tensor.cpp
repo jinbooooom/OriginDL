@@ -243,16 +243,14 @@ Tensor Tensor::transpose() const
     return Tensor(std::make_shared<TensorImpl>(std::move(new_impl)));
 }
 
-// === 泛型标量操作实现 ===
-// 注意：标量操作使用全局操作符重载，避免与成员操作符冲突
-
 // === 调试实现 ===
-
 void Tensor::print(const std::string &desc) const
 {
     impl_->print(desc);
 }
 
+// 这个函数就调式的时候用，在业务中尽量少用，因为会创建新的vector，耗时慢。
+// 如果只是为了访问数据，尽量使用item()或者data_ptr()方法。
 template <typename T>
 std::vector<T> Tensor::to_vector() const
 {

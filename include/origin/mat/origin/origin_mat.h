@@ -353,6 +353,7 @@ public:
     std::unique_ptr<Mat> sqrt() const override;
     void sqrt_inplace() override;
     void square_inplace() override;
+    void pow_inplace(const Scalar &exponent) override;
     void neg_inplace() override;
 
     // === 索引和选择操作 ===

@@ -280,6 +280,141 @@ TEST_P(AddOperatorTest, InplaceNegativeValues)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
 }
 
+// ==================== 就地运算符重载测试 ====================
+
+TEST_P(AddOperatorTest, InplaceOperatorTensorTensor)
+{
+    // 测试 operator+= (Tensor += Tensor)
+    Shape shape{2, 2};
+    auto x0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+
+    // 保存 x0 的引用，用于验证是原地操作
+    Tensor &x0_ref = x0;
+
+    // 执行就地运算符
+    x0 += x1;
+
+    // 验证 x0 被原地修改
+    EXPECT_EQ(&x0, &x0_ref);  // 确保是同一个对象
+
+    // 验证结果正确
+    auto expected = Tensor({6.0f, 8.0f, 10.0f, 12.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
+
+    // 验证 x1 没有被修改
+    auto x1_expected = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x1, x1_expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, InplaceOperatorTensorScalar)
+{
+    // 测试 operator+= (Tensor += Scalar)
+    Shape shape{3};
+    auto x = Tensor({1.0f, 2.0f, 3.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    float scalar = 5.0f;
+
+    // 保存 x 的引用，用于验证是原地操作
+    Tensor &x_ref = x;
+
+    // 执行就地运算符
+    x += scalar;
+
+    // 验证 x 被原地修改
+    EXPECT_EQ(&x, &x_ref);  // 确保是同一个对象
+
+    // 验证结果正确
+    auto expected = Tensor({6.0f, 7.0f, 8.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, InplaceOperatorChained)
+{
+    // 测试链式调用 operator+=
+    Shape shape{2};
+    auto x = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto y = Tensor({3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    float scalar = 5.0f;
+
+    // 链式调用：x += y += scalar
+    x += y += scalar;
+
+    // 验证 y 先被修改：y = y + scalar = [3, 4] + 5 = [8, 9]
+    auto expected_y = Tensor({8.0f, 9.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(y, expected_y, origin::test::TestTolerance::kDefault);
+
+    // 验证 x 后被修改：x = x + y = [1, 2] + [8, 9] = [9, 11]
+    auto expected_x = Tensor({9.0f, 11.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected_x, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, InplaceOperatorZeroTensor)
+{
+    // 测试 operator+= 与零张量
+    Shape shape{2};
+    auto x = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto zero = Tensor::zeros(shape, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto x_original = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+
+    x += zero;
+
+    // 结果应该等于 x 的原始值
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, x_original, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, InplaceOperatorNegativeValues)
+{
+    // 测试 operator+= 与负值
+    Shape shape{2};
+    auto x = Tensor({-1.0f, -2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto y = Tensor({3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+
+    x += y;
+
+    auto expected = Tensor({2.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, InplaceOperatorWithComplexExpression)
+{
+    // 测试 operator+= 与复杂表达式：x += a + b
+    Shape shape{2};
+    auto x = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto a = Tensor({3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto b = Tensor({5.0f, 6.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+
+    // x += a + b 等价于 x += (a + b)
+    // 先计算 a + b = [8, 10]，然后 x = x + [8, 10] = [9, 12]
+    x += a + b;
+
+    auto expected = Tensor({9.0f, 12.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
+
+    // 验证 a 和 b 没有被修改
+    auto expected_a = Tensor({3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected_b = Tensor({5.0f, 6.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(a, expected_a, origin::test::TestTolerance::kDefault);
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(b, expected_b, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(AddOperatorTest, InplaceOperatorReturnReference)
+{
+    // 测试 operator+= 返回引用，可以用于链式调用
+    Shape shape{2};
+    auto x = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto y = Tensor({3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto z = Tensor({5.0f, 6.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+
+    // 验证返回值是引用
+    Tensor &result_ref = (x += y);
+    EXPECT_EQ(&x, &result_ref);  // 确保返回的是 x 的引用
+
+    // 验证结果正确
+    auto expected = Tensor({4.0f, 6.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
+}
+
 // ==================== 类型提升测试 ====================
 
 TEST_P(AddOperatorTest, TypePromotionFloat32Float64)

@@ -413,6 +413,12 @@ std::unique_ptr<Mat> TorchMat::pow(const Scalar &exponent) const
     return std::make_unique<TorchMat>(torch::pow(data_, torch_scalar));
 }
 
+void TorchMat::pow_inplace(const Scalar &exponent)
+{
+    auto torch_scalar = make_torch_scalar_from_scalar(exponent, dtype());
+    data_.pow_(torch_scalar);
+}
+
 // 数据访问方法
 template <typename U>
 U TorchMat::scalar() const

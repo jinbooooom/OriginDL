@@ -118,4 +118,18 @@ Tensor operator+(const Scalar &lhs, const Tensor &rhs)
     return rhs + lhs;
 }
 
+// 就地操作运算符重载实现
+Tensor &operator+=(Tensor &lhs, const Tensor &rhs)
+{
+    functional::add_(lhs, rhs);
+    return lhs;
+}
+
+Tensor &operator+=(Tensor &lhs, const Scalar &rhs)
+{
+    auto x = Tensor(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
+    functional::add_(lhs, x);
+    return lhs;
+}
+
 }  // namespace origin

@@ -190,7 +190,14 @@ std::unique_ptr<Mat> max(const OriginMat &mat, int axis = -1);
  * @param exponent 指数
  * @return 幂运算结果矩阵
  */
-std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
+std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent, OriginMat *out = nullptr);
+
+/**
+ * @brief CUDA幂函数原地操作算子
+ * @param mat 输入/输出矩阵（原地修改）
+ * @param exponent 指数
+ */
+void pow_inplace(OriginMat &mat, const Scalar &exponent);
 
 /**
  * @brief CUDA广播算子

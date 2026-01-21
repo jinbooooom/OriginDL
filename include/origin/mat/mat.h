@@ -288,6 +288,13 @@ public:
     virtual std::unique_ptr<Mat> pow(const Scalar &exponent) const = 0;
 
     /**
+     * @brief 原地幂函数（修改当前矩阵）
+     * @param exponent 指数
+     * @note 原地操作，修改当前矩阵的数据，不创建新对象
+     */
+    virtual void pow_inplace(const Scalar &exponent) = 0;
+
+    /**
      * @brief ReLU 激活函数
      * @return ReLU 运算结果，y = max(0, x)
      */

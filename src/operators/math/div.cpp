@@ -130,4 +130,18 @@ Tensor operator/(const Scalar &lhs, const Tensor &rhs)
     return functional::div(x, rhs);
 }
 
+// 就地操作运算符重载实现
+Tensor &operator/=(Tensor &lhs, const Tensor &rhs)
+{
+    functional::div_(lhs, rhs);
+    return lhs;
+}
+
+Tensor &operator/=(Tensor &lhs, const Scalar &rhs)
+{
+    auto temp = Tensor(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
+    functional::div_(lhs, temp);
+    return lhs;
+}
+
 }  // namespace origin

@@ -117,4 +117,18 @@ Tensor operator-(const Scalar &lhs, const Tensor &rhs)
     return functional::sub(x, rhs);
 }
 
+// 就地操作运算符重载
+Tensor &operator-=(Tensor &lhs, const Tensor &rhs)
+{
+    functional::sub_(lhs, rhs);
+    return lhs;
+}
+
+Tensor &operator-=(Tensor &lhs, const Scalar &rhs)
+{
+    auto temp = Tensor(rhs, Shape({}), dtype(rhs.dtype()).device(lhs.device()));
+    functional::sub_(lhs, temp);
+    return lhs;
+}
+
 }  // namespace origin

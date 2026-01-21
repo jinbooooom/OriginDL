@@ -26,7 +26,6 @@ extern void neg_(Tensor &x);
 
 }  // namespace functional
 
-// 运算符重载放在 origin 命名空间下
 Tensor operator-(const Tensor &x);
 
 }  // namespace origin

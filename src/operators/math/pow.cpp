@@ -60,6 +60,28 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
     return std::vector<Tensor>{std::move(gx)};
 }
 
+void Pow::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (unlikely(&input1 != &kNullTensor_))
+    {
+        THROW_INVALID_ARG("Pow is a unary operator, cannot accept two operands");
+    }
+
+    // 统一处理类型提升：Tensor 和 Scalar 之间的类型提升
+    DataType base_dtype     = input0.dtype();
+    DataType exponent_dtype = exponent_.dtype();
+    DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
+
+    // 因为 input0 需要原地修改，所以不用临时的 MaybeOwned<Tensor>，而是直接修改 input0
+    if (input0.dtype() != promoted_dtype)
+    {
+        input0 = input0.to(promoted_dtype);
+    }
+
+    // 执行原地操作
+    mat(input0).pow_inplace(exponent_);
+}
+
 // 支持Scalar类型的pow函数
 Tensor pow(const std::vector<Tensor> &xs, const Scalar &exponent)
 {
@@ -73,12 +95,24 @@ Tensor pow(const Tensor &base, const Scalar &exponent)
     return pow(std::vector<Tensor>{base}, exponent);
 }
 
+void pow_(Tensor &x, const Scalar &exponent)
+{
+    // 创建 Pow 实例并调用 forward_inplace
+    Pow op(exponent);
+    op.forward_inplace(x, Operator::kNullTensor_);
+}
+
 }  // namespace functional
 
-// 运算符重载放在 origin 命名空间下
 Tensor operator^(const Tensor &base, const Scalar &exponent)
 {
     return functional::pow(std::vector<Tensor>{base}, exponent);
+}
+
+Tensor &operator^=(Tensor &x, const Scalar &exponent)
+{
+    functional::pow_(x, exponent);
+    return x;
 }
 
 }  // namespace origin

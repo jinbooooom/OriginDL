@@ -484,6 +484,26 @@ void OriginMat::square_inplace()
     device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::square, cuda::square, "square_inplace");
 }
 
+void OriginMat::pow_inplace(const Scalar &exponent)
+{
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        cpu::pow_inplace(*this, exponent);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        cuda::pow_inplace(*this, exponent);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for pow_inplace");
+    }
+}
+
 std::unique_ptr<Mat> OriginMat::pow(const Scalar &exponent) const
 {
     if (storage_->device_type() == DeviceType::kCPU)
@@ -493,7 +513,7 @@ std::unique_ptr<Mat> OriginMat::pow(const Scalar &exponent) const
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        return cuda::pow(*this, exponent);
+        return cuda::pow(*this, exponent, nullptr);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif

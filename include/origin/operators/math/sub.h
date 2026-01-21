@@ -24,15 +24,18 @@ public:
 extern Tensor sub(const std::vector<Tensor> &xs);
 extern Tensor sub(const Tensor &lhs, const Tensor &rhs);
 
-// 原地操作函数
+// 就地操作函数
 extern void sub_(Tensor &lhs, const Tensor &rhs);
 
 }  // namespace functional
 
-// 运算符重载放在 origin 命名空间下
 Tensor operator-(const Tensor &lhs, const Tensor &rhs);
 Tensor operator-(const Tensor &lhs, const Scalar &rhs);
 Tensor operator-(const Scalar &lhs, const Tensor &rhs);
+
+// 就地操作运算符重载
+Tensor &operator-=(Tensor &lhs, const Tensor &rhs);
+Tensor &operator-=(Tensor &lhs, const Scalar &rhs);
 
 }  // namespace origin
 

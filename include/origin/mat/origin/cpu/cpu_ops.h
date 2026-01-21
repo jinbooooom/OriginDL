@@ -32,6 +32,7 @@ std::unique_ptr<Mat> log(const OriginMat &mat, OriginMat *out = nullptr);
 std::unique_ptr<Mat> sqrt(const OriginMat &mat, OriginMat *out = nullptr);
 std::unique_ptr<Mat> square(const OriginMat &mat, OriginMat *out = nullptr);
 std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
+void pow_inplace(OriginMat &mat, const Scalar &exponent);
 std::unique_ptr<Mat> relu(const OriginMat &mat, OriginMat *out = nullptr);
 
 // === 统计函数 ===
