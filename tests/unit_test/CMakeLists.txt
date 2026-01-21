@@ -142,6 +142,17 @@ set_target_properties(test_tensor_operations PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+# 添加张量索引操作测试
+add_executable(test_tensor_index tensor/test_tensor_index.cpp)
+add_dependencies(test_tensor_index gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_tensor_index ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_tensor_index PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_tensor_index PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 # 添加算子测试
 # 基础算术算子测试
 add_executable(test_add operator/test_add.cpp)
@@ -555,6 +566,7 @@ add_test(NAME multi_type_tensor_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_multi_
 add_test(NAME tensor_options_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_options)
 add_test(NAME tensor_attributes_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_attributes)
 add_test(NAME tensor_operations_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_operations)
+add_test(NAME tensor_index_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_index)
 add_test(NAME add_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_add)
 add_test(NAME sub_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sub)
 add_test(NAME mul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_mul)
@@ -595,6 +607,7 @@ set_tests_properties(multi_type_tensor_test PROPERTIES TIMEOUT 60)
 set_tests_properties(tensor_options_test PROPERTIES TIMEOUT 60)
 set_tests_properties(tensor_attributes_test PROPERTIES TIMEOUT 60)
 set_tests_properties(tensor_operations_test PROPERTIES TIMEOUT 60)
+set_tests_properties(tensor_index_test PROPERTIES TIMEOUT 60)
 set_tests_properties(add_test PROPERTIES TIMEOUT 60)
 set_tests_properties(sub_test PROPERTIES TIMEOUT 60)
 set_tests_properties(mul_test PROPERTIES TIMEOUT 60)
@@ -627,7 +640,7 @@ add_custom_target(run_unit_tests
 
 # 添加自定义目标来编译和运行测试
 add_custom_target(test_all
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_tensor_index test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
     DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_conv2d test_mlp test_conv2d_layer test_linear_regression
     COMMENT "Compile and run all unit tests"

@@ -9,13 +9,16 @@
 #include <stdexcept>
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/cpu/factory.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 #ifdef WITH_CUDA
 #    include <cuda_runtime.h>
+#    include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #    include "origin/mat/origin/cuda/cuda_ops.cuh"
+#    include "origin/mat/origin/cuda/cuda_utils.cuh"
 #    include "origin/mat/origin/cuda/factory.cuh"
 #endif
 
@@ -745,6 +748,107 @@ void OriginMat::sqrt_inplace()
 }
 
 // === 索引和选择操作 ===
+
+Scalar OriginMat::index(std::initializer_list<size_t> indices) const
+{
+    if (unlikely(indices.size() != shape_.size()))
+    {
+        THROW_INVALID_ARG("Index count ({}) does not match tensor dimension ({}). Indices: {}, Shape: {}",
+                          indices.size(), shape_.size(), "[indices]", shape_.to_string());
+    }
+
+    // 验证每个索引值并计算内存偏移（使用 strides，支持非连续内存）
+    size_t offset = 0;
+    size_t i = 0;
+    for (auto idx : indices)
+    {
+        if (unlikely(idx >= shape_[i]))
+        {
+            THROW_INVALID_ARG("Index {} out of range for dimension {} (size: {}). Indices: {}, Shape: {}",
+                              idx, i, shape_[i], "[indices]", shape_.to_string());
+        }
+        offset += idx * strides_[i];
+        ++i;
+    }
+
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        void *data_ptr = storage_->data();
+        return device_common::TypeDispatcher::dispatch(dtype_, [&]<typename T>() -> Scalar {
+            const T *data = static_cast<const T *>(data_ptr);
+            return Scalar(data[offset]);
+        });
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        CUDA_CHECK(cudaDeviceSynchronize());
+        void *data_ptr = storage_->data();
+        return device_common::TypeDispatcher::dispatch(dtype_, [&]<typename T>() -> Scalar {
+            T value;
+            const T *data = static_cast<const T *>(data_ptr);
+            CUDA_CHECK(cudaMemcpy(&value, &data[offset], sizeof(T), cudaMemcpyDeviceToHost));
+            return Scalar(value);
+        });
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for index: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+void OriginMat::index_put(std::initializer_list<size_t> indices, const Scalar& value)
+{
+    if (unlikely(indices.size() != shape_.size()))
+    {
+        THROW_INVALID_ARG("Index count ({}) does not match tensor dimension ({}). Indices: {}, Shape: {}",
+                          indices.size(), shape_.size(), "[indices]", shape_.to_string());
+    }
+
+    // 验证每个索引值并计算内存偏移（使用 strides，支持非连续内存）
+    size_t offset = 0;
+    size_t i = 0;
+    for (auto idx : indices)
+    {
+        if (unlikely(idx >= shape_[i]))
+        {
+            THROW_INVALID_ARG("Index {} out of range for dimension {} (size: {}). Indices: {}, Shape: {}",
+                              idx, i, shape_[i], "[indices]", shape_.to_string());
+        }
+        offset += idx * strides_[i];
+        ++i;
+    }
+
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        void *data_ptr = storage_->data();
+        device_common::TypeDispatcher::dispatch_void(dtype_, [&]<typename T>() {
+            T *data = static_cast<T *>(data_ptr);
+            data[offset] = value.to<T>();
+        });
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        void *data_ptr = storage_->data();
+        device_common::TypeDispatcher::dispatch_void(dtype_, [&]<typename T>() {
+            T val = value.to<T>();
+            T *data = static_cast<T *>(data_ptr);
+            cuda::launch_index_put_kernel<T>(data, offset, val);
+        });
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for index_put: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
 std::unique_ptr<Mat> OriginMat::gather(const OriginMat &indices) const
 {
     // 根据设备类型选择实现

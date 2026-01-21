@@ -210,6 +210,23 @@ public:
     template <typename T>
     T *data_ptr();
 
+    // === 索引访问 ===
+    /**
+     * @brief 根据多维索引读取单个元素
+     * @tparam T 返回类型
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @return 索引位置的值
+     */
+    template <typename T>
+    T index(std::initializer_list<size_t> indices) const;
+
+    /**
+     * @brief 根据多维索引写入单个元素
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @param value 要写入的标量值，会自动转换为与tensor相同的数据类型
+     */
+    void index_put(std::initializer_list<size_t> indices, const Scalar &value);
+
     // === 类型查询和转换 ===
     DataType dtype() const;
     Device device() const;

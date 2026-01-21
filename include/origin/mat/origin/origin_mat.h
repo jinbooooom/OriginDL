@@ -325,6 +325,7 @@ public:
 
     // 形状和维度
     Shape shape() const override;
+    const std::vector<size_t>& strides() const { return strides_; }
     size_t elements() const override;
 
     // 数据访问
@@ -357,6 +358,20 @@ public:
     void neg_inplace() override;
 
     // === 索引和选择操作 ===
+    /**
+     * @brief 根据多维索引读取单个元素
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @return 索引位置的值
+     */
+    Scalar index(std::initializer_list<size_t> indices) const;
+
+    /**
+     * @brief 根据多维索引写入单个元素
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @param value 要写入的标量值，与tensor相同的数据类型
+     */
+    void index_put(std::initializer_list<size_t> indices, const Scalar& value);
+
     /**
      * @brief gather：根据索引从矩阵中提取值
      * @param indices 索引向量 (N,)，每个元素在 [0, C) 范围内

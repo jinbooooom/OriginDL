@@ -411,6 +411,18 @@ T *TensorImpl::data_ptr()
     return static_cast<T *>(data_->data_ptr());
 }
 
+// === 索引访问实现 ===
+
+Scalar TensorImpl::index(std::initializer_list<size_t> indices) const
+{
+    return data_->index(indices);
+}
+
+void TensorImpl::index_put(std::initializer_list<size_t> indices, const Scalar& value)
+{
+    data_->index_put(indices, value);
+}
+
 // === 泛型标量操作实现 ===
 // 标量运算符已移除，统一通过算子层处理
 

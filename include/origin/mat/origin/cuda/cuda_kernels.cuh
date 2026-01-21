@@ -61,6 +61,27 @@ template <typename SrcT, typename DstT>
 __global__ void type_conversion_kernel(const SrcT *__restrict__ src, DstT *__restrict__ dst, size_t n);
 
 /**
+ * @brief 索引写入内核（单个元素）
+ * @tparam T 数据类型
+ * @param data 数据指针
+ * @param index 线性索引
+ * @param value 要写入的值
+ */
+template <typename T>
+__global__ void index_put_kernel(T *data, size_t index, T value);
+
+/**
+ * @brief 启动索引写入内核（单个元素）
+ * @tparam T 数据类型
+ * @param data 数据指针
+ * @param index 线性索引
+ * @param value 要写入的值
+ * @param stream CUDA流
+ */
+template <typename T>
+void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream = 0);
+
+/**
  * @brief 标量运算内核
  * @tparam T 数据类型
  * @tparam Op 操作函数对象类型

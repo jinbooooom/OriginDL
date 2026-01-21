@@ -196,6 +196,20 @@ public:
     virtual Scalar scalar_value() const = 0;
 
     /**
+     * @brief 根据多维索引读取单个元素
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @return 索引位置的值
+     */
+    virtual Scalar index(std::initializer_list<size_t> indices) const = 0;
+
+    /**
+     * @brief 根据多维索引写入单个元素
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @param value 要写入的标量值，会自动转换为与tensor相同的数据类型
+     */
+    virtual void index_put(std::initializer_list<size_t> indices, const Scalar& value) = 0;
+
+    /**
      * @brief 获取数据指针
      * @return 指向数据的void*指针
      */

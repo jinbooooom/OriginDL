@@ -63,6 +63,29 @@ __global__ void type_conversion_kernel(const SrcT *__restrict__ src, DstT *__res
 }
 
 /**
+ * @brief 索引写入内核实现（单个元素）
+ */
+template <typename T>
+__global__ void index_put_kernel(T *data, size_t index, T value)
+{
+    // 只写入指定索引位置的值
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        data[index] = value;
+    }
+}
+
+/**
+ * @brief 启动索引写入内核实现（单个元素）
+ */
+template <typename T>
+void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream)
+{
+    // 使用1个block，1个thread来写入单个元素
+    index_put_kernel<T><<<1, 1, 0, stream>>>(data, index, value);
+}
+
+/**
  * @brief 标量运算内核实现
  */
 template <typename T, typename Op>
@@ -2446,6 +2469,22 @@ template void launch_type_conversion_kernel<bool, uint16_t>(const bool *, uint16
 template void launch_type_conversion_kernel<bool, uint32_t>(const bool *, uint32_t *, size_t, cudaStream_t);
 template void launch_type_conversion_kernel<bool, uint64_t>(const bool *, uint64_t *, size_t, cudaStream_t);
 template void launch_type_conversion_kernel<bool, bool>(const bool *, bool *, size_t, cudaStream_t);
+
+// ============================================================================
+// launch_index_put_kernel 模板实例化
+// ============================================================================
+
+template void launch_index_put_kernel<float>(float *, size_t, float, cudaStream_t);
+template void launch_index_put_kernel<double>(double *, size_t, double, cudaStream_t);
+template void launch_index_put_kernel<int32_t>(int32_t *, size_t, int32_t, cudaStream_t);
+template void launch_index_put_kernel<int8_t>(int8_t *, size_t, int8_t, cudaStream_t);
+template void launch_index_put_kernel<int16_t>(int16_t *, size_t, int16_t, cudaStream_t);
+template void launch_index_put_kernel<int64_t>(int64_t *, size_t, int64_t, cudaStream_t);
+template void launch_index_put_kernel<uint8_t>(uint8_t *, size_t, uint8_t, cudaStream_t);
+template void launch_index_put_kernel<uint16_t>(uint16_t *, size_t, uint16_t, cudaStream_t);
+template void launch_index_put_kernel<uint32_t>(uint32_t *, size_t, uint32_t, cudaStream_t);
+template void launch_index_put_kernel<uint64_t>(uint64_t *, size_t, uint64_t, cudaStream_t);
+template void launch_index_put_kernel<bool>(bool *, size_t, bool, cudaStream_t);
 
 }  // namespace cuda
 }  // namespace origin

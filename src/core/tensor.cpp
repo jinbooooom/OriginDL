@@ -125,6 +125,21 @@ T *Tensor::data_ptr()
     return impl_->data_ptr<T>();
 }
 
+// === 索引访问实现 ===
+
+template <typename T>
+T Tensor::index(std::initializer_list<size_t> indices) const
+{
+    ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    Scalar result = impl_->index(indices);
+    return result.to<T>();
+}
+
+void Tensor::index_put(std::initializer_list<size_t> indices, const Scalar &value)
+{
+    impl_->index_put(indices, value);
+}
+
 // === 类型查询和转换实现 ===
 
 DataType Tensor::dtype() const
@@ -319,6 +334,13 @@ template double *Tensor::data_ptr<double>();
 template int32_t *Tensor::data_ptr<int32_t>();
 template int8_t *Tensor::data_ptr<int8_t>();
 template unsigned long *Tensor::data_ptr<unsigned long>();
+
+// 索引访问方法
+template float Tensor::index<float>(std::initializer_list<size_t>) const;
+template double Tensor::index<double>(std::initializer_list<size_t>) const;
+template int32_t Tensor::index<int32_t>(std::initializer_list<size_t>) const;
+template int8_t Tensor::index<int8_t>(std::initializer_list<size_t>) const;
+template unsigned long Tensor::index<unsigned long>(std::initializer_list<size_t>) const;
 
 template std::vector<float> Tensor::to_vector<float>() const;
 template std::vector<double> Tensor::to_vector<double>() const;
