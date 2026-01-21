@@ -796,6 +796,101 @@ auto vec = t.to_vector<float>();
 // vec: {1.0, 1.0, 1.0, 1.0}
 ```
 
+### index
+
+```cpp
+template <typename T>
+T index(std::initializer_list<size_t> indices) const
+```
+
+根据多维索引读取单个元素。
+
+**参数:**
+- `T` – 返回值的类型，必须与张量的数据类型兼容
+- `indices` (std::initializer_list<size_t>) – 多维索引，例如 `{i, j, k}` 表示访问 `tensor[i][j][k]`
+
+**返回值:** T – 索引位置的值
+
+**注意:**
+- 索引数量必须与张量的维度数匹配，否则会抛出 `std::invalid_argument` 异常
+- 索引值必须在有效范围内（0 到对应维度大小减1），否则会抛出异常
+- 支持不同数据类型（float、double、int32_t 等），但返回类型 `T` 必须与张量的数据类型兼容
+- 对于视图（view）和转置后的张量，索引操作会正确映射到底层数据
+
+**例子:**
+```cpp
+// 创建3维张量
+std::vector<float> data(3 * 4 * 5);
+for (size_t i = 0; i < data.size(); ++i) {
+    data[i] = static_cast<float>(i);
+}
+auto t = Tensor(data, {3, 4, 5}, dtype(DataType::kFloat32));
+
+// 读取元素 tensor[1][2][3]
+float value = t.index<float>({1, 2, 3});
+// 计算期望值：1*4*5 + 2*5 + 3 = 20 + 10 + 3 = 33
+
+// 2维张量示例
+auto t2d = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, {2, 2});
+float val1 = t2d.index<float>({0, 0});  // 1.0
+float val2 = t2d.index<float>({1, 1});  // 4.0
+
+// 不同数据类型
+auto int_tensor = Tensor({10, 20, 30, 40}, {2, 2}, DataType::kInt32);
+int32_t int_val = int_tensor.index<int32_t>({1, 0});  // 30
+
+// 视图操作
+auto view = t.reshape({12, 5});
+float view_val = view.index<float>({6, 2});  // 正确映射到底层数据
+```
+
+### index_put
+
+```cpp
+void index_put(std::initializer_list<size_t> indices, const Scalar &value)
+```
+
+根据多维索引写入单个元素。
+
+**参数:**
+- `indices` (std::initializer_list<size_t>) – 多维索引，例如 `{i, j, k}` 表示访问 `tensor[i][j][k]`
+- `value` (Scalar) – 要写入的标量值，会自动转换为与张量相同的数据类型
+
+**注意:**
+- 索引数量必须与张量的维度数匹配，否则会抛出 `std::invalid_argument` 异常
+- 索引值必须在有效范围内（0 到对应维度大小减1），否则会抛出异常
+- `value` 会自动转换为与张量相同的数据类型
+- 对于视图（view），写入操作会影响底层共享的数据
+- 对于转置后的张量，写入操作会正确映射到底层数据（注意：当前转置是数据转置，不是视图转置）
+
+**例子:**
+```cpp
+// 创建3维张量
+auto t = Tensor::zeros({3, 4, 5}, dtype(DataType::kFloat32));
+
+// 写入元素 tensor[1][2][3] = 42.0
+t.index_put({1, 2, 3}, 42.0f);
+
+// 读取验证
+float value = t.index<float>({1, 2, 3});  // 42.0
+
+// 2维张量示例
+auto t2d = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, {2, 2});
+t2d.index_put({0, 0}, 10.0f);
+t2d.index_put({0, 1}, 20.0f);
+t2d.index_put({1, 0}, 30.0f);
+t2d.index_put({1, 1}, 40.0f);
+
+// 不同数据类型
+auto int_tensor = Tensor({1, 2, 3, 4}, {2, 2}, DataType::kInt32);
+int_tensor.index_put({1, 1}, 100);  // 自动转换为int32
+
+// 视图操作（会影响底层数据）
+auto original = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, {2, 2});
+auto view = original.reshape({4});
+view.index_put({2}, 999.0f);  // 修改视图会影响原始张量
+```
+
 ---
 
 ## 数学运算
