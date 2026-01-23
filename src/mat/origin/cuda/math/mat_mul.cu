@@ -1809,13 +1809,8 @@ void launch_matmul_v9_autotuning_kernel(const T *a, const T *b, T *c, int M, int
     }
     else if (M >= 512 && N >= 512 && K >= 512)
     {
-        // 中等大矩阵：使用64x64 tile
-        constexpr int TILE_SIZE = 64;
-        constexpr int TILE_M    = 8;
-        constexpr int TILE_N    = 8;
-        dim3 block(TILE_SIZE / TILE_N, TILE_SIZE / TILE_M);
-        dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
-        matmul_v9_autotuning_kernel<T><<<grid, block>>>(a, b, c, M, N, K);
+        // 中等大矩阵：使用V8_LARGE_TILE（支持64x64 tile）
+        launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
     }
     else
     {
@@ -1991,8 +1986,16 @@ void launch_matmul_2d_kernel(const T *a, const T *b, T *c, int M, int N, int K, 
         else if (max_dim >= 2048)
         {
             // 超大矩阵（最大维度 >= 2048）：使用warptiling
-            // 性能数据：10000x10000时V7约174Kμs，V9约181Kμs，V7略优
-            launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
+            // 但对于极端非方阵（min_dim/max_dim < 0.5），使用V9更稳健
+            double aspect_ratio = static_cast<double>(min_dim) / static_cast<double>(max_dim);
+            if (aspect_ratio < 0.5)
+            {
+                launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
+            }
+            else
+            {
+                launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
+            }
         }
         else
         {
