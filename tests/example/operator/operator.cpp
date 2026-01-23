@@ -6,8 +6,8 @@ namespace F = origin::functional;
 int main()
 {
 
-    data_t val0     = 2;
-    data_t val1     = 4;
+    float val0      = 2.0f;
+    float val1      = 4.0f;
     Shape shape     = {2, 2};
     auto x0         = Tensor(val0, shape);
     auto x1         = Tensor(val1, shape);

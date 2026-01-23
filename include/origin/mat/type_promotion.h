@@ -70,7 +70,7 @@ public:
      * @param a 第一个数据类型
      * @param b 第二个数据类型
      * @return 提升后的数据类型
-     * @note 优先级：double > float > int64 > int32 > int16 > int8
+     * @note 优先级：float64 > float32 > int64 > int32 > int8 > uint8
      */
     static inline DataType promote_types_rule(DataType a, DataType b)
     {
@@ -89,24 +89,12 @@ public:
             return DataType::kInt64;
         if (a == DataType::kInt32 || b == DataType::kInt32)
             return DataType::kInt32;
-        if (a == DataType::kInt16 || b == DataType::kInt16)
-            return DataType::kInt16;
         if (a == DataType::kInt8 || b == DataType::kInt8)
             return DataType::kInt8;
 
         // 无符号整数
-        if (a == DataType::kUInt64 || b == DataType::kUInt64)
-            return DataType::kUInt64;
-        if (a == DataType::kUInt32 || b == DataType::kUInt32)
-            return DataType::kUInt32;
-        if (a == DataType::kUInt16 || b == DataType::kUInt16)
-            return DataType::kUInt16;
         if (a == DataType::kUInt8 || b == DataType::kUInt8)
             return DataType::kUInt8;
-
-        // 布尔类型
-        if (a == DataType::kBool || b == DataType::kBool)
-            return DataType::kBool;
 
         // 默认返回第一个类型
         return a;

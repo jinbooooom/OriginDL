@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include <memory>
+#include <type_traits>
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
@@ -48,8 +49,8 @@ std::unique_ptr<Mat> exp(const OriginMat &mat, OriginMat *out)
     void *c_data       = result_ptr->storage()->data();
 
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-        launch_unary_kernel<T, ExpOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(), ExpOp{},
-                                      0);
+        launch_unary_kernel<T, ExpOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(),
+                                      ExpOp{}, 0);
     });
 
     return result_unique;

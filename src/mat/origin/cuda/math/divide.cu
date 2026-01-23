@@ -1,5 +1,6 @@
 #include <cuda_runtime.h>
 #include <memory>
+#include <type_traits>
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"

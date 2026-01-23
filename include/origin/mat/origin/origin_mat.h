@@ -329,7 +329,7 @@ public:
     size_t elements() const override;
 
     // 数据访问
-    std::vector<data_t> to_vector() const override;
+    std::vector<float> to_vector() const override;
     template <typename T>
     std::vector<T> to_vector() const
     {
@@ -436,7 +436,7 @@ public:
     static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options = TensorOptions());
     static std::unique_ptr<Mat> zeros(const Shape &shape, const TensorOptions &options = TensorOptions());
     static std::unique_ptr<Mat> ones(const Shape &shape, const TensorOptions &options = TensorOptions());
-    static std::unique_ptr<Mat> full(const Shape &shape, data_t value, const TensorOptions &options = TensorOptions());
+    static std::unique_ptr<Mat> full(const Shape &shape, float value, const TensorOptions &options = TensorOptions());
 
 private:
     // Helper methods for type conversion

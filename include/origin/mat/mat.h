@@ -228,7 +228,7 @@ public:
      * @brief 转换为向量
      * @return 矩阵数据的向量表示
      */
-    virtual std::vector<data_t> to_vector() const = 0;  // TODO：不再硬编码返回std::vector<data_t>
+    virtual std::vector<float> to_vector() const = 0;  // TODO：不再硬编码返回std::vector<float>
 
     // 数学函数
     /**
@@ -365,7 +365,7 @@ public:
  * @param shape 矩阵形状
  * @return Mat对象的智能指针
  */
-std::unique_ptr<Mat> create_mat(const std::vector<data_t> &data, const Shape &shape);
+std::unique_ptr<Mat> create_mat(const std::vector<float> &data, const Shape &shape);
 
 /**
  * @brief Mat工厂函数，用于创建标量矩阵
@@ -373,16 +373,16 @@ std::unique_ptr<Mat> create_mat(const std::vector<data_t> &data, const Shape &sh
  * @param shape 矩阵形状
  * @return Mat对象的智能指针
  */
-std::unique_ptr<Mat> create_mat(data_t value, const Shape &shape);
+std::unique_ptr<Mat> create_mat(float value, const Shape &shape);
 
 template <typename T>
 std::vector<T> Mat::to_vector() const
 {
     // 调用现有的虚函数，然后转换类型
-    auto data_t_vec = to_vector();
+    auto float_vec = to_vector();
     std::vector<T> result;
-    result.reserve(data_t_vec.size());
-    for (const auto &val : data_t_vec)
+    result.reserve(float_vec.size());
+    for (const auto &val : float_vec)
     {
         result.push_back(static_cast<T>(val));
     }

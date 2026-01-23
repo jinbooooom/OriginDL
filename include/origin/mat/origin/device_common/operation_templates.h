@@ -26,15 +26,7 @@ struct AddOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            // 布尔类型不支持加法，使用逻辑OR作为替代
-            return a || b;
-        }
-        else
-        {
-            return a + b;  // 对于数值类型使用加法
-        }
+        return a + b;
     }
 };
 
@@ -46,15 +38,7 @@ struct DivideOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            // 布尔类型不支持除法操作
-            THROW_UNSUPPORTED("Division is not supported for boolean tensors");
-        }
-        else
-        {
-            return a / b;  // 对于数值类型使用除法
-        }
+        return a / b;
     }
 };
 
@@ -66,14 +50,7 @@ struct SquareOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T value) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            return value && value;  // 对于布尔类型使用逻辑AND
-        }
-        else
-        {
-            return value * value;  // 对于数值类型使用乘法
-        }
+        return value * value;
     }
 };
 
@@ -85,15 +62,7 @@ struct SubtractOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            // 布尔类型不支持减法，使用逻辑异或 (XOR) 作为替代
-            return a != b;
-        }
-        else
-        {
-            return a - b;  // 对于数值类型使用减法
-        }
+        return a - b;
     }
 };
 
@@ -105,15 +74,7 @@ struct MultiplyOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            // 布尔类型乘法等同于逻辑AND
-            return a && b;
-        }
-        else
-        {
-            return a * b;  // 对于数值类型使用乘法
-        }
+        return a * b;
     }
 };
 

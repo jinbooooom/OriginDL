@@ -19,20 +19,16 @@ auto dispatch_supported(DataType dtype, Func &&func)
     {
         case DataType::kFloat32:
             return func.template operator()<float>();
-        case DataType::kDouble:
+        case DataType::kFloat64:
             return func.template operator()<double>();
         case DataType::kInt8:
             return func.template operator()<int8_t>();
-        case DataType::kInt16:
-            return func.template operator()<int16_t>();
         case DataType::kInt32:
             return func.template operator()<int32_t>();
         case DataType::kInt64:
             return func.template operator()<int64_t>();
         case DataType::kUInt8:
             return func.template operator()<uint8_t>();
-        case DataType::kBool:
-            return func.template operator()<bool>();
         default:
             THROW_INVALID_ARG("Unsupported data type {} for torch operation", dtype_to_string(dtype));
     }
@@ -42,14 +38,14 @@ struct VectorConverter
 {
     const torch::Tensor &t;
     template <typename U>
-    std::vector<data_t> operator()() const
+    std::vector<float> operator()() const
     {
         auto vec_u = TorchMat::tensor_to_vector<U>(t);
-        std::vector<data_t> result;
+        std::vector<float> result;
         result.reserve(vec_u.size());
         for (const auto &v : vec_u)
         {
-            result.push_back(static_cast<data_t>(v));
+            result.push_back(static_cast<float>(v));
         }
         return result;
     }
@@ -72,8 +68,7 @@ struct ToTorchScalar
     torch::Scalar operator()() const
     {
         if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, int8_t> ||
-                      std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
-                      std::is_same_v<T, uint8_t> || std::is_same_v<T, bool>)
+                      std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> || std::is_same_v<T, uint8_t>)
         {
             return torch::Scalar(static_cast<T>(s.to<T>()));
         }
@@ -343,7 +338,7 @@ size_t TorchMat::elements() const
     return data_.numel();
 }
 
-std::vector<data_t> TorchMat::to_vector() const
+std::vector<float> TorchMat::to_vector() const
 {
     auto dt = get_data_type_from_torch(data_.scalar_type());
     VectorConverter converter{data_};
@@ -437,7 +432,7 @@ void TorchMat::print(const std::string &desc) const
 }
 
 // 显式实例化
-template data_t TorchMat::scalar<data_t>() const;
+template float TorchMat::scalar<float>() const;
 template int TorchMat::scalar<int>() const;
 
 int TorchMat::backend_type() const
@@ -530,7 +525,7 @@ std::unique_ptr<Mat> TorchMat::randn(const Shape &shape, const TensorOptions &op
     auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
 
     // 对于非浮点类型，先生成float32再转换
-    if (options.dtype() == DataType::kFloat32 || options.dtype() == DataType::kDouble)
+    if (options.dtype() == DataType::kFloat32 || options.dtype() == DataType::kFloat64)
     {
         auto torch_options        = get_torch_tensor_options(options);
         torch::Tensor rand_tensor = torch::randn(sizes, torch_options);
@@ -645,20 +640,16 @@ torch::ScalarType TorchMat::get_torch_type(DataType dtype)
     {
         case DataType::kFloat32:
             return torch::kFloat32;
-        case DataType::kDouble:
+        case DataType::kFloat64:
             return torch::kFloat64;
         case DataType::kInt32:
             return torch::kInt32;
         case DataType::kInt8:
             return torch::kInt8;
-        case DataType::kInt16:
-            return torch::kInt16;
         case DataType::kInt64:
             return torch::kInt64;
         case DataType::kUInt8:
             return torch::kUInt8;
-        case DataType::kBool:
-            return torch::kBool;
         default:
             THROW_INVALID_ARG("Unsupported data type {} for torch operation", dtype_to_string(dtype));
     }
@@ -671,20 +662,15 @@ DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type)
         case torch::kFloat32:
             return DataType::kFloat32;
         case torch::kFloat64:
-            return DataType::kDouble;
+            return DataType::kFloat64;
         case torch::kInt32:
             return DataType::kInt32;
         case torch::kInt8:
             return DataType::kInt8;
-        case torch::kInt16:
-            return DataType::kInt16;
         case torch::kInt64:
             return DataType::kInt64;
         case torch::kUInt8:
             return DataType::kUInt8;
-        // UInt16/UInt32/UInt64 在 LibTorch 中无对应标量类型
-        case torch::kBool:
-            return DataType::kBool;
         default:
             THROW_INVALID_ARG("Unsupported torch scalar type");
     }

@@ -15,7 +15,7 @@ int main()
     t2.print("t2");
 
     // 创建二维数组
-    std::vector<data_t> d3 = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    std::vector<float> d3 = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
     Tensor t3(d3, Shape{2, 3});
     t3.print("t3");
 

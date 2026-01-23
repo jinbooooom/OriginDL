@@ -680,7 +680,7 @@ Scalar OriginMat::scalar_value() const
 }
 
 // 数据访问
-std::vector<data_t> OriginMat::to_vector() const
+std::vector<float> OriginMat::to_vector() const
 {
     // 如果数据在CUDA上，需要先复制到CPU
     if (storage_->device_type() == DeviceType::kCUDA)
@@ -1017,7 +1017,7 @@ std::unique_ptr<Mat> OriginMat::ones(const Shape &shape, const TensorOptions &op
     }
 }
 
-std::unique_ptr<Mat> OriginMat::full(const Shape &shape, data_t value, const TensorOptions &options)
+std::unique_ptr<Mat> OriginMat::full(const Shape &shape, float value, const TensorOptions &options)
 {
     if (options.device().type() == DeviceType::kCUDA)
     {

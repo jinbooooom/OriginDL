@@ -42,30 +42,30 @@ namespace visualize
 // 用于张量的显示和格式化
 
 void print_origin_mat(const std::string &desc,
-                      const std::vector<data_t> &data_vec,
+                      const std::vector<float> &data_vec,
                       const std::vector<size_t> &shape,
                       DataType dtype,
                       const std::string &device_str);
 
-void print_libtorch_style(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape);
+void print_libtorch_style(const std::vector<float> &data_vec, const std::vector<size_t> &shape);
 
-void print_simple_format(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape);
+void print_simple_format(const std::vector<float> &data_vec, const std::vector<size_t> &shape);
 
-void print_slice_format(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape);
+void print_slice_format(const std::vector<float> &data_vec, const std::vector<size_t> &shape);
 
-void print_slice_recursive(const std::vector<data_t> &data_vec,
+void print_slice_recursive(const std::vector<float> &data_vec,
                            const std::vector<size_t> &shape,
                            std::vector<size_t> &indices,
                            size_t current_dim,
                            size_t display_dims);
 
-void print_slice_content(const std::vector<data_t> &data_vec,
+void print_slice_content(const std::vector<float> &data_vec,
                          const std::vector<size_t> &shape,
                          const std::vector<size_t> &indices,
                          size_t display_dims);
 
 // 格式化工具函数
-std::string format_element(data_t value, DataType dtype);
+std::string format_element(float value, DataType dtype);
 std::string format_shape(const std::vector<size_t> &shape);
 std::string format_dtype(DataType dtype);
 std::string format_device(const std::string &device_str);
@@ -81,9 +81,9 @@ void print_debug_info(const std::string &desc,
                       DataType dtype,
                       const std::string &device_str);
 
-void print_memory_layout(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape);
+void print_memory_layout(const std::vector<float> &data_vec, const std::vector<size_t> &shape);
 
-void print_tensor_stats(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape);
+void print_tensor_stats(const std::vector<float> &data_vec, const std::vector<size_t> &shape);
 
 void print_access_pattern(const std::vector<size_t> &shape);
 }  // namespace debug
@@ -98,16 +98,16 @@ size_t calculate_linear_index(const std::vector<size_t> &indices, const std::vec
 std::vector<size_t> calculate_indices_from_linear(size_t linear_index, const std::vector<size_t> &shape);
 
 // 统计工具函数
-data_t calculate_sum(const std::vector<data_t> &data_vec);
-data_t calculate_mean(const std::vector<data_t> &data_vec);
-data_t calculate_max(const std::vector<data_t> &data_vec);
-data_t calculate_min(const std::vector<data_t> &data_vec);
-data_t calculate_std(const std::vector<data_t> &data_vec);
+float calculate_sum(const std::vector<float> &data_vec);
+float calculate_mean(const std::vector<float> &data_vec);
+float calculate_max(const std::vector<float> &data_vec);
+float calculate_min(const std::vector<float> &data_vec);
+float calculate_std(const std::vector<float> &data_vec);
 
 // 转换工具函数
-std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, DataType dtype);
+std::vector<float> convert_to_vector(const void *data_ptr, size_t elements, DataType dtype);
 
-void convert_from_vector(const std::vector<data_t> &data_vec, void *data_ptr, DataType dtype);
+void convert_from_vector(const std::vector<float> &data_vec, void *data_ptr, DataType dtype);
 
 // 标量值提取函数
 Scalar get_scalar_value(const void *data_ptr, DataType dtype);
@@ -124,7 +124,7 @@ namespace validate
 bool validate_shape(const std::vector<size_t> &shape);
 bool validate_indices(const std::vector<size_t> &indices, const std::vector<size_t> &shape);
 
-bool compare_tensors(const std::vector<data_t> &data1, const std::vector<data_t> &data2, data_t tolerance = 1e-6);
+bool compare_tensors(const std::vector<float> &data1, const std::vector<float> &data2, float tolerance = 1e-6);
 
 bool is_same_shape(const std::vector<size_t> &shape1, const std::vector<size_t> &shape2);
 

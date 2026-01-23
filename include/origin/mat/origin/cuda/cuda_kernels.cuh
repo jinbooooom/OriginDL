@@ -5,11 +5,28 @@
 #include "../../basic_types.h"
 #include "../device_common/operation_templates.h"
 
+#ifdef __CUDACC__
+#include "cuda_utils.cuh"
+#endif
+
+#ifdef WITH_CUDA
+#include "cuda_utils.cuh"
+#endif
+
 namespace origin
 {
 namespace cuda
 {
 
+#ifdef WITH_CUDA
+// launch_index_put_kernel 在 origin_mat.cpp（普通 C++ 文件）中被调用
+// 其他启动函数（如 launch_elementwise_kernel）只在 .cu 文件中被调用
+// 为了保证编译通过，所以前向声明一下。
+template <typename T>
+void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream = 0);
+#endif  // WITH_CUDA
+
+#ifdef __CUDACC__
 /**
  * @brief CUDA内核函数集合
  * @details 包含所有高性能CUDA内核实现，支持多种数据类型和优化策略
@@ -35,7 +52,19 @@ __global__ void elementwise_kernel(const T *__restrict__ a,
                                    const T *__restrict__ b,
                                    T *__restrict__ c,
                                    size_t n,
-                                   Op op);
+                                   Op op)
+{
+    // 计算全局线程索引
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // 边界检查，确保不越界
+    if (idx < n)
+    {
+        // 执行元素级操作
+        // 使用__restrict__确保编译器知道指针不会重叠，允许更激进的优化
+        c[idx] = op(a[idx], b[idx]);
+    }
+}
 
 /**
  * @brief 基础元素级一元运算内核
@@ -47,7 +76,15 @@ __global__ void elementwise_kernel(const T *__restrict__ a,
  * @param op 操作函数对象
  */
 template <typename T, typename Op>
-__global__ void unary_kernel(const T *__restrict__ a, T *__restrict__ c, size_t n, Op op);
+__global__ void unary_kernel(const T *__restrict__ a, T *__restrict__ c, size_t n, Op op)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < n)
+    {
+        c[idx] = op(a[idx]);
+    }
+}
 
 /**
  * @brief 类型转换内核
@@ -56,9 +93,18 @@ __global__ void unary_kernel(const T *__restrict__ a, T *__restrict__ c, size_t 
  * @param src 输入矩阵的设备指针
  * @param dst 输出矩阵的设备指针
  * @param n 元素总数
+ * @details 在GPU上直接进行类型转换，避免CPU-CUDA数据传输
  */
 template <typename SrcT, typename DstT>
-__global__ void type_conversion_kernel(const SrcT *__restrict__ src, DstT *__restrict__ dst, size_t n);
+__global__ void type_conversion_kernel(const SrcT *__restrict__ src, DstT *__restrict__ dst, size_t n)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < n)
+    {
+        dst[idx] = static_cast<DstT>(src[idx]);
+    }
+}
 
 /**
  * @brief 索引写入内核（单个元素）
@@ -68,18 +114,15 @@ __global__ void type_conversion_kernel(const SrcT *__restrict__ src, DstT *__res
  * @param value 要写入的值
  */
 template <typename T>
-__global__ void index_put_kernel(T *data, size_t index, T value);
+__global__ void index_put_kernel(T *data, size_t index, T value)
+{
+    // 只写入指定索引位置的值
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        data[index] = value;
+    }
+}
 
-/**
- * @brief 启动索引写入内核（单个元素）
- * @tparam T 数据类型
- * @param data 数据指针
- * @param index 线性索引
- * @param value 要写入的值
- * @param stream CUDA流
- */
-template <typename T>
-void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream = 0);
 
 /**
  * @brief 标量运算内核
@@ -92,7 +135,15 @@ void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream
  * @param op 操作函数对象
  */
 template <typename T, typename Op>
-__global__ void scalar_kernel(const T *__restrict__ a, T scalar, T *__restrict__ c, size_t n, Op op);
+__global__ void scalar_kernel(const T *__restrict__ a, T scalar, T *__restrict__ c, size_t n, Op op)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < n)
+    {
+        c[idx] = op(a[idx], scalar);
+    }
+}
 
 // ============================================================================
 // 广播运算内核
@@ -121,7 +172,19 @@ __global__ void simple_broadcast_kernel(const T *__restrict__ a,
                                         size_t a_elements,
                                         size_t b_elements,
                                         size_t c_elements,
-                                        Op op);
+                                        Op op)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < c_elements)
+    {
+        // 计算源索引：如果操作数是标量，索引为0，否则为当前索引
+        size_t a_idx = (a_elements == 1) ? 0 : idx;
+        size_t b_idx = (b_elements == 1) ? 0 : idx;
+
+        c[idx] = op(a[a_idx], b[b_idx]);
+    }
+}
 
 /**
  * @brief 复杂广播内核（处理不同维度的张量）
@@ -152,7 +215,36 @@ __global__ void complex_broadcast_kernel(const T *__restrict__ a,
                                          const int *c_shape,
                                          int ndims,
                                          size_t total_elements,
-                                         Op op);
+                                         Op op)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < total_elements)
+    {
+        // 将线性索引转换为多维索引
+        int c_indices[8];  // 假设最大8维
+        int temp = idx;
+        for (int i = ndims - 1; i >= 0; --i)
+        {
+            c_indices[i] = temp % c_shape[i];
+            temp /= c_shape[i];
+        }
+
+        // 计算a和b的线性索引
+        int a_idx = 0, b_idx = 0;
+        for (int i = 0; i < ndims; ++i)
+        {
+            // 如果维度大小为1，则索引为0（广播）
+            int a_dim_idx = (a_shape[i] == 1) ? 0 : c_indices[i];
+            int b_dim_idx = (b_shape[i] == 1) ? 0 : c_indices[i];
+
+            a_idx += a_dim_idx * a_strides[i];
+            b_idx += b_dim_idx * b_strides[i];
+        }
+
+        c[idx] = op(a[a_idx], b[b_idx]);
+    }
+}
 
 // ============================================================================
 // 内核启动函数
@@ -170,7 +262,15 @@ __global__ void complex_broadcast_kernel(const T *__restrict__ a,
  * @param stream CUDA流
  */
 template <typename T, typename Op>
-void launch_elementwise_kernel(const T *a, const T *b, T *c, size_t n, Op op, cudaStream_t stream = 0);
+void launch_elementwise_kernel(const T *a, const T *b, T *c, size_t n, Op op, cudaStream_t stream = 0)
+{
+    // 根据数据大小选择最优的线程块大小
+    dim3 block = get_optimal_block_size(n);
+    dim3 grid  = get_optimal_grid_size(n, block);
+
+    // 启动内核
+    elementwise_kernel<T, Op><<<grid, block, 0, stream>>>(a, b, c, n, op);
+}
 
 /**
  * @brief 启动元素级一元运算内核
@@ -183,7 +283,13 @@ void launch_elementwise_kernel(const T *a, const T *b, T *c, size_t n, Op op, cu
  * @param stream CUDA流
  */
 template <typename T, typename Op>
-void launch_unary_kernel(const T *a, T *c, size_t n, Op op, cudaStream_t stream = 0);
+void launch_unary_kernel(const T *a, T *c, size_t n, Op op, cudaStream_t stream = 0)
+{
+    dim3 block = get_optimal_block_size(n);
+    dim3 grid  = get_optimal_grid_size(n, block);
+
+    unary_kernel<T, Op><<<grid, block, 0, stream>>>(a, c, n, op);
+}
 
 /**
  * @brief 启动类型转换内核
@@ -195,7 +301,13 @@ void launch_unary_kernel(const T *a, T *c, size_t n, Op op, cudaStream_t stream 
  * @param stream CUDA流
  */
 template <typename SrcT, typename DstT>
-void launch_type_conversion_kernel(const SrcT *src, DstT *dst, size_t n, cudaStream_t stream = 0);
+void launch_type_conversion_kernel(const SrcT *src, DstT *dst, size_t n, cudaStream_t stream = 0)
+{
+    dim3 block = get_optimal_block_size(n);
+    dim3 grid  = get_optimal_grid_size(n, block);
+
+    type_conversion_kernel<SrcT, DstT><<<grid, block, 0, stream>>>(src, dst, n);
+}
 
 /**
  * @brief 启动标量运算内核
@@ -209,7 +321,13 @@ void launch_type_conversion_kernel(const SrcT *src, DstT *dst, size_t n, cudaStr
  * @param stream CUDA流
  */
 template <typename T, typename Op>
-void launch_scalar_kernel(const T *a, T scalar, T *c, size_t n, Op op, cudaStream_t stream = 0);
+void launch_scalar_kernel(const T *a, T scalar, T *c, size_t n, Op op, cudaStream_t stream = 0)
+{
+    dim3 block = get_optimal_block_size(n);
+    dim3 grid  = get_optimal_grid_size(n, block);
+
+    scalar_kernel<T, Op><<<grid, block, 0, stream>>>(a, scalar, c, n, op);
+}
 
 /**
  * @brief 启动简单广播内核
@@ -234,7 +352,13 @@ void launch_simple_broadcast_kernel(const T *a,
                                     size_t b_elements,
                                     size_t c_elements,
                                     Op op,
-                                    cudaStream_t stream = 0);
+                                    cudaStream_t stream = 0)
+{
+    dim3 block = get_optimal_block_size(c_elements);
+    dim3 grid  = get_optimal_grid_size(c_elements, block);
+
+    simple_broadcast_kernel<T, Op><<<grid, block, 0, stream>>>(a, b, c, a_elements, b_elements, c_elements, op);
+}
 
 /**
  * @brief 启动复杂广播内核
@@ -271,7 +395,27 @@ void launch_complex_broadcast_kernel(const T *a,
                                      int ndims,
                                      size_t total_elements,
                                      Op op,
-                                     cudaStream_t stream = 0);
+                                     cudaStream_t stream = 0)
+{
+    dim3 block = get_optimal_block_size(total_elements);
+    dim3 grid  = get_optimal_grid_size(total_elements, block);
+
+    complex_broadcast_kernel<T, Op><<<grid, block, 0, stream>>>(a, b, c, a_strides, b_strides, c_strides, a_shape,
+                                                                b_shape, c_shape, ndims, total_elements, op);
+}
+
+/**
+ * @brief 启动索引写入内核（单个元素）
+ * @tparam T 数据类型
+ * @param data 数据指针
+ * @param index 线性索引
+ * @param value 要写入的值
+ * @param stream CUDA流
+ * @note 实现在 cuda_kernels.cu 中，用 nvcc 编译
+ */
+template <typename T>
+void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream = 0);
+#endif  // __CUDACC__
 
 }  // namespace cuda
 }  // namespace origin

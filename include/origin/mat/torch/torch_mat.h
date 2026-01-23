@@ -176,7 +176,7 @@ public:
     Shape shape() const override;
     size_t elements() const override;
     // 虚函数重写
-    std::vector<data_t> to_vector() const override;
+    std::vector<float> to_vector() const override;
 
     // 模板版本
     template <typename U>
