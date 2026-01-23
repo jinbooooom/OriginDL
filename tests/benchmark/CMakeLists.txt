@@ -15,7 +15,7 @@ target_link_libraries(bench_add
 )
 
 # Origin后端：如果启用CUDA，添加CUDA相关链接
-if(ENABLE_CUDA)
+if(ENABLE_CUDA AND MAT_BACKEND STREQUAL "ORIGIN")
     target_link_libraries(bench_add originmat_cuda ${CUDA_LIBRARIES})
 endif()
 
@@ -39,7 +39,7 @@ target_link_libraries(bench_matmul
 )
 
 # Origin后端：如果启用CUDA，添加CUDA相关链接
-if(ENABLE_CUDA)
+if(ENABLE_CUDA AND MAT_BACKEND STREQUAL "ORIGIN")
     target_link_libraries(bench_matmul originmat_cuda ${CUDA_LIBRARIES})
 endif()
 
@@ -63,7 +63,7 @@ target_link_libraries(bench_conv2d
 )
 
 # Origin后端：如果启用CUDA，添加CUDA相关链接
-if(ENABLE_CUDA)
+if(ENABLE_CUDA AND MAT_BACKEND STREQUAL "ORIGIN")
     target_link_libraries(bench_conv2d originmat_cuda ${CUDA_LIBRARIES})
 endif()
 

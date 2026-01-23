@@ -1,13 +1,9 @@
 #include "origin/operators/shape/cat.h"
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/mat/origin/origin_mat.h"
-#include "origin/mat/origin/cpu/cpu_ops.h"
+#include "origin/mat/mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
-#ifdef WITH_CUDA
-#    include "origin/mat/origin/cuda/cuda_ops.cuh"
-#endif
 
 namespace origin
 {
@@ -63,28 +59,15 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
     }
     output_shape[dim_] = total_dim_size;
 
-    // 收集所有输入的 OriginMat 指针
-    std::vector<const OriginMat *> input_mats;
+    // 收集所有输入的 Mat 指针
+    std::vector<const Mat *> input_mats;
     for (const auto &x : xs)
     {
-        const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
-        input_mats.push_back(&x_mat);
+        input_mats.push_back(&mat(x));
     }
 
-    // 根据设备类型调用对应的实现
-    std::unique_ptr<Mat> result_mat;
-    if (all_cuda)
-    {
-#ifdef WITH_CUDA
-        result_mat = cuda::cat(input_mats, dim_);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        result_mat = cpu::cat(input_mats, dim_);
-    }
+    // 使用 Mat 接口的静态方法
+    std::unique_ptr<Mat> result_mat = Mat::cat(input_mats, dim_);
 
     // 转换为 Tensor
     Tensor result_tensor = convert_mat_to_tensor(std::move(result_mat));
@@ -109,22 +92,8 @@ std::vector<Tensor> Cat::backward(const std::vector<Tensor> &gys)
         output_shapes.push_back(x.shape());
     }
 
-    // 使用 mat 层的 split 函数分割梯度
-    const OriginMat &gy_mat = static_cast<const OriginMat &>(mat(gy));
-    std::vector<std::unique_ptr<Mat>> gx_mats;
-    
-    if (gy.device().type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        gx_mats = cuda::split(gy_mat, output_shapes, dim_);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        gx_mats = cpu::split(gy_mat, output_shapes, dim_);
-    }
+    // 使用 Mat 接口的静态方法分割梯度
+    std::vector<std::unique_ptr<Mat>> gx_mats = Mat::split(mat(gy), output_shapes, dim_);
 
     // 转换为 Tensor
     std::vector<Tensor> gxs;

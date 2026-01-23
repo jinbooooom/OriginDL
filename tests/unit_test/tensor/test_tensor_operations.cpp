@@ -6,6 +6,10 @@
 #include "../common/test_utils.h"
 #include "origin.h"
 
+#ifdef WITH_CUDA
+#include <cuda_runtime.h>
+#endif
+
 using namespace origin;
 
 /**
@@ -267,6 +271,7 @@ TEST_P(TensorOperationsTest, DataPtrBasic)
     }
     else
     {
+#ifdef WITH_CUDA
         // CUDA版本：直接获取CUDA张量的指针，使用cudaMemcpy拷贝到CPU内存进行比较
         float *cuda_ptr = t.data_ptr<float>();
         EXPECT_NE(cuda_ptr, nullptr);
@@ -292,6 +297,10 @@ TEST_P(TensorOperationsTest, DataPtrBasic)
         {
             EXPECT_NEAR(cpu_data[i], expected_data[i], origin::test::TestTolerance::kDefault);
         }
+#else
+        // TORCH后端或其他后端：跳过CUDA特定测试
+        GTEST_SKIP() << "CUDA support not enabled, skipping CUDA-specific test";
+#endif
     }
 }
 
@@ -313,6 +322,7 @@ TEST_P(TensorOperationsTest, DataPtrModification)
     }
     else
     {
+#ifdef WITH_CUDA
         // CUDA版本：使用cudaMemcpy在CPU和GPU之间传输数据
         float *cuda_ptr = t.data_ptr<float>();
         EXPECT_NE(cuda_ptr, nullptr);
@@ -343,6 +353,10 @@ TEST_P(TensorOperationsTest, DataPtrModification)
         EXPECT_EQ(verify_data.size(), num_elements);
         EXPECT_NEAR(verify_data[0], 10.0f, origin::test::TestTolerance::kDefault);
         EXPECT_NEAR(verify_data[1], 20.0f, origin::test::TestTolerance::kDefault);
+#else
+        // TORCH后端或其他后端：跳过CUDA特定测试
+        GTEST_SKIP() << "CUDA support not enabled, skipping CUDA-specific test";
+#endif
     }
 }
 

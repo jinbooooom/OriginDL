@@ -1,6 +1,5 @@
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/scalar.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
@@ -47,18 +46,18 @@ std::vector<Tensor> ReLU::backward(const std::vector<Tensor> &gys)
     // 当 relu(x) = 0 时，mask = 0
     float epsilon                = 1e-8f;
     auto epsilon_tensor          = Tensor::full(relu_x.shape(), epsilon, dtype(relu_x.dtype()).device(relu_x.device()));
-    const OriginMat &relu_x_mat  = static_cast<const OriginMat &>(mat(relu_x));
-    const OriginMat &epsilon_mat = static_cast<const OriginMat &>(mat(epsilon_tensor));
+    const Mat &relu_x_mat  = mat(relu_x);
+    const Mat &epsilon_mat = mat(epsilon_tensor);
     auto relu_x_plus_eps_result  = relu_x_mat + epsilon_mat;
     auto relu_x_plus_eps         = convert_mat_to_tensor(std::move(relu_x_plus_eps_result));
 
-    const OriginMat &relu_x_plus_eps_mat = static_cast<const OriginMat &>(mat(relu_x_plus_eps));
+    const Mat &relu_x_plus_eps_mat = mat(relu_x_plus_eps);
     auto mask_result                     = relu_x_mat / relu_x_plus_eps_mat;
     auto mask                            = convert_mat_to_tensor(std::move(mask_result));
 
     // gx = gy * mask
-    const OriginMat &gy_mat   = static_cast<const OriginMat &>(mat(gy));
-    const OriginMat &mask_mat = static_cast<const OriginMat &>(mat(mask));
+    const Mat &gy_mat   = mat(gy);
+    const Mat &mask_mat = mat(mask);
     auto gx_result            = gy_mat * mask_mat;
     auto gx                   = convert_mat_to_tensor(std::move(gx_result));
     return std::vector<Tensor>{std::move(gx)};

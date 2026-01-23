@@ -2,7 +2,6 @@
 #include <vector>
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/operators/shape/cat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
@@ -93,13 +92,11 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
                                                                                       : anchor_grids_[stage].to(input_device);
 
         // 使用 mat 层的 yolo_detect_forward 实现
-        const OriginMat &input_mat         = static_cast<const OriginMat &>(mat(input));
-        const OriginMat &conv_weight_mat   = static_cast<const OriginMat &>(mat(conv_weight_on_device));
-        const OriginMat *conv_bias_mat     = conv_bias_on_device.shape().elements() > 0
-                                                 ? &static_cast<const OriginMat &>(mat(conv_bias_on_device))
-                                                 : nullptr;
-        const OriginMat &grid_mat         = static_cast<const OriginMat &>(mat(grid_on_device));
-        const OriginMat &anchor_grid_mat   = static_cast<const OriginMat &>(mat(anchor_grid_on_device));
+        const Mat &input_mat         = mat(input);
+        const Mat &conv_weight_mat   = mat(conv_weight_on_device);
+        const Mat *conv_bias_mat     = conv_bias_on_device.shape().elements() > 0 ? &mat(conv_bias_on_device) : nullptr;
+        const Mat &grid_mat         = mat(grid_on_device);
+        const Mat &anchor_grid_mat   = mat(anchor_grid_on_device);
 
         auto stage_result = input_mat.yolo_detect_forward(
             conv_weight_mat,

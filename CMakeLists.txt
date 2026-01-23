@@ -62,13 +62,13 @@ endif()
 if(MAT_BACKEND STREQUAL "TORCH")
     add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
-    add_definitions(-DMAT_BACKEND=2)  # ORIGIN = 2
+    add_definitions(-DMAT_BACKEND=0)  # ORIGIN = 0
     if(ENABLE_CUDA)
         add_definitions(-DWITH_CUDA)
     endif()
 else()
-    # 默认使用TORCH后端
-    add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
+    # 默认使用ORIGIN后端
+    add_definitions(-DMAT_BACKEND=0)  # ORIGIN = 0
 endif()
 
 # CUDA支持现在由独立的子项目处理

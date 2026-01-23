@@ -2,7 +2,6 @@
 #include <vector>
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/conv_utils.h"
 #include "origin/utils/exception.h"
@@ -48,9 +47,9 @@ std::vector<Tensor> Conv2dOp::forward(const std::vector<Tensor> &xs)
     }
 
     // 获取 Mat 引用并调用底层 conv2d（所有实现细节都在底层完成）
-    const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
-    const OriginMat &W_mat = static_cast<const OriginMat &>(mat(W));
-    const OriginMat *b_mat = (b != nullptr) ? &static_cast<const OriginMat &>(mat(*b)) : nullptr;
+    const Mat &x_mat = mat(x);
+    const Mat &W_mat = mat(W);
+    const Mat *b_mat = (b != nullptr) ? &mat(*b) : nullptr;
 
     auto result = x_mat.conv2d(W_mat, b_mat, stride_, pad_);
     auto y      = convert_mat_to_tensor(std::move(result));
@@ -70,10 +69,10 @@ std::vector<Tensor> Conv2dOp::backward(const std::vector<Tensor> &gys)
     const Tensor *b = (this->inputs_.size() == 3) ? &this->inputs_[2] : nullptr;
 
     // 获取 Mat 引用并调用底层 conv2d_backward（所有实现细节都在底层完成）
-    const OriginMat &gy_mat = static_cast<const OriginMat &>(mat(gy));
-    const OriginMat &x_mat  = static_cast<const OriginMat &>(mat(x));
-    const OriginMat &W_mat  = static_cast<const OriginMat &>(mat(W));
-    const OriginMat *b_mat  = (b != nullptr) ? &static_cast<const OriginMat &>(mat(*b)) : nullptr;
+    const Mat &gy_mat = mat(gy);
+    const Mat &x_mat  = mat(x);
+    const Mat &W_mat  = mat(W);
+    const Mat *b_mat  = (b != nullptr) ? &mat(*b) : nullptr;
 
     auto grads = gy_mat.conv2d_backward(gy_mat, x_mat, W_mat, b_mat, stride_, pad_);
 

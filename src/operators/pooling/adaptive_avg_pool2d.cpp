@@ -1,7 +1,6 @@
 #include "origin/operators/pooling/adaptive_avg_pool2d.h"
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -28,7 +27,7 @@ std::vector<Tensor> AdaptiveAvgPool2d::forward(const std::vector<Tensor> &xs)
     }
 
     // 获取 Mat 引用并调用底层 adaptive_avg_pool2d
-    const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+    const Mat &x_mat = mat(x);
 
     auto result = x_mat.adaptive_avg_pool2d(output_size_);
     auto y      = convert_mat_to_tensor(std::move(result));
@@ -46,8 +45,8 @@ std::vector<Tensor> AdaptiveAvgPool2d::backward(const std::vector<Tensor> &gys)
     auto &x  = this->inputs_[0];
 
     // 获取 Mat 引用并调用底层 adaptive_avg_pool2d_backward
-    const OriginMat &gy_mat = static_cast<const OriginMat &>(mat(gy));
-    const OriginMat &x_mat  = static_cast<const OriginMat &>(mat(x));
+    const Mat &gy_mat = mat(gy);
+    const Mat &x_mat  = mat(x);
 
     auto gx = x_mat.adaptive_avg_pool2d_backward(gy_mat, output_size_);
     return std::vector<Tensor>{convert_mat_to_tensor(std::move(gx))};

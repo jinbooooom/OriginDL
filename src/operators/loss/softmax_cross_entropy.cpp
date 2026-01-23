@@ -3,7 +3,6 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/mat.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/operators/activation/softmax.h"
 #include "origin/operators/math/log.h"
 #include "origin/operators/math/sum.h"
@@ -52,8 +51,8 @@ std::vector<Tensor> SoftmaxCrossEntropy::forward(const std::vector<Tensor> &xs)
     auto p = softmax(x, -1);  // 沿最后一个维度计算 softmax
 
     // 2. 使用 mat 层的 gather 提取 p[i][target[i]]
-    const OriginMat &p_mat = static_cast<const OriginMat &>(mat(p));
-    const OriginMat &target_mat = static_cast<const OriginMat &>(mat(target));
+    const Mat &p_mat = mat(p);
+    const Mat &target_mat = mat(target);
     
     // gather 从 p 中提取值：p.gather(target) 返回 (N,)
     auto p_selected_mat = p_mat.gather(target_mat);
@@ -95,8 +94,8 @@ std::vector<Tensor> SoftmaxCrossEntropy::backward(const std::vector<Tensor> &gys
     auto p = softmax(x, -1);
 
     // 2. 使用 mat 层的 one_hot 创建 one_hot(target) 编码
-    const OriginMat &target_mat = static_cast<const OriginMat &>(mat(target));
-    auto one_hot_mat = OriginMat::one_hot(target_mat, static_cast<int>(C));
+    const Mat &target_mat = mat(target);
+    auto one_hot_mat = target_mat.one_hot(target_mat, static_cast<int>(C));
     auto one_hot = convert_mat_to_tensor(std::move(one_hot_mat));
 
     // 3. 计算 gx = (softmax(x) - one_hot(target)) / N

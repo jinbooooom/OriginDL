@@ -357,6 +357,299 @@ public:
      * @return 转换后的矩阵
      */
     virtual std::unique_ptr<Mat> to_device(Device device) const = 0;
+
+    // === 卷积相关操作 ===
+    /**
+     * @brief im2col：将图像转换为列矩阵
+     * @param kernel_size 卷积核大小
+     * @param stride 步长
+     * @param pad 填充
+     * @param to_matrix 是否转换为矩阵形式
+     * @return 列矩阵
+     */
+    virtual std::unique_ptr<Mat> im2col(std::pair<int, int> kernel_size,
+                                        std::pair<int, int> stride,
+                                        std::pair<int, int> pad,
+                                        bool to_matrix = true) const = 0;
+
+    /**
+     * @brief col2im：将列矩阵转换回图像形状
+     * @param input_shape 原始输入形状 (N, C, H, W)
+     * @param kernel_size 卷积核大小
+     * @param stride 步长
+     * @param pad 填充
+     * @param to_matrix 是否从矩阵形式转换
+     * @return 图像矩阵
+     */
+    virtual std::unique_ptr<Mat> col2im(const Shape &input_shape,
+                                       std::pair<int, int> kernel_size,
+                                       std::pair<int, int> stride,
+                                       std::pair<int, int> pad,
+                                       bool to_matrix = true) const = 0;
+
+    /**
+     * @brief conv2d：完整的二维卷积操作
+     * @param W 卷积核 (OC, C, KH, KW)
+     * @param b 偏置 (OC,)，可选，如果为 nullptr 则不添加偏置
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @return 输出张量 (N, OC, OH, OW)
+     */
+    virtual std::unique_ptr<Mat> conv2d(const Mat &W,
+                                        const Mat *b,
+                                        std::pair<int, int> stride,
+                                        std::pair<int, int> pad) const = 0;
+
+    /**
+     * @brief conv2d_backward：卷积反向传播
+     * @param gy 输出梯度 (N, OC, OH, OW)
+     * @param x 输入张量 (N, C, H, W)
+     * @param W 卷积核 (OC, C, KH, KW)
+     * @param b 偏置 (OC,)，可选
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @return 梯度向量：{gx, gW, [gb]}
+     */
+    virtual std::vector<std::unique_ptr<Mat>> conv2d_backward(const Mat &gy,
+                                                              const Mat &x,
+                                                              const Mat &W,
+                                                              const Mat *b,
+                                                              std::pair<int, int> stride,
+                                                              std::pair<int, int> pad) const = 0;
+
+    // === 池化相关操作 ===
+    /**
+     * @brief avg_pool2d：平均池化操作
+     * @param kernel_size 池化核大小 (KH, KW)
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @return 输出张量 (N, C, OH, OW)
+     */
+    virtual std::unique_ptr<Mat> avg_pool2d(std::pair<int, int> kernel_size,
+                                            std::pair<int, int> stride,
+                                            std::pair<int, int> pad) const = 0;
+
+    /**
+     * @brief avg_pool2d_backward：平均池化反向传播
+     * @param gy 输出梯度 (N, C, OH, OW)
+     * @param kernel_size 池化核大小 (KH, KW)
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @return 输入梯度 (N, C, H, W)
+     */
+    virtual std::unique_ptr<Mat> avg_pool2d_backward(const Mat &gy,
+                                                     std::pair<int, int> kernel_size,
+                                                     std::pair<int, int> stride,
+                                                     std::pair<int, int> pad) const = 0;
+
+    /**
+     * @brief adaptive_avg_pool2d：自适应平均池化操作
+     * @param output_size 输出尺寸 (OH, OW)
+     * @return 输出张量 (N, C, OH, OW)
+     */
+    virtual std::unique_ptr<Mat> adaptive_avg_pool2d(std::pair<int, int> output_size) const = 0;
+
+    /**
+     * @brief adaptive_avg_pool2d_backward：自适应平均池化反向传播
+     * @param gy 输出梯度 (N, C, OH, OW)
+     * @param output_size 输出尺寸 (OH, OW)
+     * @return 输入梯度 (N, C, H, W)
+     */
+    virtual std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const Mat &gy,
+                                                                std::pair<int, int> output_size) const = 0;
+
+    /**
+     * @brief max_pool2d：最大池化操作
+     * @param kernel_size 池化核大小 (KH, KW)
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @param indices 输出参数：保存每个最大值在窗口内的索引
+     * @return 输出张量 (N, C, OH, OW)
+     */
+    virtual std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size,
+                                            std::pair<int, int> stride,
+                                            std::pair<int, int> pad,
+                                            std::vector<size_t> &indices) const = 0;
+
+    /**
+     * @brief max_pool2d_backward：最大池化反向传播
+     * @param gy 输出梯度 (N, C, OH, OW)
+     * @param kernel_size 池化核大小 (KH, KW)
+     * @param stride 步长 (SH, SW)
+     * @param pad 填充 (PH, PW)
+     * @param indices 前向传播时保存的索引
+     * @return 输入梯度 (N, C, H, W)
+     */
+    virtual std::unique_ptr<Mat> max_pool2d_backward(const Mat &gy,
+                                                     std::pair<int, int> kernel_size,
+                                                     std::pair<int, int> stride,
+                                                     std::pair<int, int> pad,
+                                                     const std::vector<size_t> &indices) const = 0;
+
+    // === BatchNorm 相关操作 ===
+    /**
+     * @brief BatchNorm 前向传播结果结构体
+     */
+    struct BatchNormResult
+    {
+        std::unique_ptr<Mat> y;       // 输出
+        std::unique_ptr<Mat> mean;    // 当前 batch 的均值
+        std::unique_ptr<Mat> var;     // 当前 batch 的方差
+        std::unique_ptr<Mat> x_norm;  // 归一化后的 x
+    };
+
+    /**
+     * @brief batch_norm_forward：BatchNorm 前向传播（返回所有中间结果）
+     * @param gamma 缩放参数 (weight)，形状为 (C,)
+     * @param beta 偏移参数 (bias)，形状为 (C,)
+     * @param running_mean 运行均值，形状为 (C,)
+     * @param running_var 运行方差，形状为 (C,)
+     * @param training 是否为训练模式
+     * @param eps 数值稳定性参数
+     * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+     * @return BatchNormResult 包含输出和中间结果
+     */
+    virtual BatchNormResult batch_norm_forward(const Mat &gamma,
+                                              const Mat &beta,
+                                              const Mat &running_mean,
+                                              const Mat &running_var,
+                                              bool training,
+                                              float eps,
+                                              int num_dims) const = 0;
+
+    /**
+     * @brief batch_norm：BatchNorm 前向传播（只返回输出）
+     * @param gamma 缩放参数 (weight)，形状为 (C,)
+     * @param beta 偏移参数 (bias)，形状为 (C,)
+     * @param running_mean 运行均值，形状为 (C,)
+     * @param running_var 运行方差，形状为 (C,)
+     * @param training 是否为训练模式
+     * @param eps 数值稳定性参数
+     * @param momentum 动量参数
+     * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+     * @return 输出张量，形状与输入相同
+     */
+    virtual std::unique_ptr<Mat> batch_norm(const Mat &gamma,
+                                            const Mat &beta,
+                                            const Mat &running_mean,
+                                            const Mat &running_var,
+                                            bool training,
+                                            float eps,
+                                            float momentum,
+                                            int num_dims) const = 0;
+
+    /**
+     * @brief batch_norm_backward：BatchNorm 反向传播
+     * @param gy 输出梯度，形状与输入 x 相同
+     * @param gamma 缩放参数 (weight)，形状为 (C,)
+     * @param saved_mean 前向传播时保存的均值，形状为 (C,)
+     * @param saved_var 前向传播时保存的方差，形状为 (C,)
+     * @param saved_x_norm 前向传播时保存的归一化结果，形状与输入 x 相同
+     * @param eps 数值稳定性参数
+     * @param num_dims 输入张量的总维度数：2=(N,C), 4=(N,C,H,W)
+     * @return 梯度向量：{gx, dgamma, dbeta}
+     */
+    virtual std::vector<std::unique_ptr<Mat>> batch_norm_backward(const Mat &gy,
+                                                                  const Mat &gamma,
+                                                                  const Mat &saved_mean,
+                                                                  const Mat &saved_var,
+                                                                  const Mat &saved_x_norm,
+                                                                  float eps,
+                                                                  int num_dims) const = 0;
+
+    // === 其他操作 ===
+    /**
+     * @brief gather：根据索引从矩阵中提取值
+     * @param indices 索引向量 (N,)，每个元素在 [0, C) 范围内
+     * @return 提取的值 (N,)
+     */
+    virtual std::unique_ptr<Mat> gather(const Mat &indices) const = 0;
+
+    /**
+     * @brief one_hot：将索引转换为 one-hot 编码
+     * @param indices 索引向量 (N,)，每个元素在 [0, num_classes) 范围内
+     * @param num_classes 类别数量
+     * @return one-hot 编码矩阵 (N, num_classes)
+     */
+    virtual std::unique_ptr<Mat> one_hot(const Mat &indices, int num_classes) const = 0;
+
+    /**
+     * @brief yolo_detect_forward：YOLO Detect 前向传播（单个 stage）
+     * @param conv_weight 卷积权重 (OC, C, 1, 1)，其中 OC = num_anchors * (num_classes + 5)
+     * @param conv_bias 卷积偏置 (OC,)，可选，如果为 nullptr 则不添加偏置
+     * @param grid grid 坐标 (1, num_anchors, H, W, 2) 或展平后的形状
+     * @param anchor_grid anchor grid 坐标 (1, num_anchors, anchor_H, anchor_W, 2) 或展平后的形状
+     * @param stride stride 值
+     * @param num_anchors anchor 数量
+     * @param num_classes 类别数量
+     * @return 输出张量 (N, num_boxes, classes_info)，其中 num_boxes = H * W * num_anchors, classes_info = num_classes + 5
+     */
+    virtual std::unique_ptr<Mat> yolo_detect_forward(const Mat &conv_weight,
+                                                     const Mat *conv_bias,
+                                                     const Mat &grid,
+                                                     const Mat &anchor_grid,
+                                                     float stride,
+                                                     int32_t num_anchors,
+                                                     int32_t num_classes) const = 0;
+
+    // === Dropout 相关操作 ===
+    /**
+     * @brief dropout：Dropout 前向传播
+     * @param p dropout 概率
+     * @param training 是否为训练模式
+     * @param mask 输出参数：保存 dropout mask（如果为 nullptr，则不保存 mask）
+     * @return 输出张量
+     */
+    virtual std::unique_ptr<Mat> dropout(float p, bool training, Mat *mask) const = 0;
+
+    /**
+     * @brief dropout_backward：Dropout 反向传播
+     * @param gy 输出梯度
+     * @param mask dropout mask
+     * @return 输入梯度
+     */
+    virtual std::unique_ptr<Mat> dropout_backward(const Mat &gy, const Mat &mask) const = 0;
+
+    // === Upsample 相关操作 ===
+    /**
+     * @brief upsample：上采样操作
+     * @param output_shape 输出形状 (N, C, OH, OW)
+     * @param scale_h 高度缩放因子
+     * @param scale_w 宽度缩放因子
+     * @return 输出张量 (N, C, OH, OW)
+     */
+    virtual std::unique_ptr<Mat> upsample(const Shape &output_shape, int scale_h, int scale_w) const = 0;
+
+    /**
+     * @brief upsample_backward：上采样反向传播
+     * @param gy 输出梯度 (N, C, OH, OW)
+     * @param x_shape 输入形状 (N, C, H, W)
+     * @param scale_h 高度缩放因子
+     * @param scale_w 宽度缩放因子
+     * @return 输入梯度 (N, C, H, W)
+     */
+    virtual std::unique_ptr<Mat> upsample_backward(const Mat &gy,
+                                                   const Shape &x_shape,
+                                                   int scale_h,
+                                                   int scale_w) const = 0;
+
+    // === Cat 和 Split 相关操作 ===
+    /**
+     * @brief cat：在指定维度上拼接多个矩阵
+     * @param inputs 输入矩阵列表（所有矩阵必须具有相同的后端类型）
+     * @param dim 拼接维度
+     * @return 拼接后的矩阵
+     */
+    static std::unique_ptr<Mat> cat(const std::vector<const Mat *> &inputs, int dim);
+
+    /**
+     * @brief split：将矩阵沿指定维度分割成多个矩阵（cat 的反向操作）
+     * @param input 输入矩阵
+     * @param output_shapes 输出形状列表
+     * @param dim 分割维度
+     * @return 分割后的矩阵列表
+     */
+    static std::vector<std::unique_ptr<Mat>> split(const Mat &input, const std::vector<Shape> &output_shapes, int dim);
 };
 
 /**

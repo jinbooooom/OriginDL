@@ -1,14 +1,9 @@
 #include "origin/operators/nn/upsample.h"
 #include <cmath>
 #include "origin/core/tensor.h"
-#include "origin/mat/origin/origin_mat.h"
-#include "origin/mat/origin/cpu/cpu_ops.h"
+#include "origin/mat/mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
-
-#ifdef WITH_CUDA
-#include "origin/mat/origin/cuda/cuda_ops.cuh"
-#endif
 
 namespace origin
 {
@@ -49,23 +44,11 @@ std::vector<Tensor> Upsample::forward(const std::vector<Tensor> &xs)
     int scale_h = output_shape[2] / x_shape[2];
     int scale_w = output_shape[3] / x_shape[3];
 
-    // 获取 Mat 引用并转换为 OriginMat
-    const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+    // 获取 Mat 引用
+    const Mat &x_mat = mat(x);
 
-    // 根据设备类型调用对应的实现
-    std::unique_ptr<Mat> result;
-    if (x.device().type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        result = cuda::upsample(x_mat, output_shape, scale_h, scale_w);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        result = cpu::upsample(x_mat, output_shape, scale_h, scale_w);
-    }
+    // 使用 Mat 接口的 upsample 方法
+    std::unique_ptr<Mat> result = x_mat.upsample(output_shape, scale_h, scale_w);
 
     auto y = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
@@ -88,23 +71,11 @@ std::vector<Tensor> Upsample::backward(const std::vector<Tensor> &gys)
     int scale_h = gy_shape[2] / x_shape[2];
     int scale_w = gy_shape[3] / x_shape[3];
 
-    // 获取 Mat 引用并转换为 OriginMat
-    const OriginMat &gy_mat = static_cast<const OriginMat &>(mat(gy));
+    // 获取 Mat 引用
+    const Mat &gy_mat = mat(gy);
 
-    // 根据设备类型调用对应的实现
-    std::unique_ptr<Mat> result;
-    if (gy.device().type() == DeviceType::kCUDA)
-    {
-#ifdef WITH_CUDA
-        result = cuda::upsample_backward(gy_mat, x_shape, scale_h, scale_w);
-#else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#endif
-    }
-    else
-    {
-        result = cpu::upsample_backward(gy_mat, x_shape, scale_h, scale_w);
-    }
+    // 使用 Mat 接口的 upsample_backward 方法
+    std::unique_ptr<Mat> result = gy_mat.upsample_backward(gy_mat, x_shape, scale_h, scale_w);
 
     auto gx = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(gx)};

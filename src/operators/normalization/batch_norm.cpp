@@ -3,7 +3,6 @@
 #include "origin/core/config.h"
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -33,11 +32,11 @@ std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
     auto &running_var  = xs[4];
 
     // 获取 Mat 引用
-    const OriginMat &x_mat            = static_cast<const OriginMat &>(mat(x));
-    const OriginMat &gamma_mat        = static_cast<const OriginMat &>(mat(gamma));
-    const OriginMat &beta_mat         = static_cast<const OriginMat &>(mat(beta));
-    const OriginMat &running_mean_mat = static_cast<const OriginMat &>(mat(running_mean));
-    const OriginMat &running_var_mat  = static_cast<const OriginMat &>(mat(running_var));
+    const Mat &x_mat            = mat(x);
+    const Mat &gamma_mat        = mat(gamma);
+    const Mat &beta_mat         = mat(beta);
+    const Mat &running_mean_mat = mat(running_mean);
+    const Mat &running_var_mat  = mat(running_var);
 
     Tensor y;
 
@@ -96,12 +95,12 @@ std::vector<Tensor> BatchNorm::backward(const std::vector<Tensor> &gys)
     auto &gamma = this->inputs_[1];
 
     // 获取 Mat 引用并调用底层 batch_norm_backward
-    const OriginMat &gy_mat           = static_cast<const OriginMat &>(mat(gy));
-    const OriginMat &x_mat            = static_cast<const OriginMat &>(mat(x));
-    const OriginMat &gamma_mat        = static_cast<const OriginMat &>(mat(gamma));
-    const OriginMat &saved_mean_mat   = static_cast<const OriginMat &>(mat(saved_mean_));
-    const OriginMat &saved_var_mat    = static_cast<const OriginMat &>(mat(saved_var_));
-    const OriginMat &saved_x_norm_mat = static_cast<const OriginMat &>(mat(saved_x_norm_));
+    const Mat &gy_mat           = mat(gy);
+    const Mat &x_mat            = mat(x);
+    const Mat &gamma_mat        = mat(gamma);
+    const Mat &saved_mean_mat   = mat(saved_mean_);
+    const Mat &saved_var_mat    = mat(saved_var_);
+    const Mat &saved_x_norm_mat = mat(saved_x_norm_);
 
     auto results =
         x_mat.batch_norm_backward(gy_mat, gamma_mat, saved_mean_mat, saved_var_mat, saved_x_norm_mat, eps_, num_dims_);

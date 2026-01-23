@@ -3,7 +3,6 @@
 #include "origin/core/operator.h"
 #include "origin/core/tensor.h"
 #include "origin/mat/mat.h"
-#include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -35,7 +34,7 @@ std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
 
     // 数值稳定性：先找到最大值（沿指定轴）
     // 使用 mat 层的 max 操作
-    const OriginMat &x_mat = static_cast<const OriginMat &>(mat(x));
+    const Mat &x_mat = mat(x);
     auto max_result        = x_mat.max(axis);
     auto max_tensor        = convert_mat_to_tensor(std::move(max_result));
 
