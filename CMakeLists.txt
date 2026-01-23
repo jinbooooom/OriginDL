@@ -107,11 +107,7 @@ add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
 # add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-reorder -Wno-format) 
 
 # 根据后端设置输出目录
-if(MAT_BACKEND STREQUAL "TORCH")
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/lib/)
-else()
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
-endif()
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib/)
 link_directories(${PROJECT_SOURCE_DIR}/3rd/lib)
 
 # 根据后端添加相应的库目录
@@ -167,11 +163,7 @@ else()
 endif()
 
 # 根据后端设置可执行文件输出目录
-if(MAT_BACKEND STREQUAL "TORCH")
-    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/bin)
-else()
-    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
-endif()
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 # 设置传递给测试子目录的变量
 set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})

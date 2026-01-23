@@ -124,7 +124,7 @@ endif()
 
 # 设置输出目录
 set_target_properties(originmat_cuda PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../../../build/lib
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 )
 
 message(STATUS "CUDA library will be built with architecture: ${CUDA_ARCH}")
