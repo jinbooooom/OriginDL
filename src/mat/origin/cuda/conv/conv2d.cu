@@ -738,7 +738,7 @@ std::vector<std::unique_ptr<Mat>> conv2d_backward(const OriginMat &gy,
                                                   std::pair<int, int> pad)
 {
     // 输入验证
-    if (unlikely(gy.shape().size() != 4)) 
+    if (unlikely(gy.shape().size() != 4))
     {
         THROW_INVALID_ARG("conv2d_backward: gy must be 4D (N, OC, OH, OW), but got shape {}", gy.shape().to_string());
     }

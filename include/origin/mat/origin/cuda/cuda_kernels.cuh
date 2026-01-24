@@ -6,11 +6,11 @@
 #include "../device_common/operation_templates.h"
 
 #ifdef __CUDACC__
-#include "cuda_utils.cuh"
+#    include "cuda_utils.cuh"
 #endif
 
 #ifdef WITH_CUDA
-#include "cuda_utils.cuh"
+#    include "cuda_utils.cuh"
 #endif
 
 namespace origin
@@ -48,11 +48,7 @@ void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream
  * @details 使用合并内存访问模式，最大化内存带宽利用率
  */
 template <typename T, typename Op>
-__global__ void elementwise_kernel(const T *__restrict__ a,
-                                   const T *__restrict__ b,
-                                   T *__restrict__ c,
-                                   size_t n,
-                                   Op op)
+__global__ void elementwise_kernel(const T *__restrict__ a, const T *__restrict__ b, T *__restrict__ c, size_t n, Op op)
 {
     // 计算全局线程索引
     size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -122,7 +118,6 @@ __global__ void index_put_kernel(T *data, size_t index, T value)
         data[index] = value;
     }
 }
-
 
 /**
  * @brief 标量运算内核

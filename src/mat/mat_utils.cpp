@@ -1,6 +1,6 @@
-#include "origin/mat/mat.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
+#include "origin/mat/mat.h"
 #include "origin/utils/exception.h"
 
 #ifdef MAT_BACKEND
@@ -35,14 +35,14 @@ std::unique_ptr<Mat> Mat::cat(const std::vector<const Mat *> &inputs, int dim)
     {
         if (inputs[i]->backend_type() != backend_type)
         {
-            THROW_RUNTIME_ERROR("Mat::cat: all inputs must have same backend type, got {} and {}",
-                               backend_type, inputs[i]->backend_type());
+            THROW_RUNTIME_ERROR("Mat::cat: all inputs must have same backend type, got {} and {}", backend_type,
+                                inputs[i]->backend_type());
         }
     }
 
     // 根据后端类型分发
 #ifdef MAT_BACKEND
-#    if MAT_BACKEND == 0  // ORIGIN
+#    if MAT_BACKEND == 0                      // ORIGIN
     if (backend_type == ORIGIN_BACKEND_TYPE)  // ORIGIN (0)
     {
         // 转换为 OriginMat 指针
@@ -62,11 +62,11 @@ std::unique_ptr<Mat> Mat::cat(const std::vector<const Mat *> &inputs, int dim)
         DeviceType device_type = inputs[0]->device().type();
         if (device_type == DeviceType::kCUDA)
         {
-#            ifdef WITH_CUDA
+#        ifdef WITH_CUDA
             return cuda::cat(origin_inputs, dim);
-#            else
+#        else
             THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#            endif
+#        endif
         }
         else
         {
@@ -92,7 +92,7 @@ std::vector<std::unique_ptr<Mat>> Mat::split(const Mat &input, const std::vector
 
     // 根据后端类型分发
 #ifdef MAT_BACKEND
-#    if MAT_BACKEND == 0  // ORIGIN
+#    if MAT_BACKEND == 0                      // ORIGIN
     if (backend_type == ORIGIN_BACKEND_TYPE)  // ORIGIN (0)
     {
         const OriginMat *origin_mat = dynamic_cast<const OriginMat *>(&input);
@@ -105,11 +105,11 @@ std::vector<std::unique_ptr<Mat>> Mat::split(const Mat &input, const std::vector
         DeviceType device_type = input.device().type();
         if (device_type == DeviceType::kCUDA)
         {
-#            ifdef WITH_CUDA
+#        ifdef WITH_CUDA
             return cuda::split(*origin_mat, output_shapes, dim);
-#            else
+#        else
             THROW_RUNTIME_ERROR("CUDA support not compiled in");
-#            endif
+#        endif
         }
         else
         {

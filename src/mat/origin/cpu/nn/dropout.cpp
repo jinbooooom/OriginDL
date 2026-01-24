@@ -70,9 +70,9 @@ std::unique_ptr<Mat> dropout(const OriginMat &x, float p, bool training, OriginM
 
     // 使用类型分发器执行 dropout 操作
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
-        const T *x_ptr     = static_cast<const T *>(x_data);
-        T *y_ptr           = static_cast<T *>(y_data);
-        float *mask_ptr_f  = static_cast<float *>(mask_data);
+        const T *x_ptr    = static_cast<const T *>(x_data);
+        T *y_ptr          = static_cast<T *>(y_data);
+        float *mask_ptr_f = static_cast<float *>(mask_data);
 
         for (size_t i = 0; i < x_shape.elements(); ++i)
         {
@@ -115,9 +115,9 @@ std::unique_ptr<Mat> dropout_backward(const OriginMat &gy, const OriginMat &mask
 
     // 使用类型分发器执行反向传播操作
     device_common::TypeDispatcher::dispatch_void(gy.dtype(), [&]<typename T>() {
-        const T *gy_ptr      = static_cast<const T *>(gy_data);
+        const T *gy_ptr       = static_cast<const T *>(gy_data);
         const float *mask_ptr = static_cast<const float *>(mask_data);
-        T *gx_ptr            = static_cast<T *>(gx_data);
+        T *gx_ptr             = static_cast<T *>(gx_data);
 
         for (size_t i = 0; i < gy_shape.elements(); ++i)
         {

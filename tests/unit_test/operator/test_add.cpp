@@ -311,7 +311,7 @@ TEST_P(AddOperatorTest, InplaceOperatorTensorScalar)
 {
     // 测试 operator+= (Tensor += Scalar)
     Shape shape{3};
-    auto x = Tensor({1.0f, 2.0f, 3.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto x       = Tensor({1.0f, 2.0f, 3.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
     float scalar = 5.0f;
 
     // 保存 x 的引用，用于验证是原地操作
@@ -332,8 +332,8 @@ TEST_P(AddOperatorTest, InplaceOperatorChained)
 {
     // 测试链式调用 operator+=
     Shape shape{2};
-    auto x = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
-    auto y = Tensor({3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto x       = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto y       = Tensor({3.0f, 4.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
     float scalar = 5.0f;
 
     // 链式调用：x += y += scalar
@@ -352,7 +352,7 @@ TEST_P(AddOperatorTest, InplaceOperatorZeroTensor)
 {
     // 测试 operator+= 与零张量
     Shape shape{2};
-    auto x = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
+    auto x    = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
     auto zero = Tensor::zeros(shape, dtype(DataType::kFloat32).device(deviceType()));
 
     auto x_original = Tensor({1.0f, 2.0f}, shape, dtype(DataType::kFloat32).device(deviceType()));
@@ -490,7 +490,7 @@ TEST_P(AddOperatorTest, TypePromotionInt32Int64)
     EXPECT_EQ(result.shape(), Shape({2, 2}));
 
     // 验证值正确（通过转换为float32来验证，因为EXPECT_TENSORS_EQ不支持int64）
-    auto result_f32 = result.to(DataType::kFloat32);
+    auto result_f32   = result.to(DataType::kFloat32);
     auto expected_f32 = Tensor({6.0f, 8.0f, 10.0f, 12.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result_f32, expected_f32, origin::test::TestTolerance::kDefault);
 }

@@ -1,6 +1,6 @@
 #include <cuda_runtime.h>
-#include <memory>
 #include <cmath>
+#include <memory>
 #include <type_traits>
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cuda/cuda_ops.cuh"
@@ -22,36 +22,36 @@ namespace cuda
  */
 template <typename T>
 __global__ void upsample_kernel(const T *__restrict__ x,
-                                 T *__restrict__ y,
-                                 int N,
-                                 int C,
-                                 int H,
-                                 int W,
-                                 int OH,
-                                 int OW,
-                                 int scale_h,
-                                 int scale_w)
+                                T *__restrict__ y,
+                                int N,
+                                int C,
+                                int H,
+                                int W,
+                                int OH,
+                                int OW,
+                                int scale_h,
+                                int scale_w)
 {
     // 计算输出索引
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idx            = blockIdx.x * blockDim.x + threadIdx.x;
     int total_elements = N * C * OH * OW;
 
     if (idx < total_elements)
     {
         // 将线性索引转换为 (n, c, oh, ow)
-        int n = idx / (C * OH * OW);
+        int n         = idx / (C * OH * OW);
         int remainder = idx % (C * OH * OW);
-        int c = remainder / (OH * OW);
-        remainder = remainder % (OH * OW);
-        int oh = remainder / OW;
-        int ow = remainder % OW;
+        int c         = remainder / (OH * OW);
+        remainder     = remainder % (OH * OW);
+        int oh        = remainder / OW;
+        int ow        = remainder % OW;
 
         // 计算对应的输入位置（最近邻）
         int ih = oh / scale_h;
         int iw = ow / scale_w;
 
         // 计算输入索引
-        int input_idx = ((n * C + c) * H + ih) * W + iw;
+        int input_idx  = ((n * C + c) * H + ih) * W + iw;
         int output_idx = ((n * C + c) * OH + oh) * OW + ow;
 
         y[output_idx] = x[input_idx];
@@ -64,29 +64,29 @@ __global__ void upsample_kernel(const T *__restrict__ x,
  */
 template <typename T>
 __global__ void upsample_backward_kernel(const T *__restrict__ gy,
-                                          T *__restrict__ gx,
-                                          int N,
-                                          int C,
-                                          int H,
-                                          int W,
-                                          int GY_H,
-                                          int GY_W,
-                                          int scale_h,
-                                          int scale_w)
+                                         T *__restrict__ gx,
+                                         int N,
+                                         int C,
+                                         int H,
+                                         int W,
+                                         int GY_H,
+                                         int GY_W,
+                                         int scale_h,
+                                         int scale_w)
 {
     // 计算输出梯度索引
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idx            = blockIdx.x * blockDim.x + threadIdx.x;
     int total_elements = N * C * GY_H * GY_W;
 
     if (idx < total_elements)
     {
         // 将线性索引转换为 (n, c, gy_h, gy_w)
-        int n = idx / (C * GY_H * GY_W);
+        int n         = idx / (C * GY_H * GY_W);
         int remainder = idx % (C * GY_H * GY_W);
-        int c = remainder / (GY_H * GY_W);
-        remainder = remainder % (GY_H * GY_W);
-        int gy_h = remainder / GY_W;
-        int gy_w = remainder % GY_W;
+        int c         = remainder / (GY_H * GY_W);
+        remainder     = remainder % (GY_H * GY_W);
+        int gy_h      = remainder / GY_W;
+        int gy_w      = remainder % GY_W;
 
         // 计算对应的输入位置
         int ih = gy_h / scale_h;
@@ -172,8 +172,8 @@ std::unique_ptr<Mat> upsample(const OriginMat &x, const Shape &output_shape, int
 
     // 使用类型分发器执行上采样操作
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
-        upsample_kernel<T><<<num_blocks, threads_per_block>>>(
-            static_cast<const T *>(x_data), static_cast<T *>(y_data), N, C, H, W, OH, OW, scale_h, scale_w);
+        upsample_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(x_data), static_cast<T *>(y_data),
+                                                              N, C, H, W, OH, OW, scale_h, scale_w);
     });
 
     CUDA_CHECK_ASYNC();
@@ -199,8 +199,7 @@ std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape
 
     if (unlikely(x_shape.size() != 4))
     {
-        THROW_INVALID_ARG("Upsample backward: x_shape must be 4D (N, C, H, W), but got shape {}",
-                          x_shape.to_string());
+        THROW_INVALID_ARG("Upsample backward: x_shape must be 4D (N, C, H, W), but got shape {}", x_shape.to_string());
     }
 
     VALIDATE_SAME_CUDA_DEVICE(gy, gy);
@@ -214,8 +213,8 @@ std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape
     int GY_W      = gy_shape[3];
 
     // 创建输出矩阵并初始化为0
-    auto result = std::make_unique<OriginMat>(x_shape, gy.dtype(), gy.device());
-    void *gx_data = result->storage()->data();
+    auto result      = std::make_unique<OriginMat>(x_shape, gy.dtype(), gy.device());
+    void *gx_data    = result->storage()->data();
     size_t data_size = x_shape.elements() * element_size(gy.dtype());
     CUDA_CHECK(cudaMemset(gx_data, 0, data_size));
 

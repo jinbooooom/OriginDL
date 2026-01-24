@@ -32,10 +32,11 @@ std::unique_ptr<Mat> log(const OriginMat &mat, OriginMat *out)
     {
         if (unlikely(out->shape() != mat.shape() || out->dtype() != mat.dtype() || out->device() != mat.device()))
         {
-            THROW_INVALID_ARG("Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
-                              "dtype={}, device={}",
-                              mat.shape().to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
-                              out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
+            THROW_INVALID_ARG(
+                "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
+                "dtype={}, device={}",
+                mat.shape().to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
+                out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
         }
         result_ptr = out;
     }
@@ -49,8 +50,8 @@ std::unique_ptr<Mat> log(const OriginMat &mat, OriginMat *out)
     void *c_data       = result_ptr->storage()->data();
 
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-        launch_unary_kernel<T, LogOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(),
-                                      LogOp{}, 0);
+        launch_unary_kernel<T, LogOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(), LogOp{},
+                                      0);
     });
 
     return result_unique;

@@ -22,7 +22,7 @@ namespace cpu
 std::unique_ptr<Mat> permute(const OriginMat &mat, const std::vector<int> &dims)
 {
     auto input_shape = mat.shape();
-    size_t ndim = input_shape.size();
+    size_t ndim      = input_shape.size();
 
     if (unlikely(dims.size() != ndim))
     {
@@ -68,13 +68,13 @@ std::unique_ptr<Mat> permute(const OriginMat &mat, const std::vector<int> &dims)
         return strides;
     };
 
-    auto input_strides = compute_strides(input_shape);
+    auto input_strides  = compute_strides(input_shape);
     auto output_strides = compute_strides(output_shape);
 
     // 使用类型分发器执行 permute 操作
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
         const T *input_data = mat.data_ptr<T>();
-        T *output_data = result->data_ptr<T>();
+        T *output_data      = result->data_ptr<T>();
 
         size_t total_elements = mat.elements();
 

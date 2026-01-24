@@ -1,5 +1,5 @@
-#include <memory>
 #include <cmath>
+#include <memory>
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
@@ -98,8 +98,7 @@ std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape
 
     if (unlikely(x_shape.size() != 4))
     {
-        THROW_INVALID_ARG("Upsample backward: x_shape must be 4D (N, C, H, W), but got shape {}",
-                          x_shape.to_string());
+        THROW_INVALID_ARG("Upsample backward: x_shape must be 4D (N, C, H, W), but got shape {}", x_shape.to_string());
     }
 
     auto gy_shape = gy.shape();

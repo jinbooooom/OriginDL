@@ -170,10 +170,11 @@ auto pow(const OriginMat &mat, const Scalar &exponent, OriginMat *out) -> std::u
     {
         if (unlikely(out->shape() != mat.shape() || out->dtype() != mat.dtype() || out->device() != mat.device()))
         {
-            THROW_INVALID_ARG("Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
-                              "dtype={}, device={}",
-                              mat.shape().to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
-                              out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
+            THROW_INVALID_ARG(
+                "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
+                "dtype={}, device={}",
+                mat.shape().to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
+                out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
         }
         result_ptr = out;
     }
@@ -186,11 +187,13 @@ auto pow(const OriginMat &mat, const Scalar &exponent, OriginMat *out) -> std::u
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
         if (exponent.dtype() == DataType::kFloat64)
         {
-            launch_pow_scalar_kernel(mat.data_ptr<T>(), result_ptr->data_ptr<T>(), exponent.to_float64(), mat.elements());
+            launch_pow_scalar_kernel(mat.data_ptr<T>(), result_ptr->data_ptr<T>(), exponent.to_float64(),
+                                     mat.elements());
         }
         else
         {
-            launch_pow_scalar_kernel(mat.data_ptr<T>(), result_ptr->data_ptr<T>(), exponent.to_float32(), mat.elements());
+            launch_pow_scalar_kernel(mat.data_ptr<T>(), result_ptr->data_ptr<T>(), exponent.to_float32(),
+                                     mat.elements());
         }
     });
 

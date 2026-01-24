@@ -7,7 +7,7 @@
 #include "origin.h"
 
 #ifdef WITH_CUDA
-#include <cuda_runtime.h>
+#    include <cuda_runtime.h>
 #endif
 
 using namespace origin;

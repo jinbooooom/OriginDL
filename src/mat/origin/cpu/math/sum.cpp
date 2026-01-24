@@ -17,7 +17,7 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
     if (axis == -1)
     {
         // 对所有元素求和，返回标量
-        float sum_value   = sum_all(mat);
+        float sum_value    = sum_all(mat);
         Shape result_shape = {1};  // 标量结果
         // 创建标量张量
         Scalar scalar_val(sum_value);

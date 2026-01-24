@@ -34,7 +34,7 @@ std::vector<Tensor> Dropout::forward(const std::vector<Tensor> &xs)
     // 创建 mask Mat 用于保存 dropout mask
     // dropout 实现会填充 mask，所以不需要预先初始化
     auto mask_mat_unique = x_mat.clone();
-    Mat *mask_mat = mask_mat_unique.get();
+    Mat *mask_mat        = mask_mat_unique.get();
 
     // 使用 Mat 接口的 dropout 方法
     std::unique_ptr<Mat> result = x_mat.dropout(p_, training_, mask_mat);
@@ -63,7 +63,7 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
 
     // 训练模式：根据 mask 计算梯度
     // 获取 Mat 引用
-    const Mat &gy_mat = mat(gy);
+    const Mat &gy_mat   = mat(gy);
     const Mat &mask_mat = mat(mask_);
 
     // 使用 Mat 接口的 dropout_backward 方法

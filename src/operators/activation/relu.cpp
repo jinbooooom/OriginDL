@@ -44,22 +44,22 @@ std::vector<Tensor> ReLU::backward(const std::vector<Tensor> &gys)
     // 使用近似：mask = relu(x) / (relu(x) + epsilon)
     // 当 relu(x) > 0 时，mask ≈ 1
     // 当 relu(x) = 0 时，mask = 0
-    float epsilon                = 1e-8f;
-    auto epsilon_tensor          = Tensor::full(relu_x.shape(), epsilon, dtype(relu_x.dtype()).device(relu_x.device()));
-    const Mat &relu_x_mat  = mat(relu_x);
-    const Mat &epsilon_mat = mat(epsilon_tensor);
-    auto relu_x_plus_eps_result  = relu_x_mat + epsilon_mat;
-    auto relu_x_plus_eps         = convert_mat_to_tensor(std::move(relu_x_plus_eps_result));
+    float epsilon               = 1e-8f;
+    auto epsilon_tensor         = Tensor::full(relu_x.shape(), epsilon, dtype(relu_x.dtype()).device(relu_x.device()));
+    const Mat &relu_x_mat       = mat(relu_x);
+    const Mat &epsilon_mat      = mat(epsilon_tensor);
+    auto relu_x_plus_eps_result = relu_x_mat + epsilon_mat;
+    auto relu_x_plus_eps        = convert_mat_to_tensor(std::move(relu_x_plus_eps_result));
 
     const Mat &relu_x_plus_eps_mat = mat(relu_x_plus_eps);
-    auto mask_result                     = relu_x_mat / relu_x_plus_eps_mat;
-    auto mask                            = convert_mat_to_tensor(std::move(mask_result));
+    auto mask_result               = relu_x_mat / relu_x_plus_eps_mat;
+    auto mask                      = convert_mat_to_tensor(std::move(mask_result));
 
     // gx = gy * mask
     const Mat &gy_mat   = mat(gy);
     const Mat &mask_mat = mat(mask);
-    auto gx_result            = gy_mat * mask_mat;
-    auto gx                   = convert_mat_to_tensor(std::move(gx_result));
+    auto gx_result      = gy_mat * mask_mat;
+    auto gx             = convert_mat_to_tensor(std::move(gx_result));
     return std::vector<Tensor>{std::move(gx)};
 }
 

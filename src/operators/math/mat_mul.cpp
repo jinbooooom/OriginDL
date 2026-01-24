@@ -116,9 +116,9 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
 
     // MatMul的梯度计算需要使用提升后的输入
     auto [x0_maybe, x1_maybe] = TypePromotion::promote_tensors_maybe_owned(this->inputs_[0], this->inputs_[1]);
-    Tensor x_tensor            = Tensor(x0_maybe);
-    Tensor w_tensor            = Tensor(x1_maybe);
-    Tensor gy_tensor           = gys[0];
+    Tensor x_tensor           = Tensor(x0_maybe);
+    Tensor w_tensor           = Tensor(x1_maybe);
+    Tensor gy_tensor          = gys[0];
 
     // 处理维度：确保至少是2维（与forward中的逻辑一致）
     auto x_shape = x_tensor.shape();

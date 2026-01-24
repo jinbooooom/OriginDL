@@ -22,12 +22,12 @@ namespace cuda
  */
 template <typename T>
 __global__ void dropout_kernel(const T *__restrict__ x,
-                                T *__restrict__ y,
-                                float *__restrict__ mask,
-                                size_t n,
-                                float p,
-                                float scale,
-                                unsigned long long seed)
+                               T *__restrict__ y,
+                               float *__restrict__ mask,
+                               size_t n,
+                               float p,
+                               float scale,
+                               unsigned long long seed)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -57,9 +57,9 @@ __global__ void dropout_kernel(const T *__restrict__ x,
  */
 template <typename T>
 __global__ void dropout_backward_kernel(const T *__restrict__ gy,
-                                         const float *__restrict__ mask,
-                                         T *__restrict__ gx,
-                                         size_t n)
+                                        const float *__restrict__ mask,
+                                        T *__restrict__ gx,
+                                        size_t n)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -132,9 +132,9 @@ std::unique_ptr<Mat> dropout(const OriginMat &x, float p, bool training, OriginM
 
     // 使用类型分发器执行 dropout 操作
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
-        dropout_kernel<T><<<num_blocks, threads_per_block>>>(
-            static_cast<const T *>(x_data), static_cast<T *>(y_data), static_cast<float *>(mask_data), num_elements,
-            p, scale, seed);
+        dropout_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(x_data), static_cast<T *>(y_data),
+                                                             static_cast<float *>(mask_data), num_elements, p, scale,
+                                                             seed);
     });
 
     CUDA_CHECK_ASYNC();
@@ -172,9 +172,9 @@ std::unique_ptr<Mat> dropout_backward(const OriginMat &gy, const OriginMat &mask
 
     // 使用类型分发器执行反向传播操作
     device_common::TypeDispatcher::dispatch_void(gy.dtype(), [&]<typename T>() {
-        dropout_backward_kernel<T><<<num_blocks, threads_per_block>>>(
-            static_cast<const T *>(gy_data), static_cast<const float *>(mask_data), static_cast<T *>(gx_data),
-            num_elements);
+        dropout_backward_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(gy_data),
+                                                                      static_cast<const float *>(mask_data),
+                                                                      static_cast<T *>(gx_data), num_elements);
     });
 
     CUDA_CHECK_ASYNC();

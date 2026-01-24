@@ -67,7 +67,8 @@ DataType TypePromotion::promote_types(const std::vector<Tensor> &tensors)
     return result;
 }
 
-std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> TypePromotion::promote_tensors_maybe_owned(const Tensor &a, const Tensor &b)
+std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> TypePromotion::promote_tensors_maybe_owned(const Tensor &a,
+                                                                                             const Tensor &b)
 {
     if (!needs_promotion(a, b))
     {
@@ -76,12 +77,9 @@ std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> TypePromotion::promote_tensors
     }
 
     DataType promoted_type = promote_types(a.dtype(), b.dtype());
-    
+
     // 使用 MaybeOwned 优化：类型匹配时借用，不匹配时拥有
-    return {
-        to_type_maybe_owned(a, promoted_type),
-        to_type_maybe_owned(b, promoted_type)
-    };
+    return {to_type_maybe_owned(a, promoted_type), to_type_maybe_owned(b, promoted_type)};
 }
 
 Tensor TypePromotion::to_type(const Tensor &tensor, DataType target_type)

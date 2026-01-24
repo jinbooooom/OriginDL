@@ -19,10 +19,7 @@ namespace cuda
  * @details 每个线程处理一个元素的加法运算，用于不支持向量化的类型或边界情况
  */
 template <typename T>
-__global__ void add_elementwise_kernel(const T *__restrict__ A,
-                                       const T *__restrict__ B,
-                                       T *__restrict__ C,
-                                       size_t N)
+__global__ void add_elementwise_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -37,9 +34,9 @@ __global__ void add_elementwise_kernel(const T *__restrict__ A,
  * @details 每个线程使用float4一次处理4个float元素，提高内存带宽利用率
  */
 __global__ void add_elementwise_vectorized_float4_kernel(const float *__restrict__ A,
-                                                          const float *__restrict__ B,
-                                                          float *__restrict__ C,
-                                                          size_t N)
+                                                         const float *__restrict__ B,
+                                                         float *__restrict__ C,
+                                                         size_t N)
 {
     // 计算向量化的元素数量（每个float4包含4个float）
     constexpr size_t VECTOR_SIZE = 4;
@@ -79,10 +76,7 @@ __global__ void add_elementwise_vectorized_float4_kernel(const float *__restrict
  * @details A和C是长度为N的向量，B是标量（长度为1），计算 C[i] = A[i] + B[0]
  */
 template <typename T>
-__global__ void add_broadcast_kernel(const T *__restrict__ A,
-                                               const T *__restrict__ B,
-                                               T *__restrict__ C,
-                                               size_t N)
+__global__ void add_broadcast_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -98,9 +92,9 @@ __global__ void add_broadcast_kernel(const T *__restrict__ A,
  *          计算 C[i:i+4] = A[i:i+4] + B[0]
  */
 __global__ void add_broadcast_vectorized_float4_kernel(const float *__restrict__ A,
-                                                                 const float *__restrict__ B,
-                                                                 float *__restrict__ C,
-                                                                 size_t N)
+                                                       const float *__restrict__ B,
+                                                       float *__restrict__ C,
+                                                       size_t N)
 {
     constexpr size_t VECTOR_SIZE = 4;
     size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
@@ -113,7 +107,7 @@ __global__ void add_broadcast_vectorized_float4_kernel(const float *__restrict__
         float4 vec_a = *reinterpret_cast<const float4 *>(&A[vector_idx]);
         // B是标量：广播B[0]到float4
         float scalar_b = B[0];
-        float4 vec_b = make_float4(scalar_b, scalar_b, scalar_b, scalar_b);
+        float4 vec_b   = make_float4(scalar_b, scalar_b, scalar_b, scalar_b);
 
         // 执行向量化加法
         float4 vec_c;
@@ -157,10 +151,11 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
     {
         if (unlikely(out->shape() != result_shape || out->dtype() != a.dtype() || out->device() != a.device()))
         {
-            THROW_INVALID_ARG("Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
-                              "dtype={}, device={}",
-                              result_shape.to_string(), dtype_to_string(a.dtype()), a.device().to_string(),
-                              out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
+            THROW_INVALID_ARG(
+                "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
+                "dtype={}, device={}",
+                result_shape.to_string(), dtype_to_string(a.dtype()), a.device().to_string(), out->shape().to_string(),
+                dtype_to_string(out->dtype()), out->device().to_string());
         }
         result_ptr = out;
     }
@@ -179,7 +174,7 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
     {
         // 相同形状：直接元素级运算（最常见）
         const size_t num_elements = a.elements();
-        if (a.dtype() == DataType::kFloat32) // float32 类型是最常见的
+        if (a.dtype() == DataType::kFloat32)  // float32 类型是最常见的
         {
             // float4向量化版本：每个线程处理4个元素
             constexpr size_t VECTOR_SIZE     = 4;
@@ -187,17 +182,17 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
             const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
             const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
             add_elementwise_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
-                static_cast<const float *>(a_data), static_cast<const float *>(b_data),
-                static_cast<float *>(c_data), num_elements);
+                static_cast<const float *>(a_data), static_cast<const float *>(b_data), static_cast<float *>(c_data),
+                num_elements);
         }
         else
         {
             const size_t threads_per_block = 256;
             const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
             device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                add_elementwise_kernel<T><<<num_blocks, threads_per_block>>>(
-                    static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
-                    num_elements);
+                add_elementwise_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
+                                                                             static_cast<const T *>(b_data),
+                                                                             static_cast<T *>(c_data), num_elements);
             });
         }
     }
@@ -228,9 +223,9 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
                 const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
                 device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
                     // 交换A和B：B是标量，A是向量
-                    add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(
-                        static_cast<const T *>(b_data), static_cast<const T *>(a_data), static_cast<T *>(c_data),
-                        num_elements);
+                    add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(b_data),
+                                                                               static_cast<const T *>(a_data),
+                                                                               static_cast<T *>(c_data), num_elements);
                 });
             }
         }
@@ -252,9 +247,9 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
                 const size_t threads_per_block = 256;
                 const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
                 device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                    add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(
-                        static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
-                        num_elements);
+                    add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
+                                                                               static_cast<const T *>(b_data),
+                                                                               static_cast<T *>(c_data), num_elements);
                 });
             }
         }

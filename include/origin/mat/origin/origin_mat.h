@@ -245,12 +245,12 @@ public:
      * @return BatchNormResult 包含输出和中间结果
      */
     BatchNormResult batch_norm_forward(const Mat &gamma,
-                                      const Mat &beta,
-                                      const Mat &running_mean,
-                                      const Mat &running_var,
-                                      bool training,
-                                      float eps,
-                                      int num_dims) const override;
+                                       const Mat &beta,
+                                       const Mat &running_mean,
+                                       const Mat &running_var,
+                                       bool training,
+                                       float eps,
+                                       int num_dims) const override;
 
     /**
      * @brief batch_norm：BatchNorm 前向传播（只返回输出）
@@ -317,7 +317,8 @@ public:
      * @param stride stride 值
      * @param num_anchors anchor 数量
      * @param num_classes 类别数量
-     * @return 输出张量 (N, num_boxes, classes_info)，其中 num_boxes = H * W * num_anchors, classes_info = num_classes + 5
+     * @return 输出张量 (N, num_boxes, classes_info)，其中 num_boxes = H * W * num_anchors, classes_info = num_classes +
+     * 5
      */
     std::unique_ptr<Mat> yolo_detect_forward(const Mat &conv_weight,
                                              const Mat *conv_bias,
@@ -370,7 +371,7 @@ public:
 
     // 形状和维度
     Shape shape() const override;
-    const std::vector<size_t>& strides() const { return strides_; }
+    const std::vector<size_t> &strides() const { return strides_; }
     size_t elements() const override;
 
     // 数据访问
@@ -415,8 +416,7 @@ public:
      * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
      * @param value 要写入的标量值，与tensor相同的数据类型
      */
-    void index_put(std::initializer_list<size_t> indices, const Scalar& value);
-
+    void index_put(std::initializer_list<size_t> indices, const Scalar &value);
 
     // 0维张量支持
     bool is_scalar() const override;
@@ -452,10 +452,7 @@ public:
     std::shared_ptr<Storage> storage() const { return storage_; }
 
     // 相等运算符（判断是否是同一块内存，比较 storage_）
-    bool operator==(const OriginMat &other) const
-    {
-        return storage_ == other.storage_;
-    }
+    bool operator==(const OriginMat &other) const { return storage_ == other.storage_; }
 
     bool operator!=(const OriginMat &other) const { return !(*this == other); }
 

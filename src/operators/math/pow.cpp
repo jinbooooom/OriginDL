@@ -22,9 +22,9 @@ std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
     DataType base_dtype     = xs[0].dtype();
     DataType exponent_dtype = exponent_.dtype();
     DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
-    
+
     auto base_maybe = TypePromotion::to_type_maybe_owned(xs[0], promoted_dtype);
-    
+
     // 使用提升后的base进行运算
     auto &x     = mat(base_maybe);
     auto result = x.pow(exponent_);
@@ -43,7 +43,7 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
     DataType base_dtype     = this->inputs_[0].dtype();
     DataType exponent_dtype = exponent_.dtype();
     DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
-    
+
     auto base_maybe = TypePromotion::to_type_maybe_owned(this->inputs_[0], promoted_dtype);
     auto &x         = mat(base_maybe);
     auto &gy        = mat(gys[0]);

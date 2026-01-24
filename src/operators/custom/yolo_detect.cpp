@@ -81,32 +81,26 @@ std::vector<Tensor> YoloDetect::forward(const std::vector<Tensor> &xs)
         }
 
         // 确保所有张量都在同一设备上（与输入张量相同）
-        Device input_device = input.device();
-        Tensor conv_weight_on_device =
-            conv_weights_[stage].device() == input_device ? conv_weights_[stage] : conv_weights_[stage].to(input_device);
+        Device input_device          = input.device();
+        Tensor conv_weight_on_device = conv_weights_[stage].device() == input_device
+                                           ? conv_weights_[stage]
+                                           : conv_weights_[stage].to(input_device);
         Tensor conv_bias_on_device =
             conv_biases_[stage].device() == input_device ? conv_biases_[stage] : conv_biases_[stage].to(input_device);
-        Tensor grid_on_device =
-            grids_[stage].device() == input_device ? grids_[stage] : grids_[stage].to(input_device);
-        Tensor anchor_grid_on_device = anchor_grids_[stage].device() == input_device ? anchor_grids_[stage]
-                                                                                      : anchor_grids_[stage].to(input_device);
+        Tensor grid_on_device = grids_[stage].device() == input_device ? grids_[stage] : grids_[stage].to(input_device);
+        Tensor anchor_grid_on_device = anchor_grids_[stage].device() == input_device
+                                           ? anchor_grids_[stage]
+                                           : anchor_grids_[stage].to(input_device);
 
         // 使用 mat 层的 yolo_detect_forward 实现
-        const Mat &input_mat         = mat(input);
-        const Mat &conv_weight_mat   = mat(conv_weight_on_device);
-        const Mat *conv_bias_mat     = conv_bias_on_device.shape().elements() > 0 ? &mat(conv_bias_on_device) : nullptr;
-        const Mat &grid_mat         = mat(grid_on_device);
-        const Mat &anchor_grid_mat   = mat(anchor_grid_on_device);
+        const Mat &input_mat       = mat(input);
+        const Mat &conv_weight_mat = mat(conv_weight_on_device);
+        const Mat *conv_bias_mat   = conv_bias_on_device.shape().elements() > 0 ? &mat(conv_bias_on_device) : nullptr;
+        const Mat &grid_mat        = mat(grid_on_device);
+        const Mat &anchor_grid_mat = mat(anchor_grid_on_device);
 
-        auto stage_result = input_mat.yolo_detect_forward(
-            conv_weight_mat,
-            conv_bias_mat,
-            grid_mat,
-            anchor_grid_mat,
-            strides_[stage],
-            num_anchors_,
-            num_classes_
-        );
+        auto stage_result = input_mat.yolo_detect_forward(conv_weight_mat, conv_bias_mat, grid_mat, anchor_grid_mat,
+                                                          strides_[stage], num_anchors_, num_classes_);
 
         Tensor stage_tensor = convert_mat_to_tensor(std::move(stage_result));
         stage_outputs.push_back(std::move(stage_tensor));

@@ -22,7 +22,7 @@ int32_t EnvConfig::read_kernel_algo_from_env()
     }
 
     // 尝试解析为整数
-    char *end_ptr = nullptr;
+    char *end_ptr     = nullptr;
     long parsed_value = std::strtol(env_val, &end_ptr, 10);
 
     // 检查是否成功解析（end_ptr 应该指向字符串末尾）
@@ -35,9 +35,7 @@ int32_t EnvConfig::read_kernel_algo_from_env()
     return kDefaultKernelAlgo;
 }
 
-EnvConfig::EnvConfig() : kernel_algo_(read_kernel_algo_from_env())
-{
-}
+EnvConfig::EnvConfig() : kernel_algo_(read_kernel_algo_from_env()) {}
 
 }  // namespace utils
 }  // namespace origin

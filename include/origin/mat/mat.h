@@ -207,7 +207,7 @@ public:
      * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
      * @param value 要写入的标量值，会自动转换为与tensor相同的数据类型
      */
-    virtual void index_put(std::initializer_list<size_t> indices, const Scalar& value) = 0;
+    virtual void index_put(std::initializer_list<size_t> indices, const Scalar &value) = 0;
 
     /**
      * @brief 获取数据指针
@@ -382,10 +382,10 @@ public:
      * @return 图像矩阵
      */
     virtual std::unique_ptr<Mat> col2im(const Shape &input_shape,
-                                       std::pair<int, int> kernel_size,
-                                       std::pair<int, int> stride,
-                                       std::pair<int, int> pad,
-                                       bool to_matrix = true) const = 0;
+                                        std::pair<int, int> kernel_size,
+                                        std::pair<int, int> stride,
+                                        std::pair<int, int> pad,
+                                        bool to_matrix = true) const = 0;
 
     /**
      * @brief conv2d：完整的二维卷积操作
@@ -455,8 +455,7 @@ public:
      * @param output_size 输出尺寸 (OH, OW)
      * @return 输入梯度 (N, C, H, W)
      */
-    virtual std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const Mat &gy,
-                                                                std::pair<int, int> output_size) const = 0;
+    virtual std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const Mat &gy, std::pair<int, int> output_size) const = 0;
 
     /**
      * @brief max_pool2d：最大池化操作
@@ -510,12 +509,12 @@ public:
      * @return BatchNormResult 包含输出和中间结果
      */
     virtual BatchNormResult batch_norm_forward(const Mat &gamma,
-                                              const Mat &beta,
-                                              const Mat &running_mean,
-                                              const Mat &running_var,
-                                              bool training,
-                                              float eps,
-                                              int num_dims) const = 0;
+                                               const Mat &beta,
+                                               const Mat &running_mean,
+                                               const Mat &running_var,
+                                               bool training,
+                                               float eps,
+                                               int num_dims) const = 0;
 
     /**
      * @brief batch_norm：BatchNorm 前向传播（只返回输出）
@@ -582,7 +581,8 @@ public:
      * @param stride stride 值
      * @param num_anchors anchor 数量
      * @param num_classes 类别数量
-     * @return 输出张量 (N, num_boxes, classes_info)，其中 num_boxes = H * W * num_anchors, classes_info = num_classes + 5
+     * @return 输出张量 (N, num_boxes, classes_info)，其中 num_boxes = H * W * num_anchors, classes_info = num_classes +
+     * 5
      */
     virtual std::unique_ptr<Mat> yolo_detect_forward(const Mat &conv_weight,
                                                      const Mat *conv_bias,

@@ -118,7 +118,7 @@ public:
      * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
      * @param value 要写入的标量值，会自动转换为与tensor相同的数据类型
      */
-    void index_put(std::initializer_list<size_t> indices, const Scalar& value);
+    void index_put(std::initializer_list<size_t> indices, const Scalar &value);
 
     // 调试
     void print(const std::string &desc = "") const;

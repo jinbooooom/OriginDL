@@ -111,7 +111,6 @@ std::unique_ptr<Mat> relu(const origin::OriginMat &mat, origin::OriginMat *out =
 // 原地操作算子
 // ============================================================================
 
-
 // ============================================================================
 // 形状操作算子
 // ============================================================================
@@ -154,7 +153,9 @@ std::unique_ptr<Mat> cat(const std::vector<const origin::OriginMat *> &inputs, i
  * @param dim 分割维度
  * @return 分割后的矩阵列表
  */
-std::vector<std::unique_ptr<Mat>> split(const origin::OriginMat &input, const std::vector<Shape> &output_shapes, int dim);
+std::vector<std::unique_ptr<Mat>> split(const origin::OriginMat &input,
+                                        const std::vector<Shape> &output_shapes,
+                                        int dim);
 
 // ============================================================================
 // 高级运算算子
@@ -463,10 +464,7 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
  * @param scale_w 宽度缩放因子
  * @return 输出张量 (N, C, OH, OW)
  */
-std::unique_ptr<Mat> upsample(const OriginMat &x,
-                              const Shape &output_shape,
-                              int scale_h,
-                              int scale_w);
+std::unique_ptr<Mat> upsample(const OriginMat &x, const Shape &output_shape, int scale_h, int scale_w);
 
 /**
  * @brief CUDA upsample_backward：上采样反向传播
@@ -476,10 +474,7 @@ std::unique_ptr<Mat> upsample(const OriginMat &x,
  * @param scale_w 宽度缩放因子
  * @return 输入梯度 (N, C, H, W)
  */
-std::unique_ptr<Mat> upsample_backward(const OriginMat &gy,
-                                       const Shape &x_shape,
-                                       int scale_h,
-                                       int scale_w);
+std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape, int scale_h, int scale_w);
 
 // === Dropout 相关操作 ===
 

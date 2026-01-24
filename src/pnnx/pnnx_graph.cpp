@@ -605,8 +605,8 @@ std::vector<Tensor> PNNXGraph::get_outputs(const std::string &output_name) const
                     else
                     {
                         // 调试：输出名称匹配但输出 Tensor 为空
-                        logw("Warning: Node {} has output name '{}' but output_tensors[{}] is empty", 
-                             node->name, input_name, i);
+                        logw("Warning: Node {} has output name '{}' but output_tensors[{}] is empty", node->name,
+                             input_name, i);
                     }
                 }
             }

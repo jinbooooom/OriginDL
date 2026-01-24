@@ -374,8 +374,8 @@ TEST_P(MatMulOperatorTest, SmallMatrix16x16)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -399,8 +399,8 @@ TEST_P(MatMulOperatorTest, SmallMatrix24x24)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -424,8 +424,8 @@ TEST_P(MatMulOperatorTest, SmallMatrix31x31)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -449,8 +449,8 @@ TEST_P(MatMulOperatorTest, MediumMatrix32x32)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -474,8 +474,8 @@ TEST_P(MatMulOperatorTest, MediumMatrix64x64)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -499,8 +499,8 @@ TEST_P(MatMulOperatorTest, MediumMatrix100x100)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -524,8 +524,8 @@ TEST_P(MatMulOperatorTest, MediumMatrix127x127)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -549,8 +549,8 @@ TEST_P(MatMulOperatorTest, LargeMatrix128x128)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -574,8 +574,8 @@ TEST_P(MatMulOperatorTest, LargeMatrix256x256)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -599,8 +599,8 @@ TEST_P(MatMulOperatorTest, LargeMatrix512x512)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -624,8 +624,8 @@ TEST_P(MatMulOperatorTest, LargeMatrix1024x1024)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -649,8 +649,8 @@ TEST_P(MatMulOperatorTest, VeryLargeMatrix2048x2048)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -674,8 +674,8 @@ TEST_P(MatMulOperatorTest, NonSquareMatrix16x32x48)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -699,8 +699,8 @@ TEST_P(MatMulOperatorTest, NonSquareMatrix128x256x512)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -724,8 +724,8 @@ TEST_P(MatMulOperatorTest, NonSquareMatrix512x1024x2048)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -749,8 +749,8 @@ TEST_P(MatMulOperatorTest, RectangularMatrix1x1000x1)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }
@@ -774,8 +774,8 @@ TEST_P(MatMulOperatorTest, RectangularMatrix1000x1x1000)
 
     if (deviceType() == DeviceType::kCUDA)
     {
-        auto cpu_a = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
-        auto cpu_b = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_a      = Tensor(data_a, Shape{M, K}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
+        auto cpu_b      = Tensor(data_b, Shape{K, N}, dtype(DataType::kFloat32).device(DeviceType::kCPU));
         auto cpu_result = F::mat_mul(cpu_a, cpu_b);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, cpu_result, origin::test::TestTolerance::kDefault);
     }

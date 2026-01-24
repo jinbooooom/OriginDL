@@ -273,7 +273,7 @@ TEST_P(TensorIndexTest, IndexWithDoubleTranspose)
     {
         for (size_t j = 0; j < 3; ++j)
         {
-            float orig_val = original.index<float>({i, j});
+            float orig_val  = original.index<float>({i, j});
             float trans_val = transposed2.index<float>({i, j});
             EXPECT_FLOAT_EQ(orig_val, trans_val);
         }
@@ -304,8 +304,8 @@ TEST_P(TensorIndexTest, IndexWrongDimension)
     Tensor tensor = Tensor::ones(Shape{3, 4, 5}, dtype(DataType::kFloat32).device(deviceType()));
 
     // 测试索引数量不匹配（实际抛出 std::invalid_argument）
-    EXPECT_THROW({ tensor.index<float>({1, 2}); }, std::exception);      // 索引太少
-    EXPECT_THROW({ tensor.index<float>({1, 2, 3, 4}); }, std::exception); // 索引太多
+    EXPECT_THROW({ tensor.index<float>({1, 2}); }, std::exception);        // 索引太少
+    EXPECT_THROW({ tensor.index<float>({1, 2, 3, 4}); }, std::exception);  // 索引太多
 }
 
 TEST_P(TensorIndexTest, IndexPutOutOfRange)
@@ -319,13 +319,17 @@ TEST_P(TensorIndexTest, IndexPutOutOfRange)
 
 // ==================== 参数化测试实例化 ====================
 
-INSTANTIATE_TEST_SUITE_P(TensorIndexTests, TensorIndexTest, ::testing::Values(DeviceType::kCPU),
+INSTANTIATE_TEST_SUITE_P(TensorIndexTests,
+                         TensorIndexTest,
+                         ::testing::Values(DeviceType::kCPU),
                          [](const ::testing::TestParamInfo<DeviceType> &info) {
                              return info.param == DeviceType::kCPU ? "CPU" : "CUDA";
                          });
 
 #ifdef WITH_CUDA
-INSTANTIATE_TEST_SUITE_P(TensorIndexTestsCUDA, TensorIndexTest, ::testing::Values(DeviceType::kCUDA),
+INSTANTIATE_TEST_SUITE_P(TensorIndexTestsCUDA,
+                         TensorIndexTest,
+                         ::testing::Values(DeviceType::kCUDA),
                          [](const ::testing::TestParamInfo<DeviceType> &info) {
                              return info.param == DeviceType::kCPU ? "CPU" : "CUDA";
                          });

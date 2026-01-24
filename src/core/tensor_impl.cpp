@@ -418,7 +418,7 @@ Scalar TensorImpl::index(std::initializer_list<size_t> indices) const
     return data_->index(indices);
 }
 
-void TensorImpl::index_put(std::initializer_list<size_t> indices, const Scalar& value)
+void TensorImpl::index_put(std::initializer_list<size_t> indices, const Scalar &value)
 {
     data_->index_put(indices, value);
 }

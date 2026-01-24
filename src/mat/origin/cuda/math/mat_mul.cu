@@ -5,8 +5,8 @@
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/branch_prediction.h"
-#include "origin/utils/exception.h"
 #include "origin/utils/env_config.h"
+#include "origin/utils/exception.h"
 
 #ifdef ENABLE_CUBLAS
 #    include "origin/mat/origin/cuda/cublas_algo.cuh"
@@ -134,20 +134,20 @@ namespace cuda
 /**
  * @brief 矩阵乘法版本枚举
  */
- enum class MatMulVersion
- {
-     V0_NAIVE = 0,              // 朴素实现
-     V1_TILED = 1,              // 共享内存分块
-     V2_BANK_CONFLICT_FREE = 2, // 避免bank冲突
-     V3_REGISTER_TILING = 3,    // 寄存器分块
-     V4_VECTORIZED = 4,         // 向量化（仅float）
-     V5_DOUBLE_BUFFERING = 5,   // 双缓冲
-     V6_UNROLLED = 6,            // 循环展开
-     V7_WARPTILING = 7,         // Warptiling
-     V8_LARGE_TILE = 8,         // 更大的tile size
-     V9_AUTOTUNING = 9,         // 自动调优
-     V_AUTO = 6666,             // 自动选择最优版本
- };
+enum class MatMulVersion
+{
+    V0_NAIVE              = 0,     // 朴素实现
+    V1_TILED              = 1,     // 共享内存分块
+    V2_BANK_CONFLICT_FREE = 2,     // 避免bank冲突
+    V3_REGISTER_TILING    = 3,     // 寄存器分块
+    V4_VECTORIZED         = 4,     // 向量化（仅float）
+    V5_DOUBLE_BUFFERING   = 5,     // 双缓冲
+    V6_UNROLLED           = 6,     // 循环展开
+    V7_WARPTILING         = 7,     // Warptiling
+    V8_LARGE_TILE         = 8,     // 更大的tile size
+    V9_AUTOTUNING         = 9,     // 自动调优
+    V_AUTO                = 6666,  // 自动选择最优版本
+};
 
 // ============================================================================
 // Version 0: 朴素实现（Baseline）
@@ -241,11 +241,11 @@ __global__ void matmul_v0_naive_kernel(const T *__restrict__ a,
  */
 template <typename T>
 __global__ void matmul_v1_tiled_kernel(const T *__restrict__ a,
-                                        const T *__restrict__ b,
-                                        T *__restrict__ c,
-                                        int M,
-                                        int N,
-                                        int K)
+                                       const T *__restrict__ b,
+                                       T *__restrict__ c,
+                                       int M,
+                                       int N,
+                                       int K)
 {
     // 共享内存块大小：16x16 = 256个元素
     // 选择16是因为：
@@ -348,11 +348,11 @@ __global__ void matmul_v1_tiled_kernel(const T *__restrict__ a,
  */
 template <typename T>
 __global__ void matmul_v2_bank_conflict_free_kernel(const T *__restrict__ a,
-                                                      const T *__restrict__ b,
-                                                      T *__restrict__ c,
-                                                      int M,
-                                                      int N,
-                                                      int K)
+                                                    const T *__restrict__ b,
+                                                    T *__restrict__ c,
+                                                    int M,
+                                                    int N,
+                                                    int K)
 {
     const int TILE_SIZE = 16;
 
@@ -439,11 +439,11 @@ __global__ void matmul_v2_bank_conflict_free_kernel(const T *__restrict__ a,
  */
 template <typename T>
 __global__ void matmul_v3_register_tiling_kernel(const T *__restrict__ a,
-                                                  const T *__restrict__ b,
-                                                  T *__restrict__ c,
-                                                  int M,
-                                                  int N,
-                                                  int K)
+                                                 const T *__restrict__ b,
+                                                 T *__restrict__ c,
+                                                 int M,
+                                                 int N,
+                                                 int K)
 {
     const int TILE_SIZE = 16;
     const int TILE_M    = 4;  // 每个线程计算4行
@@ -587,9 +587,9 @@ __global__ void matmul_v4_vectorized_kernel(const float *__restrict__ a,
                                             int N,
                                             int K)
 {
-    const int TILE_SIZE = 16;
-    const int TILE_M    = 4;
-    const int TILE_N    = 4;
+    const int TILE_SIZE   = 16;
+    const int TILE_M      = 4;
+    const int TILE_N      = 4;
     const int VECTOR_SIZE = 4;  // float4 = 4个float
 
     __shared__ float shared_a[TILE_SIZE][TILE_SIZE];
@@ -650,7 +650,7 @@ __global__ void matmul_v4_vectorized_kernel(const float *__restrict__ a,
                 // 加载矩阵B：使用float4向量化加载
                 if (likely(b_row < K && base_col + j + VECTOR_SIZE - 1 < N && ((base_col + j) % VECTOR_SIZE == 0)))
                 {
-                    float4 vec_b = *reinterpret_cast<const float4 *>(&b[b_row * N + base_col + j]);
+                    float4 vec_b                     = *reinterpret_cast<const float4 *>(&b[b_row * N + base_col + j]);
                     shared_b[load_row][load_col + 0] = vec_b.x;
                     shared_b[load_row][load_col + 1] = vec_b.y;
                     shared_b[load_row][load_col + 2] = vec_b.z;
@@ -751,11 +751,11 @@ __global__ void matmul_v4_vectorized_kernel(const float *__restrict__ a,
  */
 template <typename T>
 __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
-                                                    const T *__restrict__ b,
-                                                    T *__restrict__ c,
-                                                    int M,
-                                                    int N,
-                                                    int K)
+                                                  const T *__restrict__ b,
+                                                  T *__restrict__ c,
+                                                  int M,
+                                                  int N,
+                                                  int K)
 {
     const int TILE_SIZE = 16;
     const int TILE_M    = 4;
@@ -825,8 +825,8 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
 #pragma unroll
                 for (int j = 0; j < TILE_N; ++j)
                 {
-                    int load_row = threadIdx.y * TILE_M + i;
-                    int load_col = threadIdx.x * TILE_N + j;
+                    int load_row   = threadIdx.y * TILE_M + i;
+                    int load_col   = threadIdx.x * TILE_N + j;
                     int next_a_col = (tile + 1) * TILE_SIZE + load_col;
                     int next_b_row = (tile + 1) * TILE_SIZE + load_row;
 
@@ -924,15 +924,15 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
  */
 template <typename T>
 __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
-                                           const T *__restrict__ b,
-                                           T *__restrict__ c,
-                                           int M,
-                                           int N,
-                                           int K)
+                                          const T *__restrict__ b,
+                                          T *__restrict__ c,
+                                          int M,
+                                          int N,
+                                          int K)
 {
-    const int TILE_SIZE = 16;
-    const int TILE_M    = 4;
-    const int TILE_N    = 4;
+    const int TILE_SIZE     = 16;
+    const int TILE_M        = 4;
+    const int TILE_N        = 4;
     const int UNROLL_FACTOR = 4;  // 展开因子：每次处理4个元素
 
     // 双缓冲
@@ -997,8 +997,8 @@ __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
 #pragma unroll
                 for (int j = 0; j < TILE_N; ++j)
                 {
-                    int load_row = threadIdx.y * TILE_M + i;
-                    int load_col = threadIdx.x * TILE_N + j;
+                    int load_row   = threadIdx.y * TILE_M + i;
+                    int load_col   = threadIdx.x * TILE_N + j;
                     int next_a_col = (tile + 1) * TILE_SIZE + load_col;
                     int next_b_row = (tile + 1) * TILE_SIZE + load_row;
 
@@ -1173,7 +1173,7 @@ __global__ void matmul_v7_warptiling_kernel(const T *__restrict__ a,
     {
         // 协作加载：所有thread协作加载block级别的tile到shared memory
         // 每个thread加载多个元素以提高效率
-        const int num_threads = blockDim.x * blockDim.y;
+        const int num_threads         = blockDim.x * blockDim.y;
         const int elements_per_thread = (BM * BK + num_threads - 1) / num_threads;
 
         for (int i = 0; i < elements_per_thread; ++i)
@@ -1181,8 +1181,8 @@ __global__ void matmul_v7_warptiling_kernel(const T *__restrict__ a,
             int idx = (threadIdx.y * blockDim.x + threadIdx.x) * elements_per_thread + i;
             if (idx < BM * BK)
             {
-                int row = idx / BK;
-                int col = idx % BK;
+                int row        = idx / BK;
+                int col        = idx % BK;
                 int global_row = blockIdx.y * BM + row;
                 int global_col = tile * BK + col;
                 if (likely(global_row < M && global_col < K))
@@ -1203,8 +1203,8 @@ __global__ void matmul_v7_warptiling_kernel(const T *__restrict__ a,
             int idx = (threadIdx.y * blockDim.x + threadIdx.x) * b_elements_per_thread + i;
             if (idx < BK * BN)
             {
-                int row = idx / BN;
-                int col = idx % BN;
+                int row        = idx / BN;
+                int col        = idx % BN;
                 int global_row = tile * BK + row;
                 int global_col = blockIdx.x * BN + col;
                 if (likely(global_row < K && global_col < N))
@@ -1229,14 +1229,14 @@ __global__ void matmul_v7_warptiling_kernel(const T *__restrict__ a,
             for (int i = 0; i < TM; ++i)
             {
                 int shared_row = warp_row * WM + thread_row * TM + i;
-                reg_a[i] = shared_a[shared_row][k];
+                reg_a[i]       = shared_a[shared_row][k];
             }
 
 #pragma unroll
             for (int j = 0; j < TN; ++j)
             {
                 int shared_col = warp_col * WN + thread_col * TN + j;
-                reg_b[j] = shared_b[k][shared_col];
+                reg_b[j]       = shared_b[k][shared_col];
             }
 
             // 计算：使用寄存器中的数据，提高ILP
@@ -1309,11 +1309,11 @@ __global__ void matmul_v7_warptiling_kernel(const T *__restrict__ a,
  */
 template <typename T, int TILE_SIZE = 64, int TILE_M = 8, int TILE_N = 8>
 __global__ void matmul_v8_large_tile_kernel(const T *__restrict__ a,
-                                             const T *__restrict__ b,
-                                             T *__restrict__ c,
-                                             int M,
-                                             int N,
-                                             int K)
+                                            const T *__restrict__ b,
+                                            T *__restrict__ c,
+                                            int M,
+                                            int N,
+                                            int K)
 {
     static_assert(TILE_SIZE % TILE_M == 0, "TILE_SIZE must be divisible by TILE_M");
     static_assert(TILE_SIZE % TILE_N == 0, "TILE_SIZE must be divisible by TILE_N");
@@ -1522,8 +1522,8 @@ __global__ void matmul_v9_autotuning_kernel(const T *__restrict__ a,
 #pragma unroll
                 for (int j = 0; j < TILE_N; ++j)
                 {
-                    int load_row = threadIdx.y * TILE_M + i;
-                    int load_col = threadIdx.x * TILE_N + j;
+                    int load_row   = threadIdx.y * TILE_M + i;
+                    int load_col   = threadIdx.x * TILE_N + j;
                     int next_a_col = (tile + 1) * TILE_SIZE + load_col;
                     int next_b_row = (tile + 1) * TILE_SIZE + load_row;
 
@@ -1743,12 +1743,12 @@ void launch_matmul_v7_warptiling_kernel(const T *a, const T *b, T *c, int M, int
     // Block大小：每个block有 (BN/WN) * (BM/WM) = 2 * 2 = 4个warp
     // 每个warp有32个thread，所以block有128个thread
     // block配置：blockDim.x = 32 (每个warp的线程数), blockDim.y = 4 (warp数量)
-    constexpr int BM = 128;
-    constexpr int BN = 128;
-    constexpr int WM = 64;
-    constexpr int WN = 64;
+    constexpr int BM                  = 128;
+    constexpr int BN                  = 128;
+    constexpr int WM                  = 64;
+    constexpr int WN                  = 64;
     constexpr int num_warps_per_block = (BM / WM) * (BN / WN);  // 4个warp
-    constexpr int threads_per_warp = 32;
+    constexpr int threads_per_warp    = 32;
 
     dim3 block(threads_per_warp, num_warps_per_block);
     dim3 grid((N + BN - 1) / BN, (M + BM - 1) / BM);
@@ -1870,31 +1870,31 @@ inline MatMulVersion algo_version_to_matmul_version(int32_t algo_version)
 {
     switch (algo_version)
     {
-    case 0:
-        return MatMulVersion::V0_NAIVE;
-    case 1:
-        return MatMulVersion::V1_TILED;
-    case 2:
-        return MatMulVersion::V2_BANK_CONFLICT_FREE;
-    case 3:
-        return MatMulVersion::V3_REGISTER_TILING;
-    case 4:
-        return MatMulVersion::V4_VECTORIZED;
-    case 5:
-        return MatMulVersion::V5_DOUBLE_BUFFERING;
-    case 6:
-        return MatMulVersion::V6_UNROLLED;
-    case 7:
-        return MatMulVersion::V7_WARPTILING;
-    case 8:
-        return MatMulVersion::V8_LARGE_TILE;
-    case 9:
-        return MatMulVersion::V9_AUTOTUNING;
-    case 6666:
-        return MatMulVersion::V_AUTO;
-    default:
-        // 无效的算法版本号，自动调整到 V_AUTO
-        return MatMulVersion::V_AUTO;
+        case 0:
+            return MatMulVersion::V0_NAIVE;
+        case 1:
+            return MatMulVersion::V1_TILED;
+        case 2:
+            return MatMulVersion::V2_BANK_CONFLICT_FREE;
+        case 3:
+            return MatMulVersion::V3_REGISTER_TILING;
+        case 4:
+            return MatMulVersion::V4_VECTORIZED;
+        case 5:
+            return MatMulVersion::V5_DOUBLE_BUFFERING;
+        case 6:
+            return MatMulVersion::V6_UNROLLED;
+        case 7:
+            return MatMulVersion::V7_WARPTILING;
+        case 8:
+            return MatMulVersion::V8_LARGE_TILE;
+        case 9:
+            return MatMulVersion::V9_AUTOTUNING;
+        case 6666:
+            return MatMulVersion::V_AUTO;
+        default:
+            // 无效的算法版本号，自动调整到 V_AUTO
+            return MatMulVersion::V_AUTO;
     }
 }
 
@@ -1927,86 +1927,92 @@ inline MatMulVersion algo_version_to_matmul_version(int32_t algo_version)
  * 如果传入无效的版本号，会自动调整到 V_AUTO（自动选择）
  */
 template <typename T>
-void launch_matmul_2d_kernel(const T *a, const T *b, T *c, int M, int N, int K, MatMulVersion version = MatMulVersion::V_AUTO)
+void launch_matmul_2d_kernel(const T *a,
+                             const T *b,
+                             T *c,
+                             int M,
+                             int N,
+                             int K,
+                             MatMulVersion version = MatMulVersion::V_AUTO)
 {
     // 如果指定了版本，使用指定版本
     switch (version)
     {
-    case MatMulVersion::V0_NAIVE:
-        launch_matmul_v0_naive_kernel<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V1_TILED:
-        launch_matmul_v1_tiled_kernel<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V2_BANK_CONFLICT_FREE:
-        launch_matmul_v2_bank_conflict_free_kernel<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V3_REGISTER_TILING:
-        launch_matmul_v3_register_tiling_kernel<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V4_VECTORIZED:
-        // Version 4只支持float类型，对于其他类型降级到Version 3
-        // 使用模板特化来处理float类型
-        launch_matmul_v4_or_fallback<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V5_DOUBLE_BUFFERING:
-        launch_matmul_v5_double_buffering_kernel<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V6_UNROLLED:
-        launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V7_WARPTILING:
-        launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V8_LARGE_TILE:
-        launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
-        break;
-    case MatMulVersion::V9_AUTOTUNING:
-        launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
-        break;
-    default:
-        // 默认使用最优版本（包括 V_AUTO 和无效版本）
-        // 根据矩阵大小自动选择最优版本（基于实际性能测试数据）
-        // 使用最大维度作为判断标准，确保所有维度都满足条件
-        int max_dim = (M > N) ? ((M > K) ? M : K) : ((N > K) ? N : K);
-        int min_dim = (M < N) ? ((M < K) ? M : K) : ((N < K) ? N : K);
-
-        if (max_dim < 32)
-        {
-            // 很小矩阵（所有维度 < 32）：使用朴素实现，overhead最小
-            // 性能数据：100x100时V0约8μs，V9约21μs
+        case MatMulVersion::V0_NAIVE:
             launch_matmul_v0_naive_kernel<T>(a, b, c, M, N, K);
-        }
-        else if (max_dim < 128)
-        {
-            // 小矩阵（最大维度 < 128）：使用避免bank冲突的版本
-            // 性能数据：100x100时V2约7.7μs，性能好且稳定
+            break;
+        case MatMulVersion::V1_TILED:
+            launch_matmul_v1_tiled_kernel<T>(a, b, c, M, N, K);
+            break;
+        case MatMulVersion::V2_BANK_CONFLICT_FREE:
             launch_matmul_v2_bank_conflict_free_kernel<T>(a, b, c, M, N, K);
-        }
-        else if (max_dim >= 2048)
-        {
-            // 超大矩阵（最大维度 >= 2048）：使用warptiling
-            // 但对于极端非方阵（min_dim/max_dim < 0.5），使用V9更稳健
-            double aspect_ratio = static_cast<double>(min_dim) / static_cast<double>(max_dim);
-            if (aspect_ratio < 0.5)
+            break;
+        case MatMulVersion::V3_REGISTER_TILING:
+            launch_matmul_v3_register_tiling_kernel<T>(a, b, c, M, N, K);
+            break;
+        case MatMulVersion::V4_VECTORIZED:
+            // Version 4只支持float类型，对于其他类型降级到Version 3
+            // 使用模板特化来处理float类型
+            launch_matmul_v4_or_fallback<T>(a, b, c, M, N, K);
+            break;
+        case MatMulVersion::V5_DOUBLE_BUFFERING:
+            launch_matmul_v5_double_buffering_kernel<T>(a, b, c, M, N, K);
+            break;
+        case MatMulVersion::V6_UNROLLED:
+            launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
+            break;
+        case MatMulVersion::V7_WARPTILING:
+            launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
+            break;
+        case MatMulVersion::V8_LARGE_TILE:
+            launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
+            break;
+        case MatMulVersion::V9_AUTOTUNING:
+            launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
+            break;
+        default:
+            // 默认使用最优版本（包括 V_AUTO 和无效版本）
+            // 根据矩阵大小自动选择最优版本（基于实际性能测试数据）
+            // 使用最大维度作为判断标准，确保所有维度都满足条件
+            int max_dim = (M > N) ? ((M > K) ? M : K) : ((N > K) ? N : K);
+            int min_dim = (M < N) ? ((M < K) ? M : K) : ((N < K) ? N : K);
+
+            if (max_dim < 32)
             {
-                launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
+                // 很小矩阵（所有维度 < 32）：使用朴素实现，overhead最小
+                // 性能数据：100x100时V0约8μs，V9约21μs
+                launch_matmul_v0_naive_kernel<T>(a, b, c, M, N, K);
+            }
+            else if (max_dim < 128)
+            {
+                // 小矩阵（最大维度 < 128）：使用避免bank冲突的版本
+                // 性能数据：100x100时V2约7.7μs，性能好且稳定
+                launch_matmul_v2_bank_conflict_free_kernel<T>(a, b, c, M, N, K);
+            }
+            else if (max_dim >= 2048)
+            {
+                // 超大矩阵（最大维度 >= 2048）：使用warptiling
+                // 但对于极端非方阵（min_dim/max_dim < 0.5），使用V9更稳健
+                double aspect_ratio = static_cast<double>(min_dim) / static_cast<double>(max_dim);
+                if (aspect_ratio < 0.5)
+                {
+                    launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
+                }
+                else
+                {
+                    launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
+                }
             }
             else
             {
-                launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
+                // 中等到大矩阵（128 <= max_dim < 2048）：使用自动调优版本
+                // 性能数据：
+                // - 1000x1000: V9约128μs（最优），V8约296μs，V7约480μs
+                // - 10000x10000: V9约181Kμs，接近V7的174Kμs
+                // V9在中等和大矩阵上都表现优秀，是通用最优选择
+                launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
             }
-        }
-        else
-        {
-            // 中等到大矩阵（128 <= max_dim < 2048）：使用自动调优版本
-            // 性能数据：
-            // - 1000x1000: V9约128μs（最优），V8约296μs，V7约480μs
-            // - 10000x10000: V9约181Kμs，接近V7的174Kμs
-            // V9在中等和大矩阵上都表现优秀，是通用最优选择
-            launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
-        }
-        break;
+            break;
     }
 }
 
@@ -2087,7 +2093,7 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     auto result = std::make_unique<OriginMat>(output_shape, a_ptr->dtype(), a_ptr->device());
 
     // 从环境变量获取算法版本号
-    int32_t algo_version = utils::EnvConfig::GetInstance().kernel_algo();
+    int32_t algo_version  = utils::EnvConfig::GetInstance().kernel_algo();
     MatMulVersion version = algo_version_to_matmul_version(algo_version);
 
     // 使用类型分发器执行矩阵乘法
@@ -2103,7 +2109,8 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
         }
         else
         {
-            launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K, version);
+            launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K,
+                                    version);
         }
 #else
         launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K, version);

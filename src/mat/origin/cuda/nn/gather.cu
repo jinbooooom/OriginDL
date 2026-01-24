@@ -21,10 +21,10 @@ namespace cuda
  */
 template <typename T>
 __global__ void gather_kernel_int32(const T *__restrict__ input,
-                                     const int32_t *__restrict__ indices,
-                                     T *__restrict__ output,
-                                     size_t N,
-                                     size_t C)
+                                    const int32_t *__restrict__ indices,
+                                    T *__restrict__ output,
+                                    size_t N,
+                                    size_t C)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -44,10 +44,10 @@ __global__ void gather_kernel_int32(const T *__restrict__ input,
  */
 template <typename T>
 __global__ void gather_kernel_int64(const T *__restrict__ input,
-                                     const int64_t *__restrict__ indices,
-                                     T *__restrict__ output,
-                                     size_t N,
-                                     size_t C)
+                                    const int64_t *__restrict__ indices,
+                                    T *__restrict__ output,
+                                    size_t N,
+                                    size_t C)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -65,9 +65,9 @@ __global__ void gather_kernel_int64(const T *__restrict__ input,
  * @brief CUDA one_hot kernel（int32 索引）
  */
 __global__ void one_hot_kernel_int32(const int32_t *__restrict__ indices,
-                                      float *__restrict__ output,
-                                      size_t N,
-                                      int num_classes)
+                                     float *__restrict__ output,
+                                     size_t N,
+                                     int num_classes)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -91,9 +91,9 @@ __global__ void one_hot_kernel_int32(const int32_t *__restrict__ indices,
  * @brief CUDA one_hot kernel（int64 索引）
  */
 __global__ void one_hot_kernel_int64(const int64_t *__restrict__ indices,
-                                      float *__restrict__ output,
-                                      size_t N,
-                                      int num_classes)
+                                     float *__restrict__ output,
+                                     size_t N,
+                                     int num_classes)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -133,8 +133,8 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices)
 
     if (unlikely(input.shape()[0] != indices.shape()[0]))
     {
-        THROW_INVALID_ARG("gather: batch size mismatch. input has {} samples, indices has {} samples",
-                          input.shape()[0], indices.shape()[0]);
+        THROW_INVALID_ARG("gather: batch size mismatch. input has {} samples, indices has {} samples", input.shape()[0],
+                          indices.shape()[0]);
     }
 
     VALIDATE_SAME_CUDA_DEVICE(input, indices);
@@ -149,7 +149,8 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices)
     if (indices.dtype() == DataType::kInt32)
     {
         indices_cpu_int32.resize(N);
-        CUDA_CHECK(cudaMemcpy(indices_cpu_int32.data(), indices.storage()->data(), N * sizeof(int32_t), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(indices_cpu_int32.data(), indices.storage()->data(), N * sizeof(int32_t),
+                              cudaMemcpyDeviceToHost));
         for (size_t i = 0; i < N; ++i)
         {
             if (unlikely(indices_cpu_int32[i] < 0 || indices_cpu_int32[i] >= static_cast<int32_t>(C)))
@@ -161,7 +162,8 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices)
     else if (indices.dtype() == DataType::kInt64)
     {
         indices_cpu_int64.resize(N);
-        CUDA_CHECK(cudaMemcpy(indices_cpu_int64.data(), indices.storage()->data(), N * sizeof(int64_t), cudaMemcpyDeviceToHost));
+        CUDA_CHECK(cudaMemcpy(indices_cpu_int64.data(), indices.storage()->data(), N * sizeof(int64_t),
+                              cudaMemcpyDeviceToHost));
         for (size_t i = 0; i < N; ++i)
         {
             if (unlikely(indices_cpu_int64[i] < 0 || indices_cpu_int64[i] >= static_cast<int64_t>(C)))
@@ -175,9 +177,9 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices)
     Shape output_shape{N};
     auto result = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
 
-    const void *input_data  = input.storage()->data();
+    const void *input_data   = input.storage()->data();
     const void *indices_data = indices.storage()->data();
-    void *output_data       = result->storage()->data();
+    void *output_data        = result->storage()->data();
 
     // 计算线程块和网格大小
     const size_t threads_per_block = 256;
@@ -187,15 +189,15 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices)
     device_common::TypeDispatcher::dispatch_void(input.dtype(), [&]<typename T>() {
         if (indices.dtype() == DataType::kInt32)
         {
-            gather_kernel_int32<T><<<num_blocks, threads_per_block>>>(
-                static_cast<const T *>(input_data), static_cast<const int32_t *>(indices_data),
-                static_cast<T *>(output_data), N, C);
+            gather_kernel_int32<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(input_data),
+                                                                      static_cast<const int32_t *>(indices_data),
+                                                                      static_cast<T *>(output_data), N, C);
         }
         else if (indices.dtype() == DataType::kInt64)
         {
-            gather_kernel_int64<T><<<num_blocks, threads_per_block>>>(
-                static_cast<const T *>(input_data), static_cast<const int64_t *>(indices_data),
-                static_cast<T *>(output_data), N, C);
+            gather_kernel_int64<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(input_data),
+                                                                      static_cast<const int64_t *>(indices_data),
+                                                                      static_cast<T *>(output_data), N, C);
         }
         else
         {
@@ -245,13 +247,13 @@ std::unique_ptr<Mat> one_hot(const OriginMat &indices, int num_classes)
     // 根据索引类型启动对应的 kernel
     if (indices.dtype() == DataType::kInt32)
     {
-        one_hot_kernel_int32<<<num_blocks, threads_per_block>>>(
-            static_cast<const int32_t *>(indices_data), static_cast<float *>(output_data), N, num_classes);
+        one_hot_kernel_int32<<<num_blocks, threads_per_block>>>(static_cast<const int32_t *>(indices_data),
+                                                                static_cast<float *>(output_data), N, num_classes);
     }
     else if (indices.dtype() == DataType::kInt64)
     {
-        one_hot_kernel_int64<<<num_blocks, threads_per_block>>>(
-            static_cast<const int64_t *>(indices_data), static_cast<float *>(output_data), N, num_classes);
+        one_hot_kernel_int64<<<num_blocks, threads_per_block>>>(static_cast<const int64_t *>(indices_data),
+                                                                static_cast<float *>(output_data), N, num_classes);
     }
     else
     {

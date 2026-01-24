@@ -20,13 +20,13 @@ namespace cuda
  */
 template <typename T>
 __global__ void permute_kernel(const T *__restrict__ input,
-                                T *__restrict__ output,
-                                const size_t *input_shape,
-                                const size_t *input_strides,
-                                const size_t *output_strides,
-                                const int *dims,
-                                size_t ndim,
-                                size_t total_elements)
+                               T *__restrict__ output,
+                               const size_t *input_shape,
+                               const size_t *input_strides,
+                               const size_t *output_strides,
+                               const int *dims,
+                               size_t ndim,
+                               size_t total_elements)
 {
     size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -68,7 +68,7 @@ __global__ void permute_kernel(const T *__restrict__ input,
 std::unique_ptr<Mat> permute(const OriginMat &mat, const std::vector<int> &dims)
 {
     auto input_shape = mat.shape();
-    size_t ndim = input_shape.size();
+    size_t ndim      = input_shape.size();
 
     if (unlikely(dims.size() != ndim))
     {
@@ -119,18 +119,18 @@ std::unique_ptr<Mat> permute(const OriginMat &mat, const std::vector<int> &dims)
         return strides;
     };
 
-    auto input_strides = compute_strides(input_shape);
+    auto input_strides  = compute_strides(input_shape);
     auto output_strides = compute_strides(output_shape);
 
     // 在 GPU 上分配临时内存存储形状和步长信息
-    size_t shape_size = ndim * sizeof(size_t);
+    size_t shape_size  = ndim * sizeof(size_t);
     size_t stride_size = ndim * sizeof(size_t);
-    size_t dims_size = ndim * sizeof(int);
+    size_t dims_size   = ndim * sizeof(int);
 
-    size_t *d_input_shape = nullptr;
-    size_t *d_input_strides = nullptr;
+    size_t *d_input_shape    = nullptr;
+    size_t *d_input_strides  = nullptr;
     size_t *d_output_strides = nullptr;
-    int *d_dims = nullptr;
+    int *d_dims              = nullptr;
 
     CUDA_CHECK(cudaMalloc(&d_input_shape, shape_size));
     CUDA_CHECK(cudaMalloc(&d_input_strides, stride_size));
@@ -144,15 +144,14 @@ std::unique_ptr<Mat> permute(const OriginMat &mat, const std::vector<int> &dims)
 
     // 计算线程块和网格大小
     const size_t threads_per_block = 256;
-    size_t total_elements = mat.elements();
-    const size_t num_blocks = (total_elements + threads_per_block - 1) / threads_per_block;
+    size_t total_elements          = mat.elements();
+    const size_t num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
 
     // 使用类型分发器执行 permute 操作
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-        permute_kernel<T><<<num_blocks, threads_per_block>>>(
-            mat.data_ptr<T>(), result->data_ptr<T>(),
-            d_input_shape, d_input_strides, d_output_strides, d_dims,
-            ndim, total_elements);
+        permute_kernel<T><<<num_blocks, threads_per_block>>>(mat.data_ptr<T>(), result->data_ptr<T>(), d_input_shape,
+                                                             d_input_strides, d_output_strides, d_dims, ndim,
+                                                             total_elements);
     });
 
     // 清理临时内存

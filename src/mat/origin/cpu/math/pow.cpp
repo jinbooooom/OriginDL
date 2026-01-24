@@ -82,7 +82,7 @@ void pow_inplace(OriginMat &mat, const Scalar &exponent)
         }
         case DataType::kFloat64:
         {
-            double *data    = mat.data_ptr<double>();
+            double *data     = mat.data_ptr<double>();
             double exp_value = exponent.to_float64();
             for (size_t i = 0; i < mat.elements(); ++i)
             {
@@ -92,7 +92,7 @@ void pow_inplace(OriginMat &mat, const Scalar &exponent)
         }
         case DataType::kInt32:
         {
-            int32_t *data   = mat.data_ptr<int32_t>();
+            int32_t *data     = mat.data_ptr<int32_t>();
             int32_t exp_value = exponent.to_int32();
             for (size_t i = 0; i < mat.elements(); ++i)
             {
@@ -102,7 +102,7 @@ void pow_inplace(OriginMat &mat, const Scalar &exponent)
         }
         case DataType::kInt8:
         {
-            int8_t *data    = mat.data_ptr<int8_t>();
+            int8_t *data     = mat.data_ptr<int8_t>();
             int8_t exp_value = exponent.to_int8();
             for (size_t i = 0; i < mat.elements(); ++i)
             {

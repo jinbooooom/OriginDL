@@ -4,8 +4,8 @@
 #include <memory>
 #include <type_traits>
 #include "origin/core/tensor.h"
-#include "origin/utils/exception.h"
 #include "origin/utils/branch_prediction.h"
+#include "origin/utils/exception.h"
 
 namespace origin
 {
@@ -15,7 +15,7 @@ namespace origin
  * @details 参考 PyTorch 的 c10::MaybeOwned 设计
  *          - 如果类型匹配，只借用引用（borrowed），不增加引用计数
  *          - 如果类型不匹配，拥有新创建的 tensor（owned）
- * 
+ *
  * 使用场景：
  *   auto [x0, x1] = TypePromotion::promote_tensors_maybe_owned(a, b);
  *   如果 a 和 b 类型相同，x0 和 x1 只是借用，零开销
@@ -58,7 +58,8 @@ public:
      * @brief 移动构造函数
      * @param other 要移动的对象
      */
-    MaybeOwned(MaybeOwned &&other) noexcept : ptr_(other.ptr_), owned_ptr_(std::move(other.owned_ptr_)), is_owned_(other.is_owned_)
+    MaybeOwned(MaybeOwned &&other) noexcept
+        : ptr_(other.ptr_), owned_ptr_(std::move(other.owned_ptr_)), is_owned_(other.is_owned_)
     {
         other.ptr_      = nullptr;
         other.is_owned_ = false;
@@ -74,7 +75,7 @@ public:
         if (other.is_owned_)
         {
             owned_ptr_ = std::make_unique<T>(*other.owned_ptr_);
-            ptr_        = owned_ptr_.get();
+            ptr_       = owned_ptr_.get();
         }
         else
         {
@@ -91,10 +92,10 @@ public:
     {
         if (this != &other)
         {
-            ptr_        = other.ptr_;
-            owned_ptr_  = std::move(other.owned_ptr_);
-            is_owned_   = other.is_owned_;
-            other.ptr_  = nullptr;
+            ptr_            = other.ptr_;
+            owned_ptr_      = std::move(other.owned_ptr_);
+            is_owned_       = other.is_owned_;
+            other.ptr_      = nullptr;
             other.is_owned_ = false;
         }
         return *this;
@@ -113,7 +114,7 @@ public:
             if (other.is_owned_)
             {
                 owned_ptr_ = std::make_unique<T>(*other.owned_ptr_);
-                ptr_        = owned_ptr_.get();
+                ptr_       = owned_ptr_.get();
             }
             else
             {

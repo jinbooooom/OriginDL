@@ -154,7 +154,7 @@ std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vecto
         THROW_RUNTIME_ERROR("split: requires at least 1 output shape");
     }
 
-    auto input_shape = input.shape();
+    auto input_shape          = input.shape();
     size_t element_size_bytes = element_size(input.dtype());
 
     // 验证输出形状的总和等于输入形状
@@ -163,7 +163,8 @@ std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vecto
     {
         if (shape.size() != input_shape.size())
         {
-            THROW_RUNTIME_ERROR("split: output shape dimension mismatch. Expected {}, got {}", input_shape.size(), shape.size());
+            THROW_RUNTIME_ERROR("split: output shape dimension mismatch. Expected {}, got {}", input_shape.size(),
+                                shape.size());
         }
         for (size_t d = 0; d < shape.size(); ++d)
         {
@@ -176,7 +177,8 @@ std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vecto
     }
     if (total_dim_size != input_shape[dim])
     {
-        THROW_RUNTIME_ERROR("split: total output dimension size {} does not match input dimension size {}", total_dim_size, input_shape[dim]);
+        THROW_RUNTIME_ERROR("split: total output dimension size {} does not match input dimension size {}",
+                            total_dim_size, input_shape[dim]);
     }
 
     std::vector<std::unique_ptr<Mat>> results;
@@ -196,25 +198,26 @@ std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vecto
         num_slices *= input_shape[d];
     }
 
-    const void *input_data = input.storage()->data();
+    const void *input_data       = input.storage()->data();
     size_t input_offset_elements = 0;
 
     for (const auto &output_shape : output_shapes)
     {
         // 创建输出矩阵
-        auto result = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
+        auto result       = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
         void *output_data = result->storage()->data();
 
-        size_t output_dim_size = output_shape[dim];
+        size_t output_dim_size       = output_shape[dim];
         size_t output_slice_elements = output_dim_size * slice_size;
-        size_t output_slice_bytes = output_slice_elements * element_size_bytes;
+        size_t output_slice_bytes    = output_slice_elements * element_size_bytes;
 
         // 复制每个切片
         for (size_t slice = 0; slice < num_slices; ++slice)
         {
             size_t input_slice_elements = input_shape[dim] * slice_size;
-            const void *input_slice = static_cast<const char *>(input_data) +
-                                     (slice * input_slice_elements + input_offset_elements * slice_size) * element_size_bytes;
+            const void *input_slice =
+                static_cast<const char *>(input_data) +
+                (slice * input_slice_elements + input_offset_elements * slice_size) * element_size_bytes;
             void *output_slice = static_cast<char *>(output_data) + slice * output_slice_bytes;
 
             CUDA_CHECK(cudaMemcpy(output_slice, input_slice, output_slice_bytes, cudaMemcpyDeviceToDevice));

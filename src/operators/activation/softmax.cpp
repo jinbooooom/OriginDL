@@ -35,12 +35,12 @@ std::vector<Tensor> Softmax::forward(const std::vector<Tensor> &xs)
     // 数值稳定性：先找到最大值（沿指定轴）
     // 使用 mat 层的 max 操作
     const Mat &x_mat = mat(x);
-    auto max_result        = x_mat.max(axis);
-    auto max_tensor        = convert_mat_to_tensor(std::move(max_result));
+    auto max_result  = x_mat.max(axis);
+    auto max_tensor  = convert_mat_to_tensor(std::move(max_result));
 
     // 为了正确广播，需要先将 max_tensor reshape 为可以在指定维度广播的形状
     // 例如：对于形状 (2, 3)，max(axis=1) 返回 (2,)，需要 reshape 为 (2, 1) 再 broadcast
-    auto x_dims = x_shape.dims();
+    auto x_dims                        = x_shape.dims();
     std::vector<size_t> max_shape_dims = x_dims;
     max_shape_dims[axis]               = 1;  // 在 axis 维度设为 1
     Shape max_shape(max_shape_dims);

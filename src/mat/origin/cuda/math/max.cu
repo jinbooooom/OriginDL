@@ -60,17 +60,17 @@ __global__ void max_reduce_kernel(const T *__restrict__ input, T *__restrict__ o
  */
 template <typename T>
 __global__ void max_axis_kernel(const T *__restrict__ input,
-                                 T *__restrict__ output,
-                                 size_t outer_size,
-                                 size_t inner_size,
-                                 size_t axis_size)
+                                T *__restrict__ output,
+                                size_t outer_size,
+                                size_t inner_size,
+                                size_t axis_size)
 {
     size_t outer_idx = blockIdx.x;
     size_t inner_idx = threadIdx.x;
 
     if (outer_idx < outer_size && inner_idx < inner_size)
     {
-        T max_val      = std::numeric_limits<T>::lowest();
+        T max_val       = std::numeric_limits<T>::lowest();
         size_t base_idx = outer_idx * axis_size * inner_size + inner_idx;
 
         for (size_t axis_idx = 0; axis_idx < axis_size; ++axis_idx)
@@ -128,13 +128,13 @@ std::unique_ptr<Mat> max(const OriginMat &mat, int axis)
         // 使用递归归约（参考 sum 的实现）
         device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
             T *output_ptr = result->data_ptr<T>();
-            
+
             // 第一轮归约
-            max_reduce_kernel<T><<<num_blocks, threads_per_block, threads_per_block * sizeof(T)>>>(
-                mat.data_ptr<T>(), output_ptr, n);
-            
+            max_reduce_kernel<T>
+                <<<num_blocks, threads_per_block, threads_per_block * sizeof(T)>>>(mat.data_ptr<T>(), output_ptr, n);
+
             CUDA_CHECK_ASYNC();
-            
+
             // 如果还有多个块，进行多轮归约
             if (num_blocks > 1)
             {

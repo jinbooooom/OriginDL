@@ -2,8 +2,8 @@
 
 #include <vector>
 #include "origin/core/tensor.h"
-#include "origin/utils/maybe_owned.h"
 #include "origin/mat/basic_types.h"
+#include "origin/utils/maybe_owned.h"
 
 namespace origin
 {
@@ -63,7 +63,8 @@ public:
      * @details 如果类型匹配，返回借用的引用（不增加引用计数）
      *          如果类型不匹配，只有需要转换的 tensor 才会创建新对象
      */
-    static std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> promote_tensors_maybe_owned(const Tensor &a, const Tensor &b);
+    static std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> promote_tensors_maybe_owned(const Tensor &a,
+                                                                                         const Tensor &b);
 
     /**
      * @brief 类型提升规则

@@ -41,12 +41,12 @@ namespace origin
  */
 template <typename OpFunc>
 inline std::unique_ptr<Mat> device_dispatch_binary_op(DeviceType device_type,
-                                                       const OriginMat &a,
-                                                       const OriginMat &b,
-                                                       OriginMat *out,
-                                                       OpFunc cpu_op,
-                                                       OpFunc cuda_op,
-                                                       const char *op_name)
+                                                      const OriginMat &a,
+                                                      const OriginMat &b,
+                                                      OriginMat *out,
+                                                      OpFunc cpu_op,
+                                                      OpFunc cuda_op,
+                                                      const char *op_name)
 {
     if (device_type == DeviceType::kCPU)
     {
@@ -78,12 +78,12 @@ inline std::unique_ptr<Mat> device_dispatch_binary_op(DeviceType device_type,
  */
 template <typename OpFunc>
 inline void device_dispatch_binary_inplace_op(DeviceType device_type,
-                                               const OriginMat &a,
-                                               const OriginMat &b,
-                                               OriginMat *out,
-                                               OpFunc cpu_op,
-                                               OpFunc cuda_op,
-                                               const char *op_name)
+                                              const OriginMat &a,
+                                              const OriginMat &b,
+                                              OriginMat *out,
+                                              OpFunc cpu_op,
+                                              OpFunc cuda_op,
+                                              const char *op_name)
 {
     if (device_type == DeviceType::kCPU)
     {
@@ -428,43 +428,50 @@ std::unique_ptr<Mat> OriginMat::operator+(const Mat &other) const
 void OriginMat::add_inplace(const Mat &other)
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::add, cuda::add, "add_inplace");
+    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::add, cuda::add,
+                                      "add_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::operator-(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::subtract, cuda::subtract, "subtract");
+    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::subtract, cuda::subtract,
+                                     "subtract");
 }
 
 void OriginMat::sub_inplace(const Mat &other)
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::subtract, cuda::subtract, "sub_inplace");
+    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::subtract, cuda::subtract,
+                                      "sub_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::operator*(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::multiply, cuda::multiply, "multiply");
+    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::multiply, cuda::multiply,
+                                     "multiply");
 }
 
 void OriginMat::mul_inplace(const Mat &other)
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::multiply, cuda::multiply, "mul_inplace");
+    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::multiply, cuda::multiply,
+                                      "mul_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::operator/(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::divide, cuda::divide, "divide");
+    return device_dispatch_binary_op(storage_->device_type(), *this, other_mat, nullptr, cpu::divide, cuda::divide,
+                                     "divide");
 }
 
 void OriginMat::div_inplace(const Mat &other)
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
-    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::divide, cuda::divide, "div_inplace");
+    device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::divide, cuda::divide,
+                                      "div_inplace");
 }
 
 std::unique_ptr<Mat> OriginMat::operator-() const
@@ -759,13 +766,13 @@ Scalar OriginMat::index(std::initializer_list<size_t> indices) const
 
     // 验证每个索引值并计算内存偏移（使用 strides，支持非连续内存）
     size_t offset = 0;
-    size_t i = 0;
+    size_t i      = 0;
     for (auto idx : indices)
     {
         if (unlikely(idx >= shape_[i]))
         {
-            THROW_INVALID_ARG("Index {} out of range for dimension {} (size: {}). Indices: {}, Shape: {}",
-                              idx, i, shape_[i], "[indices]", shape_.to_string());
+            THROW_INVALID_ARG("Index {} out of range for dimension {} (size: {}). Indices: {}, Shape: {}", idx, i,
+                              shape_[i], "[indices]", shape_.to_string());
         }
         offset += idx * strides_[i];
         ++i;
@@ -800,7 +807,7 @@ Scalar OriginMat::index(std::initializer_list<size_t> indices) const
     }
 }
 
-void OriginMat::index_put(std::initializer_list<size_t> indices, const Scalar& value)
+void OriginMat::index_put(std::initializer_list<size_t> indices, const Scalar &value)
 {
     if (unlikely(indices.size() != shape_.size()))
     {
@@ -810,13 +817,13 @@ void OriginMat::index_put(std::initializer_list<size_t> indices, const Scalar& v
 
     // 验证每个索引值并计算内存偏移（使用 strides，支持非连续内存）
     size_t offset = 0;
-    size_t i = 0;
+    size_t i      = 0;
     for (auto idx : indices)
     {
         if (unlikely(idx >= shape_[i]))
         {
-            THROW_INVALID_ARG("Index {} out of range for dimension {} (size: {}). Indices: {}, Shape: {}",
-                              idx, i, shape_[i], "[indices]", shape_.to_string());
+            THROW_INVALID_ARG("Index {} out of range for dimension {} (size: {}). Indices: {}, Shape: {}", idx, i,
+                              shape_[i], "[indices]", shape_.to_string());
         }
         offset += idx * strides_[i];
         ++i;
@@ -826,7 +833,7 @@ void OriginMat::index_put(std::initializer_list<size_t> indices, const Scalar& v
     {
         void *data_ptr = storage_->data();
         device_common::TypeDispatcher::dispatch_void(dtype_, [&]<typename T>() {
-            T *data = static_cast<T *>(data_ptr);
+            T *data      = static_cast<T *>(data_ptr);
             data[offset] = value.to<T>();
         });
     }
@@ -835,7 +842,7 @@ void OriginMat::index_put(std::initializer_list<size_t> indices, const Scalar& v
 #ifdef WITH_CUDA
         void *data_ptr = storage_->data();
         device_common::TypeDispatcher::dispatch_void(dtype_, [&]<typename T>() {
-            T val = value.to<T>();
+            T val   = value.to<T>();
             T *data = static_cast<T *>(data_ptr);
             cuda::launch_index_put_kernel<T>(data, offset, val);
         });
@@ -906,12 +913,12 @@ std::unique_ptr<Mat> OriginMat::one_hot(const Mat &indices, int num_classes) con
 }
 
 std::unique_ptr<Mat> OriginMat::yolo_detect_forward(const Mat &conv_weight,
-                                                     const Mat *conv_bias,
-                                                     const Mat &grid,
-                                                     const Mat &anchor_grid,
-                                                     float stride,
-                                                     int32_t num_anchors,
-                                                     int32_t num_classes) const
+                                                    const Mat *conv_bias,
+                                                    const Mat &grid,
+                                                    const Mat &anchor_grid,
+                                                    float stride,
+                                                    int32_t num_anchors,
+                                                    int32_t num_classes) const
 {
     // 类型检查和转换
     const OriginMat *conv_weight_mat = dynamic_cast<const OriginMat *>(&conv_weight);
@@ -933,7 +940,8 @@ std::unique_ptr<Mat> OriginMat::yolo_detect_forward(const Mat &conv_weight,
     const OriginMat *grid_mat = dynamic_cast<const OriginMat *>(&grid);
     if (!grid_mat)
     {
-        THROW_RUNTIME_ERROR("yolo_detect_forward: grid must be OriginMat type, got backend_type={}", grid.backend_type());
+        THROW_RUNTIME_ERROR("yolo_detect_forward: grid must be OriginMat type, got backend_type={}",
+                            grid.backend_type());
     }
     const OriginMat *anchor_grid_mat = dynamic_cast<const OriginMat *>(&anchor_grid);
     if (!anchor_grid_mat)
@@ -946,13 +954,13 @@ std::unique_ptr<Mat> OriginMat::yolo_detect_forward(const Mat &conv_weight,
     if (storage_->device_type() == DeviceType::kCPU)
     {
         return cpu::yolo_detect_forward(*this, *conv_weight_mat, conv_bias_mat, *grid_mat, *anchor_grid_mat, stride,
-                                       num_anchors, num_classes);
+                                        num_anchors, num_classes);
     }
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
         return cuda::yolo_detect_forward(*this, *conv_weight_mat, conv_bias_mat, *grid_mat, *anchor_grid_mat, stride,
-                                       num_anchors, num_classes);
+                                         num_anchors, num_classes);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -1403,12 +1411,14 @@ OriginMat::BatchNormResult OriginMat::batch_norm_forward(const Mat &gamma,
     const OriginMat *gamma_mat = dynamic_cast<const OriginMat *>(&gamma);
     if (!gamma_mat)
     {
-        THROW_RUNTIME_ERROR("batch_norm_forward: gamma must be OriginMat type, got backend_type={}", gamma.backend_type());
+        THROW_RUNTIME_ERROR("batch_norm_forward: gamma must be OriginMat type, got backend_type={}",
+                            gamma.backend_type());
     }
     const OriginMat *beta_mat = dynamic_cast<const OriginMat *>(&beta);
     if (!beta_mat)
     {
-        THROW_RUNTIME_ERROR("batch_norm_forward: beta must be OriginMat type, got backend_type={}", beta.backend_type());
+        THROW_RUNTIME_ERROR("batch_norm_forward: beta must be OriginMat type, got backend_type={}",
+                            beta.backend_type());
     }
     const OriginMat *running_mean_mat = dynamic_cast<const OriginMat *>(&running_mean);
     if (!running_mean_mat)
@@ -1426,8 +1436,8 @@ OriginMat::BatchNormResult OriginMat::batch_norm_forward(const Mat &gamma,
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
     {
-        auto result = cpu::batch_norm_forward(*this, *gamma_mat, *beta_mat, *running_mean_mat, *running_var_mat, training,
-                                              eps, num_dims);
+        auto result = cpu::batch_norm_forward(*this, *gamma_mat, *beta_mat, *running_mean_mat, *running_var_mat,
+                                              training, eps, num_dims);
         OriginMat::BatchNormResult ret;
         ret.y      = std::move(result.y);
         ret.mean   = std::move(result.mean);
@@ -1438,8 +1448,8 @@ OriginMat::BatchNormResult OriginMat::batch_norm_forward(const Mat &gamma,
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        auto result = cuda::batch_norm_forward(*this, *gamma_mat, *beta_mat, *running_mean_mat, *running_var_mat, training,
-                                              eps, num_dims);
+        auto result = cuda::batch_norm_forward(*this, *gamma_mat, *beta_mat, *running_mean_mat, *running_var_mat,
+                                               training, eps, num_dims);
         OriginMat::BatchNormResult ret;
         ret.y      = std::move(result.y);
         ret.mean   = std::move(result.mean);
@@ -1500,7 +1510,7 @@ std::unique_ptr<Mat> OriginMat::batch_norm(const Mat &gamma,
     {
 #ifdef WITH_CUDA
         return cuda::batch_norm(*this, *gamma_mat, *beta_mat, *running_mean_mat, *running_var_mat, training, eps,
-                               momentum, num_dims);
+                                momentum, num_dims);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -1554,13 +1564,13 @@ std::vector<std::unique_ptr<Mat>> OriginMat::batch_norm_backward(const Mat &gy,
     if (storage_->device_type() == DeviceType::kCPU)
     {
         return cpu::batch_norm_backward(*gy_mat, *this, *gamma_mat, *saved_mean_mat, *saved_var_mat, *saved_x_norm_mat,
-                                       eps, num_dims);
+                                        eps, num_dims);
     }
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
         return cuda::batch_norm_backward(*gy_mat, *this, *gamma_mat, *saved_mean_mat, *saved_var_mat, *saved_x_norm_mat,
-                                        eps, num_dims);
+                                         eps, num_dims);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -1663,10 +1673,7 @@ std::unique_ptr<Mat> OriginMat::upsample(const Shape &output_shape, int scale_h,
     }
 }
 
-std::unique_ptr<Mat> OriginMat::upsample_backward(const Mat &gy,
-                                                   const Shape &x_shape,
-                                                   int scale_h,
-                                                   int scale_w) const
+std::unique_ptr<Mat> OriginMat::upsample_backward(const Mat &gy, const Shape &x_shape, int scale_h, int scale_w) const
 {
     // 类型检查和转换
     const OriginMat *gy_mat = dynamic_cast<const OriginMat *>(&gy);

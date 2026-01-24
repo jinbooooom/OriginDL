@@ -18,12 +18,12 @@ constexpr int TORCH_BACKEND_TYPE  = 1;
 // 数据类型枚举（面向 DL/LLM，所以有些类型不支持）
 enum class DataType
 {
-    kFloat32 = 0,   // float
-    kFloat64 = 1,   // double
-    kInt8    = 2,   // int8_t
-    kInt32   = 3,   // int32_t
-    kInt64   = 4,   // int64_t
-    kUInt8   = 5,   // uint8_t
+    kFloat32 = 0,  // float
+    kFloat64 = 1,  // double
+    kInt8    = 2,  // int8_t
+    kInt32   = 3,  // int32_t
+    kInt64   = 4,  // int64_t
+    kUInt8   = 5,  // uint8_t
 };
 
 // 数据类型别名

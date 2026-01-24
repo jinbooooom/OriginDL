@@ -1,8 +1,10 @@
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 
 #ifdef __CUDACC__
-namespace origin {
-namespace cuda {
+namespace origin
+{
+namespace cuda
+{
 
 /**
  * @brief 启动索引写入内核（单个元素）实现
@@ -24,6 +26,6 @@ template void launch_index_put_kernel<int32_t>(int32_t *, size_t, int32_t, cudaS
 template void launch_index_put_kernel<int64_t>(int64_t *, size_t, int64_t, cudaStream_t);
 template void launch_index_put_kernel<uint8_t>(uint8_t *, size_t, uint8_t, cudaStream_t);
 
-} // namespace cuda
-} // namespace origin
-#endif // __CUDACC__
+}  // namespace cuda
+}  // namespace origin
+#endif  // __CUDACC__

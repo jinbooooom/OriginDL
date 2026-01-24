@@ -32,8 +32,8 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices)
 
     if (unlikely(input.shape()[0] != indices.shape()[0]))
     {
-        THROW_INVALID_ARG("gather: batch size mismatch. input has {} samples, indices has {} samples",
-                          input.shape()[0], indices.shape()[0]);
+        THROW_INVALID_ARG("gather: batch size mismatch. input has {} samples, indices has {} samples", input.shape()[0],
+                          indices.shape()[0]);
     }
 
     VALIDATE_SAME_CPU_DEVICE(input, indices);
@@ -46,13 +46,13 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices)
     auto result = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
 
     const void *input_data   = input.storage()->data();
-    const void *indices_data  = indices.storage()->data();
-    void *output_data         = result->storage()->data();
+    const void *indices_data = indices.storage()->data();
+    void *output_data        = result->storage()->data();
 
     // 使用类型分发器执行 gather 操作
     device_common::TypeDispatcher::dispatch_void(input.dtype(), [&]<typename T>() {
-        const T *input_ptr   = static_cast<const T *>(input_data);
-        T *output_ptr        = static_cast<T *>(output_data);
+        const T *input_ptr = static_cast<const T *>(input_data);
+        T *output_ptr      = static_cast<T *>(output_data);
 
         // 根据索引类型提取值
         if (indices.dtype() == DataType::kInt32)

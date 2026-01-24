@@ -41,8 +41,8 @@ std::vector<Tensor> Div::backward(const std::vector<Tensor> &gys)
     auto &gy      = mat(gys[0]);
 
     // ∂y/∂x0 = gy * (1/x1) = gy / x1
-    auto &x0_mat = mat(x0);
-    auto &x1_mat = mat(x1);
+    auto &x0_mat    = mat(x0);
+    auto &x1_mat    = mat(x1);
     auto gx0_result = gy / x1_mat;
     auto gx0        = convert_mat_to_tensor(std::move(gx0_result));
 
@@ -79,13 +79,13 @@ void Div::forward_inplace(Tensor &input0, const Tensor &input1)
     // 原地操作：input0 = input0 / input1
     // 统一处理：无论是否需要类型提升，都使用相同的逻辑
     DataType promoted_type = TypePromotion::promote_types(input0.dtype(), input1.dtype());
-    
+
     // 因为 input0 需要原地修改，所以不用临时的 MaybeOwned<Tensor>，而是直接修改 input0
     if (input0.dtype() != promoted_type)
     {
         input0 = input0.to(promoted_type);
     }
-    
+
     // input1 使用 MaybeOwned 优化：类型匹配时借用，不匹配时创建新的 Tensor 并拥有所有权
     auto x1_maybe = TypePromotion::to_type_maybe_owned(input1, promoted_type);
 

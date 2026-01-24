@@ -31,7 +31,7 @@ private:
         double f64;  // kFloat64/kDouble
 
         // 有符号整数类型
-        int8_t i8;   // kInt8
+        int8_t i8;    // kInt8
         int32_t i32;  // kInt32
         int64_t i64;  // kInt64
 

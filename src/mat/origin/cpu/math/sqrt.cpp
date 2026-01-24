@@ -35,10 +35,11 @@ std::unique_ptr<Mat> sqrt(const OriginMat &mat, OriginMat *out)
     {
         if (unlikely(out->shape() != mat.shape() || out->dtype() != mat.dtype() || out->device() != mat.device()))
         {
-            THROW_INVALID_ARG("Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
-                              "dtype={}, device={}",
-                              mat.shape().to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
-                              out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
+            THROW_INVALID_ARG(
+                "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
+                "dtype={}, device={}",
+                mat.shape().to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
+                out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
         }
         result_ptr = out;
     }
