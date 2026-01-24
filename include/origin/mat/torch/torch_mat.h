@@ -1,6 +1,7 @@
 #ifndef __ORIGIN_DL_TORCH_MAT_H__
 #define __ORIGIN_DL_TORCH_MAT_H__
 
+#include <torch/torch.h>
 #include <memory>
 #include <vector>
 #include "../../core/tensor_options.h"
@@ -20,8 +21,10 @@ namespace origin
 class TorchMat : public Mat
 {
 public:
-    // 构造函数等基本接口需要实现，但这里先只实现需要的虚函数
-    // TODO: 实现完整的TorchMat类
+    // 构造函数
+    TorchMat() = default;
+    explicit TorchMat(const torch::Tensor &tensor);
+    explicit TorchMat(torch::Tensor &&tensor);
 
     // === 静态工厂方法 ===
     static std::unique_ptr<Mat> from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
@@ -129,8 +132,7 @@ public:
 
     std::unique_ptr<Mat> adaptive_avg_pool2d(std::pair<int, int> output_size) const override;
 
-    std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const Mat &gy,
-                                                      std::pair<int, int> output_size) const override;
+    std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const Mat &gy, std::pair<int, int> output_size) const override;
 
     std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size,
                                     std::pair<int, int> stride,
@@ -181,6 +183,22 @@ public:
                                              float stride,
                                              int32_t num_anchors,
                                              int32_t num_classes) const override;
+
+    // === Dropout 相关操作（Mat 接口实现）===
+    std::unique_ptr<Mat> dropout(float p, bool training, Mat *mask) const override;
+
+    std::unique_ptr<Mat> dropout_backward(const Mat &gy, const Mat &mask) const override;
+
+    // === Upsample 相关操作（Mat 接口实现）===
+    std::unique_ptr<Mat> upsample(const Shape &output_shape, int scale_h, int scale_w) const override;
+
+    std::unique_ptr<Mat> upsample_backward(const Mat &gy,
+                                           const Shape &x_shape,
+                                           int scale_h,
+                                           int scale_w) const override;
+
+private:
+    torch::Tensor tensor_;
 };
 
 }  // namespace origin
