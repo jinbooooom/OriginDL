@@ -131,8 +131,10 @@ std::vector<Tensor> Split::backward(const std::vector<Tensor> &gys)
     return {result_tensor};
 }
 
-std::vector<Tensor> split(const Tensor &x, const std::vector<size_t> &split_sizes, int dim)
+std::vector<Tensor> split(const Tensor &x, SizeArrayRef split_sizes, int dim)
 {
+    // SizeArrayRef 直接传递给 Split 构造函数
+    // Split 构造函数内部会调用 to_vector() 拷贝数据到 split_sizes_ 成员变量
     auto op = std::make_shared<Split>(split_sizes, dim);
     std::vector<Tensor> inputs = {x};
     return (*op)(inputs);
