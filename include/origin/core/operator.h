@@ -143,6 +143,7 @@ private:
 #include "origin/operators/shape/cat.h"
 #include "origin/operators/shape/flatten.h"
 #include "origin/operators/shape/reshape.h"
+#include "origin/operators/shape/split.h"
 #include "origin/operators/shape/transpose.h"
 
 // Neural network operators

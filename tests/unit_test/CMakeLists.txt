@@ -296,6 +296,16 @@ set_target_properties(test_cat PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_split operator/test_split.cpp)
+add_dependencies(test_split gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_split ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_split PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_split PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_avg_pool2d operator/test_avg_pool2d.cpp)
 add_dependencies(test_avg_pool2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_avg_pool2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
@@ -581,6 +591,7 @@ add_test(NAME sigmoid_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sigmoid)
 add_test(NAME silu_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_silu)
 add_test(NAME upsample_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_upsample)
 add_test(NAME cat_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_cat)
+add_test(NAME split_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_split)
 add_test(NAME softmax_cross_entropy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_softmax_cross_entropy)
 add_test(NAME accuracy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_accuracy)
 add_test(NAME adam_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_adam)
