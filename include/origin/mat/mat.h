@@ -636,20 +636,19 @@ public:
     // === Cat 和 Split 相关操作 ===
     /**
      * @brief cat：在指定维度上拼接多个矩阵
-     * @param inputs 输入矩阵列表（所有矩阵必须具有相同的后端类型）
+     * @param others 其他输入矩阵列表（所有矩阵必须具有相同的后端类型）
      * @param dim 拼接维度
      * @return 拼接后的矩阵
      */
-    static std::unique_ptr<Mat> cat(const std::vector<const Mat *> &inputs, int dim);
+    virtual std::unique_ptr<Mat> cat(const std::vector<const Mat *> &others, int dim) const = 0;
 
     /**
      * @brief split：将矩阵沿指定维度分割成多个矩阵（cat 的反向操作）
-     * @param input 输入矩阵
      * @param output_shapes 输出形状列表
      * @param dim 分割维度
      * @return 分割后的矩阵列表
      */
-    static std::vector<std::unique_ptr<Mat>> split(const Mat &input, const std::vector<Shape> &output_shapes, int dim);
+    virtual std::vector<std::unique_ptr<Mat>> split(const std::vector<Shape> &output_shapes, int dim) const = 0;
 };
 
 /**

@@ -10,6 +10,29 @@ namespace origin
 namespace functional
 {
 
+/**
+ * @brief 检查两个 Shape 是否匹配（排除指定维度）
+ * @param shape1 第一个形状
+ * @param shape2 第二个形状
+ * @param exclude_dim 要排除的维度索引
+ * @return 如果除了 exclude_dim 外的所有维度都匹配，返回 true
+ */
+static inline bool shapes_match_except_dim(const Shape &shape1, const Shape &shape2, int exclude_dim)
+{
+    if (unlikely(shape1.size() != shape2.size()))
+    {
+        return false;
+    }
+    for (size_t d = 0; d < shape1.size(); ++d)
+    {
+        if (d != static_cast<size_t>(exclude_dim) && shape1[d] != shape2[d])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
 {
     if (unlikely(xs.empty()))
@@ -22,54 +45,34 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
         return xs;  // 只有一个输入，直接返回
     }
 
-    // 检查所有输入的形状（除了 dim_ 维度外应该相同）
-    auto first_shape = xs[0].shape();
-    Device device    = xs[0].device();
-    bool all_cuda    = (device.type() == DeviceType::kCUDA);
+    // 检查所有输入的形状（除了 dim_ 维度外应该相同）和设备
+    const auto &first_shape = xs[0].shape();
+    const auto &first_device = xs[0].device();
 
     for (size_t i = 1; i < xs.size(); ++i)
     {
-        auto shape = xs[i].shape();
-        if (unlikely(shape.size() != first_shape.size()))
+        const auto &shape = xs[i].shape();
+        if (unlikely(!shapes_match_except_dim(first_shape, shape, dim_)))
         {
-            THROW_RUNTIME_ERROR("Cat forward: all inputs must have same number of dimensions");
+            THROW_RUNTIME_ERROR("Cat forward: dimension mismatch at input {}, expected shape {} (excluding dim {}), "
+                                "got shape {}",
+                                i, first_shape.to_string(), dim_, shape.to_string());
         }
 
-        for (size_t d = 0; d < shape.size(); ++d)
+        if (unlikely(xs[i].device() != first_device))
         {
-            if (unlikely(d != static_cast<size_t>(dim_) && shape[d] != first_shape[d]))
-            {
-                THROW_RUNTIME_ERROR("Cat forward: dimension {} mismatch: {} vs {}", d, shape[d], first_shape[d]);
-            }
-        }
-
-        // 检查是否所有输入都在 CUDA 上
-        if (xs[i].device().type() != DeviceType::kCUDA)
-        {
-            all_cuda = false;
+            THROW_RUNTIME_ERROR("Cat forward: device mismatch at input {}, expected {}, got {}", i,
+                                first_device.to_string(), xs[i].device().to_string());
         }
     }
 
-    // 计算输出形状
-    Shape output_shape = first_shape;
-    int total_dim_size = 0;
-    for (const auto &x : xs)
+    std::vector<const Mat *> others(xs.size() - 1);
+    for (size_t i = 1; i < xs.size(); ++i)
     {
-        total_dim_size += x.shape()[dim_];
+        others[i - 1] = &mat(xs[i]);
     }
-    output_shape[dim_] = total_dim_size;
+    std::unique_ptr<Mat> result_mat = mat(xs[0]).cat(others, dim_);
 
-    // 收集所有输入的 Mat 指针
-    std::vector<const Mat *> input_mats;
-    for (const auto &x : xs)
-    {
-        input_mats.push_back(&mat(x));
-    }
-
-    // 使用 Mat 接口的静态方法
-    std::unique_ptr<Mat> result_mat = Mat::cat(input_mats, dim_);
-
-    // 转换为 Tensor
     Tensor result_tensor = convert_mat_to_tensor(std::move(result_mat));
     return {result_tensor};
 }
@@ -84,23 +87,17 @@ std::vector<Tensor> Cat::backward(const std::vector<Tensor> &gys)
     auto &gy     = gys[0];
     auto &inputs = this->inputs_;
 
-    // 收集所有输入的形状
-    std::vector<Shape> output_shapes;
-    output_shapes.reserve(inputs.size());
-    for (const auto &x : inputs)
+    std::vector<Shape> output_shapes(inputs.size());
+    for (size_t i = 0; i < inputs.size(); ++i)
     {
-        output_shapes.push_back(x.shape());
+        output_shapes[i] = inputs[i].shape();
     }
 
-    // 使用 Mat 接口的静态方法分割梯度
-    std::vector<std::unique_ptr<Mat>> gx_mats = Mat::split(mat(gy), output_shapes, dim_);
-
-    // 转换为 Tensor
-    std::vector<Tensor> gxs;
-    gxs.reserve(gx_mats.size());
-    for (auto &gx_mat : gx_mats)
+    std::vector<std::unique_ptr<Mat>> gx_mats = mat(gy).split(output_shapes, dim_);
+    std::vector<Tensor> gxs(gx_mats.size());
+    for (size_t i = 0; i < gx_mats.size(); ++i)
     {
-        gxs.push_back(convert_mat_to_tensor(std::move(gx_mat)));
+        gxs[i] = convert_mat_to_tensor(std::move(gx_mats[i]));
     }
 
     return gxs;

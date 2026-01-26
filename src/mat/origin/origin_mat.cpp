@@ -1702,4 +1702,74 @@ std::unique_ptr<Mat> OriginMat::upsample_backward(const Mat &gy, const Shape &x_
     }
 }
 
+// === Cat 和 Split 相关操作实现 ===
+
+std::unique_ptr<Mat> OriginMat::cat(const std::vector<const Mat *> &others, int dim) const
+{
+    if (others.empty())
+    {
+        // 如果没有其他输入，直接返回当前矩阵的副本
+        return clone();
+    }
+
+    // 检查所有输入的后端类型是否相同
+    int backend_type = this->backend_type();
+    for (const auto *other : others)
+    {
+        if (other->backend_type() != backend_type)
+        {
+            THROW_RUNTIME_ERROR("cat: all inputs must have same backend type, got {} and {}", backend_type,
+                                other->backend_type());
+        }
+    }
+
+    // 构建所有输入的列表（包括当前对象）
+    std::vector<const OriginMat *> origin_inputs;
+    origin_inputs.reserve(others.size() + 1);
+    origin_inputs.push_back(this);
+
+    for (const auto *other : others)
+    {
+        const OriginMat *origin_mat = dynamic_cast<const OriginMat *>(other);
+        if (!origin_mat)
+        {
+            THROW_RUNTIME_ERROR("cat: failed to cast to OriginMat");
+        }
+        origin_inputs.push_back(origin_mat);
+    }
+
+    // 根据设备类型调用对应的实现
+    DeviceType device_type = this->device().type();
+    if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::cat(origin_inputs, dim);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        return cpu::cat(origin_inputs, dim);
+    }
+}
+
+std::vector<std::unique_ptr<Mat>> OriginMat::split(const std::vector<Shape> &output_shapes, int dim) const
+{
+    // 根据设备类型调用对应的实现
+    DeviceType device_type = this->device().type();
+    if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::split(*this, output_shapes, dim);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        return cpu::split(*this, output_shapes, dim);
+    }
+}
+
 }  // namespace origin

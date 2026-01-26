@@ -369,6 +369,23 @@ public:
                                            int scale_h,
                                            int scale_w) const override;
 
+    // === Cat 和 Split 相关操作（Mat 接口实现）===
+    /**
+     * @brief cat：在指定维度上拼接多个矩阵
+     * @param others 其他输入矩阵列表（所有矩阵必须具有相同的后端类型）
+     * @param dim 拼接维度
+     * @return 拼接后的矩阵
+     */
+    std::unique_ptr<Mat> cat(const std::vector<const Mat *> &others, int dim) const override;
+
+    /**
+     * @brief split：将矩阵沿指定维度分割成多个矩阵（cat 的反向操作）
+     * @param output_shapes 输出形状列表
+     * @param dim 分割维度
+     * @return 分割后的矩阵列表
+     */
+    std::vector<std::unique_ptr<Mat>> split(const std::vector<Shape> &output_shapes, int dim) const override;
+
     // 形状和维度
     Shape shape() const override;
     const std::vector<size_t> &strides() const { return strides_; }
