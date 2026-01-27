@@ -1800,7 +1800,8 @@ void launch_matmul_v9_autotuning_kernel(const T *a, const T *b, T *c, int M, int
     if (M >= 2048 && N >= 2048 && K >= 2048)
     {
         // 超大矩阵：使用warptiling
-        launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
+        // launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K); // TODO: V7 在 M,N,K 等于2048，2048，2048 时结果不正确
+        launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
     }
     else if (M >= 1024 && N >= 1024 && K >= 1024)
     {
@@ -2000,7 +2001,8 @@ void launch_matmul_2d_kernel(const T *a,
                 }
                 else
                 {
-                    launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
+                    // launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K); // TODO: V7 在 M,N,K 等于2048，2048，2048 时结果不正确
+                    launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
                 }
             }
             else
