@@ -46,13 +46,17 @@ public:
     // 二元运算
     std::unique_ptr<Mat> operator+(const Mat &other) const override;
     void add_inplace(const Mat &other) override;
+    Mat &operator+=(const Mat &other) override; // 返回 Mat&，是为了支持链式调用（y += x += z; // 先算 x+=z，再 y+=）
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
     void sub_inplace(const Mat &other) override;
+    Mat &operator-=(const Mat &other) override;
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     void mul_inplace(const Mat &other) override;
+    Mat &operator*=(const Mat &other) override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
     void div_inplace(const Mat &other) override;
+    Mat &operator/=(const Mat &other) override;
     std::unique_ptr<Mat> operator-() const override;
 
     // 广播和归约

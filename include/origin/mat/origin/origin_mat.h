@@ -88,12 +88,16 @@ public:
     std::unique_ptr<Mat> permute(const std::vector<int> &dims) const;
     std::unique_ptr<Mat> operator+(const Mat &other) const override;
     void add_inplace(const Mat &other) override;
+    Mat &operator+=(const Mat &other) override;
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
     void sub_inplace(const Mat &other) override;
+    Mat &operator-=(const Mat &other) override;
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
     void mul_inplace(const Mat &other) override;
+    Mat &operator*=(const Mat &other) override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
     void div_inplace(const Mat &other) override;
+    Mat &operator/=(const Mat &other) override;
     std::unique_ptr<Mat> operator-() const override;
 
     std::unique_ptr<Mat> square() const override;

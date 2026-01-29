@@ -445,6 +445,12 @@ void TorchMat::add_inplace(const Mat &other)
     tensor_.add_(rhs.tensor_);
 }
 
+Mat &TorchMat::operator+=(const Mat &other)
+{
+    add_inplace(other);
+    return *this;
+}
+
 std::unique_ptr<Mat> TorchMat::operator-(const Mat &other) const
 {
     const auto &rhs = as_torch_mat(other, "TorchMat::operator-");
@@ -458,6 +464,12 @@ void TorchMat::sub_inplace(const Mat &other)
     tensor_.sub_(rhs.tensor_);
 }
 
+Mat &TorchMat::operator-=(const Mat &other)
+{
+    sub_inplace(other);
+    return *this;
+}
+
 std::unique_ptr<Mat> TorchMat::operator*(const Mat &other) const
 {
     const auto &rhs = as_torch_mat(other, "TorchMat::operator*");
@@ -469,6 +481,12 @@ void TorchMat::mul_inplace(const Mat &other)
 {
     const auto &rhs = as_torch_mat(other, "TorchMat::mul_inplace");
     tensor_.mul_(rhs.tensor_);
+}
+
+Mat &TorchMat::operator*=(const Mat &other)
+{
+    mul_inplace(other);
+    return *this;
 }
 
 std::unique_ptr<Mat> TorchMat::matmul(const Mat &other) const
@@ -489,6 +507,12 @@ void TorchMat::div_inplace(const Mat &other)
 {
     const auto &rhs = as_torch_mat(other, "TorchMat::div_inplace");
     tensor_.div_(rhs.tensor_);
+}
+
+Mat &TorchMat::operator/=(const Mat &other)
+{
+    div_inplace(other);
+    return *this;
 }
 
 std::unique_ptr<Mat> TorchMat::operator-() const

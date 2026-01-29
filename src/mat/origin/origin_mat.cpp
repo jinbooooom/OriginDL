@@ -432,6 +432,12 @@ void OriginMat::add_inplace(const Mat &other)
                                       "add_inplace");
 }
 
+Mat &OriginMat::operator+=(const Mat &other)
+{
+    add_inplace(other);
+    return *this;
+}
+
 std::unique_ptr<Mat> OriginMat::operator-(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
@@ -444,6 +450,12 @@ void OriginMat::sub_inplace(const Mat &other)
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
     device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::subtract, cuda::subtract,
                                       "sub_inplace");
+}
+
+Mat &OriginMat::operator-=(const Mat &other)
+{
+    sub_inplace(other);
+    return *this;
 }
 
 std::unique_ptr<Mat> OriginMat::operator*(const Mat &other) const
@@ -460,6 +472,12 @@ void OriginMat::mul_inplace(const Mat &other)
                                       "mul_inplace");
 }
 
+Mat &OriginMat::operator*=(const Mat &other)
+{
+    mul_inplace(other);
+    return *this;
+}
+
 std::unique_ptr<Mat> OriginMat::operator/(const Mat &other) const
 {
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
@@ -472,6 +490,12 @@ void OriginMat::div_inplace(const Mat &other)
     const OriginMat &other_mat = static_cast<const OriginMat &>(other);
     device_dispatch_binary_inplace_op(storage_->device_type(), *this, other_mat, this, cpu::divide, cuda::divide,
                                       "div_inplace");
+}
+
+Mat &OriginMat::operator/=(const Mat &other)
+{
+    div_inplace(other);
+    return *this;
 }
 
 std::unique_ptr<Mat> OriginMat::operator-() const

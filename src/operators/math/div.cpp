@@ -48,9 +48,9 @@ std::vector<Tensor> Div::backward(const std::vector<Tensor> &gys)
 
     // ∂y/∂x1 = gy * (-x0/x1²) = -gy * x0 / x1²
     auto x1_squared = x1_mat * x1_mat;
-    auto temp_mult  = gy * x0_mat;
-    auto temp_div   = *temp_mult / *x1_squared;
-    auto gx1_result = -*temp_div;
+    auto gx1_result = gy * x0_mat;
+    *gx1_result /= *x1_squared;  // 就地操作
+    gx1_result->neg_inplace();   // 就地操作
     auto gx1        = convert_mat_to_tensor(std::move(gx1_result));
 
     // 统一处理形状广播：将梯度广播回原始形状

@@ -77,6 +77,13 @@ public:
     virtual void add_inplace(const Mat &other) = 0;
 
     /**
+     * @brief 加法赋值运算符（累加到当前矩阵）
+     * @param other 另一个矩阵
+     * @return 当前矩阵的引用，支持链式调用
+     */
+    virtual Mat &operator+=(const Mat &other) = 0;
+
+    /**
      * @brief 矩阵减法
      * @param other 另一个矩阵
      * @return 减法结果
@@ -91,6 +98,13 @@ public:
     virtual void sub_inplace(const Mat &other) = 0;
 
     /**
+     * @brief 减法赋值运算符（从当前矩阵减去另一个矩阵）
+     * @param other 另一个矩阵
+     * @return 当前矩阵的引用，支持链式调用
+     */
+    virtual Mat &operator-=(const Mat &other) = 0;
+
+    /**
      * @brief 元素级乘法
      * @param other 另一个矩阵
      * @return 乘法结果
@@ -103,6 +117,13 @@ public:
      * @note 原地操作，修改当前矩阵的数据，不创建新对象
      */
     virtual void mul_inplace(const Mat &other) = 0;
+
+    /**
+     * @brief 乘法赋值运算符（将当前矩阵与另一个矩阵相乘）
+     * @param other 另一个矩阵
+     * @return 当前矩阵的引用，支持链式调用
+     */
+    virtual Mat &operator*=(const Mat &other) = 0;
 
     /**
      * @brief 矩阵乘法（真正的矩阵乘法）
@@ -124,6 +145,13 @@ public:
      * @note 原地操作，修改当前矩阵的数据，不创建新对象
      */
     virtual void div_inplace(const Mat &other) = 0;
+
+    /**
+     * @brief 除法赋值运算符（将当前矩阵除以另一个矩阵）
+     * @param other 另一个矩阵
+     * @return 当前矩阵的引用，支持链式调用
+     */
+    virtual Mat &operator/=(const Mat &other) = 0;
 
     // === 泛型标量操作 ===
 
