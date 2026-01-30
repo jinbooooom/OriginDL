@@ -1146,6 +1146,57 @@ auto b = exp(a);
 //  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
 ```
 
+#### log
+
+```cpp
+Tensor log(const Tensor &x)
+void log_(Tensor &x)
+```
+
+计算张量的自然对数（以 e 为底），即 log_e(x) = ln(x)。
+
+**参数:**
+- `x` (Tensor) – 输入张量，必须为正数
+
+**返回值:** Tensor – 自然对数结果
+
+**注意:**
+- **类型限制**: `log()` 函数只支持浮点类型（`float32` 和 `float64`），不支持整型。这与 PyTorch 的行为一致。如果输入是整型张量，会抛出异常。
+- **精度**: 
+  - `float32` 类型使用 `logf` 函数，性能最优
+  - `float64` 类型使用 `log` 函数，精度最高
+
+**例子:**
+```cpp
+// 基本用法
+auto a = Tensor({1.0f, std::exp(1.0f), std::exp(2.0f)}, {1, 3});
+auto b = log(a);
+// a.print() 输出:
+// [[1, 2.718, 7.389]]
+//  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
+// b.print() 输出:
+// [[0, 1, 2]]
+//  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
+
+// log(1) = 0
+auto ones = Tensor::ones({2, 2});
+auto zeros = log(ones);
+// zeros 的所有元素都是 0
+
+// 支持 float64
+auto x_f64 = Tensor({1.0, std::exp(1.0)}, {1, 2}, dtype(DataType::kFloat64));
+auto y_f64 = log(x_f64);
+// y_f64.dtype() == DataType::kFloat64  // true
+
+// 原地操作
+auto x = Tensor({1.0f, std::exp(1.0f)}, {1, 2});
+log_(x);  // x 被原地修改为 [0, 1]
+
+// 整型输入会抛出异常
+auto int_tensor = Tensor({1, 2, 3}, {1, 3}, dtype(DataType::kInt32));
+// log(int_tensor);  // 抛出异常: "Log operator only supports float32 and float64 types"
+```
+
 ### 形状操作
 
 #### reshape (函数版本)
@@ -2033,14 +2084,6 @@ auto t = Tensor::ones({2, 2});
 auto s = sin(t);  // 抛出异常: "sin function not implemented yet"
 auto c = cos(t);  // 抛出异常: "cos function not implemented yet"
 ```
-
-#### log 函数
-
-**限制**: `log()` 函数在 Origin 后端仅在 CPU 上实现，CUDA 张量会回退到 CPU 计算。
-
-**当前状态**: 即使 CUDA 有实现，`OriginMat::log()` 也只调用 CPU 版本。
-
-**影响范围**: CUDA 张量的 `log()` 操作会先复制到 CPU，计算后再复制回 CUDA，影响性能。
 
 ### 矩阵乘法限制
 

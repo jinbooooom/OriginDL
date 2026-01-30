@@ -205,6 +205,33 @@ TEST_P(LogOperatorTest, MonotonicProperty)
     EXPECT_LT(y1.item<float>(), y2.item<float>());
 }
 
+// ==================== 类型检查测试 ====================
+
+TEST_P(LogOperatorTest, TypeChecking)
+{
+    // PyTorch的对数算子只支持浮点类型，不支持整型
+    // 测试整型输入应该抛出异常
+    auto x_int32 = Tensor({1, 2, 3}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
+    EXPECT_THROW(F::log(x_int32), std::exception);
+
+    auto x_int64 = Tensor({1L, 2L, 3L}, Shape{3}, dtype(DataType::kInt64).device(deviceType()));
+    EXPECT_THROW(F::log(x_int64), std::exception);
+
+    auto x_int8 = Tensor({1, 2, 3}, Shape{3}, dtype(DataType::kInt8).device(deviceType()));
+    EXPECT_THROW(F::log(x_int8), std::exception);
+
+    // 测试原地操作时整型输入应该抛出异常
+    auto x_int32_inplace = Tensor({1, 2, 3}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
+    EXPECT_THROW(F::log_(x_int32_inplace), std::exception);
+
+    // 测试float64类型应该正常工作
+    auto x_f64 = Tensor({1.0, std::exp(1.0), std::exp(2.0)}, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
+    auto result = F::log(x_f64);
+    std::vector<double> expected_data = {0.0, 1.0, 2.0};
+    auto expected = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
 // ==================== 原地操作测试 ====================
 
 TEST_P(LogOperatorTest, InplaceBasic)
