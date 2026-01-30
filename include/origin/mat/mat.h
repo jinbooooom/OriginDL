@@ -181,9 +181,10 @@ public:
     /**
      * @brief 沿指定轴求和
      * @param axis 轴索引，-1表示所有元素
+     * @param keepdim 是否保持维度，默认为false
      * @return 求和结果
      */
-    virtual std::unique_ptr<Mat> sum(int axis = -1) const = 0;
+    virtual std::unique_ptr<Mat> sum(int axis = -1, bool keepdim = false) const = 0;
 
     /**
      * @brief 沿指定轴求最大值

@@ -62,7 +62,7 @@ public:
     // 广播和归约
     std::unique_ptr<Mat> broadcast_to(const Shape &shape) const override;
     std::unique_ptr<Mat> sum_to(const Shape &shape) const override;
-    std::unique_ptr<Mat> sum(int axis = -1) const override;
+    std::unique_ptr<Mat> sum(int axis = -1, bool keepdim = false) const override;
     std::unique_ptr<Mat> max(int axis = -1) const override;
 
     // 数学函数

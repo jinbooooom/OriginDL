@@ -103,7 +103,7 @@ public:
     std::unique_ptr<Mat> square() const override;
     std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
-    std::unique_ptr<Mat> sum(int axis = -1) const override;
+    std::unique_ptr<Mat> sum(int axis = -1, bool keepdim = false) const override;
     std::unique_ptr<Mat> max(int axis = -1) const override;
     std::unique_ptr<Mat> broadcast_to(const Shape &target_shape) const override;
     std::unique_ptr<Mat> sum_to(const Shape &target_shape) const override;

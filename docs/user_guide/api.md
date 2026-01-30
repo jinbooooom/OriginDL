@@ -1334,7 +1334,7 @@ auto b = sum_to(a, {1, 2});
 #### sum
 
 ```cpp
-Tensor sum(const Tensor &x, int axis = -1)
+Tensor sum(const Tensor &x, int axis = -1, bool keepdim = false)
 ```
 
 对张量求和。
@@ -1342,13 +1342,16 @@ Tensor sum(const Tensor &x, int axis = -1)
 **参数:**
 - `x` (Tensor) – 输入张量
 - `axis` (int, optional) – 求和的轴，-1表示所有元素
+- `keepdim` (bool, optional) – 是否保持维度，默认为false。如果为true，求和后的维度大小变为1而不是被移除
 
 **例子:**
 ```cpp
-auto a = Tensor({1, 2, 3, 4}, {2, 2});
-auto b = sum(a);      // 所有元素求和: 10
-auto c = sum(a, 0);   // 按第0轴求和
-auto d = sum(a, 1);   // 按第1轴求和
+auto a = Tensor({1, 2, 3, 4, 5, 6}, {2, 3});
+auto b = sum(a);           // 所有元素求和: 21，形状 (1,)
+auto c = sum(a, 0);        // 按第0轴求和，形状 (3,)
+auto d = sum(a, 1);        // 按第1轴求和，形状 (2,)
+auto e = sum(a, 1, true);  // 按第1轴求和，keepdim=true，形状 (2, 1)
+auto f = sum(a, -1, true); // 全局求和，keepdim=true，形状 (1, 1)
 ```
 
 ### 矩阵运算

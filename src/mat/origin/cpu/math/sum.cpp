@@ -12,13 +12,22 @@ namespace cpu
 // 前向声明
 float sum_all(const OriginMat &mat);
 
-std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
+std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis, bool keepdim)
 {
     if (axis == -1)
     {
         // 对所有元素求和，返回标量
-        float sum_value    = sum_all(mat);
-        Shape result_shape = {1};  // 标量结果
+        float sum_value = sum_all(mat);
+        Shape result_shape;
+        if (keepdim)
+        {
+            // keepdim=true时保持所有维度为1
+            result_shape = Shape(std::vector<size_t>(mat.shape().size(), 1));
+        }
+        else
+        {
+            result_shape = Shape({1});  // 标量结果
+        }
         // 创建标量张量
         Scalar scalar_val(sum_value);
         TensorOptions options(mat.dtype());
@@ -32,13 +41,32 @@ std::unique_ptr<OriginMat> sum(const OriginMat &mat, int axis)
         THROW_INVALID_ARG("Invalid axis {} for sum operation. Tensor has {} dimensions", axis, mat.shape().size());
     }
 
-    // 计算结果形状：移除指定轴
+    // 计算结果形状
     std::vector<size_t> result_dims;
-    for (size_t i = 0; i < mat.shape().size(); ++i)
+    if (keepdim)
     {
-        if (i != static_cast<size_t>(axis))
+        // keepdim=true时，在axis位置插入1
+        for (size_t i = 0; i < mat.shape().size(); ++i)
         {
-            result_dims.push_back(mat.shape()[i]);
+            if (i == static_cast<size_t>(axis))
+            {
+                result_dims.push_back(1);
+            }
+            else
+            {
+                result_dims.push_back(mat.shape()[i]);
+            }
+        }
+    }
+    else
+    {
+        // keepdim=false时，移除指定轴
+        for (size_t i = 0; i < mat.shape().size(); ++i)
+        {
+            if (i != static_cast<size_t>(axis))
+            {
+                result_dims.push_back(mat.shape()[i]);
+            }
         }
     }
     Shape result_shape(result_dims);

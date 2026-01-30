@@ -173,9 +173,10 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
  * @brief CUDA求和算子
  * @param mat 输入矩阵
  * @param axis 求和轴，-1表示所有元素求和
+ * @param keepdim 是否保持维度，默认为false
  * @return 求和结果矩阵
  */
-std::unique_ptr<Mat> sum(const OriginMat &mat, int axis = -1);
+std::unique_ptr<Mat> sum(const OriginMat &mat, int axis = -1, bool keepdim = false);
 
 /**
  * @brief CUDA max：沿指定轴计算最大值

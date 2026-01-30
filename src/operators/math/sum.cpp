@@ -13,8 +13,8 @@ std::vector<Tensor> Sum::forward(const std::vector<Tensor> &xs)
     {
         THROW_RUNTIME_ERROR("Sum operator requires exactly 1 input, but got {}", xs.size());
     }
-    // 使用抽象层进行求和运算
-    auto result = mat(xs[0]).sum(this->axis_);
+    // 使用抽象层进行求和运算，直接传递keepdim参数
+    auto result = mat(xs[0]).sum(this->axis_, this->keepdim_);
     auto y      = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
 }
@@ -37,13 +37,13 @@ std::vector<Tensor> Sum::backward(const std::vector<Tensor> &gys)
 
 Tensor sum(const std::vector<Tensor> &xs)
 {
-    auto op = std::make_shared<Sum>(-1);  // -1 意味着所有元素相加
+    auto op = std::make_shared<Sum>(-1, false);  // -1 意味着所有元素相加
     return (*op)(xs)[0];
 }
 
-Tensor sum(const Tensor &x, int axis)
+Tensor sum(const Tensor &x, int axis, bool keepdim)
 {
-    auto op                    = std::make_shared<Sum>(axis);
+    auto op                    = std::make_shared<Sum>(axis, keepdim);
     std::vector<Tensor> inputs = {x};
     std::vector<Tensor> result = (*op)(inputs);
     return result[0];

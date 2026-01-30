@@ -36,7 +36,7 @@ void pow_inplace(OriginMat &mat, const Scalar &exponent);
 std::unique_ptr<Mat> relu(const OriginMat &mat, OriginMat *out = nullptr);
 
 // === 统计函数 ===
-std::unique_ptr<Mat> sum(const OriginMat &mat, int axis);
+std::unique_ptr<Mat> sum(const OriginMat &mat, int axis, bool keepdim = false);
 
 /**
  * @brief CPU max：沿指定轴计算最大值

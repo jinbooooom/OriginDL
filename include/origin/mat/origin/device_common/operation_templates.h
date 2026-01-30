@@ -188,6 +188,9 @@ public:
             }
 
             // 构建源索引
+            // 判断是否是keepdim：如果输出和输入维度数相同，说明是keepdim=true
+            bool is_keepdim = (src_shape.size() == dst_shape.size());
+            
             for (size_t i = 0; i < src_shape.size(); ++i)
             {
                 if (i == static_cast<size_t>(axis))
@@ -197,8 +200,18 @@ public:
                 else
                 {
                     // 找到对应的输出维度索引
-                    size_t output_dim = (i < static_cast<size_t>(axis)) ? i : i - 1;
-                    src_indices[i]    = dst_indices[output_dim];
+                    size_t output_dim;
+                    if (is_keepdim)
+                    {
+                        // keepdim=true时，输出和输入维度对应，axis位置在输出中是1
+                        output_dim = i;  // 直接对应
+                    }
+                    else
+                    {
+                        // keepdim=false时，输出移除了axis维度
+                        output_dim = (i < static_cast<size_t>(axis)) ? i : i - 1;
+                    }
+                    src_indices[i] = dst_indices[output_dim];
                 }
             }
 

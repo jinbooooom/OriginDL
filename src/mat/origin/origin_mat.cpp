@@ -580,16 +580,16 @@ std::unique_ptr<Mat> OriginMat::matmul(const Mat &other) const
     }
 }
 
-std::unique_ptr<Mat> OriginMat::sum(int axis) const
+std::unique_ptr<Mat> OriginMat::sum(int axis, bool keepdim) const
 {
     if (storage_->device_type() == DeviceType::kCPU)
     {
-        return cpu::sum(*this, axis);
+        return cpu::sum(*this, axis, keepdim);
     }
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        return cuda::sum(*this, axis);
+        return cuda::sum(*this, axis, keepdim);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif

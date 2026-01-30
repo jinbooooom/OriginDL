@@ -587,16 +587,22 @@ std::unique_ptr<Mat> TorchMat::sum_to(const Shape &target_shape) const
     return std::make_unique<TorchMat>(std::move(result));
 }
 
-std::unique_ptr<Mat> TorchMat::sum(int axis) const
+std::unique_ptr<Mat> TorchMat::sum(int axis, bool keepdim) const
 {
     torch::Tensor result;
     if (axis == -1)
     {
         result = tensor_.sum();
+        if (keepdim)
+        {
+            // 全局求和，keepdim=true时保持所有维度为1
+            std::vector<int64_t> dims(tensor_.dim(), 1);
+            result = result.reshape(dims);
+        }
     }
     else
     {
-        result = tensor_.sum(axis);
+        result = tensor_.sum(axis, keepdim);
     }
     return std::make_unique<TorchMat>(std::move(result));
 }

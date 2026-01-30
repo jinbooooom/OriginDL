@@ -327,5 +327,104 @@ TEST_P(SumOperatorTest, AssociativeProperty)
                 origin::test::TestTolerance::kDefault);
 }
 
+// ==================== keepdim参数测试 ====================
+
+TEST_P(SumOperatorTest, ForwardWithKeepdimFalse)
+{
+    // 测试keepdim=false（默认行为）
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+
+    // 沿轴1求和，keepdim=false
+    auto result = F::sum(x, 1, false);
+    Shape expected_shape{2};
+    EXPECT_EQ(result.shape(), expected_shape);
+    auto expected = Tensor({6.0f, 15.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumOperatorTest, ForwardWithKeepdimTrue)
+{
+    // 测试keepdim=true
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+
+    // 沿轴1求和，keepdim=true
+    auto result = F::sum(x, 1, true);
+    Shape expected_shape{2, 1};
+    EXPECT_EQ(result.shape(), expected_shape);
+    auto expected = Tensor({6.0f, 15.0f}, Shape{2, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumOperatorTest, ForwardWithKeepdimTrueAxis0)
+{
+    // 测试沿轴0求和，keepdim=true
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto result = F::sum(x, 0, true);
+    Shape expected_shape{1, 3};
+    EXPECT_EQ(result.shape(), expected_shape);
+    auto expected = Tensor({5.0f, 7.0f, 9.0f}, Shape{1, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumOperatorTest, ForwardGlobalSumWithKeepdimTrue)
+{
+    // 测试全局求和，keepdim=true
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto result = F::sum(x, -1, true);
+    Shape expected_shape{1, 1};
+    EXPECT_EQ(result.shape(), expected_shape);
+    EXPECT_NEAR(result.item<float>(), 10.0f, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumOperatorTest, ForwardThreeDimensionalWithKeepdim)
+{
+    // 测试三维张量，keepdim=true
+    auto x = Tensor({1.0f,  2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,  9.0f,  10.0f, 11.0f, 12.0f,
+                     13.0f, 14.0f, 15.0f, 16.0f, 17.0f, 18.0f, 19.0f, 20.0f, 21.0f, 22.0f, 23.0f, 24.0f},
+                    Shape{4, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    // 沿轴1求和，keepdim=true
+    auto result = F::sum(x, 1, true);
+    Shape expected_shape{4, 1, 2};
+    EXPECT_EQ(result.shape(), expected_shape);
+    auto expected = Tensor({9.0f, 12.0f, 27.0f, 30.0f, 45.0f, 48.0f, 63.0f, 66.0f}, Shape{4, 1, 2},
+                            dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumOperatorTest, BackwardWithKeepdimTrue)
+{
+    // 测试keepdim=true时的反向传播
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+
+    auto y = F::sum(x, 0, true);  // 沿轴0求和，keepdim=true，结果形状: (1, 2)
+    Shape expected_y_shape{1, 2};
+    EXPECT_EQ(y.shape(), expected_y_shape);
+    y.backward();
+
+    // 梯度应该广播回原始形状
+    auto expected_grad = Tensor::ones(Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SumOperatorTest, BackwardGlobalSumWithKeepdimTrue)
+{
+    // 测试全局求和keepdim=true时的反向传播
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+
+    auto y = F::sum(x, -1, true);  // 全局求和，keepdim=true，结果形状: (1, 1)
+    Shape expected_y_shape{1, 1};
+    EXPECT_EQ(y.shape(), expected_y_shape);
+    y.backward();
+
+    // 梯度应该广播回原始形状
+    auto expected_grad = Tensor::ones(Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, origin::test::TestTolerance::kDefault);
+}
+
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(SumOperatorTest);
