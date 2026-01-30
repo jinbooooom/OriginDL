@@ -16,15 +16,12 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("MatMul operator requires exactly 2 inputs, but got {}", xs.size());
     }
 
-    // 先使用原始输入进行形状检查和维度处理
     Tensor x0 = xs[0];
     Tensor x1 = xs[1];
 
-    // 处理维度：确保两个输入至少是2维的
     auto shape0 = x0.shape();
     auto shape1 = x1.shape();
 
-    // 检查shape是否有效
     if (unlikely(shape0.elements() == 0 || shape1.elements() == 0))
     {
         THROW_RUNTIME_ERROR("MatMul forward: input shapes invalid - xs[0].shape() = {}, xs[1].shape() = {}",
@@ -155,15 +152,11 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
             x_shape.to_string(), w_shape.to_string());
     }
 
-    // 获取Mat引用
     auto &x  = mat(x_tensor);
     auto &w  = mat(w_tensor);
     auto &gy = mat(gy_tensor);
-
-    // 使用抽象层进行梯度计算
     auto w_T = w.transpose();
     auto x_T = x.transpose();
-
     auto gx_result = gy.matmul(*w_T);
     auto gw_result = x_T->matmul(gy);
 

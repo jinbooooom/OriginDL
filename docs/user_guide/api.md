@@ -1085,7 +1085,13 @@ Tensor operator^(const Tensor &base, const Scalar &exponent)
 - **负数底数与非整数指数**: 当底数为负数且指数为非整数时，结果为 `NaN`（Not a Number）。这是因为负数的非整数次幂在实数域中无定义，底层使用 `std::pow` 函数会返回 `NaN`。例如：`pow(-2.0, 2.5)` 会产生 `NaN`
 - **负数底数与整数指数**: 当底数为负数但指数为整数时，运算正常进行。例如：`pow(-2.0, 2)` 结果为 `4.0`，`pow(-2.0, 3)` 结果为 `-8.0`
 - **零的负指数**: 当底数为0且指数为负数时，结果可能为 `inf`（无穷大）或抛出异常
-- **类型提升**: 如果底数张量和指数的类型不同，会按照类型提升规则自动提升到更高精度的类型
+- **类型提升规则**: 
+  - 如果底数张量和指数的类型不同，会按照标准类型提升规则自动提升到更高精度的类型
+  - **pow 操作的特殊规则**: 即使底数和指数都是整数类型（如 `int32`），类型提升后的结果类型也会强制转换为 `float32`。这是因为：
+    - pow 运算的结果可能是非整数（如 `2^0.5 = 1.414...`），无法用整数类型表示
+    - CUDA 底层实现只支持浮点数计算（`float32` 和 `float64`）
+    - 这与 PyTorch 的行为一致：即使输入都是整数，pow 的结果也通常是浮点数
+  - 如果类型提升后已经是浮点数类型（`float32` 或 `float64`），则保持该类型不变
 
 **例子:**
 ```cpp
@@ -1108,6 +1114,16 @@ auto neg = Tensor({-2.0, -3.0}, {1, 2});
 auto pos_int_pow = pow(neg, 2);     // 结果: [4.0, 9.0]（正常）
 auto neg_int_pow = pow(neg, 3);     // 结果: [-8.0, -27.0]（正常）
 auto non_int_pow = pow(neg, 2.5);   // 结果: [NaN, NaN]（负数非整数次幂产生NaN）
+
+// 整数类型提升示例
+auto int_tensor = Tensor({2, 3, 4}, {1, 3}, dtype(DataType::kInt32));
+auto int_pow_result = pow(int_tensor, 2);  // 即使输入是 int32，结果也是 float32
+// int_pow_result.dtype() == DataType::kFloat32  // true
+
+auto int_base_float_exp = pow(int_tensor, 2.5);  // int32 + float32 → float32
+auto float_base_int_exp = pow(Tensor({2.0, 3.0}, {1, 2}), 2);  // float32 + int32 → float32
+auto float64_base_int_exp = pow(Tensor({2.0, 3.0}, {1, 2}, dtype(DataType::kFloat64)), 2);
+// float64_base_int_exp.dtype() == DataType::kFloat64  // true（保持 float64）
 ```
 
 #### exp
