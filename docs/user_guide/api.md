@@ -900,11 +900,19 @@ view.index_put({2}, 999.0f);  // 修改视图会影响原始张量
 #### 加法
 
 ```cpp
-Tensor operator+(const Tensor &lhs, const Tensor &rhs)
-Tensor add(const Tensor &lhs, const Tensor &rhs)
+Tensor operator+(const Tensor &lhs, const Tensor &rhs)  // 非就地操作，返回新的张量，不修改输入
+Tensor operator+(const Tensor &lhs, const Scalar &rhs)  // 非就地操作，张量与标量相加
+Tensor operator+(const Scalar &lhs, const Tensor &rhs)  // 非就地操作，标量与张量相加
+Tensor add(const Tensor &lhs, const Tensor &rhs)         // 非就地操作，返回新的张量，不修改输入
+void add_(Tensor &lhs, const Tensor &rhs)                // 就地操作，直接修改 lhs
+Tensor &operator+=(Tensor &lhs, const Tensor &rhs)      // 就地操作，等价于 add_(lhs, rhs)，返回 lhs 的引用
+Tensor &operator+=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价于 add_(lhs, rhs)，返回 lhs 的引用
 ```
 
 张量加法，支持广播。
+
+- `+` 和 `add()`: 非就地操作，返回新的张量，不修改输入
+- `+=`: 就地操作，直接修改左边的操作数，等价于 `add_()`
 
 **例子:**
 ```cpp
@@ -920,11 +928,19 @@ auto c = a + b;  // 或者 add(a, b)
 #### 减法
 
 ```cpp
-Tensor operator-(const Tensor &lhs, const Tensor &rhs)
-Tensor sub(const Tensor &lhs, const Tensor &rhs)
+Tensor operator-(const Tensor &lhs, const Tensor &rhs)  // 非就地操作，返回新的张量，不修改输入
+Tensor operator-(const Tensor &lhs, const Scalar &rhs)  // 非就地操作，张量减去标量
+Tensor operator-(const Scalar &lhs, const Tensor &rhs)  // 非就地操作，标量减去张量
+Tensor sub(const Tensor &lhs, const Tensor &rhs)         // 非就地操作，返回新的张量，不修改输入
+void sub_(Tensor &lhs, const Tensor &rhs)                // 就地操作，直接修改 lhs
+Tensor &operator-=(Tensor &lhs, const Tensor &rhs)      // 就地操作，等价于 sub_(lhs, rhs)，返回 lhs 的引用
+Tensor &operator-=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价于 sub_(lhs, rhs)，返回 lhs 的引用
 ```
 
 张量减法。
+
+- `-` 和 `sub()`: 非就地操作，返回新的张量，不修改输入
+- `-=`: 就地操作，直接修改左边的操作数，等价于 `sub_()`
 
 **例子:**
 ```cpp
@@ -940,11 +956,19 @@ auto c = a - b;  // 或者 sub(a, b)
 #### 乘法
 
 ```cpp
-Tensor operator*(const Tensor &lhs, const Tensor &rhs)
-Tensor mul(const Tensor &lhs, const Tensor &rhs)
+Tensor operator*(const Tensor &lhs, const Tensor &rhs)  // 非就地操作，返回新的张量，不修改输入
+Tensor operator*(const Tensor &lhs, const Scalar &rhs)  // 非就地操作，张量与标量相乘
+Tensor operator*(const Scalar &lhs, const Tensor &rhs)  // 非就地操作，标量与张量相乘
+Tensor mul(const Tensor &lhs, const Tensor &rhs)         // 非就地操作，返回新的张量，不修改输入
+void mul_(Tensor &lhs, const Tensor &rhs)                // 就地操作，直接修改 lhs
+Tensor &operator*=(Tensor &lhs, const Tensor &rhs)      // 就地操作，等价于 mul_(lhs, rhs)，返回 lhs 的引用
+Tensor &operator*=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价于 mul_(lhs, rhs)，返回 lhs 的引用
 ```
 
 张量乘法（逐元素）。
+
+- `*` 和 `mul()`: 非就地操作，返回新的张量，不修改输入
+- `*=`: 就地操作，直接修改左边的操作数，等价于 `mul_()`
 
 **例子:**
 ```cpp
@@ -960,11 +984,19 @@ auto c = a * b;  // 或者 mul(a, b)
 #### 除法
 
 ```cpp
-Tensor operator/(const Tensor &lhs, const Tensor &rhs)
-Tensor div(const Tensor &lhs, const Tensor &rhs)
+Tensor operator/(const Tensor &lhs, const Tensor &rhs)  // 非就地操作，返回新的张量，不修改输入
+Tensor operator/(const Tensor &lhs, const Scalar &rhs)  // 非就地操作，张量除以标量
+Tensor operator/(const Scalar &lhs, const Tensor &rhs)  // 非就地操作，标量除以张量
+Tensor div(const Tensor &lhs, const Tensor &rhs)         // 非就地操作，返回新的张量，不修改输入
+void div_(Tensor &lhs, const Tensor &rhs)                // 就地操作，直接修改 lhs
+Tensor &operator/=(Tensor &lhs, const Tensor &rhs)      // 就地操作，等价于 div_(lhs, rhs)，返回 lhs 的引用
+Tensor &operator/=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价于 div_(lhs, rhs)，返回 lhs 的引用
 ```
 
 张量除法。
+
+- `/` 和 `div()`: 非就地操作，返回新的张量，不修改输入
+- `/=`: 就地操作，直接修改左边的操作数，等价于 `div_()`
 
 **例子:**
 ```cpp
@@ -980,8 +1012,9 @@ auto c = a / b;  // 或者 div(a, b)
 #### 取负
 
 ```cpp
-Tensor operator-(const Tensor &x)
-Tensor neg(const Tensor &x)
+Tensor operator-(const Tensor &x)  // 非就地操作，返回新的张量
+Tensor neg(const Tensor &x)        // 非就地操作，返回新的张量
+void neg_(Tensor &x)               // 就地操作，直接修改 x
 ```
 
 张量取负。
@@ -1047,10 +1080,20 @@ auto b4 = a4 + 2L;    // 结果类型: int64
 #### square
 
 ```cpp
-Tensor square(const Tensor &x)
+Tensor square(const Tensor &x)      // 非就地操作，返回新的张量，不修改输入 x
+void square_(Tensor &x)             // 就地操作，直接修改 x，不返回新张量
 ```
 
-计算张量的平方。
+计算张量的平方，即 x^2 = x * x。
+
+**参数:**
+- `x` (Tensor) – 输入张量
+
+**返回值:** Tensor – 平方结果，形状和数据类型与输入相同
+
+**注意:**
+- `square()` 函数本质上是 `x * x` 的快捷方式，但使用专门的实现以获得更好的性能
+- 支持所有数值类型（整数和浮点数）
 
 **例子:**
 ```cpp
@@ -1064,13 +1107,32 @@ auto b = square(a);
 // [[1, 4],
 //  [9, 16]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+// 支持整数类型
+auto int_tensor = Tensor({2, 3, 4}, {1, 3}, dtype(DataType::kInt32));
+auto int_square = square(int_tensor);
+// int_square.dtype() == DataType::kInt32  // true
+
+// 支持浮点数类型
+auto float_tensor = Tensor({1.5f, 2.5f, 3.5f}, {1, 3}, dtype(DataType::kFloat32));
+auto float_square = square(float_tensor);
+// float_square 的值: [2.25, 6.25, 12.25]
+
+// 原地操作
+auto x = Tensor({1.0f, 2.0f, 3.0f}, {1, 3});
+square_(x);  // x 被原地修改为 [1.0, 4.0, 9.0]
+
+// 负数平方
+auto neg = Tensor({-2.0f, -3.0f}, {1, 2});
+auto pos = square(neg);  // 结果: [4.0, 9.0]（负数平方为正数）
 ```
 
 #### pow
 
 ```cpp
-Tensor pow(const Tensor &base, const Scalar &exponent)
-Tensor operator^(const Tensor &base, const Scalar &exponent)
+Tensor pow(const Tensor &base, const Scalar &exponent)  // 非就地操作，返回新的张量
+Tensor operator^(const Tensor &base, const Scalar &exponent)  // 非就地操作，返回新的张量
+void pow_(Tensor &x, const Scalar &exponent)            // 就地操作，直接修改 x
 ```
 
 计算张量的幂。
@@ -1129,7 +1191,8 @@ auto float64_base_int_exp = pow(Tensor({2.0, 3.0}, {1, 2}, dtype(DataType::kFloa
 #### exp
 
 ```cpp
-Tensor exp(const Tensor &x)
+Tensor exp(const Tensor &x)  // 非就地操作，返回新的张量
+void exp_(Tensor &x)          // 就地操作，直接修改 x
 ```
 
 计算张量的指数函数。
@@ -1149,8 +1212,8 @@ auto b = exp(a);
 #### log
 
 ```cpp
-Tensor log(const Tensor &x)
-void log_(Tensor &x)
+Tensor log(const Tensor &x)  // 非就地操作，返回新的张量
+void log_(Tensor &x)         // 就地操作，直接修改 x
 ```
 
 计算张量的自然对数（以 e 为底），即 log_e(x) = ln(x)。

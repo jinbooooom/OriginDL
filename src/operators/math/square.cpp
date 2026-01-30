@@ -14,8 +14,8 @@ std::vector<Tensor> Square::forward(const std::vector<Tensor> &xs)
     {
         THROW_RUNTIME_ERROR("Square operator requires exactly 1 input, but got {}", xs.size());
     }
-    // 使用抽象层进行平方运算
-    auto result = mat(xs[0]) * mat(xs[0]);
+
+    auto result = mat(xs[0]).square();
     auto y      = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
 }
@@ -26,15 +26,14 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
     {
         THROW_RUNTIME_ERROR("Square backward requires exactly 1 gradient, but got {}", gys.size());
     }
+    
     auto &x  = mat(this->inputs_[0]);
     auto &gy = mat(gys[0]);
 
-    // 使用抽象层进行梯度计算
-    auto temp_mult = x * gy;
-    // 创建标量2.0的张量
-    auto scalar_2  = Tensor(2, Shape({}), dtype(x.dtype()).device(x.device()));
-    auto gx_result = *temp_mult * mat(scalar_2);
-    auto gx        = convert_mat_to_tensor(std::move(gx_result));
+    auto tmp = x * gy;
+    auto scalar_2 = Tensor(2, Shape({}), dtype(this->inputs_[0].dtype()).device(this->inputs_[0].device()));
+    tmp->mul_inplace(mat(scalar_2));
+    auto gx = convert_mat_to_tensor(std::move(tmp));
     return std::vector<Tensor>{std::move(gx)};
 }
 
@@ -45,7 +44,6 @@ void Square::forward_inplace(Tensor &input0, const Tensor &input1)
         THROW_INVALID_ARG("Square is a unary operator, cannot accept two operands");
     }
 
-    // 原地操作：input0 = input0 * input0
     mat(input0).square_inplace();
 }
 
