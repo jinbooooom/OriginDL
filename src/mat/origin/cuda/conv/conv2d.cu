@@ -10,19 +10,17 @@
 #include "origin/utils/conv_utils.h"
 #include "origin/utils/exception.h"
 
-// 前向声明 GPU matmul 函数
 namespace origin
 {
 namespace cuda
 {
-std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
-}  // namespace cuda
-}  // namespace origin
 
-namespace origin
+// ==================== 常量定义 ====================
+
+namespace
 {
-namespace cuda
-{
+constexpr int kThreadsPerBlock = 256;  // CUDA kernel 线程块大小
+}  // anonymous namespace
 
 // ==================== CUDA Kernels ====================
 
@@ -287,43 +285,6 @@ __global__ void pad_image_kernel(const T *__restrict__ src,
 }
 
 /**
- * @brief 转换权重从行主序到列主序（用于 cuDNN）
- * @tparam T 数据类型
- * @param src 源数据（行主序）
- * @param dst 目标数据（列主序）
- * @param OC 输出通道数
- * @param C 输入通道数
- * @param KH 卷积核高度
- * @param KW 卷积核宽度
- */
-template <typename T>
-__global__ void convert_filter_row_to_col_major_kernel(const T *__restrict__ src,
-                                                       T *__restrict__ dst,
-                                                       size_t OC,
-                                                       size_t C,
-                                                       int KH,
-                                                       int KW)
-{
-    size_t idx            = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t total_elements = OC * C * KH * KW;
-
-    if (idx < total_elements)
-    {
-        // 计算列主序索引 (oc, c, kh, kw)
-        size_t oc  = idx % OC;
-        size_t rem = idx / OC;
-        size_t c   = rem % C;
-        rem        = rem / C;
-        int kh     = rem % KH;
-        int kw     = rem / KH;
-
-        // 行主序索引: oc * (C*KH*KW) + c * (KH*KW) + kh * KW + kw
-        size_t row_major_idx = oc * (C * KH * KW) + c * (KH * KW) + kh * KW + kw;
-        dst[idx]             = src[row_major_idx];
-    }
-}
-
-/**
  * @brief 转置 CUDA kernel：从 (N, OH, OW, OC) 到 (N, OC, OH, OW)
  * @tparam T 数据类型
  */
@@ -458,11 +419,10 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
 
         // 使用 CUDA kernel 复制原始图像到填充位置
         size_t total_elements = N * C * H * W;
-        int threads_per_block = 256;
-        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + kThreadsPerBlock - 1) / kThreadsPerBlock;
 
         pad_image_kernel<T>
-            <<<num_blocks, threads_per_block>>>(img_data, padded_data, N, C, H, W, padded_H, padded_W, PH, PW);
+            <<<num_blocks, kThreadsPerBlock>>>(img_data, padded_data, N, C, H, W, padded_H, padded_W, PH, PW);
         CUDA_CHECK_ASYNC();
     });
 
@@ -485,10 +445,9 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
         T *col_data          = result->data_ptr<T>();
 
         size_t total_elements = to_matrix ? (N * OH * OW * C * KH * KW) : (N * C * KH * KW * OH * OW);
-        int threads_per_block = 256;
-        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + kThreadsPerBlock - 1) / kThreadsPerBlock;
 
-        im2col_kernel<T><<<num_blocks, threads_per_block>>>(padded_data, col_data, N, C, H, W, KH, KW, SH, SW, PH, PW,
+        im2col_kernel<T><<<num_blocks, kThreadsPerBlock>>>(padded_data, col_data, N, C, H, W, KH, KW, SH, SW, PH, PW,
                                                             OH, OW, padded_H, padded_W, to_matrix);
     });
 
@@ -549,10 +508,9 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col,
         T *padded_data    = padded_img->data_ptr<T>();
 
         size_t col_elements   = to_matrix ? (N * OH * OW * C * KH * KW) : (N * C * KH * KW * OH * OW);
-        int threads_per_block = 256;
-        int num_blocks        = (col_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (col_elements + kThreadsPerBlock - 1) / kThreadsPerBlock;
 
-        col2im_kernel<T><<<num_blocks, threads_per_block>>>(col_data, padded_data, N, C, H, W, KH, KW, SH, SW, PH, PW,
+        col2im_kernel<T><<<num_blocks, kThreadsPerBlock>>>(col_data, padded_data, N, C, H, W, KH, KW, SH, SW, PH, PW,
                                                             OH, OW, padded_H, padded_W, to_matrix);
     });
 
@@ -567,11 +525,10 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col,
 
         // 使用 CUDA kernel 移除填充
         size_t total_elements = N * C * H * W;
-        int threads_per_block = 256;
-        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + kThreadsPerBlock - 1) / kThreadsPerBlock;
 
         unpad_image_kernel<T>
-            <<<num_blocks, threads_per_block>>>(padded_data, result_data, N, C, H, W, padded_H, padded_W, PH, PW);
+            <<<num_blocks, kThreadsPerBlock>>>(padded_data, result_data, N, C, H, W, padded_H, padded_W, PH, PW);
         CUDA_CHECK_ASYNC();
     });
 
@@ -663,54 +620,45 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
     // 使用 im2col + GPU matmul 实现（行主序）
     // 1. im2col: (N, C, H, W) -> (N*OH*OW, C*KH*KW)
     auto col = im2col_impl(x, std::make_pair(static_cast<int>(KH), static_cast<int>(KW)), stride, pad, true);
+    const OriginMat &col_mat = static_cast<const OriginMat &>(*col);
 
-    // 2. 将卷积核 reshape 为 (OC, C*KH*KW)
+    // 2. 将卷积核 reshape 为 (OC, C*KH*KW) 并转置为 (C*KH*KW, OC)
     auto W_reshaped                 = W.reshape(Shape{OC, C * KH * KW});
     const OriginMat &W_reshaped_mat = static_cast<const OriginMat &>(*W_reshaped);
-    const OriginMat &col_mat        = static_cast<const OriginMat &>(*col);
 
-    // 3. 直接使用 cuBLAS GEMM 进行矩阵乘法: col @ W^T -> (N*OH*OW, OC)
-    // col: (N*OH*OW, C*KH*KW), W: (OC, C*KH*KW), 需要计算 col @ W^T
-    // 在列主序中，这等价于计算 C^T = W^T @ col^T
-    size_t M     = N * OH * OW;  // col 的行数
-    size_t K     = C * KH * KW;  // 公共维度
-    size_t N_out = OC;           // 输出通道数
+    // 提前检查设备类型，避免不必要的转置操作
+    bool use_cuda = (col_mat.device().type() == DeviceType::kCUDA && 
+                     W_reshaped_mat.device().type() == DeviceType::kCUDA);
 
-    Shape y_flat_shape{M, N_out};
-    auto y_flat = std::make_unique<OriginMat>(y_flat_shape, x.dtype(), x.device());
-
-    // 使用 GPU matmul 实现（避免 cuBLAS 的行列主序转换问题）
-    // 计算: y_flat = col @ W^T
+    // 3. 计算矩阵乘法: col @ W^T -> (N*OH*OW, OC)
     auto W_T                 = W_reshaped_mat.transpose();
     const OriginMat &W_T_mat = static_cast<const OriginMat &>(*W_T);
+    std::unique_ptr<Mat> y_flat_matmul;
 
-    // 使用 GPU matmul
-    if (col_mat.device().type() == DeviceType::kCUDA && W_T_mat.device().type() == DeviceType::kCUDA)
+    if (use_cuda)
     {
-        auto y_flat_matmul = cuda::matmul(col_mat, W_T_mat);
-        y_flat             = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(y_flat_matmul.release()));
+        y_flat_matmul = cuda::matmul(col_mat, W_T_mat);
     }
     else
     {
         // 回退到 CPU matmul
-        auto y_flat_matmul = col_mat.matmul(W_T_mat);
-        y_flat             = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(y_flat_matmul.release()));
+        y_flat_matmul = col_mat.matmul(W_T_mat);
     }
+
+    auto y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(y_flat_matmul.release()));
 
     // 4. 添加偏置（如果存在）
     if (b != nullptr)
     {
         // 广播偏置: (OC,) -> (N*OH*OW, OC)
-        auto b_broadcast            = b->broadcast_to(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
-        const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
+        auto b_broadcast = b->broadcast_to(Shape{N * static_cast<size_t>(OH) * static_cast<size_t>(OW), OC});
         const OriginMat &b_broadcast_mat = static_cast<const OriginMat &>(*b_broadcast);
-        auto y_flat_with_bias            = y_flat_mat.operator+(b_broadcast_mat);
+        auto y_flat_with_bias            = y_flat->operator+(b_broadcast_mat);
         y_flat = std::unique_ptr<OriginMat>(static_cast<OriginMat *>(y_flat_with_bias.release()));
     }
 
     // 5. Reshape 并转置: (N*OH*OW, OC) -> (N, OH, OW, OC) -> (N, OC, OH, OW)
-    const OriginMat &y_flat_mat = static_cast<const OriginMat &>(*y_flat);
-    auto y_reshaped             = y_flat_mat.reshape(Shape{N, static_cast<size_t>(OH), static_cast<size_t>(OW), OC});
+    auto y_reshaped = y_flat->reshape(Shape{N, static_cast<size_t>(OH), static_cast<size_t>(OW), OC});
 
     // 使用 CUDA kernel 进行转置
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
@@ -719,10 +667,9 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
         T *dst_data                     = result->data_ptr<T>();
 
         size_t total_elements = N * OC * OH * OW;
-        int threads_per_block = 256;
-        int num_blocks        = (total_elements + threads_per_block - 1) / threads_per_block;
+        int num_blocks        = (total_elements + kThreadsPerBlock - 1) / kThreadsPerBlock;
 
-        transpose_conv_output_kernel<T><<<num_blocks, threads_per_block>>>(src_data, dst_data, N, OC, OH, OW);
+        transpose_conv_output_kernel<T><<<num_blocks, kThreadsPerBlock>>>(src_data, dst_data, N, OC, OH, OW);
     });
 
     CUDA_CHECK_ASYNC();

@@ -57,6 +57,17 @@ std::vector<Tensor> MaxPool2d::backward(const std::vector<Tensor> &gys)
         THROW_RUNTIME_ERROR("MaxPool2d backward: indices not found. forward() must be called before backward()");
     }
 
+    // 最大池化反向传播原理：
+    // 前向传播中，输出是输入窗口内所有元素的最大值：
+    //   out = max(x₁, x₂, ..., xₙ)
+    // 对于窗口内的每个元素 xᵢ，其对输出的偏导数是：
+    //   ∂out/∂xᵢ = 1  (如果 xᵢ 是最大值)
+    //   ∂out/∂xᵢ = 0  (如果 xᵢ 不是最大值)
+    // 根据链式法则，输入梯度为：
+    //   dx = dout * (1 或 0)
+    // 因此，上游梯度 dout 只传递给最大值位置，其他位置的梯度为 0。
+    // 前向传播时保存的索引用于确定哪个位置是最大值。
+
     // 获取 Mat 引用并调用底层 max_pool2d_backward
     const Mat &gy_mat = mat(gy);
     const Mat &x_mat  = mat(x);
