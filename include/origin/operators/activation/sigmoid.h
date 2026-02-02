@@ -20,6 +20,9 @@ public:
     std::vector<Tensor> forward(const std::vector<Tensor> &xs) override;
 
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
+
+private:
+    Tensor sigmoid_x_;  // 保存 sigmoid(x) 的结果，用于反向传播，避免重复计算
 };
 
 /**
