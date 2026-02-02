@@ -286,6 +286,32 @@ public:
             }
         }
     }
+
+    /**
+     * @brief 执行高维张量转置（转置最后两个维度）
+     * @tparam T 数据类型
+     * @param src 输入数据指针
+     * @param dst 输出数据指针
+     * @param last_dim 最后一个维度大小
+     * @param second_last_dim 倒数第二个维度大小
+     * @param outer_elements 外层元素数量
+     */
+    template <typename T>
+    static void transpose_nd(const T *src, T *dst, size_t last_dim, size_t second_last_dim, size_t outer_elements)
+    {
+        for (size_t outer = 0; outer < outer_elements; ++outer)
+        {
+            for (size_t i = 0; i < second_last_dim; ++i)
+            {
+                for (size_t j = 0; j < last_dim; ++j)
+                {
+                    size_t src_idx = outer * (last_dim * second_last_dim) + i * last_dim + j;
+                    size_t dst_idx = outer * (last_dim * second_last_dim) + j * second_last_dim + i;
+                    dst[dst_idx]   = src[src_idx];
+                }
+            }
+        }
+    }
 };
 
 /**
