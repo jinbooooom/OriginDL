@@ -22,6 +22,9 @@ public:
     std::vector<Tensor> backward(const std::vector<Tensor> &gys) override;
 
     void forward_inplace(Tensor &input0, const Tensor &input1) override;
+
+private:
+    Tensor mask_;  // 保存 (x > 0) 的mask，用于反向传播
 };
 
 /**

@@ -55,6 +55,15 @@ std::unique_ptr<Mat> multiply(const origin::OriginMat &a, const origin::OriginMa
  */
 std::unique_ptr<Mat> divide(const origin::OriginMat &a, const origin::OriginMat &b, origin::OriginMat *out = nullptr);
 
+/**
+ * @brief CUDA大于算子统一实现（对标量）
+ * @param mat 输入矩阵
+ * @param threshold 标量阈值
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
+ */
+std::unique_ptr<Mat> gt(const origin::OriginMat &mat, const origin::Scalar &threshold, origin::OriginMat *out = nullptr);
+
 // ============================================================================
 // 一元运算算子
 // ============================================================================

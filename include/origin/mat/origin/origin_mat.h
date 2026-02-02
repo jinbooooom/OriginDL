@@ -100,6 +100,8 @@ public:
     Mat &operator/=(const Mat &other) override;
     std::unique_ptr<Mat> operator-() const override;
 
+    std::unique_ptr<Mat> operator>(const Scalar &threshold) const;
+
     std::unique_ptr<Mat> square() const override;
     std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;

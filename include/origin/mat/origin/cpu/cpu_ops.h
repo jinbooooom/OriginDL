@@ -24,6 +24,9 @@ std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b, OriginMat 
 std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *out = nullptr);
 std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
 
+
+std::unique_ptr<Mat> gt(const OriginMat &mat, const Scalar &threshold, OriginMat *out = nullptr);
+
 std::unique_ptr<Mat> negate(const OriginMat &mat, OriginMat *out = nullptr);
 
 // === 数学函数 ===

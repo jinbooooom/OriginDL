@@ -151,6 +151,19 @@ struct ReLUOp
 };
 
 /**
+ * @brief 大于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct GreaterThanOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
+    {
+        return (value > threshold) ? T(1) : T(0);
+    }
+};
+
+/**
  * @brief 轴求和操作
  * @details 提供模板化的轴求和实现，减少重复的类型处理代码
  */

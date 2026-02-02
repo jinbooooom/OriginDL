@@ -169,7 +169,6 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
     const void *b_data = b.storage()->data();
     void *c_data       = result_ptr->storage()->data();
 
-    // 检查运算类型，按 case 分支出现频率排序，避免分支预测失败
     if (a.shape() == b.shape())
     {
         // 相同形状：直接元素级运算（最常见）

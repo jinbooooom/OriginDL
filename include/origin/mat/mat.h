@@ -153,6 +153,13 @@ public:
      */
     virtual Mat &operator/=(const Mat &other) = 0;
 
+    /**
+     * @brief 大于运算符（对标量）
+     * @param threshold 标量阈值
+     * @return 比较结果mask，与输入相同类型和形状
+     */
+    virtual std::unique_ptr<Mat> operator>(const Scalar &threshold) const = 0;
+
     // === 泛型标量操作 ===
 
     // === 泛型标量运算符 ===

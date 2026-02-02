@@ -521,6 +521,15 @@ std::unique_ptr<Mat> TorchMat::operator-() const
     return std::make_unique<TorchMat>(std::move(t));
 }
 
+std::unique_ptr<Mat> TorchMat::operator>(const Scalar &threshold) const
+{
+    auto torch_scalar = make_torch_scalar(threshold, dtype());
+    auto bool_result  = tensor_.gt(torch_scalar);
+    // 将 bool tensor 转换为与输入相同类型的 mask (0 或 1)
+    auto result = bool_result.to(tensor_.scalar_type());
+    return std::make_unique<TorchMat>(std::move(result));
+}
+
 // === 广播与归约 ===
 
 std::unique_ptr<Mat> TorchMat::broadcast_to(const Shape &target_shape) const

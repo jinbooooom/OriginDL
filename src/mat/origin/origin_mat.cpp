@@ -11,6 +11,7 @@
 #include "origin/mat/origin/cpu/factory.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat_utils.h"
+#include "origin/mat/scalar.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -164,6 +165,44 @@ inline void device_dispatch_unary_inplace_op(DeviceType device_type,
     {
 #ifdef WITH_CUDA
         cuda_op(a, out);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for {}: {}", op_name, static_cast<int>(device_type));
+    }
+}
+
+/**
+ * @brief 统一的标量操作设备分发辅助函数（有返回值）
+ * @param device_type 设备类型
+ * @param a 输入矩阵
+ * @param scalar 标量参数
+ * @param out 输出矩阵指针
+ * @param cpu_op CPU操作函数
+ * @param cuda_op CUDA操作函数
+ * @param op_name 操作名称（用于错误信息）
+ * @return 操作结果
+ */
+template <typename OpFunc>
+inline std::unique_ptr<Mat> device_dispatch_scalar_op(DeviceType device_type,
+                                                       const OriginMat &a,
+                                                       const Scalar &scalar,
+                                                       OriginMat *out,
+                                                       OpFunc cpu_op,
+                                                       OpFunc cuda_op,
+                                                       const char *op_name)
+{
+    if (device_type == DeviceType::kCPU)
+    {
+        return cpu_op(a, scalar, out);
+    }
+    else if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda_op(a, scalar, out);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -456,6 +495,11 @@ Mat &OriginMat::operator-=(const Mat &other)
 {
     sub_inplace(other);
     return *this;
+}
+
+std::unique_ptr<Mat> OriginMat::operator>(const Scalar &threshold) const
+{
+    return device_dispatch_scalar_op(storage_->device_type(), *this, threshold, nullptr, cpu::gt, cuda::gt, "gt");
 }
 
 std::unique_ptr<Mat> OriginMat::operator*(const Mat &other) const

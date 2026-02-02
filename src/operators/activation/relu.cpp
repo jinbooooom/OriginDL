@@ -16,8 +16,13 @@ std::vector<Tensor> ReLU::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("ReLU operator requires exactly 1 input, but got {}", xs.size());
     }
 
+    // 计算并保存 mask = (x > 0)
+    const Mat &x_mat = mat(xs[0]);
+    auto mask_result = x_mat > Scalar(0.0f);
+    mask_            = convert_mat_to_tensor(std::move(mask_result));
+
     // 通过 Mat 层调用 relu
-    auto result = mat(xs[0]).relu();
+    auto result = x_mat.relu();
     auto y      = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
 }
@@ -29,35 +34,13 @@ std::vector<Tensor> ReLU::backward(const std::vector<Tensor> &gys)
         THROW_RUNTIME_ERROR("ReLU backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
-    // ReLU 的梯度：gx = gy * (x > 0 ? 1 : 0)
-    // 计算 mask = relu'(x) = (x > 0 ? 1 : 0)
-    // 使用 relu 的特性：如果 x > 0，relu(x) = x；如果 x <= 0，relu(x) = 0
-    // 所以如果 relu(x) > 0，说明 x > 0，mask = 1；否则 mask = 0
-    auto &x  = this->inputs_[0];
+    // ReLU 的梯度：gx = gy * mask，其中 mask = (x > 0 ? 1 : 0)
+    // 直接使用 forward 中保存的 mask_
     auto &gy = gys[0];
 
-    // 计算 relu(x)
-    auto relu_x_result = mat(x).relu();
-    auto relu_x        = convert_mat_to_tensor(std::move(relu_x_result));
-
-    // 计算 mask = (relu(x) > 0 ? 1 : 0)
-    // 使用近似：mask = relu(x) / (relu(x) + epsilon)
-    // 当 relu(x) > 0 时，mask ≈ 1
-    // 当 relu(x) = 0 时，mask = 0
-    float epsilon               = 1e-8f;
-    auto epsilon_tensor         = Tensor::full(relu_x.shape(), epsilon, dtype(relu_x.dtype()).device(relu_x.device()));
-    const Mat &relu_x_mat       = mat(relu_x);
-    const Mat &epsilon_mat      = mat(epsilon_tensor);
-    auto relu_x_plus_eps_result = relu_x_mat + epsilon_mat;
-    auto relu_x_plus_eps        = convert_mat_to_tensor(std::move(relu_x_plus_eps_result));
-
-    const Mat &relu_x_plus_eps_mat = mat(relu_x_plus_eps);
-    auto mask_result               = relu_x_mat / relu_x_plus_eps_mat;
-    auto mask                      = convert_mat_to_tensor(std::move(mask_result));
-
-    // gx = gy * mask
+    // gx = gy * mask_
     const Mat &gy_mat   = mat(gy);
-    const Mat &mask_mat = mat(mask);
+    const Mat &mask_mat = mat(mask_);
     auto gx_result      = gy_mat * mask_mat;
     auto gx             = convert_mat_to_tensor(std::move(gx_result));
     return std::vector<Tensor>{std::move(gx)};

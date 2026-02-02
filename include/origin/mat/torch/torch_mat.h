@@ -58,6 +58,7 @@ public:
     void div_inplace(const Mat &other) override;
     Mat &operator/=(const Mat &other) override;
     std::unique_ptr<Mat> operator-() const override;
+    std::unique_ptr<Mat> operator>(const Scalar &threshold) const override;
 
     // 广播和归约
     std::unique_ptr<Mat> broadcast_to(const Shape &shape) const override;
