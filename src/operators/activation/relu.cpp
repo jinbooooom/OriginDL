@@ -1,5 +1,6 @@
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
+#include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/scalar.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
@@ -16,9 +17,11 @@ std::vector<Tensor> ReLU::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("ReLU operator requires exactly 1 input, but got {}", xs.size());
     }
 
-    // 计算并保存 mask = (x > 0)
+    // 保存 mask = (x > 0)，为了反向传播不用重复计算 mask
     const Mat &x_mat = mat(xs[0]);
-    auto mask_result = x_mat > Scalar(0.0f);
+    // 创建只含有一个元素的 tensor 用于比较（会被判定为标量）
+    auto zero_tensor = Tensor(0, Shape{}, dtype(xs[0].dtype()).device(xs[0].device()));
+    auto mask_result = x_mat > mat(zero_tensor);
     mask_            = convert_mat_to_tensor(std::move(mask_result));
 
     // 通过 Mat 层调用 relu

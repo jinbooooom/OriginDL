@@ -25,7 +25,43 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *o
 std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
 
 
-std::unique_ptr<Mat> gt(const OriginMat &mat, const Scalar &threshold, OriginMat *out = nullptr);
+// ============================================================================
+// 比较运算算子
+// ============================================================================
+
+/**
+ * @brief 等于比较算子
+ * @param mat 输入矩阵
+ * @param threshold 比较阈值，可以是标量（shape为{}或{1}）或与输入相同形状的张量
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
+ */
+std::unique_ptr<Mat> eq(const OriginMat &mat, const OriginMat &threshold, OriginMat *out = nullptr);
+
+/**
+ * @brief 不等于比较算子
+ */
+std::unique_ptr<Mat> ne(const OriginMat &mat, const OriginMat &threshold, OriginMat *out = nullptr);
+
+/**
+ * @brief 小于比较算子
+ */
+std::unique_ptr<Mat> lt(const OriginMat &mat, const OriginMat &threshold, OriginMat *out = nullptr);
+
+/**
+ * @brief 小于等于比较算子
+ */
+std::unique_ptr<Mat> le(const OriginMat &mat, const OriginMat &threshold, OriginMat *out = nullptr);
+
+/**
+ * @brief 大于比较算子
+ */
+std::unique_ptr<Mat> gt(const OriginMat &mat, const OriginMat &threshold, OriginMat *out = nullptr);
+
+/**
+ * @brief 大于等于比较算子
+ */
+std::unique_ptr<Mat> ge(const OriginMat &mat, const OriginMat &threshold, OriginMat *out = nullptr);
 
 std::unique_ptr<Mat> negate(const OriginMat &mat, OriginMat *out = nullptr);
 

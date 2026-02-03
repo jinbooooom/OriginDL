@@ -55,14 +55,43 @@ std::unique_ptr<Mat> multiply(const origin::OriginMat &a, const origin::OriginMa
  */
 std::unique_ptr<Mat> divide(const origin::OriginMat &a, const origin::OriginMat &b, origin::OriginMat *out = nullptr);
 
+// ============================================================================
+// 比较运算算子
+// ============================================================================
+
 /**
- * @brief CUDA大于算子统一实现（对标量）
+ * @brief CUDA等于比较算子
  * @param mat 输入矩阵
- * @param threshold 标量阈值
+ * @param threshold 比较阈值，可以是标量（shape为{}或{1}）或与输入相同形状的张量
  * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
  * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> gt(const origin::OriginMat &mat, const origin::Scalar &threshold, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> eq(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+
+/**
+ * @brief CUDA不等于比较算子
+ */
+std::unique_ptr<Mat> ne(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+
+/**
+ * @brief CUDA小于比较算子
+ */
+std::unique_ptr<Mat> lt(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+
+/**
+ * @brief CUDA小于等于比较算子
+ */
+std::unique_ptr<Mat> le(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+
+/**
+ * @brief CUDA大于比较算子
+ */
+std::unique_ptr<Mat> gt(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+
+/**
+ * @brief CUDA大于等于比较算子
+ */
+std::unique_ptr<Mat> ge(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
 
 // ============================================================================
 // 一元运算算子

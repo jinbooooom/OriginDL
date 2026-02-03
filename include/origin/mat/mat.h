@@ -153,17 +153,50 @@ public:
      */
     virtual Mat &operator/=(const Mat &other) = 0;
 
+    // === 比较运算符 ===
     /**
-     * @brief 大于运算符（对标量）
-     * @param threshold 标量阈值
+     * @brief 等于运算符
+     * @param threshold 比较阈值，可以是标量（shape为{}或{1}）或与输入相同形状的张量
      * @return 比较结果mask，与输入相同类型和形状
      */
-    virtual std::unique_ptr<Mat> operator>(const Scalar &threshold) const = 0;
+    virtual std::unique_ptr<Mat> operator==(const Mat &threshold) const = 0;
 
-    // === 泛型标量操作 ===
+    /**
+     * @brief 不等于运算符
+     * @param threshold 比较阈值，可以是标量（shape为{}或{1}）或与输入相同形状的张量
+     * @return 比较结果mask，与输入相同类型和形状
+     */
+    virtual std::unique_ptr<Mat> operator!=(const Mat &threshold) const = 0;
 
-    // === 泛型标量运算符 ===
-    // 标量运算符已移除，统一通过算子层处理
+    /**
+     * @brief 小于运算符
+     * @param threshold 比较阈值，可以是标量（shape为{}或{1}）或与输入相同形状的张量
+     * @return 比较结果mask，与输入相同类型和形状
+     */
+    virtual std::unique_ptr<Mat> operator<(const Mat &threshold) const = 0;
+
+    /**
+     * @brief 小于等于运算符
+     * @param threshold 比较阈值，可以是标量（shape为{}或{1}）或与输入相同形状的张量
+     * @return 比较结果mask，与输入相同类型和形状
+     */
+    virtual std::unique_ptr<Mat> operator<=(const Mat &threshold) const = 0;
+
+    /**
+     * @brief 大于运算符
+     * @param threshold 比较阈值，可以是标量（shape为{}或{1}）或与输入相同形状的张量
+     * @return 比较结果mask，与输入相同类型和形状
+     */
+    virtual std::unique_ptr<Mat> operator>(const Mat &threshold) const = 0;
+
+    /**
+     * @brief 大于等于运算符
+     * @param threshold 比较阈值，可以是标量（shape为{}或{1}）或与输入相同形状的张量
+     * @return 比较结果mask，与输入相同类型和形状
+     */
+    virtual std::unique_ptr<Mat> operator>=(const Mat &threshold) const = 0;
+
+
 
     /**
      * @brief 一元负号运算符

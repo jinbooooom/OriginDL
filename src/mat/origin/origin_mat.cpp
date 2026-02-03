@@ -497,9 +497,41 @@ Mat &OriginMat::operator-=(const Mat &other)
     return *this;
 }
 
-std::unique_ptr<Mat> OriginMat::operator>(const Scalar &threshold) const
+// 比较运算符实现
+std::unique_ptr<Mat> OriginMat::operator==(const Mat &threshold) const
 {
-    return device_dispatch_scalar_op(storage_->device_type(), *this, threshold, nullptr, cpu::gt, cuda::gt, "gt");
+    const OriginMat &threshold_mat = static_cast<const OriginMat &>(threshold);
+    return device_dispatch_binary_op(storage_->device_type(), *this, threshold_mat, nullptr, cpu::eq, cuda::eq, "eq");
+}
+
+std::unique_ptr<Mat> OriginMat::operator!=(const Mat &threshold) const
+{
+    const OriginMat &threshold_mat = static_cast<const OriginMat &>(threshold);
+    return device_dispatch_binary_op(storage_->device_type(), *this, threshold_mat, nullptr, cpu::ne, cuda::ne, "ne");
+}
+
+std::unique_ptr<Mat> OriginMat::operator<(const Mat &threshold) const
+{
+    const OriginMat &threshold_mat = static_cast<const OriginMat &>(threshold);
+    return device_dispatch_binary_op(storage_->device_type(), *this, threshold_mat, nullptr, cpu::lt, cuda::lt, "lt");
+}
+
+std::unique_ptr<Mat> OriginMat::operator<=(const Mat &threshold) const
+{
+    const OriginMat &threshold_mat = static_cast<const OriginMat &>(threshold);
+    return device_dispatch_binary_op(storage_->device_type(), *this, threshold_mat, nullptr, cpu::le, cuda::le, "le");
+}
+
+std::unique_ptr<Mat> OriginMat::operator>(const Mat &threshold) const
+{
+    const OriginMat &threshold_mat = static_cast<const OriginMat &>(threshold);
+    return device_dispatch_binary_op(storage_->device_type(), *this, threshold_mat, nullptr, cpu::gt, cuda::gt, "gt");
+}
+
+std::unique_ptr<Mat> OriginMat::operator>=(const Mat &threshold) const
+{
+    const OriginMat &threshold_mat = static_cast<const OriginMat &>(threshold);
+    return device_dispatch_binary_op(storage_->device_type(), *this, threshold_mat, nullptr, cpu::ge, cuda::ge, "ge");
 }
 
 std::unique_ptr<Mat> OriginMat::operator*(const Mat &other) const

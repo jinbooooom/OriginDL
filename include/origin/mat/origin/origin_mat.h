@@ -100,7 +100,13 @@ public:
     Mat &operator/=(const Mat &other) override;
     std::unique_ptr<Mat> operator-() const override;
 
-    std::unique_ptr<Mat> operator>(const Scalar &threshold) const;
+    // 比较运算符
+    std::unique_ptr<Mat> operator==(const Mat &threshold) const override;
+    std::unique_ptr<Mat> operator!=(const Mat &threshold) const override;
+    std::unique_ptr<Mat> operator<(const Mat &threshold) const override;
+    std::unique_ptr<Mat> operator<=(const Mat &threshold) const override;
+    std::unique_ptr<Mat> operator>(const Mat &threshold) const override;
+    std::unique_ptr<Mat> operator>=(const Mat &threshold) const override;
 
     std::unique_ptr<Mat> square() const override;
     std::unique_ptr<Mat> pow(const Scalar &exponent) const override;

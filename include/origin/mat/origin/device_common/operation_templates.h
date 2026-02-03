@@ -151,6 +151,58 @@ struct ReLUOp
 };
 
 /**
+ * @brief 等于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct EqualOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
+    {
+        return (a == b) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 不等于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct NotEqualOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
+    {
+        return (a != b) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 小于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct LessThanOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
+    {
+        return (value < threshold) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 小于等于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct LessEqualOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
+    {
+        return (value <= threshold) ? T(1) : T(0);
+    }
+};
+
+/**
  * @brief 大于操作（用于比较运算，返回mask）
  * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
  */
@@ -160,6 +212,19 @@ struct GreaterThanOp
     ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
     {
         return (value > threshold) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 大于等于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct GreaterEqualOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
+    {
+        return (value >= threshold) ? T(1) : T(0);
     }
 };
 

@@ -246,6 +246,16 @@ set_target_properties(test_softmax PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_compare operator/test_compare.cpp)
+add_dependencies(test_compare gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_compare ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_compare PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_compare PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_relu operator/test_relu.cpp)
 add_dependencies(test_relu gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_relu ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
