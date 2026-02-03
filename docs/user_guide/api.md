@@ -1029,6 +1029,82 @@ auto b = -a;  // 或者 neg(a)
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
 ```
 
+### 比较运算
+
+```cpp
+// 张量与张量比较
+Tensor operator==(const Tensor &lhs, const Tensor &rhs)  // 等于
+Tensor operator!=(const Tensor &lhs, const Tensor &rhs)  // 不等于
+Tensor operator<(const Tensor &lhs, const Tensor &rhs)    // 小于
+Tensor operator<=(const Tensor &lhs, const Tensor &rhs)   // 小于等于
+Tensor operator>(const Tensor &lhs, const Tensor &rhs)    // 大于
+Tensor operator>=(const Tensor &lhs, const Tensor &rhs)   // 大于等于
+
+// 张量与标量比较
+Tensor operator==(const Tensor &lhs, const Scalar &rhs)  // 等于
+Tensor operator!=(const Tensor &lhs, const Scalar &rhs)  // 不等于
+Tensor operator<(const Tensor &lhs, const Scalar &rhs)    // 小于
+Tensor operator<=(const Tensor &lhs, const Scalar &rhs)   // 小于等于
+Tensor operator>(const Tensor &lhs, const Scalar &rhs)    // 大于
+Tensor operator>=(const Tensor &lhs, const Scalar &rhs)   // 大于等于
+```
+
+张量比较运算，支持广播。返回与输入张量相同数据类型的张量，但值只有 0（表示 `false`）和 1（表示 `true`）。
+
+**参数:**
+- `lhs` (Tensor) – 左侧张量
+- `rhs` (Tensor 或 Scalar) – 右侧张量或标量值
+
+**返回值:** Tensor – 比较结果张量，形状与输入张量相同（支持广播），数据类型与输入张量相同
+
+**注意:**
+- 比较运算符支持张量与张量的比较（需要形状相同或可广播）
+- 比较运算符是不可微的，在反向传播中梯度为零
+
+**例子:**
+```cpp
+// 张量与标量比较
+auto a = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, {2, 2});
+auto eq_result = a == Scalar(2.0f);
+// eq_result.print() 输出:
+// [[0, 1],
+//  [0, 0]]
+//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+auto lt_result = a < Scalar(3.0f);
+// lt_result.print() 输出:
+// [[1, 1],
+//  [0, 0]]
+//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+auto ge_result = a >= Scalar(2.0f);
+// ge_result.print() 输出:
+// [[0, 1],
+//  [1, 1]]
+//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+// 张量与张量比较
+auto b = Tensor({2.0f, 2.0f, 2.0f, 2.0f}, {2, 2});
+auto compare_result = a > b;
+// compare_result.print() 输出:
+// [[0, 0],
+//  [1, 1]]
+//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+// 所有比较运算符
+auto eq = a == Scalar(2.0f);   // 等于
+auto ne = a != Scalar(2.0f);   // 不等于
+auto lt = a < Scalar(3.0f);    // 小于
+auto le = a <= Scalar(3.0f);   // 小于等于
+auto gt = a > Scalar(2.0f);    // 大于
+auto ge = a >= Scalar(2.0f);   // 大于等于
+
+// 负数比较
+auto neg = Tensor({-2.0f, -1.0f, 0.0f, 1.0f, 2.0f}, {5});
+auto pos_result = neg > Scalar(0.0f);
+// pos_result: [0, 0, 0, 1, 1]
+```
+
 ### 标量运算
 
 支持张量与标量的运算：
