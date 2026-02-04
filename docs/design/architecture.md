@@ -1294,21 +1294,259 @@ flowchart LR
 
 ## 6.1 Module 基类设计
 
+```mermaid
+classDiagram
+    class Module {
+        <<abstract>>
+        #parameters_ map~string,Parameter*~
+        #modules_ map~string,unique_ptr~Module~~
+        #training_ bool
+        +forward(input)* Tensor
+        +operator()(input) Tensor
+        +parameters() vector~Parameter*~
+        +register_parameter(name, param) void
+        +register_module(name, module) void
+        +state_dict() StateDict
+        +load_state_dict(state_dict) void
+        +train(mode) void
+        +eval() void
+        +to(device) void
+        +zero_grad() void
+    }
+```
+
+Module 提供参数/子模块注册、递归收集、train/eval 模式、设备迁移、梯度清零。`forward` 为纯虚，`operator()` 委托调用。
+
 ## 6.2 Layer 层设计
+
+```mermaid
+classDiagram
+    class Tensor {
+        +shape() Shape
+        +dtype() DataType
+    }
+    class Parameter {
+        <<extends Tensor>>
+    }
+    class Module {
+        <<abstract>>
+    }
+    class Layer {
+        <<extends Module>>
+    }
+    class Linear {
+        -weight_ Parameter
+        -bias_ Parameter
+        +forward(input) Tensor
+    }
+    class ReLU {
+        +forward(input) Tensor
+    }
+
+    Tensor <|-- Parameter
+    Module <|-- Layer
+    Layer <|-- Linear
+    Layer <|-- ReLU
+    Linear --> Parameter : 持有
+```
+
+Layer 继承 Module，作为带参数层的基类。Parameter 继承 Tensor 标识可训练参数。有参数层（Linear、Conv2d）持有 `weight_`/`bias_` 并 `register_parameter`；无参数层（ReLU、Flatten）仅实现 `forward`。
 
 ## 6.3 Sequential 容器设计
 
+```mermaid
+flowchart LR
+    subgraph Sequential
+        M0["modules_[0]"]
+        M1["modules_[1]"]
+        M2["modules_[2]"]
+        Mn["..."]
+    end
+
+    Input["input"] --> M0 --> M1 --> M2 --> Mn --> Output["output"]
+```
+
+```mermaid
+classDiagram
+    class Module {
+        <<abstract>>
+    }
+    class Sequential {
+        -modules_ vector~unique_ptr~Module~~
+        +add(module) void
+        +forward(input) Tensor
+        +operator[](index) Module
+        +parameters() vector~Parameter*~
+        +to(device) void
+    }
+    Module <|-- Sequential
+    Sequential *-- Module : 顺序持有
+```
+
+Sequential 用 `vector<unique_ptr<Module>>` 顺序存储子模块，`forward` 依次调用，`parameters`/`to` 递归聚合。
+
 ## 6.4 常用层实现
+
+```mermaid
+flowchart TB
+    subgraph 有参数层
+        Linear["Linear<br/>y = xW + b"]
+        Conv2d["Conv2d<br/>y = conv2d(x,W) + b"]
+        BN["BatchNorm1d/2d"]
+    end
+
+    subgraph 无参数层
+        ReLU["ReLU"]
+        MaxPool2d["MaxPool2d"]
+        Flatten["Flatten"]
+        Dropout["Dropout"]
+    end
+```
+
+| 层 | 参数 | 对应算子 |
+|----|------|----------|
+| Linear | weight, bias | matmul, add |
+| Conv2d | weight, bias | conv2d |
+| ReLU / Flatten / Dropout | 无 | relu / flatten / dropout |
+| MaxPool2d | 无 | max_pool2d |
+| BatchNorm1d/2d | gamma, beta, running_mean/var | batch_norm |
 
 # 7. 优化器架构
 
 ## 7.1 Optimizer 基类设计
 
+```mermaid
+classDiagram
+    class Optimizer {
+        <<abstract>>
+        #target_ Module*
+        #hooks_ vector~function~
+        #parameters_ vector~Parameter*~
+        +Optimizer(target) 
+        +step() void
+        +zero_grad() void
+        +register_hook(hook) void
+        +parameters() vector~Parameter*~
+        +state_dict()* map
+        +load_state_dict()* void
+        #step_one(param)* void
+    }
+```
+
+```mermaid
+flowchart TB
+    Step["step()"]
+    Filter["过滤有梯度的参数"]
+    Hooks["执行 hooks_"]
+    StepOne["对每个 param 调用 step_one()"]
+
+    Step --> Filter --> Hooks --> StepOne
+```
+
+Optimizer 持有 Module 引用，构造时 `collect_parameters` 收集参数。`step` 流程：过滤有梯度参数 → 执行 hooks → 逐参数 `step_one`。`zero_grad` 委托给 target。
+
+```cpp
+// 典型训练循环（假设 using namespace origin）
+auto model = Sequential();
+model.add(std::make_unique<nn::Linear>(784, 10, true));
+auto optimizer = Adam(model, 0.01f);
+
+for (int i = 0; i < epochs; ++i) {
+    optimizer.zero_grad();      // 委托 target_->zero_grad()
+    auto y = model(x);
+    auto loss = functional::softmax_cross_entropy(y, target);
+    loss.backward();
+    optimizer.step();           // 过滤有梯度参数 → hooks → step_one
+}
+```
+
 ## 7.2 SGD 优化器实现
+
+```mermaid
+classDiagram
+    class Optimizer {
+        <<abstract>>
+    }
+    class SGD {
+        -lr_ float
+        -momentum_ float
+        -weight_decay_ float
+        -nesterov_ bool
+        -momentum_buffers_ map
+        #step_one(param) void
+    }
+    Optimizer <|-- SGD
+```
+
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| lr | - | 学习率 |
+| momentum | 0 | 动量 |
+| weight_decay | 0 | L2 正则 |
+| nesterov | false | Nesterov 动量 |
+
+SGD 公式：`param = param - lr * (grad + weight_decay * param)`，momentum 时维护 `momentum_buffers_`。
 
 ## 7.3 Adam 优化器实现
 
+```mermaid
+classDiagram
+    class Optimizer {
+        <<abstract>>
+    }
+    class Adam {
+        -lr_ float
+        -beta1_ float
+        -beta2_ float
+        -eps_ float
+        -m_buffers_ map
+        -v_buffers_ map
+        -step_counts_ map
+        #step_one(param) void
+    }
+    Optimizer <|-- Adam
+```
+
+```mermaid
+flowchart LR
+    subgraph Adam公式
+        M["m = β1·m + (1-β1)·g"]
+        V["v = β2·v + (1-β2)·g²"]
+        Mh["m̂ = m/(1-β1^t)"]
+        Vh["v̂ = v/(1-β2^t)"]
+        P["param -= lr·m̂/(√v̂+ε)"]
+    end
+    M --> Mh
+    V --> Vh
+    Mh --> P
+    Vh --> P
+```
+
+Adam 维护一阶矩 `m_buffers_`、二阶矩 `v_buffers_`、步数 `step_counts_`，支持 state_dict 保存/加载。
+
 ## 7.4 优化器钩子机制
+
+```mermaid
+flowchart LR
+    Step["step()"]
+    Filter["过滤有梯度参数"]
+    Hooks["遍历 hooks_"]
+    Hook["hook(params)"]
+    StepOne["step_one()"]
+
+    Step --> Filter --> Hooks --> Hook --> StepOne
+```
+
+```mermaid
+classDiagram
+    class WeightDecay {
+        -rate_ float
+        +hook() function
+    }
+    note for WeightDecay "grad += rate * param\n等价于 L2 正则"
+```
+
+Hook 在 `step_one` 之前执行，签名为 `void(vector<Parameter*>&)`。WeightDecay 对梯度累加 `rate * param`，实现 L2 正则。
 
 # 8. 数据处理架构
 
