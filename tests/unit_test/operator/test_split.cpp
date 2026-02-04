@@ -314,5 +314,175 @@ TEST_P(SplitOperatorTest, DifferentCallStyles)
     }
 }
 
+// ==================== 高维张量测试 ====================
+
+TEST_P(SplitOperatorTest, HighDimensional)
+{
+    // 测试高维张量分割（6维，每个维度都大于1）
+    // 形状: [2, 3, 4, 2, 3, 2] 在 dim=2 上分割
+    // 输入: [2, 3, 4, 2, 3, 2] (C=4)
+    // 输出1: [2, 3, 2, 2, 3, 2] (C=2)
+    // 输出2: [2, 3, 2, 2, 3, 2] (C=2)
+    // 转换为3维: [M=2*3=6, C=4, N=2*3*2=12] -> [M=6, C=2, N=12] 和 [M=6, C=2, N=12]
+    
+    // 创建输入数据：输入有 2*3*4*2*3*2 = 288 个元素
+    std::vector<float> input_data(288);
+    for (size_t i = 0; i < 288; ++i)
+    {
+        input_data[i] = static_cast<float>(i);
+    }
+    
+    auto x = Tensor(input_data, Shape{2, 3, 4, 2, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto results = F::split(x, {2, 2}, 2);
+
+    // 验证输出数量
+    EXPECT_EQ(results.size(), 2U);
+    
+    // 验证输出形状
+    Shape expected_shape1{2, 3, 2, 2, 3, 2};
+    Shape expected_shape2{2, 3, 2, 2, 3, 2};
+    EXPECT_EQ(results[0].shape(), expected_shape1);
+    EXPECT_EQ(results[1].shape(), expected_shape2);
+
+    // 验证输出数据：应该先包含输入的前半部分，然后是后半部分
+    // 由于在 dim=2 上分割，每个 chunk (对应 M=2*3=6 个 chunk) 应该先包含前 C=2 个通道，然后是后 C=2 个通道
+    auto result0_data = results[0].to_vector<float>();
+    auto result1_data = results[1].to_vector<float>();
+    EXPECT_EQ(result0_data.size(), 144);  // 2*3*2*2*3*2 = 144
+    EXPECT_EQ(result1_data.size(), 144);  // 2*3*2*2*3*2 = 144
+    
+    // 完整验证：验证所有元素
+    // M=6, C=2, N=12 (2*3*2)
+    // 每个 chunk 有 C*N = 2*12 = 24 个元素
+    const size_t M = 6;
+    const size_t C = 2;
+    const size_t N = 12;
+    
+    for (size_t m_idx = 0; m_idx < M; ++m_idx)
+    {
+        size_t input_chunk_start = m_idx * 4 * N;  // 输入中每个 chunk 有 4*12 = 48 个元素
+        size_t result0_chunk_start = m_idx * C * N;  // result0 中每个 chunk 有 2*12 = 24 个元素
+        size_t result1_chunk_start = m_idx * C * N;  // result1 中每个 chunk 有 2*12 = 24 个元素
+        
+        // 验证 result0 的 24 个元素（输入的前 C=2 个通道）
+        for (size_t i = 0; i < C * N; ++i)
+        {
+            EXPECT_FLOAT_EQ(result0_data[result0_chunk_start + i], static_cast<float>(input_chunk_start + i))
+                << "m_idx=" << m_idx << ", result0_chunk_start=" << result0_chunk_start << ", i=" << i;
+        }
+        
+        // 验证 result1 的 24 个元素（输入的后 C=2 个通道）
+        for (size_t i = 0; i < C * N; ++i)
+        {
+            EXPECT_FLOAT_EQ(result1_data[result1_chunk_start + i], static_cast<float>(input_chunk_start + C * N + i))
+                << "m_idx=" << m_idx << ", result1_chunk_start=" << result1_chunk_start << ", i=" << i;
+        }
+    }
+}
+
+TEST_P(SplitOperatorTest, HighDimensionalDim0)
+{
+    // 测试高维张量在最左边维度（dim=0）上分割（边界测试）
+    // 形状: [4, 2, 3, 2, 3, 2] 在 dim=0 上分割
+    // 输入: [4, 2, 3, 2, 3, 2] (A=4)
+    // 输出1: [2, 2, 3, 2, 3, 2] (A=2)
+    // 输出2: [2, 2, 3, 2, 3, 2] (A=2)
+    // 转换为3维: [M=1, C=4, N=2*3*2*3*2=72] -> [M=1, C=2, N=72] 和 [M=1, C=2, N=72]
+    
+    // 创建输入数据：输入有 4*2*3*2*3*2 = 288 个元素
+    std::vector<float> input_data(288);
+    for (size_t i = 0; i < 288; ++i)
+    {
+        input_data[i] = static_cast<float>(i);
+    }
+    
+    auto x = Tensor(input_data, Shape{4, 2, 3, 2, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto results = F::split(x, {2, 2}, 0);
+
+    // 验证输出形状
+    Shape expected_shape{2, 2, 3, 2, 3, 2};
+    EXPECT_EQ(results[0].shape(), expected_shape);
+    EXPECT_EQ(results[1].shape(), expected_shape);
+
+    // 验证输出数据
+    // 在 dim=0 上分割，M=1，所以只有一个 chunk
+    // 输出应该先包含输入的前 144 个元素，然后是后 144 个元素
+    auto result0_data = results[0].to_vector<float>();
+    auto result1_data = results[1].to_vector<float>();
+    EXPECT_EQ(result0_data.size(), 144);  // 2*2*3*2*3*2 = 144
+    EXPECT_EQ(result1_data.size(), 144);  // 2*2*3*2*3*2 = 144
+    
+    // 验证前 144 个元素来自输入的前半部分
+    for (size_t i = 0; i < 144; ++i)
+    {
+        EXPECT_FLOAT_EQ(result0_data[i], static_cast<float>(i));
+    }
+    
+    // 验证接下来的 144 个元素来自输入的后半部分
+    for (size_t i = 0; i < 144; ++i)
+    {
+        EXPECT_FLOAT_EQ(result1_data[i], static_cast<float>(i + 144));
+    }
+}
+
+TEST_P(SplitOperatorTest, HighDimensionalDim5)
+{
+    // 测试高维张量在最右边维度（dim=5）上分割（边界测试）
+    // 形状: [2, 3, 2, 3, 2, 4] 在 dim=5 上分割
+    // 输入: [2, 3, 2, 3, 2, 4] (F=4)
+    // 输出1: [2, 3, 2, 3, 2, 2] (F=2)
+    // 输出2: [2, 3, 2, 3, 2, 2] (F=2)
+    // 转换为3维: [M=2*3*2*3*2=72, C=4, N=1] -> [M=72, C=2, N=1] 和 [M=72, C=2, N=1]
+    
+    // 创建输入数据：输入有 2*3*2*3*2*4 = 288 个元素
+    std::vector<float> input_data(288);
+    for (size_t i = 0; i < 288; ++i)
+    {
+        input_data[i] = static_cast<float>(i);
+    }
+    
+    auto x = Tensor(input_data, Shape{2, 3, 2, 3, 2, 4}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto results = F::split(x, {2, 2}, 5);
+
+    // 验证输出形状
+    Shape expected_shape{2, 3, 2, 3, 2, 2};
+    EXPECT_EQ(results[0].shape(), expected_shape);
+    EXPECT_EQ(results[1].shape(), expected_shape);
+
+    // 验证输出数据
+    // 在 dim=5 上分割，N=1，所以每个 chunk 只有 C 个元素
+    // M=72，所以有 72 个 chunk
+    // 每个 chunk 先包含输入的前 2 个元素，然后是后 2 个元素
+    auto result0_data = results[0].to_vector<float>();
+    auto result1_data = results[1].to_vector<float>();
+    EXPECT_EQ(result0_data.size(), 144);  // 2*3*2*3*2*2 = 144
+    EXPECT_EQ(result1_data.size(), 144);  // 2*3*2*3*2*2 = 144
+    
+    // 完整验证：验证所有元素
+    // 对于每个 chunk (m_idx = 0 到 71)，每个 chunk 有 2 个元素
+    // chunk 内布局: [input[m_idx*4], input[m_idx*4+1]] 和 [input[m_idx*4+2], input[m_idx*4+3]]
+    for (size_t m_idx = 0; m_idx < 72; ++m_idx)
+    {
+        size_t input_chunk_start = m_idx * 4;  // 输入中每个 chunk 有 4 个元素
+        size_t result0_chunk_start = m_idx * 2;  // result0 中每个 chunk 有 2 个元素
+        size_t result1_chunk_start = m_idx * 2;  // result1 中每个 chunk 有 2 个元素
+        
+        // 验证 result0 的两个元素（输入的前 2 个元素）
+        EXPECT_FLOAT_EQ(result0_data[result0_chunk_start], static_cast<float>(input_chunk_start))
+            << "m_idx=" << m_idx << ", result0_chunk_start=" << result0_chunk_start;
+        EXPECT_FLOAT_EQ(result0_data[result0_chunk_start + 1], static_cast<float>(input_chunk_start + 1))
+            << "m_idx=" << m_idx << ", result0_chunk_start=" << result0_chunk_start;
+        
+        // 验证 result1 的两个元素（输入的后 2 个元素）
+        EXPECT_FLOAT_EQ(result1_data[result1_chunk_start], static_cast<float>(input_chunk_start + 2))
+            << "m_idx=" << m_idx << ", result1_chunk_start=" << result1_chunk_start;
+        EXPECT_FLOAT_EQ(result1_data[result1_chunk_start + 1], static_cast<float>(input_chunk_start + 3))
+            << "m_idx=" << m_idx << ", result1_chunk_start=" << result1_chunk_start;
+    }
+}
+
 // Instantiate test suite: automatically generate tests for CPU and available CUDA
 INSTANTIATE_DEVICE_TEST_SUITE_P(SplitOperatorTest);

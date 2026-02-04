@@ -1405,6 +1405,107 @@ auto b = sum_to(a, {1, 2});
 // 将3x2的张量求和到1x2
 ```
 
+#### cat
+
+```cpp
+Tensor cat(const std::vector<Tensor> &xs, int dim = 0)
+```
+
+在指定维度上拼接多个张量。
+
+**参数:**
+- `xs` (std::vector<Tensor>) – 要拼接的张量列表，至少需要1个张量
+- `dim` (int, optional) – 拼接的维度，默认为 0
+
+**返回值:** Tensor – 拼接后的张量
+
+**注意:**
+- 所有输入张量必须在同一设备上
+- 除了 `dim` 维度外，所有输入张量的其他维度必须相同
+- 如果只有一个输入张量，直接返回该张量（不进行拼接）
+- 输出张量在 `dim` 维度上的大小等于所有输入张量在该维度上的大小之和
+
+**例子:**
+```cpp
+// 在 dim=0 上拼接：Shape{1, 3} 和 Shape{2, 3} 的矩阵拼接成 Shape{3, 3}
+auto x0 = Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3});
+auto x1 = Tensor({4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, Shape{2, 3});
+auto result = cat({x0, x1}, 0);
+// result.shape() = Shape{3, 3}
+// result 的值:
+// [[1.0, 2.0, 3.0],
+//  [4.0, 5.0, 6.0],
+//  [7.0, 8.0, 9.0]]
+
+// 在 dim=1 上拼接：Shape{2, 2} 和 Shape{2, 1} 的矩阵拼接成 Shape{2, 3}
+auto a0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2});
+auto a1 = Tensor({5.0f, 6.0f}, Shape{2, 1});
+auto result2 = cat({a0, a1}, 1);
+// result2.shape() = Shape{2, 3}
+// result2 的值:
+// [[1.0, 2.0, 5.0],
+//  [3.0, 4.0, 6.0]]
+
+// 拼接多个张量
+auto b0 = Tensor({1.0f}, {1});
+auto b1 = Tensor({2.0f}, {1});
+auto b2 = Tensor({3.0f}, {1});
+auto result3 = cat({b0, b1, b2}, 0);
+// result3.shape() = {3}
+// result3 的值: [1.0, 2.0, 3.0]
+```
+
+#### split
+
+```cpp
+std::vector<Tensor> split(const Tensor &x, SizeArrayRef split_sizes, int dim = 0)
+std::vector<Tensor> split(const Tensor &x, size_t split_size, int dim = 0)
+```
+
+在指定维度上分割张量。
+
+**参数:**
+- `x` (Tensor) – 输入张量
+- `split_sizes` (SizeArrayRef) – 每个分割的大小列表，支持 `std::vector<size_t>`、`std::initializer_list<size_t>` 等
+- `split_size` (size_t) – 每个分割的固定大小（用于重载版本）
+- `dim` (int, optional) – 分割的维度，默认为 0
+
+**返回值:** std::vector<Tensor> – 分割后的张量列表
+
+**注意:**
+- `dim` 必须在有效范围内（0 到 `x.ndim() - 1`）
+- **按大小列表分割**：`split_sizes` 中所有大小的总和必须等于输入张量在 `dim` 维度上的大小
+- **按固定大小分割**：如果 `dim` 维度的大小不能被 `split_size` 整除，最后一个分割的大小会小于 `split_size`
+- 所有输出张量与输入张量在同一设备上，数据类型相同
+
+**例子:**
+```cpp
+// 创建一个从0开始递增的 Shape{3, 4} 矩阵
+// [[0, 1, 2, 3],
+//  [4, 5, 6, 7],
+//  [8, 9, 10, 11]]
+auto x = Tensor({0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f}, Shape{3, 4});
+
+// 在 dim=0 上按大小列表分割
+auto results1 = split(x, {1, 2}, 0);
+// results1.size() = 2
+// results1[0].shape() = Shape{1, 4}, 值: [[0, 1, 2, 3]]  (第1行)
+// results1[1].shape() = Shape{2, 4}, 值: [[4, 5, 6, 7], [8, 9, 10, 11]]  (第2-3行)
+
+// 在 dim=0 上按固定大小分割
+auto results2 = split(x, 2, 0);  // 每个分割大小为 2
+// results2.size() = 2  (向上取整: ceil(3/2) = 2)
+// results2[0].shape() = Shape{2, 4}, 值: [[0, 1, 2, 3], [4, 5, 6, 7]]  (第1-2行)
+// results2[1].shape() = Shape{1, 4}, 值: [[8, 9, 10, 11]]  (第3行，最后一个分割小于 split_size)
+
+// 在 dim=1 上按不等大小列表分割
+auto results3 = split(x, {1, 2, 1}, 1);
+// results3.size() = 3
+// results3[0].shape() = Shape{3, 1}, 值: [[0], [4], [8]]  (第1列)
+// results3[1].shape() = Shape{3, 2}, 值: [[1, 2], [5, 6], [9, 10]]  (第2-3列)
+// results3[2].shape() = Shape{3, 1}, 值: [[3], [7], [11]]  (第4列)
+```
+
 ### 归约操作
 
 #### sum

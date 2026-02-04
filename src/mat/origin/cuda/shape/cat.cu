@@ -113,39 +113,24 @@ std::unique_ptr<Mat> cat(const std::vector<const OriginMat *> &inputs, int dim)
         const uint8_t *src = static_cast<const uint8_t *>(input->storage()->data());
         uint8_t *dst_base  = static_cast<uint8_t *>(result->storage()->data());
 
-        // 优化：当 M=1 时（dim=0 的情况），只有一个 chunk，可以一次性拷贝整个输入
-        if (M == 1)
+        for (size_t m_idx = 0; m_idx < M; ++m_idx)
         {
-            // 输入就是整个矩阵，输出地址 = output_channel_offset * N
-            uint8_t *dst_chunk = dst_base + (output_channel_offset * N) * element_size_bytes;
+            // 输入地址偏移 = m_idx * C * N（每个 chunk 包含 C*N 个元素）
+            const uint8_t *src_chunk = src + m_idx * input_chunk_bytes;
             
-            // 一次性拷贝整个输入
-            size_t total_input_bytes = input_chunk_bytes;  // M=1 时，只有一个 chunk
-            CUDA_CHECK(cudaMemcpyAsync(dst_chunk, src, total_input_bytes, cudaMemcpyDeviceToDevice, nullptr));
-        }
-        else
-        {
-            // 通用情况：遍历每个 chunk（对应 M 维度的每个索引）
-            for (size_t m_idx = 0; m_idx < M; ++m_idx)
-            {
-                // 输入地址偏移 = m_idx * C * N（每个 chunk 包含 C*N 个元素）
-                const uint8_t *src_chunk = src + m_idx * input_chunk_bytes;
-                
-                // 输出地址偏移 = m_idx * output_C * N + output_channel_offset * N
-                // 其中 output_channel_offset 是已经拼接的通道数（在 C 维度上的偏移）
-                uint8_t *dst_chunk =
-                    dst_base + (m_idx * output_chunk_elements + output_channel_offset * N) * element_size_bytes;
-                
-                // 使用异步拷贝，默认流（NULL）允许 GPU 并行执行多个拷贝操作
-                CUDA_CHECK(cudaMemcpyAsync(dst_chunk, src_chunk, input_chunk_bytes, cudaMemcpyDeviceToDevice, nullptr));
-            }
+            // 输出地址偏移的元素数量 = m_idx * output_chunk_elements + output_channel_offset * N
+            // 其中 output_channel_offset 是已经拼接的通道数（在 C 维度上的偏移）
+            uint8_t *dst_chunk =
+                dst_base + (m_idx * output_chunk_elements + output_channel_offset * N) * element_size_bytes;
+            
+            // 使用异步拷贝，默认流（NULL）允许 GPU 并行执行多个拷贝操作
+            CUDA_CHECK(cudaMemcpyAsync(dst_chunk, src_chunk, input_chunk_bytes, cudaMemcpyDeviceToDevice, nullptr));
         }
 
         // 更新输出偏移（累计已拼接的通道数）
         output_channel_offset += C;
     }
 
-    CUDA_CHECK_ASYNC();
     return result;
 }
 
