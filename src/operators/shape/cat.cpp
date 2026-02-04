@@ -33,6 +33,13 @@ static inline bool shapes_match_except_dim(const Shape &shape1, const Shape &sha
     return true;
 }
 
+/*
+Cat::forward(const std::vector<Tensor> &xs): 包含所有输入（函数式语义）
+Mat::cat(others, dim)：others 不包含 this（成员函数语义）
+cuda::cat(inputs, dim)：inputs 包含所有输入（函数式语义）
+这样每一步调用之间都需要做转换。
+TODO：未来需要优化调用流程
+*/
 std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
 {
     if (unlikely(xs.empty()))

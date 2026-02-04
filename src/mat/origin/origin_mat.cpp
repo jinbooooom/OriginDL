@@ -1816,7 +1816,7 @@ std::unique_ptr<Mat> OriginMat::cat(const std::vector<const Mat *> &others, int 
     int backend_type = this->backend_type();
     for (const auto *other : others)
     {
-        if (other->backend_type() != backend_type)
+        if (unlikely(other->backend_type() != backend_type))
         {
             THROW_RUNTIME_ERROR("cat: all inputs must have same backend type, got {} and {}", backend_type,
                                 other->backend_type());
@@ -1831,7 +1831,7 @@ std::unique_ptr<Mat> OriginMat::cat(const std::vector<const Mat *> &others, int 
     for (const auto *other : others)
     {
         const OriginMat *origin_mat = dynamic_cast<const OriginMat *>(other);
-        if (!origin_mat)
+        if (unlikely(!origin_mat))
         {
             THROW_RUNTIME_ERROR("cat: failed to cast to OriginMat");
         }
