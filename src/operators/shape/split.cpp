@@ -61,14 +61,7 @@ std::vector<Tensor> Split::forward(const std::vector<Tensor> &xs)
         }
     }
 
-    std::vector<Shape> output_shapes(actual_split_sizes.size());
-    for (size_t i = 0; i < actual_split_sizes.size(); ++i)
-    {
-        output_shapes[i] = input_shape;
-        output_shapes[i][dim_] = actual_split_sizes[i];
-    }
-
-    std::vector<std::unique_ptr<Mat>> result_mats = mat(x).split(output_shapes, dim_);
+    std::vector<std::unique_ptr<Mat>> result_mats = mat(x).split(actual_split_sizes, dim_);
     std::vector<Tensor> results(result_mats.size());
     for (size_t i = 0; i < result_mats.size(); ++i)
     {

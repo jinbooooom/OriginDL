@@ -85,7 +85,7 @@ public:
     constexpr const size_t* cbegin() const noexcept { return data_; }
     constexpr const size_t* cend() const noexcept { return data_ + size_; }
     
-    // 转换为 vector（函数内部应立即调用此方法）
+    // 转换为 vector
     std::vector<size_t> to_vector() const {
         return std::vector<size_t>(data_, data_ + size_);
     }

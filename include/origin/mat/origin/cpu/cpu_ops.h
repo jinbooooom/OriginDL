@@ -109,11 +109,11 @@ std::unique_ptr<Mat> cat(const std::vector<const OriginMat *> &inputs, int dim);
 /**
  * @brief CPU split：将矩阵沿指定维度分割成多个矩阵（cat 的反向操作）
  * @param input 输入矩阵
- * @param output_shapes 输出形状列表
+ * @param split_sizes 沿 dim 维度的各段大小列表
  * @param dim 分割维度
  * @return 分割后的矩阵列表
  */
-std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vector<Shape> &output_shapes, int dim);
+std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vector<size_t> &split_sizes, int dim);
 
 // === 类型转换 ===
 std::unique_ptr<Mat> convert_datatype(const OriginMat &mat, DataType target_type);

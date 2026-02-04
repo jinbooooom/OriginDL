@@ -1854,21 +1854,21 @@ std::unique_ptr<Mat> OriginMat::cat(const std::vector<const Mat *> &others, int 
     }
 }
 
-std::vector<std::unique_ptr<Mat>> OriginMat::split(const std::vector<Shape> &output_shapes, int dim) const
+std::vector<std::unique_ptr<Mat>> OriginMat::split(const std::vector<size_t> &split_sizes, int dim) const
 {
     // 根据设备类型调用对应的实现
     DeviceType device_type = this->device().type();
     if (device_type == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        return cuda::split(*this, output_shapes, dim);
+        return cuda::split(*this, split_sizes, dim);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
     }
     else
     {
-        return cpu::split(*this, output_shapes, dim);
+        return cpu::split(*this, split_sizes, dim);
     }
 }
 

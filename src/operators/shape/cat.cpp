@@ -94,13 +94,13 @@ std::vector<Tensor> Cat::backward(const std::vector<Tensor> &gys)
     auto &gy     = gys[0];
     auto &inputs = this->inputs_;
 
-    std::vector<Shape> output_shapes(inputs.size());
+    std::vector<size_t> split_sizes(inputs.size());
     for (size_t i = 0; i < inputs.size(); ++i)
     {
-        output_shapes[i] = inputs[i].shape();
+        split_sizes[i] = inputs[i].shape()[dim_];
     }
 
-    std::vector<std::unique_ptr<Mat>> gx_mats = mat(gy).split(output_shapes, dim_);
+    std::vector<std::unique_ptr<Mat>> gx_mats = mat(gy).split(split_sizes, dim_);
     std::vector<Tensor> gxs(gx_mats.size());
     for (size_t i = 0; i < gx_mats.size(); ++i)
     {

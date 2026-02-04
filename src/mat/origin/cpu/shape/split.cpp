@@ -15,88 +15,90 @@ namespace cpu
 /**
  * @brief CPU split：将矩阵沿指定维度分割成多个矩阵（cat 的反向操作）
  * @param input 输入矩阵
- * @param output_shapes 输出形状列表
+ * @param split_sizes 沿 dim 维度的各段大小列表
  * @param dim 分割维度
  * @return 分割后的矩阵列表
  */
-std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vector<Shape> &output_shapes, int dim)
+std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vector<size_t> &split_sizes, int dim)
 {
-    if (output_shapes.empty())
+    if (split_sizes.empty())
     {
-        THROW_RUNTIME_ERROR("split: requires at least 1 output shape");
+        THROW_RUNTIME_ERROR("split: requires at least 1 split size");
     }
 
     auto input_shape          = input.shape();
     size_t element_size_bytes = element_size(input.dtype());
 
-    // 验证输出形状的总和等于输入形状
+    // 验证 split_sizes 总和等于输入在 dim 维度上的大小
     size_t total_dim_size = 0;
-    for (const auto &shape : output_shapes)
+    for (size_t s : split_sizes)
     {
-        if (shape.size() != input_shape.size())
-        {
-            THROW_RUNTIME_ERROR("split: output shape dimension mismatch. Expected {}, got {}", input_shape.size(),
-                                shape.size());
-        }
-        for (size_t d = 0; d < shape.size(); ++d)
-        {
-            if (d != static_cast<size_t>(dim) && shape[d] != input_shape[d])
-            {
-                THROW_RUNTIME_ERROR("split: dimension {} mismatch: {} vs {}", d, shape[d], input_shape[d]);
-            }
-        }
-        total_dim_size += shape[dim];
+        total_dim_size += s;
     }
     if (total_dim_size != input_shape[dim])
     {
-        THROW_RUNTIME_ERROR("split: total output dimension size {} does not match input dimension size {}",
-                            total_dim_size, input_shape[dim]);
+        THROW_RUNTIME_ERROR("split: total split_sizes {} does not match input dimension size {} at dim {}",
+                            total_dim_size, input_shape[dim], dim);
     }
 
     std::vector<std::unique_ptr<Mat>> results;
-    results.reserve(output_shapes.size());
+    results.reserve(split_sizes.size());
 
-    // 计算切片大小（dim 之后的所有维度）
-    size_t slice_size = 1;
-    for (size_t d = dim + 1; d < input_shape.size(); ++d)
-    {
-        slice_size *= input_shape[d];
-    }
+    // ============================================================================
+    // 算法说明：将多维张量在指定维度上分割（cat 的反向操作）
+    //
+    // 思路：将任意维度的 split 转换为 3 维来思考（与 cat 对应）
+    // 例如：Shape{A, B, C₁+C₂, H, W} 在 dim=2 上 split，可以看作 Shape{A*B, C₁+C₂, H*W} 在 dim=1 上 split
+    // 这样可以将 dim 之前的所有维度合并为 M，dim 之后的所有维度合并为 N
+    // ============================================================================
 
-    // 计算需要复制的切片数量（dim 之前的所有维度）
-    size_t num_slices = 1;
+    // M: dim 之前所有维度的乘积（外层维度大小）
+    size_t M = 1;
     for (size_t d = 0; d < static_cast<size_t>(dim); ++d)
     {
-        num_slices *= input_shape[d];
+        M *= input_shape[d];
     }
 
-    const void *input_data       = input.storage()->data();
-    size_t input_offset_elements = 0;
+    // C: 输入在 dim 维度上的总大小
+    size_t C = input_shape[dim];
 
-    for (const auto &output_shape : output_shapes)
+    // N: dim 之后所有维度的乘积（内层维度大小）
+    size_t N = 1;
+    for (size_t d = dim + 1; d < input_shape.size(); ++d)
     {
-        // 创建输出矩阵
-        auto result       = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
+        N *= input_shape[d];
+    }
+
+    size_t input_chunk_elements = C * N;
+
+    const uint8_t *src_base     = static_cast<const uint8_t *>(input.storage()->data());
+    size_t input_channel_offset = 0;
+
+    for (size_t Ci : split_sizes)
+    {
+        // 构造输出形状
+        Shape output_shape = input_shape;
+        output_shape[dim]  = Ci;
+
+        auto result = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
         void *output_data = result->storage()->data();
 
-        size_t output_dim_size       = output_shape[dim];
-        size_t output_slice_elements = output_dim_size * slice_size;
-        size_t output_slice_bytes    = output_slice_elements * element_size_bytes;
+        size_t output_chunk_elements = Ci * N;
+        size_t output_chunk_bytes    = output_chunk_elements * element_size_bytes;
 
-        // 复制每个切片
-        for (size_t slice = 0; slice < num_slices; ++slice)
+        uint8_t *dst_base = static_cast<uint8_t *>(output_data);
+
+        for (size_t m_idx = 0; m_idx < M; ++m_idx)
         {
-            size_t input_slice_elements = input_shape[dim] * slice_size;
-            const void *input_slice =
-                static_cast<const char *>(input_data) +
-                (slice * input_slice_elements + input_offset_elements * slice_size) * element_size_bytes;
-            void *output_slice = static_cast<char *>(output_data) + slice * output_slice_bytes;
+            const uint8_t *src_chunk =
+                src_base + (m_idx * input_chunk_elements + input_channel_offset * N) * element_size_bytes;
+            uint8_t *dst_chunk = dst_base + m_idx * output_chunk_bytes;
 
-            std::memcpy(output_slice, input_slice, output_slice_bytes);
+            std::memcpy(dst_chunk, src_chunk, output_chunk_bytes);
         }
 
-        results.push_back(std::move(result));
-        input_offset_elements += output_dim_size;
+        results.emplace_back(std::move(result));
+        input_channel_offset += Ci;
     }
 
     return results;
