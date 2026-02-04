@@ -11,9 +11,11 @@ docs/
 │   ├── README.md               # 设计文档目录介绍
 │   ├── architecture.md         # 系统架构设计文档
 │   └── operators_theory.md     # 算子设计理论文档
-└── user_guide/                 # 用户指南目录
-    ├── api.md                  # API 参考文档
-    └── compare.md              # 与 PyTorch 对比文档
+├── user_guide/                 # 用户指南目录
+│   ├── api.md                  # API 参考文档
+│   └── compare.md              # 与 PyTorch 对比文档
+└── contributing/               # 贡献指南目录
+    └── DATA_RELEASE_GUIDE.md   # 数据和模型发布指南
 ```
 
 ## 📚 文档目录
@@ -63,6 +65,16 @@ docs/
   - 详细的 API 对比表格
   - 语法差异说明
   - 使用示例对比
+
+### [贡献指南](contributing/)
+
+**项目维护和贡献指南**，帮助维护者和贡献者了解项目的维护流程。
+
+- **[数据和模型发布指南](contributing/DATA_RELEASE_GUIDE.md)** - 如何在 GitHub Releases 上发布数据和模型文件：
+  - 数据打包和验证
+  - GitHub Release 创建流程
+  - 下载脚本配置
+  - 版本管理最佳实践
 
 ## 🔗 相关资源
 

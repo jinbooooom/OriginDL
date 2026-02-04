@@ -74,6 +74,22 @@ OriginDL/
   - [与 PyTorch 对比](docs/user_guide/compare.md) - API 对比和迁移指南
 
 ## 🚀 快速开始
+
+### 📦 下载数据和模型（可选）
+
+运行某些示例程序（如 MNIST、YOLOv5、ResNet）需要下载数据集和模型文件：
+
+```bash
+# 使用自动下载脚本（推荐）
+bash scripts/download_data.sh
+
+# 或手动下载：访问 GitHub Releases 页面下载压缩包并解压
+```
+
+详细说明请参考：
+- [数据下载说明](data/README.md)
+- [模型下载说明](model/README.md)
+
 ### 编译项目
 
 ```bash
