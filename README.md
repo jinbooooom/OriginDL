@@ -1,4 +1,4 @@
-# OriginDL: 从零开始构建的分布式深度学习框架
+# ![logo](./assets/README/logo.svg)OriginDL: 从零开始构建的分布式深度学习框架
 
 OriginDL 是一个从零开始构建的分布式深度学习框架，采用 C++ 实现，支持自动求导和多种计算后端。项目提供了类似 PyTorch 的 API 接口。
 
