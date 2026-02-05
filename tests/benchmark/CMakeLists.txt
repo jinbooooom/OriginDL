@@ -42,15 +42,15 @@ function(add_benchmark_executable category operator)
 endfunction()
 
 # 定义各类别算子列表
-set(MATH_OPERATORS add mat_mul)
-set(SHAPE_OPERATORS "")
-set(ACTIVATION_OPERATORS "")
+set(MATH_OPERATORS add sub mul div exp log neg square mat_mul pow sum)
+set(SHAPE_OPERATORS transpose reshape cat flatten)
+set(ACTIVATION_OPERATORS relu sigmoid softmax silu)
 set(CONV_OPERATORS conv2d)
-set(POOLING_OPERATORS "")
-set(NORMALIZATION_OPERATORS "")
-set(LOSS_OPERATORS "")
-set(NN_OPERATORS "")
-set(CUSTOM_OPERATORS "")
+set(POOLING_OPERATORS max_pool2d avg_pool2d adaptive_avg_pool2d)
+set(NORMALIZATION_OPERATORS batch_norm)
+set(LOSS_OPERATORS softmax_cross_entropy)
+set(NN_OPERATORS dropout identity upsample)
+set(CUSTOM_OPERATORS linear)
 
 # 为每个类别和算子添加可执行文件
 foreach(operator ${MATH_OPERATORS})
