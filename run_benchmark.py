@@ -15,11 +15,13 @@ from typing import List, Dict, Optional, Tuple
 def discover_benchmark_operators(project_root: Path) -> List[str]:
     """自动发现可用的benchmark算子
     
+    在所有类别目录中搜索 bench_*.py 文件，提取算子名称
+    
     Args:
         project_root: 项目根目录路径
     
     Returns:
-        算子名称列表，例如 ['add']
+        算子名称列表，例如 ['add', 'sub', 'reshape', 'conv2d', 'mat_mul', 'matmul']
     """
     operators = []
     benchmark_dir = project_root / "tests" / "benchmark"
@@ -27,13 +29,23 @@ def discover_benchmark_operators(project_root: Path) -> List[str]:
     if not benchmark_dir.exists():
         return operators
     
-    # 遍历 benchmark 目录下的子目录
-    for item in benchmark_dir.iterdir():
-        if item.is_dir() and item.name != "common":
-            # 检查是否有对应的 Python 测试脚本
-            pytorch_script = item / f"bench_{item.name}.py"
-            if pytorch_script.exists():
-                operators.append(item.name)
+    # 遍历 benchmark 目录下的所有类别目录（排除 common）
+    for category_dir in benchmark_dir.iterdir():
+        if not category_dir.is_dir() or category_dir.name == "common":
+            continue
+        
+        # 遍历类别目录下的所有 bench_*.py 文件
+        for py_file in category_dir.glob("bench_*.py"):
+            # 从文件名提取算子名称：bench_add.py -> add
+            operator_name = py_file.stem.replace("bench_", "")
+            
+            # 如果算子名称已存在，跳过（避免重复，虽然理论上不应该有重复）
+            if operator_name not in operators:
+                operators.append(operator_name)
+            
+            # 为 mat_mul 添加 matmul 别名
+            if operator_name == "mat_mul" and "matmul" not in operators:
+                operators.append("matmul")
     
     return sorted(operators)
 
@@ -42,17 +54,22 @@ def find_benchmark_executable(operator: str, project_root: Path) -> Optional[str
     """查找benchmark可执行文件
     
     Args:
-        operator: 算子名称，例如 'add'
+        operator: 算子名称，例如 'add' 或 'matmul'（matmul 会查找 bench_mat_mul）
         project_root: 项目根目录路径
     
     Returns:
         可执行文件路径，如果未找到返回None
     """
+    # 支持 matmul 作为 mat_mul 的别名
+    executable_operator = operator
+    if operator == "matmul":
+        executable_operator = "mat_mul"
+    
     possible_paths = [
-        project_root / "build" / "bin" / "benchmark" / f"bench_{operator}",
-        project_root / "torch_build" / "bin" / "benchmark" / f"bench_{operator}",
-        project_root / "build" / "bin" / f"bench_{operator}",
-        project_root / "torch_build" / "bin" / f"bench_{operator}",
+        project_root / "build" / "bin" / "benchmark" / f"bench_{executable_operator}",
+        project_root / "torch_build" / "bin" / "benchmark" / f"bench_{executable_operator}",
+        project_root / "build" / "bin" / f"bench_{executable_operator}",
+        project_root / "torch_build" / "bin" / f"bench_{executable_operator}",
     ]
     
     for path in possible_paths:
@@ -65,17 +82,57 @@ def find_benchmark_executable(operator: str, project_root: Path) -> Optional[str
 def import_pytorch_benchmark_module(operator: str, project_root: Path):
     """动态导入PyTorch benchmark模块
     
+    在所有类别目录中搜索 bench_{operator}.py 文件
+    
     Args:
         operator: 算子名称，例如 'add'
         project_root: 项目根目录路径
     
     Returns:
         导入的模块对象
-    """
-    module_path = project_root / "tests" / "benchmark" / operator / f"bench_{operator}.py"
     
-    if not module_path.exists():
-        raise FileNotFoundError(f"PyTorch benchmark script not found: {module_path}")
+    Raises:
+        FileNotFoundError: 如果找不到对应的benchmark脚本
+    """
+    benchmark_dir = project_root / "tests" / "benchmark"
+    
+    # 支持 matmul 作为 mat_mul 的别名
+    search_operator = operator
+    if operator == "matmul":
+        search_operator = "mat_mul"
+    
+    module_file = f"bench_{search_operator}.py"
+    
+    # 在所有类别目录中搜索
+    found_paths = []
+    for category_dir in benchmark_dir.iterdir():
+        if not category_dir.is_dir() or category_dir.name == "common":
+            continue
+        
+        module_path = category_dir / module_file
+        if module_path.exists():
+            found_paths.append(module_path)
+    
+    # 如果找到多个，报错（理论上不应该有重复的算子名称）
+    if len(found_paths) > 1:
+        categories = [p.parent.name for p in found_paths]
+        raise FileNotFoundError(
+            f"Multiple benchmark scripts found for operator '{operator}' in categories: {categories}. "
+            f"Please ensure operator names are unique across all categories."
+        )
+    
+    # 如果没找到，尝试向后兼容：检查旧结构（每个算子一个目录）
+    if len(found_paths) == 0:
+        old_path = benchmark_dir / operator / module_file
+        if old_path.exists():
+            found_paths.append(old_path)
+        else:
+            raise FileNotFoundError(
+                f"PyTorch benchmark script not found for operator '{operator}'. "
+                f"Searched in all category directories under {benchmark_dir}"
+            )
+    
+    module_path = found_paths[0]
     
     # 添加模块路径到sys.path
     module_dir = str(module_path.parent)
@@ -227,7 +284,12 @@ def run_operator_benchmark(operator: str,
         module = import_pytorch_benchmark_module(operator, project_root)
         
         # 查找benchmark函数（例如 benchmark_add_comparison）
+        # 支持 matmul 作为 mat_mul 的别名
         benchmark_func_name = f"benchmark_{operator}_comparison"
+        if operator == "matmul":
+            # matmul 是 mat_mul 的别名
+            benchmark_func_name = "benchmark_mat_mul_comparison"
+        
         if not hasattr(module, benchmark_func_name):
             if verbose:
                 print(f"Warning: Module {module.__name__} does not have function {benchmark_func_name}", 

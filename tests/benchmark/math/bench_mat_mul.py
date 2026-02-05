@@ -18,7 +18,7 @@ from timer import Timer
 
 
 class MatMulBenchmark(BenchmarkFramework):
-    """MatMul算子基准测试类"""
+    """MatMul算子基准测试类（注意：算子名称为 mat_mul）"""
     
     def get_required_shapes_count(self) -> int:
         """MatMul算子需要两个shape"""
@@ -136,14 +136,14 @@ class MatMulBenchmark(BenchmarkFramework):
                 )
 
 
-def benchmark_matmul_comparison(device_filter=None,
+def benchmark_mat_mul_comparison(device_filter=None,
                                 shape_filter=None,
                                 warmup_cnt=5,
                                 repeat_cnt=100,
                                 inplace=False,
                                 verbose=False):
     """
-    运行matmul算子的PyTorch性能测试
+    运行mat_mul算子的PyTorch性能测试
     
     Args:
         device_filter: 设备过滤，'cpu'或'cuda'
