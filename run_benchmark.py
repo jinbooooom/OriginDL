@@ -448,6 +448,15 @@ def main():
     script_path = Path(__file__).resolve()
     project_root = script_path.parent
     
+    # 发现可用的算子（用于help信息）
+    available_operators = discover_benchmark_operators(project_root)
+    
+    # 构建算子列表的帮助信息
+    if available_operators:
+        operators_help = f"Operator name to benchmark. Available operators: {', '.join(available_operators)}. If not specified, all operators will be tested."
+    else:
+        operators_help = 'Operator name to benchmark (e.g., add). If not specified, all operators will be tested.'
+    
     # 解析命令行参数
     parser = argparse.ArgumentParser(
         description='OriginDL operator performance comparison with PyTorch',
@@ -466,7 +475,7 @@ Examples:
     parser.add_argument(
         '-f', '--function',
         dest='operator',
-        help='Operator name to benchmark (e.g., add). If not specified, all operators will be tested.'
+        help=operators_help
     )
     parser.add_argument(
         '-d', '--device',
@@ -494,7 +503,7 @@ Examples:
     
     args = parser.parse_args()
     
-    # 发现可用的算子
+    # 再次发现可用的算子（用于验证和测试）
     available_operators = discover_benchmark_operators(project_root)
     
     if not available_operators:
@@ -517,10 +526,10 @@ Examples:
     fail_count = 0
     
     for operator in operators_to_test:
-        if len(operators_to_test) > 1:
-            print(f"\n{'='*80}", file=sys.stderr)
-            print(f"Testing operator: {operator}", file=sys.stderr)
-            print('='*80, file=sys.stderr)
+        # if len(operators_to_test) > 1:
+        #     print(f"\n{'='*80}", file=sys.stderr)
+        #     print(f"Testing operator: {operator}", file=sys.stderr)
+        #     print('='*80, file=sys.stderr)
         
         result = run_operator_benchmark(
             operator=operator,
