@@ -227,9 +227,41 @@ bash run_unit_test.sh --cuda
 python3 run_benchmark.py
 
 # 运行特定算子的 benchmark
-python3 run_benchmark.py --operator add
-python3 run_benchmark.py --operator conv2d
+python3 run_benchmark.py -f add
+python3 run_benchmark.py -f conv2d
+
+# 运行多个算子的 benchmark（逗号分隔）
+python3 run_benchmark.py -f add,sub,mul,div
+python3 run_benchmark.py -f relu,sigmoid,softmax
+
+# 指定设备运行（CPU 或 CUDA）
+python3 run_benchmark.py -f add -d cpu
+python3 run_benchmark.py -f add -d cuda:0
+
+# 指定特定的 shape 进行测试
+python3 run_benchmark.py -f add -d cuda:0 -s 1000,1000
+
+# 自定义预热和重复次数
+python3 run_benchmark.py -f add -w 5 -r 50
+
+# 测试就地操作（inplace operations）
+python3 run_benchmark.py -f add --inplace
+
+# 导出性能数据到 Excel 文件
+python3 run_benchmark.py -f add -d cuda:0 -o ./benchmark_results
+python3 run_benchmark.py -f add,sub,mul,div -d cuda:0 -o ./benchmark_results
+python3 run_benchmark.py -d cuda:0 -o ./benchmark_results  # 测试所有算子并导出
+
+# 组合使用多个参数
+python3 run_benchmark.py -f conv2d,relu -d cuda:0 -w 2 -r 10 -o ./results
 ```
+
+**Excel 输出说明：**
+- `-o` 参数指定输出目录，文件会自动生成
+- 单算子测试：生成 `benchmark_{operator}_{timestamp}.xlsx`
+- 多算子测试：生成 `benchmark_{operator1}_{operator2}_{timestamp}.xlsx`，包含每个算子的独立 Sheet 和统一的汇总 Sheet
+- 全部测试：生成 `benchmark_all_{timestamp}.xlsx`
+- Excel 文件包含颜色标记：红色（Speedup ≤ 0.6）、黄色（0.6 < Speedup ≤ 0.8）、绿色（0.8 < Speedup ≤ 0.9）
 
 ### 示例程序
 

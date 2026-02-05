@@ -682,12 +682,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 benchmark.py                    # Test all operators
-  python3 benchmark.py -f add             # Test add operator only
-  python3 benchmark.py -f add -d cuda:0    # Test add operator on CUDA device 0 (or use -d cpu for CPU)
-  python3 benchmark.py -f add -d cuda:0 -s 1000,1000  # Test add with specific shape
-  python3 benchmark.py -f add -w 5 -r 50  # Test with custom warmup and repeat counts
-  python3 benchmark.py -f add --inplace   # Test with inplace operations
+  python3 run_benchmark.py                    # Test all operators
+  python3 run_benchmark.py -f add             # Test add operator only
+  python3 run_benchmark.py -f add,sub,mul      # Test multiple operators (comma-separated)
+  python3 run_benchmark.py -f add -d cuda:0   # Test add operator on CUDA device 0 (or use -d cpu for CPU)
+  python3 run_benchmark.py -f add -d cuda:0 -s 1000,1000  # Test add with specific shape
+  python3 run_benchmark.py -f add -w 5 -r 50   # Test with custom warmup and repeat counts
+  python3 run_benchmark.py -f add --inplace   # Test with inplace operations
+  python3 run_benchmark.py -f add -d cuda:0 -o ./results  # Export results to Excel file
+  python3 run_benchmark.py -f add,sub,mul -d cuda:0 -o ./results  # Test multiple operators and export
         """
     )
     
