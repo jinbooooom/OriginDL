@@ -143,7 +143,66 @@ flowchart TB
 
 **类图（UML 风格）：**
 
-TODO:补充 tensor 的类图
+```mermaid
+classDiagram
+    class Tensor {
+        -shared_ptr~TensorImpl~ impl_
+        +operator+(other) Tensor
+        +operator*(other) Tensor
+        +backward() void
+        +shape() Shape
+        +detach() Tensor
+    }
+    
+    class TensorImpl {
+        +shared_ptr~Mat~ data_
+        +shared_ptr~Mat~ grad_
+        +shared_ptr~Operator~ creator_
+        +int generation_
+        +set_creator(op) void
+        +backward() void
+        +reshape(shape) TensorImpl
+        +transpose() TensorImpl
+    }
+    
+    class Mat {
+        <<abstract>>
+        +clone()* unique_ptr~Mat~
+        +view(shape)* unique_ptr~Mat~
+        +operator+()* unique_ptr~Mat~
+        +reshape()* unique_ptr~Mat~
+        +transpose()* unique_ptr~Mat~
+    }
+    
+    class OriginMat {
+        -shared_ptr~Storage~ storage_
+        -Shape shape_
+        -vector~size_t~ strides_
+        +clone() unique_ptr~Mat~
+        +from_scalar()* unique_ptr~Mat~
+        +from_memory()* unique_ptr~Mat~
+    }
+    
+    class TorchMat {
+        +torch::Tensor
+        +clone() unique_ptr~Mat~
+    }
+    
+    class Storage {
+        -void* data_
+        -size_t size_
+        -DeviceType device_type_
+        +create() shared_ptr~Storage~
+        +data() void*
+    }
+    
+    Tensor "1" *-- "1" TensorImpl : impl_
+    TensorImpl "1" *-- "0..1" Mat : data_
+    TensorImpl "1" *-- "0..1" Mat : grad_
+    Mat <|-- OriginMat
+    Mat <|-- TorchMat
+    OriginMat "1" *-- "1" Storage : storage_
+```
 
 ## 2.2 Tensor 层：用户接口层
 
@@ -453,9 +512,87 @@ Mat 与 Storage 的关系
 
 对应 [2.1.1 四层架构概览](#211-四层架构概览) 中的**第 4 层**，提供 Mat 接口的具体实现。
 
-（待完善）
+### 2.5.1 后端实现架构概览
 
+```mermaid
+flowchart TB
+    subgraph MatInterface["Mat 抽象接口"]
+        Mat["Mat<br/>clone, view, reshape<br/>operator+, matmul..."]
+    end
+    
+    subgraph OriginBackend["OriginMat 自研后端"]
+        OriginMat["OriginMat<br/>storage_, shape_, strides_"]
+        CPUOps["CPU 实现<br/>cpu_ops.h"]
+        CUDEOps["CUDA 实现<br/>cuda_ops.cuh"]
+        Storage["Storage<br/>内存管理"]
+        OriginMat --> CPUOps
+        OriginMat --> CUDEOps
+        OriginMat --> Storage
+    end
+    
+    subgraph TorchBackend["TorchMat 后端"]
+        TorchMat["TorchMat<br/>torch::Tensor"]
+    end
+    
+    Mat -.->|继承| OriginMat
+    Mat -.->|继承| TorchMat
+```
 
+### 2.5.2 OriginMat 设计
+
+OriginMat 是 OriginDL 的自研矩阵计算后端，使用 Storage 进行内存管理，支持 CPU/CUDA 计算。
+
+**核心数据成员：**
+
+| 成员 | 类型 | 说明 |
+|------|------|------|
+| storage_ | shared_ptr\<Storage\> | 数据存储，拥有原始内存 |
+| shape_ | Shape | 张量形状 |
+| strides_ | vector\<size_t\> | 步长信息，用于非连续视图 |
+| dtype_ | DataType | 数据类型 |
+
+**工厂方法：**
+
+| 方法 | 说明 |
+|------|------|
+| from_scalar(scalar, shape, options) | 从标量创建张量 |
+| from_memory(data, dtype, shape, options) | 从内存创建张量 |
+
+**实现分支：** OriginMat 根据 device 分发到 `cpu_ops` 或 `cuda_ops`，通过 `device_common` 共享模板逻辑，`type_dispatcher` 实现 dtype 分发。
+
+### 2.5.3 Storage 与内存管理
+
+Storage 是数据拥有者，管理原始内存 allocation/deallocation。
+
+```mermaid
+classDiagram
+    class Storage {
+        -void* data_
+        -size_t size_
+        -DeviceType device_type_
+        -int device_index_
+        +create(size, device_type, device_index) shared_ptr
+        +data() void*
+        +size() size_t
+        +device_type() DeviceType
+    }
+    
+    class OriginMat {
+        -shared_ptr~Storage~ storage_
+    }
+    
+    OriginMat "1" *-- "1" Storage : 拥有或共享
+```
+
+**设计要点：**
+
+- Storage 禁用拷贝，仅支持移动；通过 `MemoryPool` 管理内存池
+- OriginMat 拥有 Storage 或作为视图共享 Storage（通过 `view()` 创建的 Mat 共享同一 Storage）
+- 支持 CPU 和 CUDA 设备，通过 `device_type_` 和 `device_index_` 区分
+
+### 2.5.4 TorchMat 简要说明
+
+TorchMat 是基于 LibTorch 的 Mat 实现，将 OriginDL 的 Mat 接口桥接到 `torch::Tensor`，用于复用 LibTorch 的高性能算子。编译时需启用 LibTorch 依赖。
 
 ## 2.6 内存所有权设计
 
@@ -547,7 +684,7 @@ void TensorImpl::backward() {
         grad_ = std::shared_ptr<Mat>(Mat_t::zeros(shape(), options()));
     }
     // ...
-}第5章：Tensor 构造函数与工厂方法
+}
 ```
 
 ### 2.6.4 类型转换
@@ -1550,52 +1687,279 @@ Hook 在 `step_one` 之前执行，签名为 `void(vector<Parameter*>&)`。Weigh
 
 # 8. 数据处理架构
 
+数据处理模块负责数据的加载、批处理和迭代，为训练提供数据流。采用 Dataset + DataLoader 设计，与 PyTorch 风格一致。
+
 ## 8.1 Dataset 接口设计
+
+Dataset 是数据集的抽象基类，定义统一的样本访问接口。
+
+```mermaid
+classDiagram
+    class Dataset {
+        <<abstract>>
+        +get_item(index) pair~Tensor,Tensor~
+        +size() size_t
+        +valid_index(index) bool
+    }
+    
+    class MNIST {
+        -vector~vector~float~~ images_
+        -vector~int32_t~ labels_
+        -bool train_
+        -string root_
+        +get_item(index) pair~Tensor,Tensor~
+        +size() size_t
+    }
+    
+    Dataset <|-- MNIST
+```
+
+**核心接口：**
+
+| 方法 | 说明 |
+|------|------|
+| get_item(index) | 获取单个样本，返回 (input, target) 对 |
+| size() | 返回数据集样本数量 |
+| valid_index(index) | 检查索引是否有效 |
+
+**MNIST 实现：** 继承 Dataset，从 MNIST 二进制格式（images/train-images-idx3-ubyte, labels/train-labels-idx1-ubyte）加载图像和标签，像素归一化到 [0, 1]，返回 (image_tensor, label_tensor)。
 
 ## 8.2 DataLoader 实现
 
+DataLoader 对 Dataset 进行批处理、打乱和迭代封装。
+
+```mermaid
+flowchart LR
+    subgraph DataFlow["数据流"]
+        Dataset["Dataset<br/>get_item(), size()"]
+        DataLoader["DataLoader<br/>next(), has_next()"]
+        Batch["Batch<br/>(inputs, targets)"]
+        Dataset --> DataLoader
+        DataLoader --> Batch
+    end
+    
+    subgraph DataLoaderInternals["DataLoader 内部"]
+        indices["indices_<br/>索引列表"]
+        shuffle["shuffle<br/>打乱"]
+        batch["batch_size_<br/>批大小"]
+        indices --> shuffle
+        shuffle --> batch
+    end
+```
+
+**核心成员：**
+
+| 成员 | 说明 |
+|------|------|
+| dataset_ | 数据集指针（不拥有所有权） |
+| batch_size_ | 批大小 |
+| shuffle_ | 是否随机打乱 |
+| indices_ | 索引列表，reset 时根据 shuffle 打乱 |
+| current_index_ | 当前迭代位置 |
+
+**核心方法：**
+
+| 方法 | 说明 |
+|------|------|
+| next() | 返回下一批 (inputs, targets)，末尾返回空批次 |
+| has_next() | 是否还有更多批次 |
+| reset() | 重置迭代，重新打乱（若 shuffle=true） |
+
 ## 8.3 数据预处理机制
+
+**MNIST 预处理：** 图像像素除以 255.0 归一化到 [0, 1]，标签保持 int32 标量。如需更复杂预处理（如标准化、增强），可在 `get_item()` 或 DataLoader 包装层扩展。
 
 # 9. IO 模块架构
 
+IO 模块负责模型参数和训练 checkpoint 的保存与加载，支持 .odl（StateDict）和 .ckpt（Checkpoint）两种格式。
+
 ## 9.1 Checkpoint 机制
+
+Checkpoint 用于保存完整训练状态，便于断点续训。
+
+```mermaid
+classDiagram
+    class Checkpoint {
+        +StateDict model_state_dict
+        +map~string,map~string,any~~ optimizer_state_dict
+        +int epoch
+        +int step
+        +float loss
+        +string optimizer_type
+        +map~string,float~ optimizer_config
+    }
+    
+    class StateDict {
+        map~string,Tensor~
+    }
+    
+    Checkpoint --> StateDict : model_state_dict
+```
+
+**Checkpoint 结构：**
+
+| 字段 | 说明 |
+|------|------|
+| model_state_dict | 模型参数 StateDict |
+| optimizer_state_dict | 优化器状态（如 Adam 的 m/v） |
+| epoch, step, loss | 训练进度信息 |
+| optimizer_type | 优化器类型（"Adam", "SGD"） |
+| optimizer_config | 学习率等配置 |
+
+**接口：** `save(checkpoint, filepath)` 和 `load_checkpoint(filepath)`，.ckpt 实际保存为目录结构。
 
 ## 9.2 Model IO 设计
 
+Model IO 提供 StateDict 级别的保存与加载。
+
+| 接口 | 说明 |
+|------|------|
+| save(state_dict, filepath) | 保存 StateDict 到 .odl 文件 |
+| load(filepath) | 根据扩展名加载：.odl 返回 StateDict |
+
+**StateDict：** `unordered_map<string, Tensor>`，键为参数名（如 "0.weight", "1.bias"），与 Module::state_dict() 一致。
+
+**与 Module 的关系：** `model.state_dict()` 收集参数 → `save()` 写入；`load()` 读取 → `model.load_state_dict()` 加载。
+
 ## 9.3 模型保存与加载
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Model as Module
+    participant IO as Model IO
+    
+    Note over User,IO: 保存
+    User->>Model: state_dict()
+    Model-->>User: StateDict
+    User->>IO: save(state_dict, path)
+    IO-->>User: 写入 .odl
+    
+    Note over User,IO: 加载
+    User->>IO: load(path)
+    IO-->>User: StateDict
+    User->>Model: load_state_dict(state_dict)
+    Model-->>User: 完成
+```
+
+**典型用法：** 只保存参数用 `save(model.state_dict(), "model.odl")`；断点续训用 `save_checkpoint(checkpoint, "checkpoint.ckpt")` 和 `load_checkpoint("checkpoint.ckpt")`。
 
 # 10. PNNX 推理架构
 
+PNNX 是 PyTorch 的模型导出格式，OriginDL 支持解析 PNNX 的 .param（图结构）和 .bin（权重）文件，构建计算图并执行推理。
+
 ## 10.1 PNNX 图结构
+
+PNNX 图由节点（PNNXNode）组成，每个节点对应一个算子。
+
+```mermaid
+classDiagram
+    class PNNXNode {
+        +string name
+        +string type
+        +shared_ptr~Operator~ op
+        +vector~string~ input_names
+        +vector~string~ output_names
+        +map~string,Parameter~ params
+        +map~string,Attribute~ attributes
+        +map~string,Tensor~ input_tensors
+        +vector~Tensor~ output_tensors
+        +int execution_order
+    }
+    
+    class PNNXGraph {
+        -vector~shared_ptr~PNNXNode~~ nodes_
+        -map~string,shared_ptr~PNNXNode~~ node_map_
+        +build() void
+        +set_inputs(name, inputs) void
+        +forward(debug) void
+        +get_outputs(name) vector~Tensor~
+    }
+    
+    PNNXGraph "1" *-- "*" PNNXNode : nodes_
+    PNNXNode --> Operator : op
+```
+
+**PNNXNode 字段：** name/type 标识算子；params/attributes 存储参数和权重；input_names/output_names 描述连接；input_tensors/output_tensors 为运行时 Tensor。
 
 ## 10.2 模型推理流程
 
+```mermaid
+flowchart TD
+    Parse["PNNXParser::parse<br/>解析 .param + .bin"]
+    Build["PNNXGraph::build<br/>创建 Operator、建立连接、拓扑排序"]
+    SetInputs["set_inputs<br/>设置输入 Tensor"]
+    Forward["forward<br/>按 execution_order 执行"]
+    GetOutputs["get_outputs<br/>获取输出 Tensor"]
+    
+    Parse --> Build --> SetInputs --> Forward --> GetOutputs
+    
+    subgraph GraphState["图状态"]
+        NeedInit["NeedInit"]
+        NeedBuild["NeedBuild"]
+        Complete["Complete"]
+        NeedInit --> NeedBuild --> Complete
+    end
+```
+
+**流程说明：** 1）parse 解析 param/bin 得到 PNNXNode 列表；2）build 调用 OperatorMapper 创建 OriginDL Operator，建立节点连接，拓扑排序；3）set_inputs 将用户 Tensor 填入输入节点；4）forward 按序执行，propagate 传播输出到下游；5）get_outputs 返回指定输出节点的 Tensor。
+
 ## 10.3 算子映射机制
+
+OperatorMapper 将 PNNX 算子类型映射到 OriginDL Operator。
+
+| PNNX 算子 | OriginDL Operator |
+|-----------|-------------------|
+| nn.Conv2d | Conv2d |
+| nn.SiLU | SiLU |
+| nn.ReLU | ReLU |
+| nn.AdaptiveAvgPool2d | AdaptiveAvgPool2d |
+| nn.Flatten | Flatten |
+| nn.Linear | Linear（custom） |
+| nn.Upsample | Upsample |
+| nn.MaxPool2d | MaxPool2d |
+| F.expression (add, mul 等) | Add, Mul 等 |
+| F.cat | Cat |
+| yolov5::YoloDetect | YOLO Detect |
+
+**权重加载：** OperatorMapper::load_weight_tensor 从 Attribute 中读取 shape 和 data，构造 OriginDL Tensor 并注册到 Operator。
 
 # 11. 应用示例
 
-本章介绍 OriginDL 框架在实际应用中的使用示例，包括线性回归、MNIST 训练、ResNet 分类和 YOLOv5 推理等典型场景。
+本章介绍 OriginDL 在实际场景中的使用示例，涵盖线性回归、MNIST 训练、ResNet 推理和 YOLOv5 目标检测。
 
 ## 11.1 线性回归示例
 
-（待完善）
+**场景：** 使用矩阵运算和 MSE 损失进行线性回归训练。
+
+**核心流程：** `y = x @ w + b`（mat_mul + add），损失 `MSE(y, target)`，手动梯度下降或通过 backward 自动求导更新 w、b。
+
+**代码要点：** 使用 `functional::mat_mul`、`functional::sum`、`functional::pow` 构建计算图，`Predict(x, w, b)` 返回预测值，`MSE(pred, target)` 返回标量损失，调用 `loss.backward()` 计算梯度后更新参数。
 
 ## 11.2 MNIST 训练示例
 
-（待完善）
-
 ### 11.2.1 MLP 模型训练
 
-（待完善）
+**场景：** MNIST 手写数字分类，使用 MLP（全连接）模型。
+
+**流程：** MNIST 数据集 + DataLoader(batch_size=256, shuffle=true) → nn::MLP(784, hidden, 10) → Adam 优化器 → 训练循环：`model.train()`、`optimizer.zero_grad()`、前向、`softmax_cross_entropy` 损失、`loss.backward()`、`optimizer.step()`。
+
+**关键组件：** MNIST、DataLoader、nn::MLP、Adam、WeightDecay Hook。
 
 ### 11.2.2 CNN 模型训练
 
-（待完善）
+**场景：** MNIST 分类，使用 CNN 模型（Conv2d + ReLU + MaxPool2d + Flatten + Linear）。
+
+**流程：** 与 MLP 类似，数据需 reshape 为 (N, 1, 28, 28)；模型为 Sequential(Conv2d, ReLU, MaxPool2d, Flatten, Linear)。
 
 ## 11.3 ResNet 分类推理
 
-（待完善）
+**场景：** 使用 PNNX 导出的 ResNet 模型进行图像分类推理。
+
+**流程：** PNNXGraph(param_path, bin_path) → build() → 预处理输入图像 → set_inputs() → forward() → get_outputs() → 后处理（argmax 得到类别）。
 
 ## 11.4 YOLOv5 目标检测推理
 
-（待完善）
+**场景：** 使用 PNNX 导出的 YOLOv5 模型进行目标检测。
+
+**流程：** 加载 PNNXGraph → 读取图像目录 → 预处理（resize、归一化、NCHW）→ set_inputs → forward → get_outputs → YOLO 后处理（NMS、置信度过滤）→ 绘制框并保存。支持命令行指定 param/bin、输入输出目录、置信度/IOU 阈值等。
