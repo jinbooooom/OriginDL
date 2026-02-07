@@ -110,20 +110,20 @@ flowchart TB
     end
     
     subgraph Layer1["第1层：Tensor (用户接口层)"]
-        Tensor["Tensor<br/>- 值语义包装<br/>- 运算符重载<br/>- 隐藏实现细节"]
+        Tensor["Tensor<br/>· 值语义包装<br/>· 运算符重载<br/>· 隐藏实现细节"]
     end
     
     subgraph Layer2["第2层：TensorImpl (核心实现层)"]
-        TensorImpl["TensorImpl<br/>- 数据管理 (`data_`, `grad_`)<br/>- 计算图管理 (`creator_`, `generation_`)<br/>- 自动求导 (backward())"]
+        TensorImpl["TensorImpl<br/>· 数据管理 (data\_, grad\_)<br/>· 计算图管理 (creator\_, generation\_)<br/>· 自动求导 (backward())"]
     end
     
     subgraph Layer3["第3层：Mat (抽象接口层)"]
-        Mat["Mat (抽象接口)<br/>- 统一矩阵计算接口<br/>- 多态机制<br/>- 后端隔离"]
+        Mat["Mat (抽象接口)<br/>· 统一矩阵计算接口<br/>· 多态机制<br/>· 后端隔离"]
     end
     
     subgraph Layer4["第4层：后端实现层"]
-        OriginMat["OriginMat<br/>(CPU/CUDA)<br/>- Storage 内存管理<br/>- 自定义计算实现"]
-        TorchMat["TorchMat<br/>(LibTorch)<br/>- torch::Tensor<br/>- LibTorch 计算"]
+        OriginMat["OriginMat<br/>(CPU/CUDA)<br/>· Storage 内存管理<br/>· 自定义计算实现"]
+        TorchMat["TorchMat<br/>(LibTorch)<br/>· torch::Tensor<br/>· LibTorch 计算"]
     end
     
     UserLayer -->|调用| Layer1
@@ -140,6 +140,23 @@ flowchart TB
     style Layer3 fill:#e1ffe1
     style Layer4 fill:#f5e1ff
 ```
+
+**四层架构说明：**
+
+当前实现大致对应以下四层：
+
+| 层次 | 类 | 职责 |
+|------|-----|------|
+| 第1层 | Tensor | 值语义、运算符重载、隐藏实现 |
+| 第2层 | TensorImpl | 数据（`data_`/`grad_`）、计算图（`creator_`/`generation_`）、autograd |
+| 第3层 | Mat | 抽象计算接口、多态、后端隔离 |
+| 第4层 | OriginMat / TorchMat | 具体后端（CPU/CUDA 或 LibTorch） |
+
+这样设计的目的是：
+
+- **职责清晰**：每一层边界清楚，Tensor 只转发给 TensorImpl，TensorImpl 只通过 Mat 做计算。
+- **后端可扩展**：Mat 抽象让新增后端（如 TorchMat）只需实现接口，无需改动上层。
+- **计算图与数据分离**：TensorImpl 负责 autograd 和计算图，Mat 只负责数值计算。
 
 **类图（UML 风格）：**
 
@@ -204,7 +221,7 @@ classDiagram
     OriginMat "1" *-- "1" Storage : storage_
 ```
 
-## 2.2 Tensor 层：用户接口层
+## 2.2 第1层：Tensor (用户接口层)
 
 ### 2.2.1 为什么采用值语义？
 
@@ -231,8 +248,8 @@ graph LR
     end
     
     subgraph "底层实现：共享机制"
-        StackX["Tensor x<br/>(栈上)<br/>`impl_`: shared_ptr"]
-        StackY["Tensor y<br/>(栈上)<br/>`impl_`: shared_ptr"]
+        StackX["Tensor x<br/>(栈上)<br/>impl_: shared_ptr"]
+        StackY["Tensor y<br/>(栈上)<br/>impl_: shared_ptr"]
         SharedImpl["TensorImpl<br/>(堆上)<br/>ref_count=2"]
         StackX -->|"shared_ptr<br/>浅拷贝"| SharedImpl
         StackY -->|"shared_ptr<br/>共享所有权"| SharedImpl
@@ -350,7 +367,7 @@ flowchart TD
     Forward -->|建立| SetupGraph
     MatLayer -->|返回 Mat| Forward
     Forward -->|返回 Tensor| OperatorCall
-    SetupGraph -->|设置 `creator_`| Result
+    SetupGraph -->|设置 creator\_| Result
     OperatorCall -->|返回| Result
     Result -->|赋值给 z| UserCode
     
@@ -371,21 +388,23 @@ flowchart TD
 - **不可变设计**：所有运算符返回新 Tensor，原对象保持不变
 - **类型提升支持**：自动处理不同数据类型的运算，确保类型安全
 
-## 2.3 TensorImpl 层：核心实现
+## 2.3 第2层：TensorImpl (核心实现层)
 
-TensorImpl 是 Tensor 的核心实现层，承担数据管理、计算图管理和自动求导三大核心职责：
+TensorImpl 是 Tensor 的核心实现层，承担数据管理、计算图管理和自动求导三大核心职责，通过 Mat 抽象层管理数据，通过 Operator 管理计算图。
+
+### 2.3.1 职责分解
 
 ```mermaid
 flowchart TD
     TensorImpl["TensorImpl<br/>核心实现层"]
     
-    subgraph Duties["三大核心职责"]
-        DataMgmt["数据管理<br/>- 管理 `data_` 和 `grad_`<br/>- 通过 Mat 抽象层访问<br/>- 拷贝时深拷贝保证值语义"]
-        GraphMgmt["计算图管理<br/>- 记录 `creator_`<br/>- 记录 `generation_`<br/>- 建立计算图连接"]
-        Autograd["自动求导<br/>- backward() 反向传播<br/>- 梯度计算与累积<br/>- 拓扑排序"]
-    end
+    DataMgmt["数据管理<br/>持有 data\_/grad\_，转发访问与形状操作"]
+    GraphMgmt["计算图管理<br/>creator\_ + generation\_，连接管理"]
+    Autograd["自动求导<br/>backward() 入口，拓扑排序，梯度累加"]
     
-    TensorImpl --> Duties
+    TensorImpl --> DataMgmt
+    TensorImpl --> GraphMgmt
+    TensorImpl --> Autograd
     
     style TensorImpl fill:#ffe1f5,stroke:#cc0066,stroke-width:2px
     style DataMgmt fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
@@ -393,90 +412,33 @@ flowchart TD
     style Autograd fill:#e1ffe1,stroke:#00cc66,stroke-width:2px
 ```
 
-#### 数据成员设计
+**职责说明：**
 
-TensorImpl 的数据成员通过 Mat 抽象层管理数据，通过 Operator 管理计算图：
+| 职责 | 数据成员 | 关键点 |
+|------|----------|--------|
+| 数据管理 | `data_`(shared_ptr\<Mat\>)、`grad_`(shared_ptr\<Mat\>)，深拷贝 | 前向数据与梯度；通过 Mat 抽象层访问；转发 `shape`/`index`/`data_ptr` 及 `reshape`/`transpose`/`to` 给 Mat |
+| 计算图管理 | `creator_`(shared_ptr\<Operator\>)、`generation_`(int)，浅拷贝 | 创建者与拓扑排序代数；提供 `set_creator`/`detach`/`clear_grad` 管理连接 |
+| 自动求导 | 使用 `creator_`、`grad_`、`generation_` | `backward()` 入口；按 `generation_` 拓扑排序并调用 `Operator::backward()`；梯度累加（`grad_` 为空则赋值，否则 `add_inplace` 原地累加）；完成后自动清理中间节点 |
 
-```mermaid
-classDiagram
-    class TensorImpl {
-        +shared_ptr~Mat~ data_
-        +shared_ptr~Mat~ grad_
-        +shared_ptr~Operator~ creator_
-        +int generation_
-    }
-    
-    class Mat {
-        <<abstract>>
-        +clone()* unique_ptr~Mat~
-        +operator+()* unique_ptr~Mat~
-        +shape()* Shape
-    }
-    
-    class Operator {
-        <<abstract>>
-        +forward()* vector~Tensor~
-        +backward()* vector~Tensor~
-        +int generation_
-    }
-    
-    class Storage {
-        +void* data_
-        +size_t size_
-    }
-    
-    class OriginMat {
-        +shared_ptr~Storage~ storage_
-    }
-    
-    TensorImpl "1" *-- "1" Mat : data_
-    TensorImpl "1" *-- "0..1" Mat : grad_
-    TensorImpl "1" --> "0..1" Operator : creator_
-    Mat <|-- OriginMat
-    OriginMat "1" *-- "1" Storage : storage_
-    
-    note for TensorImpl "data_: 存储张量实际数据\n通过 Mat 抽象层，支持多后端\n\ngrad_: 存储梯度数据\n初始为 nullptr\nbackward() 时创建\n\ncreator_: 记录创建者 Operator\n用于构建计算图\n\ngeneration_: 记录计算图代数\n用于拓扑排序"
-```
+### 2.3.2 数据转发与梯度管理
 
-#### 核心方法架构
+TensorImpl 将形状操作（`reshape`、`transpose` 等）转发给 `data_->reshape()` / `data_->transpose()`，用返回的 Mat 构造新 TensorImpl。Mat 层的视图设计详见 [2.5.5 视图设计：利用视图减少拷贝](#255-视图设计利用视图减少拷贝)。
 
-TensorImpl 的核心方法分为反向传播、计算图管理和张量操作三类：
+**梯度累加：** `backward` 时，`grad_` 为空则直接共享；不为空则 `add_inplace` 原地累加，避免新分配。
 
-```mermaid
-flowchart TD
-    subgraph Methods["TensorImpl 核心方法"]
-        direction TB
-        
-        subgraph Backward["反向传播"]
-            backward["backward()<br/>反向传播入口<br/>自动构建计算图"]
-        end
-        
-        subgraph GraphMgmt["计算图管理"]
-            set_creator["set_creator()<br/>设置创建者 Operator"]
-            clear_grad["clear_grad()<br/>清除梯度数据"]
-            detach["detach()<br/>断开计算图连接"]
-        end
-        
-        subgraph TensorOps["张量操作"]
-            reshape["reshape()<br/>重塑形状"]
-            transpose["transpose()<br/>转置操作"]
-            to["to()<br/>类型/设备转换"]
-        end
-        
-        subgraph Accessors["访问器方法"]
-            shape["shape()<br/>获取形状"]
-            dtype["dtype()<br/>获取数据类型"]
-            device["device()<br/>获取设备信息"]
-        end
-    end
-    
-    style Backward fill:#ffe1f5,stroke:#cc0066,stroke-width:2px
-    style GraphMgmt fill:#fff4e1,stroke:#ff9900,stroke-width:2px
-    style TensorOps fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
-    style Accessors fill:#e1ffe1,stroke:#00cc66,stroke-width:2px
-```
+**梯度延迟分配：** `grad_` 初始为 nullptr，仅在 `backward()` 需要时分配。
 
-## 2.4 Mat 抽象层
+**计算图管理与自动求导：** 分别详见 [第 3 章 动态计算图构建](#3-动态计算图构建) 与 [第 4 章 反向传播实现](#4-反向传播实现)。
+
+### 2.3.3 设备迁移
+
+**接口：** `TensorImpl::to(options)` / `Tensor::to(options)` 用于 dtype 和 device 转换，返回新 Tensor（不修改原对象）。
+
+**实现：** 若 dtype 与 device 已匹配则直接返回；否则调用 `data_->to(options)` 创建新 Mat 并包装为 TensorImpl。
+
+**设备迁移：** 支持 CPU ↔ CUDA 迁移，需拷贝数据；CUDA 传输通常异步，`to()` 会确保数据一致性。示例：`x.to(device("cuda:0"))`、`x.to(device("cpu"))`。
+
+## 2.4 第3层：Mat (抽象接口层)
 
 Mat 是 OriginDL 中的矩阵计算抽象接口层，位于 Tensor 系统四层架构的第三层（Tensor → TensorImpl → Mat → 后端实现），对应 [2.1.1 四层架构概览](#211-四层架构概览)。它的核心作用是：
 
@@ -506,9 +468,9 @@ Mat 与 Storage 的关系
 
 - Mat 可以**拥有** Storage（持有数据），也可以作为**视图**共享 Storage
 - 拷贝时通过 `clone()` 创建新的 Mat；若拥有 Storage，则同时创建新的 Storage 并拷贝数据
-- 视图（如 reshape、transpose）通过 `view()` 共享同一 Storage，实现零拷贝
+- 视图（如 `reshape`、`transpose`）通过 `view()` 共享同一 Storage，实现零拷贝
 
-## 2.5 后端实现层
+## 2.5 第4层：后端实现层
 
 对应 [2.1.1 四层架构概览](#211-四层架构概览) 中的**第 4 层**，提供 Mat 接口的具体实现。
 
@@ -521,7 +483,7 @@ flowchart TB
     end
     
     subgraph OriginBackend["OriginMat 自研后端"]
-        OriginMat["OriginMat<br/>storage_, shape_, strides_"]
+        OriginMat["OriginMat<br/>storage\_, shape\_, strides\_"]
         CPUOps["CPU 实现<br/>cpu_ops.h"]
         CUDEOps["CUDA 实现<br/>cuda_ops.cuh"]
         Storage["Storage<br/>内存管理"]
@@ -546,10 +508,10 @@ OriginMat 是 OriginDL 的自研矩阵计算后端，使用 Storage 进行内存
 
 | 成员 | 类型 | 说明 |
 |------|------|------|
-| storage_ | shared_ptr\<Storage\> | 数据存储，拥有原始内存 |
-| shape_ | Shape | 张量形状 |
-| strides_ | vector\<size_t\> | 步长信息，用于非连续视图 |
-| dtype_ | DataType | 数据类型 |
+| `storage_` | shared_ptr\<Storage\> | 数据存储，拥有原始内存 |
+| `shape_` | Shape | 张量形状 |
+| `strides_` | vector\<size_t\> | 步长信息，用于非连续视图 |
+| `dtype_` | DataType | 数据类型 |
 
 **工厂方法：**
 
@@ -560,9 +522,51 @@ OriginMat 是 OriginDL 的自研矩阵计算后端，使用 Storage 进行内存
 
 **实现分支：** OriginMat 根据 device 分发到 `cpu_ops` 或 `cuda_ops`，通过 `device_common` 共享模板逻辑，`type_dispatcher` 实现 dtype 分发。
 
-### 2.5.3 Storage 与内存管理
+### 2.5.3 TorchMat 简要说明
 
-Storage 是数据拥有者，管理原始内存 allocation/deallocation。
+TorchMat 是基于 LibTorch 的 Mat 实现，将 OriginDL 的 Mat 接口桥接到 `torch::Tensor`，用于复用 LibTorch 的高性能算子。编译时需启用 LibTorch 依赖。
+
+### 2.5.4 Storage 与完整内存层次
+
+Storage 是数据拥有者，管理原始内存 allocation/deallocation。从 Tensor 到物理内存的完整层次如下：
+
+```mermaid
+flowchart TB
+    Tensor["Tensor 对象<br/>impl\_ (shared_ptr)"]
+    
+    TensorImpl["TensorImpl 对象<br/>data\_, grad\_ (shared_ptr&lt;Mat&gt;)"]
+    
+    Mat["Mat 对象<br/>shape, dtype, device<br/>storage\_ (shared_ptr)"]
+    
+    Storage["Storage 对象<br/>data\_, size\_<br/>device\_type\_, device\_index\_"]
+    
+    subgraph CPU["CPU 内存"]
+        CPUData["CPU 数据存储区<br/>(连续内存块)"]
+    end
+    
+    subgraph GPU["GPU 内存"]
+        GPUData["GPU 数据存储区<br/>(CUDA 内存)"]
+    end
+    
+    Tensor -.->|共享引用<br/>shared_ptr| TensorImpl
+    TensorImpl -.->|data\_ / grad\_<br/>shared_ptr| Mat
+    Mat -.->|共享引用<br/>shared_ptr| Storage
+    Storage -.->|device\_type\_=CPU<br/>拥有所有权 void*| CPUData
+    Storage -.->|device\_type\_=GPU<br/>拥有所有权 void*| GPUData
+    
+    style Tensor fill:#cce5ff
+    style TensorImpl fill:#ffe1f5
+    style Mat fill:#e1ffe1
+    style Storage fill:#f5e1ff
+    style CPU fill:#e8f5e9
+    style GPU fill:#fff3e0
+    style CPUData fill:#c8e6c9
+    style GPUData fill:#ffe0b2
+```
+
+**层次职责：** Tensor 层值语义包装，仅含 `impl_`，拷贝时共享 TensorImpl；TensorImpl 层管理 `data_`、`grad_` 和计算图，拷贝时深拷贝 `data_` 和 `grad_`；Mat 层抽象接口，可拥有 Storage 或作为视图；Storage 层数据拥有者，管理原始内存，可被多个 Mat 共享。
+
+**Storage 类图：**
 
 ```mermaid
 classDiagram
@@ -590,168 +594,83 @@ classDiagram
 - OriginMat 拥有 Storage 或作为视图共享 Storage（通过 `view()` 创建的 Mat 共享同一 Storage）
 - 支持 CPU 和 CUDA 设备，通过 `device_type_` 和 `device_index_` 区分
 
-### 2.5.4 TorchMat 简要说明
+#### 内存所有权设计
 
-TorchMat 是基于 LibTorch 的 Mat 实现，将 OriginDL 的 Mat 接口桥接到 `torch::Tensor`，用于复用 LibTorch 的高性能算子。编译时需启用 LibTorch 依赖。
+OriginDL 采用分层所有权模型：每一层明确「谁拥有数据、谁共享引用」，避免悬空指针和内存泄漏。
 
-## 2.6 内存所有权设计
+**所有权层级与引用语义：**
 
-### 2.6.1 完整内存层次结构
+| 层级 | 持有方式 | 拷贝语义 | 说明 |
+|------|----------|----------|------|
+| Tensor → TensorImpl | shared_ptr | 浅拷贝，共享 | 多个 Tensor 可共享同一 TensorImpl |
+| TensorImpl → Mat (`data_`, `grad_`) | shared_ptr | 深拷贝（`clone`） | TensorImpl 拷贝时 `data_`、`grad_` 各自 `clone`，逻辑独立 |
+| OriginMat → Storage | shared_ptr | 拥有或共享 | `clone()` 创建新 Storage；`view()` 共享原 Storage |
+| Storage → void* | 独占 | 不可拷贝 | Storage 拥有原始内存，析构时通过 MemoryPool 释放 |
+
+**拥有 vs 共享：**
 
 ```mermaid
-flowchart TB
-    Tensor["Tensor 对象<br/>`impl_` (shared_ptr)"]
-    
-    TensorImpl["TensorImpl 对象<br/>`data_` (shared_ptr&lt;Mat&gt;)<br/>`grad_` (shared_ptr&lt;Mat&gt;)"]
-    
-    Mat["Mat 对象<br/>shape, dtype, device<br/>`storage_` (shared_ptr)"]
-    
-    Storage["Storage 对象<br/>`data_` (void*)<br/>`size_`, `device_type_`<br/>`device_index_`"]
-    
-    subgraph CPU["CPU 内存"]
-        CPUData["CPU 数据存储区<br/>(连续内存块)"]
+flowchart LR
+    subgraph Own["拥有 Storage"]
+        Clone["clone()"]
+        NewStorage["新 Storage"]
+        NewMat1["新 OriginMat"]
+        Clone --> NewStorage --> NewMat1
     end
     
-    subgraph GPU["GPU 内存"]
-        GPUData["GPU 数据存储区<br/>(CUDA 内存)"]
+    subgraph Share["共享 Storage"]
+        View["view()"]
+        SameStorage["同一 Storage"]
+        MatA["OriginMat A"]
+        MatB["OriginMat B"]
+        View --> SameStorage
+        SameStorage --> MatA
+        SameStorage --> MatB
     end
-    
-    Tensor -.->|共享引用<br/>shared_ptr| TensorImpl
-    TensorImpl -.->|`data_` / `grad_`<br/>shared_ptr| Mat
-    Mat -.->|共享引用<br/>shared_ptr| Storage
-    Storage -.->|`device_type_`=CPU<br/>拥有所有权 void*| CPUData
-    Storage -.->|`device_type_`=GPU<br/>拥有所有权 void*| GPUData
-    
-    style Tensor fill:#cce5ff
-    style TensorImpl fill:#ffe1f5
-    style Mat fill:#e1ffe1
-    style Storage fill:#f5e1ff
-    style CPU fill:#e8f5e9
-    style GPU fill:#fff3e0
-    style CPUData fill:#c8e6c9
-    style GPUData fill:#ffe0b2
 ```
 
-**层次说明：**
+- **clone()**：分配新 Storage，拷贝数据，返回的 OriginMat 拥有该 Storage；ref_count = 1。
+- **view()**：不分配新内存，新 OriginMat 共享原 Storage；shared_ptr 引用计数 +1，多视图共享同一块内存。
 
-1. **Tensor 层**：值语义包装，仅含 `impl_`（`shared_ptr<TensorImpl>`），拷贝时共享 TensorImpl。
-2. **TensorImpl 层**：管理 `data_`、`grad_` 和计算图，拷贝时深拷贝 `data_` 和 `grad_`。
-3. **Mat 层**：抽象接口隐藏后端，可拥有 Storage 或作为视图，拷贝时调用 clone()。
-4. **Storage 层**：数据拥有者，管理原始内存，可被多个 Mat 共享，支持 CPU/GPU。
+**TensorImpl 拷贝语义：** 拷贝构造函数对 `data_` 和 `grad_` 调用 `clone()`，保证 TensorImpl 拷贝后彼此独立；计算图信息（`creator_`、`generation_`）直接复制。
 
-### 2.6.3 内存优化策略
+**梯度累积时的所有权：** `backward` 时，若 `grad_` 为空，则 `grad_ = gx.data_`（共享梯度 Mat，不分配新内存）；若 `grad_` 非空，则 `grad_->add_inplace(gx.data_)`（原地累加，不创建新对象）。二者都避免多余分配。
 
-#### 零拷贝视图（连续张量的 reshape）
+**Storage 与 MemoryPool：** Storage 构造时从 MemoryPool 申请内存，析构时归还；Storage 禁用拷贝、只支持移动，保证同一块内存仅由一个 Storage 实例管理生命周期。多个 OriginMat 通过 shared_ptr 共享同一 Storage，当最后一个 OriginMat 析构时，Storage 析构并释放内存。
+
+**生命周期与释放顺序：** Tensor 析构 → `impl_` ref_count-1；TensorImpl 析构 → `data_`、`grad_` ref_count-1；OriginMat 析构 → `storage_` ref_count-1；Storage 析构 → 归还 MemoryPool。引用计数确保无悬空指针和重复释放。
+
+### 2.5.5 视图设计：利用视图减少拷贝
+
+Mat 层的 `view`、`reshape`、`transpose` 等接口使用视图，在满足语义的前提下共享 Storage，避免使用 `clone` 重新分配内存并拷贝数据。
+
+**设计思路：** 形状变换（reshape、transpose）优先返回视图，仅调整 shape/strides，不分配新 Storage；仅在无法形成合法视图时（如非连续数据 reshape）才 fallback 到 `clone`。
+
+| 操作 | 实现方式 | 是否拷贝 | 说明 |
+|------|----------|----------|------|
+| `view` | 视图 | 零拷贝 | 共享 Storage，仅改 shape/strides，O(1) |
+| `reshape` | 连续→视图；非连续→clone+view | 连续时零拷贝 | 连续数据直接 `view()`；非连续需先 `contiguous()`（内部 `clone`）再 `view()` |
+| `transpose` | 当前为拷贝 | 拷贝 | 分配新 Storage 并拷贝数据；未来可优化为视图转置 |
+
+**与 clone 的对比：** `clone` 始终分配新 Storage 并深拷贝，用于需要独立副本的场景；`view`/`reshape`（连续时）则不分配、不拷贝，多个 Mat 共享同一块内存。
 
 ```cpp
-TensorImpl TensorImpl::reshape(const Shape &shape) const {
-    if (data_->is_contiguous()) {
-        // 创建视图，零拷贝
-        auto view = data_->view(shape);
-        return TensorImpl(std::move(view));
-    } else {
-        // 非连续，需要拷贝
-        auto new_data = data_->clone();
-        new_data->reshape(shape);
-        return TensorImpl(std::move(new_data));
+// origin_mat.cpp: OriginMat::reshape — 优先视图，避免 clone
+std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const {
+    if (new_shape.elements() != shape_.elements()) { /* 校验 */ }
+    if (is_contiguous()) {
+        return view(new_shape);  // 视图，零拷贝
     }
+    auto contiguous_mat = contiguous();  // 非连续时不得已才 clone
+    return contiguous_mat->view(new_shape);
 }
 ```
 
-零拷贝、O(1) 开销，多视图共享 Storage，支持多种形状变换。
-
-#### 原地操作（add_inplace 用于梯度累加）
-
-```cpp
-// 梯度累加时使用原地操作
-if (!x.impl_->grad_) {
-    // 梯度为空，直接共享
-    x.impl_->grad_ = gx.impl_->data_;
-} else {
-    // 梯度不为空，原地累加（避免创建新对象）
-    x.impl_->grad_->add_inplace(*gx.impl_->data_);
-}
-```
-
-不创建新对象、不分配新内存，直接修改现有数据。
-
-
-```cpp
-// 梯度延迟分配
-void TensorImpl::backward() {
-    if (!grad_) {
-        // 只在需要时分配梯度内存
-        grad_ = std::shared_ptr<Mat>(Mat_t::zeros(shape(), options()));
-    }
-    // ...
-}
-```
-
-### 2.6.4 类型转换
-
-#### to() 方法（dtype、device 转换）
-
-**接口：**
-```cpp
-TensorImpl TensorImpl::to(const TensorOptions& options) const;
-Tensor Tensor::to(const TensorOptions& options) const;
-```
-
-**功能：**
-- 转换数据类型（float32 → float64）
-- 转换设备（CPU → CUDA）
-- 返回新的 Tensor（不修改原对象）
-
-**实现：**
-```cpp
-TensorImpl TensorImpl::to(const TensorOptions& options) const {
-    // 检查是否需要转换
-    if (data_->dtype() == options.dtype() && 
-        data_->device() == options.device()) {
-        return *this;  // 无需转换
-    }
-    
-    // 创建新的 Mat（转换类型或设备）
-    auto new_mat = data_->to(options);
-    return TensorImpl(std::move(new_mat));
-}
-```
-
-#### 类型提升规则
-
-**规则：**
-- 低精度 → 高精度：自动提升
-- 高精度 → 低精度：需要显式转换（可能丢失精度）
-- 相同类型：无需转换
-
-**示例：**
-```cpp
-auto x = Tensor::zeros({2, 3}, dtype("float32"));
-auto y = x.to(dtype("float64"));  // float32 → float64
-```
-
-#### 设备迁移机制
-
-**CPU ↔ CUDA 迁移：**
-```cpp
-// CPU → CUDA
-auto cpu_tensor = Tensor::zeros({2, 3}, device("cpu"));
-auto cuda_tensor = cpu_tensor.to(device("cuda:0"));
-
-// CUDA → CPU
-auto back_to_cpu = cuda_tensor.to(device("cpu"));
-```
-
-**实现细节：**
-- 需要拷贝数据（不同设备）
-- 异步传输（CUDA）
-- 自动同步（确保数据一致性）
-
-## 2.7 张量打印系统设计
+## 2.6 张量打印系统设计
 
 OriginDL的张量打印系统旨在提供清晰、直观的张量数据展示，同时保持与主流深度学习框架的一致性。
 
-### 2.7.1 打印格式设计
+### 2.6.1 打印格式设计
 
 **标量张量 (0维)**
 
@@ -908,19 +827,19 @@ LibTorch风格的访问顺序：
 flowchart TD
     subgraph NodeLayer["计算图节点层 (Tensor)"]
         direction TB
-        Node1["Tensor 节点<br/>- data_: 节点数据<br/>- grad_: 节点梯度<br/>- creator_: 创建者 Operator<br/>- generation_: 拓扑排序代数"]
+        Node1["Tensor 节点<br/>· data\_: 节点数据<br/>· grad\_: 节点梯度<br/>· creator\_: 创建者 Operator<br/>· generation\_: 拓扑排序代数"]
     end
     
     subgraph EdgeLayer["计算图边层 (Operator)"]
         direction TB
-        Edge1["Operator 边<br/>- inputs_: 输入节点<br/>- outputs_: 输出节点 (weak_ptr)<br/>- generation_: 拓扑排序代数<br/>- forward(): 前向传播<br/>- backward(): 反向传播"]
+        Edge1["Operator 边<br/>· inputs\_: 输入节点<br/>· outputs\_: 输出节点 (weak_ptr)<br/>· generation\_: 拓扑排序代数<br/>· forward(): 前向传播<br/>· backward(): 反向传播"]
     end
     
     subgraph BuildProcess["前向传播构建过程"]
         direction TB
-        Step1["1. 用户代码<br/>auto y = x * 2;"]
-        Step2["2. Operator::operator()<br/>- 调用 forward() 计算输出<br/>- 设置 creator_ 建立连接<br/>- setup_computation_graph()"]
-        Step3["3. 计算图连接建立<br/>x ──[Mul]──> y"]
+        Step1["用户代码<br/>auto y = x * 2;"]
+        Step2["Operator::operator()<br/>· 调用 forward() 计算输出<br/>· 设置 creator\_ 建立连接<br/>· setup_computation_graph()"]
+        Step3["步骤3: 计算图连接建立<br/>x ──[Mul]──> y"]
     end
     
     subgraph GraphStructures["计算图结构类型"]
@@ -979,8 +898,8 @@ classDiagram
     Operator <|-- Add : 继承
     Operator <|-- Mul : 继承
     
-    note for TensorImpl "节点属性：<br/>- data_: 存储节点数据<br/>- grad_: 存储节点梯度<br/>- creator_: 指向创建该节点的 Operator<br/>- generation_: 用于拓扑排序"
-    note for Operator "边属性：<br/>- inputs_: 输入节点列表<br/>- outputs_: 输出节点列表（weak_ptr避免循环引用）<br/>- generation_: 用于拓扑排序<br/>- forward/backward: 前向/反向传播"
+    note for TensorImpl "节点属性：<br/>· data\_: 存储节点数据<br/>· grad\_: 存储节点梯度<br/>· creator\_: 指向创建该节点的 Operator<br/>· generation\_: 用于拓扑排序"
+    note for Operator "边属性：<br/>· inputs\_: 输入节点列表<br/>· outputs\_: 输出节点列表（weak_ptr避免循环引用）<br/>· generation\_: 用于拓扑排序<br/>· forward/backward: 前向/反向传播"
 ```
 
 ## 3.3 前向传播时自动构建计算图
@@ -1175,11 +1094,11 @@ flowchart LR
     
     subgraph Process["处理流程"]
         direction TB
-        Step1["1. 从队列尾部取出<br/>（generation_ 最大）"]
-        Step2["2. 收集输出梯度 gys<br/>weak_ptr → shared_ptr"]
-        Step3["3. 调用 backward(gys)<br/>计算输入梯度 gxs"]
-        Step4["4. 梯度累积<br/>直接共享或原地累加"]
-        Step5["5. 添加输入 creator_<br/>递归处理"]
+        Step1["步骤1: 从队列尾部取出<br/>（generation\_ 最大）"]
+        Step2["步骤2: 收集输出梯度 gys<br/>weak_ptr → shared_ptr"]
+        Step3["步骤3: 调用 backward(gys)<br/>计算输入梯度 gxs"]
+        Step4["步骤4: 梯度累积<br/>直接共享或原地累加"]
+        Step5["步骤5: 添加输入 creator\_<br/>递归处理"]
     end
     
     Queue -->|按序处理| Process
@@ -1216,11 +1135,11 @@ flowchart TD
     
     subgraph Accumulate["梯度累积过程"]
         direction TB
-        Step1["1. 路径1计算<br/>gx1 = backward(y → y1 → x)"]
-        Step2["2. 第一次累积<br/>x.grad_ = gx1 (直接共享)"]
-        Step3["3. 路径2计算<br/>gx2 = backward(y → y2 → x)"]
-        Step4["4. 第二次累积<br/>x.grad_.add_inplace(gx2)"]
-        Step5["5. 最终结果<br/>x.grad_ = gx1 + gx2"]
+        Step1["步骤1: 路径1计算<br/>gx1 = backward(y → y1 → x)"]
+        Step2["步骤2: 第一次累积<br/>x.grad\_ = gx1 (直接共享)"]
+        Step3["步骤3: 路径2计算<br/>gx2 = backward(y → y2 → x)"]
+        Step4["步骤4: 第二次累积<br/>x.grad\_.add_inplace(gx2)"]
+        Step5["步骤5: 最终结果<br/>x.grad\_ = gx1 + gx2"]
     end
     
     MultiPath -->|反向传播| Accumulate
@@ -1346,7 +1265,7 @@ Operator 是计算图的边，连接输入/输出 Tensor，子类实现 `forward
 
 | 接口 | 说明 |
 |------|------|
-| `operator()(inputs)` | 入口：调用 forward → 设置 `creator_` → setup_computation_graph |
+| `operator()(inputs)` | 入口：调用 `forward` → 设置 `creator_` → `setup_computation_graph` |
 | `forward(inputs)` | 纯虚，前向计算 |
 | `backward(grad_outputs)` | 纯虚，反向梯度 |
 | `forward_inplace(input0, input1)` | 可选原地前向，默认抛异常 |
@@ -1381,6 +1300,11 @@ sequenceDiagram
 
 **规则：** 优先级 float64 > float32 > int64 > int32 > int8 > uint8，取两者中更高精度。
 
+**类型提升原则：**
+- 低精度 → 高精度：自动提升
+- 高精度 → 低精度：需显式调用 `to()`（可能丢失精度）
+- 相同类型：无需转换
+
 **Add forward：**
 ```cpp
 auto [x0, x1] = TypePromotion::promote_tensors_maybe_owned(xs[0], xs[1]);
@@ -1388,9 +1312,15 @@ auto result = mat(x0) + mat(x1);
 ```
 **Add backward：** 梯度与 forward 输出类型一致，无需再提升，直接传递 `gys[0]`。
 
-**forward_inplace：** 需原地修改 `input0`，先 `input0.to(promoted_type)`，再对 `input1` 用 `to_type_maybe_owned` 转换后执行 `add_inplace`。
+**forward_inplace：** 需原地修改 `input0`，先 `input0.to(promoted_type)`，再对 `input1` 用 `to_type_maybe_owned` 转换后执行 `add_inplace()`。
 
-**MaybeOwned 设计：** 参考 PyTorch c10::MaybeOwned，用于类型提升的零开销优化。两种模式：`borrowed` 只存指针不增加引用计数；`owned` 持有 `unique_ptr` 拥有新对象。类型匹配时借用，不匹配时仅对需转换的 Tensor 创建新对象。支持隐式转换为 `T&`，便于 `mat(x0)` 等用法。
+**示例：**
+```cpp
+auto x = Tensor::zeros({2, 3}, dtype("float32"));
+auto y = x.to(dtype("float64"));  // float32 → float64 自动提升
+```
+
+**MaybeOwned 设计：** 参考 PyTorch c10::MaybeOwned，用于类型提升的零开销优化。两种模式：`borrowed` 只存指针不增加引用计数；`owned` 持有 `unique_ptr` 拥有新对象。类型匹配时借用，不匹配时仅对需转换的 Tensor 创建新对象。支持隐式转换为 `T&`，便于 `mat()` 等用法。
 
 ```mermaid
 flowchart TB
@@ -1574,8 +1504,8 @@ classDiagram
 flowchart TB
     Step["step()"]
     Filter["过滤有梯度的参数"]
-    Hooks["执行 hooks_"]
-    StepOne["对每个 param 调用 step_one()"]
+    Hooks["执行 hooks\_"]
+    StepOne["对每个 param 调用 step\_one()"]
 
     Step --> Filter --> Hooks --> StepOne
 ```
@@ -1667,9 +1597,9 @@ Adam 维护一阶矩 `m_buffers_`、二阶矩 `v_buffers_`、步数 `step_counts
 flowchart LR
     Step["step()"]
     Filter["过滤有梯度参数"]
-    Hooks["遍历 hooks_"]
+    Hooks["遍历 hooks\_"]
     Hook["hook(params)"]
-    StepOne["step_one()"]
+    StepOne["step\_one()"]
 
     Step --> Filter --> Hooks --> Hook --> StepOne
 ```
