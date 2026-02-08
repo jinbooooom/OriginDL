@@ -10,6 +10,44 @@ OriginDL 是本人在业余时间实现的深度学习框架。本人并非深�
 
 ## 🎯 项目成果展示
 
+### 线性回归训练
+
+使用自动求导功能实现简单的线性回归 y = wx + b，快速收敛到目标参数（w≈2.0, b≈5.0）：
+
+```
+jinbo@JinboBook:~/gitme/C_OriginDL$ export ORIGIN_LOG_LEVEL=trace
+jinbo@JinboBook:~/gitme/C_OriginDL$ ./build/bin/example/example_nn_linear -d 0
+CUDA devices available: 1
+Device 0: NVIDIA GeForce RTX 4060 Ti
+  Compute capability: 8.9
+  Memory: 8187 MB
+  Multiprocessors: 34
+  Max threads per block: 1024
+Using GPU device: 0
+JinboBook 2026-02-08 23:20:00.114 D 24466 24466 [optimizer.cpp:collect_parameters:16]    Optimizer::collect_parameters: collected 2 parameters
+JinboBook 2026-02-08 23:20:00.117 I 24466 24466 [nn_linear.cpp:main:131] iter0: loss = 28.374, w = 0.7082845, b = 1.003354
+JinboBook 2026-02-08 23:20:00.123 I 24466 24466 [nn_linear.cpp:main:131] iter10: loss = 0.31666496, w = 1.905682, b = 4.5844355
+JinboBook 2026-02-08 23:20:00.128 I 24466 24466 [nn_linear.cpp:main:131] iter20: loss = 0.012503343, w = 1.9954802, b = 4.968631
+JinboBook 2026-02-08 23:20:00.136 I 24466 24466 [nn_linear.cpp:main:131] iter30: loss = 0.009107459, w = 2.0021834, b = 5.0098596
+JinboBook 2026-02-08 23:20:00.141 I 24466 24466 [nn_linear.cpp:main:131] iter40: loss = 0.009068941, w = 2.0026805, b = 5.014285
+JinboBook 2026-02-08 23:20:00.146 I 24466 24466 [nn_linear.cpp:main:131] iter50: loss = 0.0090685, w = 2.002717, b = 5.0147595
+JinboBook 2026-02-08 23:20:00.153 I 24466 24466 [nn_linear.cpp:main:131] iter60: loss = 0.009068494, w = 2.0027194, b = 5.01481
+JinboBook 2026-02-08 23:20:00.161 I 24466 24466 [nn_linear.cpp:main:131] iter70: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.167 I 24466 24466 [nn_linear.cpp:main:131] iter80: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.172 I 24466 24466 [nn_linear.cpp:main:131] iter90: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.177 I 24466 24466 [nn_linear.cpp:main:131] iter100: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.182 I 24466 24466 [nn_linear.cpp:main:131] iter110: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.188 I 24466 24466 [nn_linear.cpp:main:131] iter120: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.193 I 24466 24466 [nn_linear.cpp:main:131] iter130: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.199 I 24466 24466 [nn_linear.cpp:main:131] iter140: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.205 I 24466 24466 [nn_linear.cpp:main:131] iter150: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.211 I 24466 24466 [nn_linear.cpp:main:131] iter160: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.217 I 24466 24466 [nn_linear.cpp:main:131] iter170: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.222 I 24466 24466 [nn_linear.cpp:main:131] iter180: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.229 I 24466 24466 [nn_linear.cpp:main:131] iter190: loss = 0.009068492, w = 2.0027194, b = 5.014816
+JinboBook 2026-02-08 23:20:00.234 I 24466 24466 [nn_linear.cpp:main:131] iter199: loss = 0.009068492, w = 2.0027194, b = 5.014816
+```
+
 ### YOLOv5 目标检测
 
 ```shell
@@ -41,17 +79,6 @@ Total inference time: 0.1189 seconds, Average FPS: 33.65
 
 
 ### MNIST 手写数字识别
-
-### 线性回归训练
-
-使用自动求导功能实现简单的线性回归，快速收敛到目标参数（w≈2.0, b≈5.0）：
-
-```
-iter0:   loss = 30.13,  w = 0.53,  b = 0.99
-iter50:  loss = 0.15,   w = 1.85, b = 4.72
-iter100: loss = 0.02,   w = 1.96, b = 4.98
-iter199: loss = 0.01,   w = 1.998, b = 5.007 
-```
 
 ## ✨ 特性
 
@@ -176,9 +203,7 @@ sudo apt install libopencv-dev -y
 
 - **编译器**：支持 C++20 的编译器（GCC 9+, Clang 10+）
 - **CMake**：3.18 或更高版本
-- **可选依赖**：
-  - OpenCV：用于图像处理示例（YOLOv5、ResNet）
-  - LibTorch：可选的后端（需要时下载）
+- **可选依赖**：OpenCV 用于图像处理示例（YOLOv5、ResNet）
 
 ## 📖 基本使用
 
@@ -266,9 +291,6 @@ int main() {
 # 运行所有单元测试
 bash run_unit_test.sh
 
-# 使用 LibTorch 后端运行测试
-bash run_unit_test.sh TORCH
-
 # 运行 CUDA 单元测试（如果支持）
 bash run_unit_test.sh --cuda
 ```
@@ -322,25 +344,6 @@ python3 run_benchmark.py -f conv2d,relu -d cuda:0 -w 2 -r 10 -o ./results
 ### 示例程序
 
 编译成功后，可以在 `build/bin/` 目录下找到各种示例程序：
-
-```bash
-# 线性回归示例
-$ ./build/bin/dl_linearRegression
-JinboBook 2025-09-29 21:23:43.066 I 49297 49297 [main.cpp:main:169] iter0: loss = 30.126541, w = 0.5257687, b = 0.99326295
-JinboBook 2025-09-29 21:23:43.066 I 49297 49297 [main.cpp:main:169] iter1: loss = 18.83971, w = 0.9118613, b = 1.7899978
-JinboBook 2025-09-29 21:23:43.066 I 49297 49297 [main.cpp:main:169] iter2: loss = 11.827219, w = 1.1956564, b = 2.4289458
-JinboBook 2025-09-29 21:23:43.067 I 49297 49297 [main.cpp:main:169] iter3: loss = 7.450261, w = 1.4044737, b = 2.941251
-JinboBook 2025-09-29 21:23:43.067 I 49297 49297 [main.cpp:main:169] iter4: loss = 4.7073665, w = 1.5582924, b = 3.351939
-JinboBook 2025-09-29 21:23:43.067 I 49297 49297 [main.cpp:main:169] iter5: loss = 2.9825616, w = 1.6717329, b = 3.6811109
-......
-JinboBook 2025-09-29 21:23:43.808 I 49297 49297 [main.cpp:main:169] iter193: loss = 0.009776835, w = 1.9978435, b = 5.006678
-JinboBook 2025-09-29 21:23:43.817 I 49297 49297 [main.cpp:main:169] iter194: loss = 0.009776835, w = 1.9978435, b = 5.006678
-JinboBook 2025-09-29 21:23:43.826 I 49297 49297 [main.cpp:main:169] iter195: loss = 0.009776835, w = 1.9978435, b = 5.006678
-JinboBook 2025-09-29 21:23:43.835 I 49297 49297 [main.cpp:main:169] iter196: loss = 0.009776835, w = 1.9978435, b = 5.006678
-JinboBook 2025-09-29 21:23:43.845 I 49297 49297 [main.cpp:main:169] iter197: loss = 0.009776835, w = 1.9978435, b = 5.006678
-JinboBook 2025-09-29 21:23:43.854 I 49297 49297 [main.cpp:main:169] iter198: loss = 0.009776835, w = 1.9978435, b = 5.006678
-JinboBook 2025-09-29 21:23:43.864 I 49297 49297 [main.cpp:main:169] iter199: loss = 0.009776835, w = 1.9978435, b = 5.006678
-```
 
 更多示例请参考 `tests/example/` 目录：
 
