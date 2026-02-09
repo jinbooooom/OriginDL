@@ -1,3 +1,31 @@
+/**
+ * @file cuda_ops.cuh
+ * @brief CUDA 算子接口声明头文件
+ * 
+ * ============================================================================
+ * 文件功能说明
+ * ============================================================================
+ * 
+ * 本文件是 CUDA 算子的统一接口声明层，提供所有 CUDA 算子的接口声明。
+ * 
+ * 架构层次：
+ * - origin_mat.cpp (封装层)
+ *   ↓ 包含
+ * - cuda_ops.cuh (本文件：所有 CUDA 算子的接口声明)
+ *   ↓ 声明
+ * - cuda_ops.cu (非计算类算子实现：clone、index_put)
+ * - add.cu, divide.cu 等 (计算类算子实现)
+ *   ↓ 都包含
+ * - cuda_kernels.cuh (kernel 定义，只在 .cu 文件中使用)
+ * 
+ * 使用说明：
+ * - origin_mat.cpp 只需包含 cuda_ops.cuh，即可使用所有 CUDA 算子
+ * - 所有 CUDA 算子的实现都在对应的 .cu 文件中
+ * - cuda_kernels.cuh 只在 .cu 文件中被包含，用于 kernel 定义
+ * 
+ * ============================================================================
+ */
+
 #ifndef __ORIGIN_DL_CUDA_OPS_H__
 #define __ORIGIN_DL_CUDA_OPS_H__
 
@@ -552,6 +580,25 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices);
  * @return one-hot 编码矩阵 (N, num_classes)
  */
 std::unique_ptr<Mat> one_hot(const OriginMat &indices, int num_classes);
+
+// ============================================================================
+// 非计算类算子（内存操作、索引操作等）
+// ============================================================================
+
+/**
+ * @brief CUDA clone：深拷贝张量（支持非连续张量）
+ * @param mat 输入矩阵
+ * @return 拷贝后的矩阵（连续存储）
+ */
+std::unique_ptr<Mat> clone(const origin::OriginMat &mat);
+
+/**
+ * @brief CUDA index_put：根据多维索引写入单个元素
+ * @param mat 输入/输出矩阵（原地修改）
+ * @param indices 多维索引
+ * @param value 要写入的标量值
+ */
+void index_put(origin::OriginMat &mat, std::initializer_list<size_t> indices, const origin::Scalar &value);
 
 // ============================================================================
 // 自定义算子

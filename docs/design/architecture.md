@@ -453,7 +453,41 @@ Mat 与 Storage 的关系
 
 对应 [2.1.1 四层架构概览](#211-四层架构概览) 中的**第 4 层**，提供 Mat 接口的具体实现。
 
-（待完善）
+### 2.5.1 OriginMat 算子文件组织
+
+OriginMat 作为 Mat 接口的后端实现，其 CPU 和 CUDA 算子实现都采用相同的分层文件组织方式，具有清晰的职责划分和调用关系。以 CUDA 实现为例说明如下：
+
+**文件组织架构（以 CUDA 实现为例）：**
+
+```mermaid
+flowchart TD
+    OriginMat["origin_mat.cpp<br/>(封装层)"]
+    CudaOpsCuh["cuda_ops.cuh<br/>(所有 CUDA 算子的接口声明)"]
+    CudaOpsCu["cuda_ops.cu<br/>(非计算类算子实现：clone、index_put)"]
+    AddCu["add.cu, divide.cu 等<br/>(计算类算子实现)"]
+    CudaKernelsCuh["cuda_kernels.cuh<br/>(kernel 定义，只在 .cu 文件中使用)"]
+    
+    OriginMat -->|包含| CudaOpsCuh
+    CudaOpsCuh -->|声明| CudaOpsCu
+    CudaOpsCuh -->|声明| AddCu
+    CudaOpsCu -->|包含| CudaKernelsCuh
+    AddCu -->|包含| CudaKernelsCuh
+```
+
+**调用顺序（以 CUDA 实现为例）：**
+
+1. **封装层**：`origin_mat.cpp` 作为 OriginMat 的封装层，调用算子接口（CPU 调用 `cpu_ops.h`，CUDA 调用 `cuda_ops.cuh`）
+2. **接口声明层**：统一接口声明文件（CPU 为 `cpu_ops.h`，CUDA 为 `cuda_ops.cuh`）声明所有算子的接口，供封装层调用
+3. **实现层**：
+   - 非计算类算子实现文件（CPU 为 `cpu_ops.cpp`，CUDA 为 `cuda_ops.cu`）：实现非计算类算子（如 `clone`、`index_put`），按功能分类组织
+   - 计算类算子实现文件（CPU 为 `add.cpp`、`divide.cpp` 等，CUDA 为 `add.cu`、`divide.cu` 等）：实现计算类算子（如 `add`、`divide`），按算子分类组织
+4. **Kernel 层**：基础操作定义文件（CPU 为 `cpu_kernels.h`，CUDA 为 `cuda_kernels.cuh`）定义所有基础操作函数，被所有实现文件包含
+
+**设计原则：**
+
+- **职责分离**：非计算类算子（数据操作）与计算类算子（数学运算）分开组织
+- **接口统一**：所有算子通过统一的接口声明文件（`cpu_ops.h` / `cuda_ops.cuh`）统一声明，便于管理和维护
+- **实现隔离**：基础操作定义集中在 kernel 文件（`cpu_kernels.h` / `cuda_kernels.cuh`），只在实现文件中使用，不暴露给上层
 
 
 
