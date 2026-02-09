@@ -811,6 +811,14 @@ Scalar OriginMat::scalar_value() const
 // 数据访问
 std::vector<float> OriginMat::to_vector() const
 {
+    // 如果张量不是连续的，需要先转换为连续（按逻辑顺序访问数据）
+    // 这对于视图转置等操作产生的非连续张量很重要
+    if (!is_contiguous())
+    {
+        auto contiguous_mat = contiguous();
+        return contiguous_mat->to_vector();
+    }
+
     // 如果数据在CUDA上，需要先复制到CPU
     if (storage_->device_type() == DeviceType::kCUDA)
     {

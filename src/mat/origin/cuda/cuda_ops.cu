@@ -314,7 +314,7 @@ std::unique_ptr<Mat> clone(const OriginMat &mat)
     else
     {
         // 对于非连续张量，需要按逻辑顺序拷贝（使用 strides）
-        // 计算目标张量的连续 strides（用于写入）
+        // 计算目标张量的连续 strides（用于写入和构造 OriginMat）
         auto output_strides = utils::compute_strides(mat.shape());
 
         // CUDA 版本：使用 kernel 按逻辑顺序拷贝
@@ -349,9 +349,12 @@ std::unique_ptr<Mat> clone(const OriginMat &mat)
 
             CUDA_CHECK(cudaFree(d_combined));
         });
+
+        // 使用已计算的 output_strides 创建 OriginMat，避免构造函数中重复计算
+        return std::make_unique<OriginMat>(new_storage, mat.shape(), output_strides, mat.dtype());
     }
 
-    // 创建新的 OriginMat，使用新的 Storage
+    // 创建新的 OriginMat，使用新的 Storage（连续情况，构造函数会计算 strides）
     return std::make_unique<OriginMat>(new_storage, mat.shape(), mat.dtype());
 }
 
