@@ -410,6 +410,7 @@ std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const
 
     // 如果张量不是连续的，需要创建连续副本后再reshape
     // 先创建连续副本，然后对连续副本使用view
+    // 根本不会调用 cpu::reshape 和 cuda::reshape
     auto contiguous_mat = contiguous();
     return contiguous_mat->view(new_shape);
 }
