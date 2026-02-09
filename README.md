@@ -241,17 +241,14 @@ sudo apt install libopencv-dev -y
 | 创建随机张量   | `torch.randn(2, 2)`                      | `Tensor::randn(Shape{2, 2})`                | 语法高度相似                     |
 | 创建标量张量   | `torch.tensor(5.0)`                      | `Tensor(5.0, Shape{1})`                     | OriginDL 需要显式指定形状        |
 
-### 基本运算
+### 运算
 
-| 功能       | PyTorch 示例代码              | OriginDL 示例代码      | 备注                     |
-| ---------- | ----------------------------- | ---------------------- | ------------------------ |
-| 张量加法   | `a + b`                       | `a + b`                | 语法完全一致             |
-| 张量减法   | `a - b`                       | `a - b`                | 语法完全一致             |
-| 元素级乘法 | `a * b`                       | `a * b`                | 语法完全一致             |
-| 张量除法   | `a / b`                       | `a / b`                | 语法完全一致             |
-| 指数函数   | `torch.exp(a)`                | `exp(a)`               | OriginDL 使用函数形式    |
-| 平方运算   | `torch.square(a)`             | `square(a)`            | OriginDL 使用函数形式    |
-| 幂运算     | `a ** 2` 或 `torch.pow(a, 2)` | `a ^ 2` 或 `pow(a, 2)` | OriginDL 使用 `^` 运算符 |
+| 类别     | PyTorch 示例代码                         | OriginDL 示例代码                            | 备注                     |
+| -------- | ------------------------------- | ----------------------------------- | ------------------------ |
+| 数学运算 | `a + b`、`torch.exp(a)`、`a @ b` | `a + b`、`exp(a)`、`matmul(a, b)`   | 运算符一致，函数用全局形式 |
+| 形状运算 | `x.reshape(s)`、`x.T`、`flatten(x)` | `reshape(x, s)`、`transpose(x)`、`flatten(x)` | 函数式调用               |
+| 激活运算 | `F.relu(x)`、`F.sigmoid(x)`      | `relu(x)`、`sigmoid(x)`             | 全局函数形式             |
+| 卷积运算 | `F.conv2d(x, w, stride, pad)`    | `conv2d(x, w, stride, pad)`         | 参数顺序一致             |
 
 ### 自动求导
 
@@ -262,47 +259,151 @@ sudo apt install libopencv-dev -y
 | 获取梯度 | `x.grad`                   | `x.grad()`                 | OriginDL 使用函数调用 |
 | 打印梯度 | `print(x.grad)`            | `x.grad().print("dx: ")`   | OriginDL 使用成员函数 |
 
+### nn 模块
+
+| 类别   | PyTorch 示例代码                          | OriginDL 示例代码                             | 备注           |
+| ------ | -------------------------------- | ------------------------------------ | -------------- |
+| 模型   | `nn.Sequential(Linear(...), ...)` | `nn::MLP({784, 100, 10})`            | 预置 MLP 等    |
+| 前向   | `model(x)`                       | `model.forward(x)`                   | 需显式 forward |
+| 模式   | `model.train()` / `model.eval()` | `model.train(true)` / `model.train(false)` | 接口相近       |
+
+### 优化器与损失
+
+| 类别   | PyTorch 示例代码                     | OriginDL 示例代码                         | 备注           |
+| ------ | --------------------------- | -------------------------------- | -------------- |
+| 优化器 | `optim.Adam(model.parameters(), lr)` | `Adam optimizer(model, lr)`       | 传入 Module    |
+| 步进   | `optimizer.step()`、`optimizer.zero_grad()` | 同左                              | 用法一致       |
+| 损失   | `F.cross_entropy(logits, target)`   | `softmax_cross_entropy(x, target)` | 函数式调用     |
+
+### 数据加载
+
+| 类别 | PyTorch 示例代码                        | OriginDL 示例代码                         | 备注           |
+| ---- | ------------------------------ | -------------------------------- | -------------- |
+| 加载 | `DataLoader(dataset, batch_size)` | `DataLoader(dataset, batch_size)` | 用法一致       |
+
 ## 📝 示例代码
 
-### 线性回归示例
+### 线性回归（手写网络）
+
+参考：`tests/example/linear_regression/linear_regression.cpp`
 
 ```cpp
-#include "originDL.h"
+#include "origin.h"
 using namespace origin;
+namespace F = origin::functional;
 
-int main() {
-    // 创建训练数据
-    auto x = Tensor::randn(Shape{100, 1});
-    auto y = 2.0 * x + 1.0 + Tensor::randn(Shape{100, 1}) * 0.1;
-    
-    // 模型参数
-    auto w = Tensor::randn(Shape{1, 1});
-    auto b = Tensor::zeros(Shape{1, 1});
-    
-    // 训练循环
-    for (int epoch = 0; epoch < 100; ++epoch) {
-        // 前向传播
-        auto pred = x * w + b;
-        auto loss = sum(square(pred - y));
-        
-        // 反向传播
-        loss.backward();
-        
-        // 更新参数
-        w = w - 0.01 * w.grad();
-        b = b - 0.01 * b.grad();
-        
-        // 清除梯度
-        w.clear_grad();
-        b.clear_grad();
-        
-        if (epoch % 10 == 0) {
-            std::cout << "Epoch " << epoch << ", Loss: " << loss.item() << std::endl;
-        }
-    }
-    
-    return 0;
+// 手写前向与损失
+Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
+{
+    return F::mat_mul(x, w) + b;
 }
+Tensor MSE(const Tensor &x0, const Tensor &x1)
+{
+    auto diff = x0 - x1;
+    auto sum_result = F::sum(F::pow(diff, Scalar(2.0f)));
+    return sum_result / static_cast<float>(diff.elements());
+}
+
+float lr = 0.1f;
+int iters = 200;
+auto w = Tensor(0.0f, Shape{1, 1});
+auto b = Tensor(0.0f, Shape{1, 1});
+for (int i = 0; i < iters; ++i) {
+    w.clear_grad(); b.clear_grad();
+    auto y_pred = Predict(x, w, b);
+    auto loss = MSE(y, y_pred);
+    loss.backward();
+    w = w - lr * w.grad();
+    b = b - lr * b.grad();
+}
+```
+
+### 线性回归（NN 模块）
+
+参考：`tests/example/linear_regression/nn_linear.cpp`
+
+```cpp
+#include "origin.h"
+using namespace origin;
+namespace nn = origin::nn;
+
+// Sequential + Linear，SGD 训练
+float learning_rate = 0.1f;
+int iters = 200;
+Sequential model;
+model.add(std::make_unique<nn::Linear>(1, 1, true));
+SGD optimizer(model, learning_rate);
+model.to(device);
+
+model.train();
+for (int i = 0; i < iters; ++i) {
+    optimizer.zero_grad();
+    auto y_pred = model(x);
+    auto loss = F::sum(F::pow(y_pred - y, Scalar(2))) / y_pred.elements();
+    loss.backward();
+    optimizer.step();
+}
+```
+
+### CNN 训练（MNIST + DataLoader）
+
+参考：`tests/example/mnist/conv_mnist.cpp`
+
+```cpp
+#include "origin.h"
+using namespace origin;
+namespace F = origin::functional;
+
+MNIST train_dataset("./data/mnist", true);
+DataLoader train_loader(train_dataset, 256, true);
+
+SimpleCNN model;  // 自定义 Module：Conv2d -> BN -> ReLU -> MaxPool -> Flatten -> Linear
+model.to(device);
+Adam optimizer(model, 0.0001f);
+optimizer.register_hook(WeightDecay(1e-4f).hook());
+
+for (int epoch = 0; epoch < 10; ++epoch) {
+    model.train(true);
+    train_loader.reset();
+    while (train_loader.has_next()) {
+        auto [x, t] = train_loader.next();
+        x = x.to(device); t = t.to(device);
+        auto y = model(x);
+        auto loss = F::softmax_cross_entropy(y, t);
+        optimizer.zero_grad();
+        loss.backward();
+        optimizer.step();
+    }
+}
+```
+
+### PNNX 模型推理（YOLOv5）
+
+参考：`tests/example/yolo/yolov5_infer.cpp`
+
+```cpp
+#include "origin.h"
+using namespace origin::pnnx;
+
+std::string param_path = "model.pnnx.param";
+std::string bin_path = "model.pnnx.bin";
+int input_h = 640, input_w = 640;
+
+Device device(DeviceType::kCPU);
+if (cuda::is_available()) device = Device(DeviceType::kCUDA, 0);
+
+PNNXGraph graph(param_path, bin_path);
+graph.build();
+
+Tensor input = create_test_input(device, 1, 3, input_h, input_w);
+
+// 图像输入（需 OpenCV，letterbox + BGR2RGB + 归一化 -> NCHW）
+Tensor input = preprocess_image(cv_image, device, input_h, input_w);
+
+graph.set_inputs("pnnx_input_0", {input});
+graph.forward(false);
+auto outputs = graph.get_outputs("pnnx_output_0");
+// 后处理：解析检测框、NMS、绘制等，见源码 process_and_save_detection
 ```
 
 ## 🧪 运行测试
@@ -324,8 +425,9 @@ bash run_unit_test.sh --cuda
 运行性能对比测试，对比 OriginDL 与 PyTorch 的性能：
 
 ```bash
-# 运行所有 benchmark 测试
+# 运行所有 benchmark 测试，所有设备（CPU/CUDA）、所有算子的测试，不建议开启 cpu 的测试，因为 CPU 仅仅用于验证的目的，性能其实很慢
 python3 run_benchmark.py
+python3 run_benchmark.py -d cuda  # 最常用的测试方式，只测量 CUDA 设备的所有算子的性能
 
 # 运行特定算子的 benchmark
 python3 run_benchmark.py -f add
