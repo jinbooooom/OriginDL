@@ -289,5 +289,54 @@ TEST_P(ReshapeOperatorTest, ElementCountValidation)
     EXPECT_THROW(F::reshape(x, invalid_shape), std::exception);
 }
 
+// ==================== 非连续张量测试 ====================
+
+TEST_P(ReshapeOperatorTest, ReshapeNonContiguousAfterTranspose)
+{
+    // 测试对非连续张量（经过 transpose）进行 reshape
+    // 原始张量: [[1, 2, 3], [4, 5, 6]] (shape: 2x3)
+    // transpose 后: [[1, 4], [2, 5], [3, 6]] (shape: 3x2, 非连续)
+    // reshape 后应该得到: [1, 4, 2, 5, 3, 6] (按逻辑顺序)
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+
+    // transpose 后得到非连续张量
+    auto transposed = x.transpose();
+    EXPECT_EQ(transposed.shape(), Shape({3, 2}));
+
+    // 对非连续张量进行 reshape
+    Shape target_shape{6};
+    auto result = F::reshape(transposed, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    // 转置后的逻辑顺序应该是: [1, 4, 2, 5, 3, 6]
+    auto expected = Tensor({1.0f, 4.0f, 2.0f, 5.0f, 3.0f, 6.0f}, target_shape,
+                          dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+
+TEST_P(ReshapeOperatorTest, ReshapeNonContiguousToMultiD)
+{
+    // 测试将非连续张量 reshape 为多维形状
+    // 原始: [[1, 2, 3], [4, 5, 6]] (shape: 2x3)
+    // transpose 后: [[1, 4], [2, 5], [3, 6]] (shape: 3x2, 非连续)
+    // reshape 为 (2, 3) 后应该得到: [[1, 4, 2], [5, 3, 6]]
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+
+    // transpose 后得到非连续张量
+    auto transposed = x.transpose();
+    EXPECT_EQ(transposed.shape(), Shape({3, 2}));
+
+    // 对非连续张量进行 reshape 为多维
+    Shape target_shape{2, 3};
+    auto result = F::reshape(transposed, target_shape);
+
+    EXPECT_EQ(result.shape(), target_shape);
+    // 转置后的逻辑顺序按 (2, 3) 排列: [[1, 4, 2], [5, 3, 6]]
+    auto expected = Tensor({1.0f, 4.0f, 2.0f, 5.0f, 3.0f, 6.0f}, target_shape,
+                          dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(ReshapeOperatorTest);

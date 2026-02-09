@@ -310,25 +310,109 @@ std::unique_ptr<Mat> OriginMat::clone() const
     size_t data_size = shape_.elements() * element_size(dtype_);
     auto new_storage = Storage::create(data_size, storage_->device_type(), storage_->device_index());
 
-    // 根据设备类型复制数据
-    if (storage_->device_type() == DeviceType::kCPU)
+    // 如果张量是连续的，可以直接使用 memcpy（快速路径）
+    if (is_contiguous())
     {
-        std::memcpy(new_storage->data(), storage_->data(), data_size);
+        if (storage_->device_type() == DeviceType::kCPU)
+        {
+            std::memcpy(new_storage->data(), storage_->data(), data_size);
+        }
+        else
+        {
+#ifdef WITH_CUDA
+            // 先同步，确保所有之前的异步kernel操作完成
+            // 然后再复制数据，确保复制的是最新的数据
+            cudaDeviceSynchronize();
+            cudaError_t err = cudaMemcpy(new_storage->data(), storage_->data(), data_size, cudaMemcpyDeviceToDevice);
+            if (err != cudaSuccess)
+            {
+                THROW_RUNTIME_ERROR("CUDA memory copy failed in clone: {}", cudaGetErrorString(err));
+            }
+#else
+            THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+        }
     }
     else
     {
-#ifdef WITH_CUDA
-        // 先同步，确保所有之前的异步kernel操作完成
-        // 然后再复制数据，确保复制的是最新的数据
-        cudaDeviceSynchronize();
-        cudaError_t err = cudaMemcpy(new_storage->data(), storage_->data(), data_size, cudaMemcpyDeviceToDevice);
-        if (err != cudaSuccess)
+        // 对于非连续张量，需要按逻辑顺序拷贝（使用 strides）
+        // 计算目标张量的连续 strides（用于写入）
+        auto output_strides = utils::compute_strides(shape_);
+
+        if (storage_->device_type() == DeviceType::kCPU)
         {
-            THROW_RUNTIME_ERROR("CUDA memory copy failed in clone: {}", cudaGetErrorString(err));
+            // CPU 版本：按逻辑顺序逐个拷贝元素
+            device_common::TypeDispatcher::dispatch_void(dtype_, [&]<typename T>() {
+                const T *src_data = static_cast<const T *>(storage_->data());
+                T *dst_data       = static_cast<T *>(new_storage->data());
+
+                size_t total_elements = shape_.elements();
+                size_t ndim           = shape_.size();
+
+                // 遍历所有逻辑索引
+                for (size_t linear_idx = 0; linear_idx < total_elements; ++linear_idx)
+                {
+                    // 将线性索引转换为多维坐标（按输出形状）
+                    std::vector<size_t> coords(ndim);
+                    size_t remaining = linear_idx;
+                    for (size_t d = 0; d < ndim; ++d)
+                    {
+                        coords[d] = remaining / output_strides[d];
+                        remaining %= output_strides[d];
+                    }
+
+                    // 计算源张量的物理偏移（使用实际的 strides）
+                    size_t src_offset = 0;
+                    for (size_t d = 0; d < ndim; ++d)
+                    {
+                        src_offset += coords[d] * strides_[d];
+                    }
+
+                    // 拷贝元素（目标位置是连续的，所以直接使用 linear_idx）
+                    dst_data[linear_idx] = src_data[src_offset];
+                }
+            });
         }
+        else
+        {
+#ifdef WITH_CUDA
+            // CUDA 版本：使用 kernel 按逻辑顺序拷贝
+            cudaDeviceSynchronize();
+
+            device_common::TypeDispatcher::dispatch_void(dtype_, [&]<typename T>() {
+                const T *src_data = static_cast<const T *>(storage_->data());
+                T *dst_data       = static_cast<T *>(new_storage->data());
+
+                size_t total_elements = shape_.elements();
+                size_t ndim           = shape_.size();
+
+                std::vector<size_t> shape_vec(shape_.dims().begin(), shape_.dims().end());
+                size_t shape_size = ndim * sizeof(size_t);
+                size_t total_size = 3 * shape_size;  // 三个数组的总大小
+
+                size_t *d_combined = nullptr;
+                CUDA_CHECK(cudaMalloc(&d_combined, total_size));
+
+                size_t *d_shape          = d_combined;
+                size_t *d_strides        = d_combined + ndim;
+                size_t *d_output_strides = d_combined + 2 * ndim;
+
+                // 复制数据到连续内存的不同区域
+                CUDA_CHECK(cudaMemcpy(d_shape, shape_vec.data(), shape_size, cudaMemcpyHostToDevice));
+                CUDA_CHECK(cudaMemcpy(d_strides, strides_.data(), shape_size, cudaMemcpyHostToDevice));
+                CUDA_CHECK(cudaMemcpy(d_output_strides, output_strides.data(), shape_size, cudaMemcpyHostToDevice));
+
+                cuda::launch_clone_kernel<T>(src_data, dst_data, d_shape, d_strides, d_output_strides, ndim,
+                                             total_elements);
+
+                CUDA_CHECK_ASYNC();
+
+                CUDA_CHECK(cudaFree(d_combined));
+            });
 #else
-        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+            THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
+        }
     }
 
     // 创建新的 OriginMat，使用新的 Storage

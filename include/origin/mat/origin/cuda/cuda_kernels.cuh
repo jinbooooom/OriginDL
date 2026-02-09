@@ -19,11 +19,21 @@ namespace cuda
 {
 
 #ifdef WITH_CUDA
-// launch_index_put_kernel 在 origin_mat.cpp（普通 C++ 文件）中被调用
+// launch_index_put_kernel 和 launch_clone_kernel 在 origin_mat.cpp（普通 C++ 文件）中被调用
 // 其他启动函数（如 launch_elementwise_kernel）只在 .cu 文件中被调用
 // 为了保证编译通过，所以前向声明一下。
 template <typename T>
 void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream = 0);
+
+template <typename T>
+void launch_clone_kernel(const T *src,
+                         T *dst,
+                         const size_t *shape,
+                         const size_t *src_strides,
+                         const size_t *output_strides,
+                         size_t ndim,
+                         size_t total_elements,
+                         cudaStream_t stream = 0);
 #endif  // WITH_CUDA
 
 #ifdef __CUDACC__
@@ -241,6 +251,199 @@ __global__ void complex_broadcast_kernel(const T *__restrict__ a,
     }
 }
 
+/**
+ * @brief CUDA clone kernel：按逻辑顺序拷贝非连续张量
+ * @tparam T 数据类型
+ * @param src 源数据指针 
+ * @param dst 目标数据指针（连续存储）
+ * @param shape 源张量的形状（与 src_strides 对应）
+ * @param src_strides 源张量的 strides（可能非连续）
+ * @param output_strides 输出张量的连续 strides（用于计算逻辑索引，对应源张量的 shape）
+ * @param ndim 维度数
+ * @param total_elements 元素总数
+ *
+ * ============================================================================
+ * 算法原理
+ * ============================================================================
+ *
+ * 该 kernel 的核心目标是将非连续张量按逻辑顺序拷贝到连续内存中。
+ * 关键思想是：将输出位置的线性索引转换为源张量的物理内存偏移。
+ *
+ * 算法分为三个步骤：
+ *
+ * 1. 线性索引 -> 多维坐标
+ *    使用输出张量的连续 strides，将线性索引 idx 转换为多维坐标 (i, j, k, ...)
+ *    这些坐标对应源张量的逻辑位置
+ *
+ * 2. 多维坐标 -> 源张量物理偏移
+ *    使用相同的坐标和源张量的 strides 计算源张量中的物理内存偏移
+ *
+ * 3. 拷贝元素
+ *    从源张量的物理位置读取，写入到目标张量的连续位置
+ *
+ * ============================================================================
+ * 步骤1详解：线性索引 -> 多维坐标
+ * ============================================================================
+ *
+ * 这是算法的核心步骤，需要理解 strides 的含义和计算方法。
+ *
+ * 1.1 Strides 的含义
+ *    对于形状为 [d0, d1, d2, ..., d(n-1)] 的张量，连续 strides 的计算方式：
+ *        strides[n-1] = 1
+ *        strides[i] = strides[i+1] * d(i+1)  (从后往前计算)
+ *
+ *    例如：shape = [3, 2]
+ *        strides[1] = 1
+ *        strides[0] = strides[1] * 2 = 1 * 2 = 2
+ *        所以 output_strides = [2, 1]
+ *
+ * 1.2 线性索引到多维坐标的转换原理
+ *    对于连续存储的张量，线性索引 idx 与多维坐标 (i0, i1, i2, ...) 的关系：
+ *        idx = i0 * strides[0] + i1 * strides[1] + i2 * strides[2] + ...
+ *
+ *    要从 idx 反推出坐标，需要"反向"计算：
+ *        i0 = idx / strides[0]           (整数除法)
+ *        remainder = idx % strides[0]    (余数)
+ *        i1 = remainder / strides[1]
+ *        remainder = remainder % strides[1]
+ *        i2 = remainder / strides[2]
+ *        ...
+ *
+ * 1.3 算法实现
+ *    代码中的实现：
+ *        remaining = idx
+ *        for d = 0 to ndim-1:
+ *            coords[d] = remaining / output_strides[d]
+ *            remaining = remaining % output_strides[d]
+ *
+ * 1.4 具体示例（shape = [3, 2], output_strides = [2, 1]）
+ *
+ *    idx = 0:
+ *        d=0: coords[0] = 0 / 2 = 0, remaining = 0 % 2 = 0
+ *        d=1: coords[1] = 0 / 1 = 0, remaining = 0 % 1 = 0
+ *        结果: coords = [0, 0] -> 位置 (0, 0)
+ *
+ *    idx = 1:
+ *        d=0: coords[0] = 1 / 2 = 0, remaining = 1 % 2 = 1
+ *        d=1: coords[1] = 1 / 1 = 1, remaining = 1 % 1 = 0
+ *        结果: coords = [0, 1] -> 位置 (0, 1)
+ *
+ *    idx = 2:
+ *        d=0: coords[0] = 2 / 2 = 1, remaining = 2 % 2 = 0
+ *        d=1: coords[1] = 0 / 1 = 0, remaining = 0 % 1 = 0
+ *        结果: coords = [1, 0] -> 位置 (1, 0)
+ *
+ *    idx = 3:
+ *        d=0: coords[0] = 3 / 2 = 1, remaining = 3 % 2 = 1
+ *        d=1: coords[1] = 1 / 1 = 1, remaining = 1 % 1 = 0
+ *        结果: coords = [1, 1] -> 位置 (1, 1)
+ *
+ *    idx = 4:
+ *        d=0: coords[0] = 4 / 2 = 2, remaining = 4 % 2 = 0
+ *        d=1: coords[1] = 0 / 1 = 0, remaining = 0 % 1 = 0
+ *        结果: coords = [2, 0] -> 位置 (2, 0)
+ *
+ *    idx = 5:
+ *        d=0: coords[0] = 5 / 2 = 2, remaining = 5 % 2 = 1
+ *        d=1: coords[1] = 1 / 1 = 1, remaining = 1 % 1 = 0
+ *        结果: coords = [2, 1] -> 位置 (2, 1)
+ *
+ * 1.5 为什么使用 output_strides 而不是 shape？
+ *    因为 strides 包含了维度大小的信息，可以直接用于计算坐标。
+ *    使用 strides 的好处是：
+ *    - 直接反映了内存布局
+ *    - 计算效率高（只需要除法和取模）
+ *    - 适用于任意维度的张量
+ *
+ * 1.6 三维示例（shape = [2, 2, 2], output_strides = [4, 2, 1]）
+ *
+ *    idx = 0:  coords = [0, 0, 0] -> (0, 0, 0)
+ *    idx = 1:  coords = [0, 0, 1] -> (0, 0, 1)
+ *    idx = 2:  coords = [0, 1, 0] -> (0, 1, 0)
+ *    idx = 3:  coords = [0, 1, 1] -> (0, 1, 1)
+ *    idx = 4:  coords = [1, 0, 0] -> (1, 0, 0)
+ *    idx = 5:  coords = [1, 0, 1] -> (1, 0, 1)
+ *    idx = 6:  coords = [1, 1, 0] -> (1, 1, 0)
+ *    idx = 7:  coords = [1, 1, 1] -> (1, 1, 1)
+ *
+ *    验证：idx = 5 = 1*4 + 0*2 + 1*1 = 4 + 0 + 1 = 5 
+ *
+ * ============================================================================
+ * 完整示例：转置后 reshape 的场景
+ * ============================================================================
+ *
+ * 假设有一个 2×3 的张量经过转置，然后需要 reshape：
+ *
+ * 步骤1：原始张量
+ *   原始数据（内存顺序）: [1, 2, 3, 4, 5, 6]
+ *   原始形状: [2, 3]
+ *   原始逻辑顺序: [[1, 2, 3], [4, 5, 6]]
+ *
+ * 步骤2：转置操作
+ *   转置后形状: [3, 2]  <- 这是源张量的 shape（传入 kernel）
+ *   转置后逻辑顺序: [[1, 4], [2, 5], [3, 6]]
+ *   转置后内存顺序: [1, 2, 3, 4, 5, 6] (未变，但strides变了)
+ *   转置后strides: [1, 3]  <- 这是 src_strides（非连续）
+ *
+ * 步骤3：clone_kernel 拷贝过程（将非连续张量转为连续）
+ *   输出形状: [3, 2]  <- 与源张量相同（因为 contiguous 保持形状）
+ *   output_strides: [2, 1]  <- 连续 strides
+ *
+ *   拷贝过程：
+ *
+ *   | idx | coords | src_offset计算 | 逻辑值 | 物理位置 | 拷贝到 dst[idx] |
+ *   |-----|--------|----------------|--------|----------|----------------|
+ *   | 0   | (0,0)  | 0*1+0*3=0      | 1      | src[0]   | dst[0] = 1     |
+ *   | 1   | (0,1)  | 0*1+1*3=3      | 4      | src[3]   | dst[1] = 4     |
+ *   | 2   | (1,0)  | 1*1+0*3=1      | 2      | src[1]   | dst[2] = 2     |
+ *   | 3   | (1,1)  | 1*1+1*3=4      | 5      | src[4]   | dst[3] = 5     |
+ *   | 4   | (2,0)  | 2*1+0*3=2      | 3      | src[2]   | dst[4] = 3     |
+ *   | 5   | (2,1)  | 2*1+1*3=5      | 6      | src[5]   | dst[5] = 6     |
+ *
+ *   结果：dst = [1, 4, 2, 5, 3, 6]（按逻辑顺序，连续存储）
+ *
+ * 步骤4：reshape 操作（在 contiguous 之后）
+ *   对连续副本进行 reshape，例如 reshape 为 [6]
+ *   结果: [1, 4, 2, 5, 3, 6]（零拷贝，只是改变视图）
+ *
+ */
+template <typename T>
+__global__ void clone_kernel(const T *__restrict__ src,
+                             T *__restrict__ dst,
+                             const size_t *shape,
+                             const size_t *src_strides,
+                             const size_t *output_strides,
+                             size_t ndim,
+                             size_t total_elements)
+{
+    size_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < total_elements)
+    {
+        // 步骤1：将线性索引转换为多维坐标（按输出形状）
+        // 使用输出张量的连续 strides，将线性索引 idx 转换为多维坐标
+        size_t coords[8];  // 支持最多8维
+        size_t remaining = idx;
+        for (size_t d = 0; d < ndim; ++d)
+        {
+            coords[d] = remaining / output_strides[d];
+            remaining %= output_strides[d];
+        }
+
+        // 步骤2：计算源张量的物理偏移（使用实际的 strides）
+        // 使用相同的坐标和源张量的 strides 计算源张量中的物理内存偏移
+        size_t src_offset = 0;
+        for (size_t d = 0; d < ndim; ++d)
+        {
+            src_offset += coords[d] * src_strides[d];
+        }
+
+        // 步骤3：拷贝元素（目标位置是连续的，所以直接使用 idx）
+        // 从源张量的物理位置读取，写入到目标张量的连续位置
+        dst[idx] = src[src_offset];
+    }
+}
+
 // ============================================================================
 // 内核启动函数
 // ============================================================================
@@ -410,6 +613,29 @@ void launch_complex_broadcast_kernel(const T *a,
  */
 template <typename T>
 void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream = 0);
+
+/**
+ * @brief 启动 clone kernel：按逻辑顺序拷贝非连续张量
+ * @tparam T 数据类型
+ * @param src 源数据指针
+ * @param dst 目标数据指针（连续存储）
+ * @param shape 张量形状
+ * @param src_strides 源张量的 strides
+ * @param output_strides 输出张量的连续 strides
+ * @param ndim 维度数
+ * @param total_elements 元素总数
+ * @param stream CUDA流
+ * @note 实现在 cuda_kernels.cu 中，用 nvcc 编译
+ */
+template <typename T>
+void launch_clone_kernel(const T *src,
+                         T *dst,
+                         const size_t *shape,
+                         const size_t *src_strides,
+                         const size_t *output_strides,
+                         size_t ndim,
+                         size_t total_elements,
+                         cudaStream_t stream = 0);
 #endif  // __CUDACC__
 
 }  // namespace cuda
