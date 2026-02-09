@@ -76,8 +76,6 @@ Total inference time: 0.1189 seconds, Average FPS: 33.65
 <td width="50%"><img src="./assets/README/output_dog.jpg" alt="Dog Detection" style="width:100%"></td>
 </tr>
 </table>
-
-
 ### MNIST 手写数字识别
 
 ## ✨ 特性
@@ -171,28 +169,51 @@ bash scripts/download_data.sh
 
 ### 编译项目
 
+#### 基本编译命令
+
+**使用 OriginMat 后端（默认，推荐）**
+
 ```bash
+# 基本编译（自动检测 CUDA，如果系统有 CUDA 会自动启用）
 bash ./build.sh
+
+# 或显式指定后端和 CUDA 支持
+bash ./build.sh origin --cuda
+
+# 仅使用 CPU（禁用 CUDA）
+bash ./build.sh origin
 ```
 
-默认编译 OriginDL 从零开始写的矩阵计算后端，如果希望使用 libtorch 做矩阵计算后端（本项目本身不依赖 libtorch），则使用如下命令：
+**使用 LibTorch 后端（可选）**
+
+> **注意**：本项目支持 LibTorch 作为矩阵计算后端，主要用于展示 OriginDL 的多后端架构设计能力。但 LibTorch 后端的适配工作尚未完全完成，建议优先使用 OriginMat 后端。
+
+如果希望使用 LibTorch 做矩阵计算后端（本项目本身不依赖 libtorch），需要先下载 LibTorch：
 
 ```bash
+# 下载 LibTorch（CPU 版本）
 cd 3rd
 wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcpu.zip
-unzip
+unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cpu.zip
+cd ..
 
-bash build.sh torch
-
+# 使用 LibTorch 后端编译
+bash ./build.sh torch
 ```
+
+#### 其他编译选项
+
+`build.sh` 脚本还支持以下可选参数：
+
+- `--nvcc /path/to/nvcc`：指定 CUDA 编译器路径
+- `--libtorch_path /path/to/libtorch`：指定 LibTorch 路径
+- `--build_dir /path/to/build`：指定构建目录（默认：`build` 或 `torch_build`）
 
 对于某些 example(如example_yolov5, example_resnet)，需要 opencv 的支持，没有 opencv 将不会编译
 
 ```shell
 sudo apt install libopencv-dev -y
 ```
-
-
 
 编译完成后，会在以下位置生成文件：
 
@@ -201,9 +222,12 @@ sudo apt install libopencv-dev -y
 
 ### 系统要求
 
-- **编译器**：支持 C++20 的编译器（GCC 9+, Clang 10+）
-- **CMake**：3.18 或更高版本
-- **可选依赖**：OpenCV 用于图像处理示例（YOLOv5、ResNet）
+以下为本人的编译环境，更低版本的 CMake 与 C++ 标准亦可支持。
+
+- **编译器**：支持 C++20（GCC 9+、Clang 10+）
+- **CMake**：3.25
+- **CUDA**（可选）：使用 `--cuda` 编译时需安装 CUDA 工具链
+- **OpenCV**（可选）：YOLOv5、ResNet 等图像示例需 `libopencv-dev`
 
 ## 📖 基本使用
 

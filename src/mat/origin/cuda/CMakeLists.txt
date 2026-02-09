@@ -1,14 +1,15 @@
 cmake_minimum_required(VERSION 3.18)
 project(originmat_cuda)
 
-# originmat_cuda.so 依赖的 cpp 源文件使用 C++11 标准
-set(CMAKE_CXX_STANDARD 17)
+# originmat_cuda.so 依赖的 cpp 源文件使用 C++20 标准
+# 注：CMAKE_CUDA_STANDARD 20 需要 CMake 3.25.2+
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 启用CUDA语言，originmat_cuda.so 依赖的 cu 源文件使用 CUDA C++11 标准
+# 启用CUDA语言，originmat_cuda.so 依赖的 cu 源文件使用 CUDA C++20 标准
 # 因为不同环境的 cuda 版本不同，支持的 C++ 标准不同，因此显式指定 C++ 标准
 enable_language(CUDA)
-set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # 查找CUDA（使用现代方式）
@@ -98,7 +99,10 @@ set_target_properties(originmat_cuda PROPERTIES
 )
 
 # 设置CUDA编译选项
-set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -rdc=true")
+# -diag-suppress=20208: 屏蔽 NVCC 警告 #20208 "long double is treated as double in device code"
+#   CUDA 设备端不支持真正的 long double，会按 double 处理。该警告由 3rd/spdlog/fmt 头文件
+#   在格式化中使用 long double 引发。spdlog 仅用于 CPU 日志，不参与 GPU 计算，可安全忽略。
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr -rdc=true -diag-suppress=20208")
 
 # 添加编译定义
 target_compile_definitions(originmat_cuda PRIVATE WITH_CUDA)

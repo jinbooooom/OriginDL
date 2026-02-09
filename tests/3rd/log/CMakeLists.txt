@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 3.12)
 get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 project(${BIN_PREFIX}_${PROJECT_NAME})
 
-add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
+add_compile_options(-std=c++20 -O2 -Wall -g -ggdb)
 
 include_directories(${ORIGINDL_ROOT_DIR}/include)
 

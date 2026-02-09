@@ -102,7 +102,7 @@ if(MAT_BACKEND STREQUAL "TORCH")
     message(STATUS "LibTorch libraries: ${TORCH_LIBRARIES}")
 endif()
 
-add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
+add_compile_options(-std=c++20 -O2 -Wall -g -ggdb)
 # 禁止一些警告
 # add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-reorder -Wno-format) 
 

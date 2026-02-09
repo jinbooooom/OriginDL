@@ -51,8 +51,19 @@ public:
     // 从 std::initializer_list<size_t> 构造
     // 注意：initializer_list 的生命周期会持续到函数调用结束
     // 只要在函数调用时立即使用（如调用 to_vector()），就是安全的
+    //
+    // 禁用 -Winit-list-lifetime：编译器无法证明本类仅作为临时参数使用、
+    // 不会存储或延后访问，故会报警。本类设计约束为"只用于函数参数传递，
+    // 不存储为成员变量"，在此约束下该用法是安全的。
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Winit-list-lifetime"
+#endif
     SizeArrayRef(std::initializer_list<size_t> list) noexcept
         : data_(list.begin()), size_(list.size()) {}
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
     
     // 明确拒绝其他类型的 vector
     template<typename T>
