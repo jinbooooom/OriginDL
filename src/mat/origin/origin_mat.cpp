@@ -1,3 +1,31 @@
+/**
+ * @file origin_mat.cpp
+ * @brief OriginMat 类实现 - 封装层
+ * 
+ * ============================================================================
+ * 文件功能说明
+ * ============================================================================
+ * 
+ * 本文件是 OriginMat 类的实现，作为封装层负责设备分发和调用对应的 CPU/CUDA 实现。
+ * 
+ * 架构位置：
+ * - origin_mat.cpp (本文件：封装层)
+ *   ↓ 包含
+ * - cuda_ops.cuh (所有 CUDA 算子的接口声明)
+ *   ↓ 声明
+ * - cuda_ops.cu (非计算类算子实现：clone、index_put)
+ * - add.cu, divide.cu 等 (计算类算子实现)
+ *   ↓ 都包含
+ * - cuda_kernels.cuh (kernel 定义，只在 .cu 文件中使用)
+ * 
+ * 功能说明：
+ * - 本文件只需包含 cuda_ops.cuh，即可使用所有 CUDA 算子
+ * - 根据设备类型（CPU/CUDA）分发到对应的实现
+ * - 不包含具体的 CUDA kernel 实现细节
+ * 
+ * ============================================================================
+ */
+
 #include "origin/mat/origin/origin_mat.h"
 #include <algorithm>
 #include <cmath>
@@ -17,7 +45,6 @@
 
 #ifdef WITH_CUDA
 #    include <cuda_runtime.h>
-#    include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #    include "origin/mat/origin/cuda/cuda_ops.cuh"
 #    include "origin/mat/origin/cuda/cuda_utils.cuh"
 #    include "origin/mat/origin/cuda/factory.cuh"
@@ -306,33 +333,27 @@ std::unique_ptr<Mat> OriginMat::from_memory(const void *data,
 // Mat interface implementations - 委托给CPU模块
 std::unique_ptr<Mat> OriginMat::clone() const
 {
-    // 深拷贝：创建新的 Storage 并复制数据（真正的独立副本）
-    size_t data_size = shape_.elements() * element_size(dtype_);
-    auto new_storage = Storage::create(data_size, storage_->device_type(), storage_->device_index());
-
-    // 根据设备类型复制数据
+    // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
     {
-        std::memcpy(new_storage->data(), storage_->data(), data_size);
+        // CPU 版本：直接调用 cpu_ops.cpp 中的 clone 实现
+        // 该实现处理连续和非连续两种情况，支持按逻辑顺序拷贝非连续张量
+        return cpu::clone(*this);
     }
-    else
+    else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        // 先同步，确保所有之前的异步kernel操作完成
-        // 然后再复制数据，确保复制的是最新的数据
-        cudaDeviceSynchronize();
-        cudaError_t err = cudaMemcpy(new_storage->data(), storage_->data(), data_size, cudaMemcpyDeviceToDevice);
-        if (err != cudaSuccess)
-        {
-            THROW_RUNTIME_ERROR("CUDA memory copy failed in clone: {}", cudaGetErrorString(err));
-        }
+        // CUDA 版本：直接调用 cuda_ops.cu 中的 clone 实现
+        // 该实现处理连续和非连续两种情况，支持按逻辑顺序拷贝非连续张量
+        return cuda::clone(*this);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
     }
-
-    // 创建新的 OriginMat，使用新的 Storage
-    return std::make_unique<OriginMat>(new_storage, shape_, dtype_);
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for clone: {}", static_cast<int>(storage_->device_type()));
+    }
 }
 
 std::unique_ptr<Mat> OriginMat::view(const Shape &new_shape) const
@@ -410,6 +431,7 @@ std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const
 
     // 如果张量不是连续的，需要创建连续副本后再reshape
     // 先创建连续副本，然后对连续副本使用view
+    // 根本不会调用 cpu::reshape 和 cuda::reshape
     auto contiguous_mat = contiguous();
     return contiguous_mat->view(new_shape);
 }
@@ -789,6 +811,14 @@ Scalar OriginMat::scalar_value() const
 // 数据访问
 std::vector<float> OriginMat::to_vector() const
 {
+    // 如果张量不是连续的，需要先转换为连续（按逻辑顺序访问数据）
+    // 这对于视图转置等操作产生的非连续张量很重要
+    if (!is_contiguous())
+    {
+        auto contiguous_mat = contiguous();
+        return contiguous_mat->to_vector();
+    }
+
     // 如果数据在CUDA上，需要先复制到CPU
     if (storage_->device_type() == DeviceType::kCUDA)
     {
@@ -909,43 +939,14 @@ Scalar OriginMat::index(std::initializer_list<size_t> indices) const
 
 void OriginMat::index_put(std::initializer_list<size_t> indices, const Scalar &value)
 {
-    if (unlikely(indices.size() != shape_.size()))
-    {
-        THROW_INVALID_ARG("Index count ({}) does not match tensor dimension ({}). Indices: {}, Shape: {}",
-                          indices.size(), shape_.size(), "[indices]", shape_.to_string());
-    }
-
-    // 验证每个索引值并计算内存偏移（使用 strides，支持非连续内存）
-    size_t offset = 0;
-    size_t i      = 0;
-    for (auto idx : indices)
-    {
-        if (unlikely(idx >= shape_[i]))
-        {
-            THROW_INVALID_ARG("Index {} out of range for dimension {} (size: {}). Indices: {}, Shape: {}", idx, i,
-                              shape_[i], "[indices]", shape_.to_string());
-        }
-        offset += idx * strides_[i];
-        ++i;
-    }
-
     if (storage_->device_type() == DeviceType::kCPU)
     {
-        void *data_ptr = storage_->data();
-        device_common::TypeDispatcher::dispatch_void(dtype_, [&]<typename T>() {
-            T *data      = static_cast<T *>(data_ptr);
-            data[offset] = value.to<T>();
-        });
+        cpu::index_put(*this, indices, value);
     }
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        void *data_ptr = storage_->data();
-        device_common::TypeDispatcher::dispatch_void(dtype_, [&]<typename T>() {
-            T val   = value.to<T>();
-            T *data = static_cast<T *>(data_ptr);
-            cuda::launch_index_put_kernel<T>(data, offset, val);
-        });
+        cuda::index_put(*this, indices, value);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif

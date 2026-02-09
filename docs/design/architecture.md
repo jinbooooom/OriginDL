@@ -522,6 +522,42 @@ OriginMat 是 OriginDL 的自研矩阵计算后端，使用 Storage 进行内存
 
 **实现分支：** OriginMat 根据 device 分发到 `cpu_ops` 或 `cuda_ops`，通过 `device_common` 共享模板逻辑，`type_dispatcher` 实现 dtype 分发。
 
+**算子文件组织**
+
+OriginMat 作为 Mat 接口的后端实现，其 CPU 和 CUDA 算子实现都采用相同的分层文件组织方式，具有清晰的职责划分和调用关系。以 CUDA 实现为例说明如下：
+
+**文件组织架构（以 CUDA 实现为例）：**
+
+```mermaid
+flowchart TD
+    OriginMat["origin_mat.cpp<br/>(封装层)"]
+    CudaOpsCuh["cuda_ops.cuh<br/>(所有 CUDA 算子的接口声明)"]
+    CudaOpsCu["cuda_ops.cu<br/>(非计算类算子实现：clone、index_put)"]
+    AddCu["add.cu, divide.cu 等<br/>(计算类算子实现)"]
+    CudaKernelsCuh["cuda_kernels.cuh<br/>(kernel 定义，只在 .cu 文件中使用)"]
+    
+    OriginMat -->|包含| CudaOpsCuh
+    CudaOpsCuh -->|声明| CudaOpsCu
+    CudaOpsCuh -->|声明| AddCu
+    CudaOpsCu -->|包含| CudaKernelsCuh
+    AddCu -->|包含| CudaKernelsCuh
+```
+
+**调用顺序（以 CUDA 实现为例）：**
+
+1. **封装层**：`origin_mat.cpp` 作为 OriginMat 的封装层，调用算子接口（CPU 调用 `cpu_ops.h`，CUDA 调用 `cuda_ops.cuh`）
+2. **接口声明层**：统一接口声明文件（CPU 为 `cpu_ops.h`，CUDA 为 `cuda_ops.cuh`）声明所有算子的接口，供封装层调用
+3. **实现层**：
+   - 非计算类算子实现文件（CPU 为 `cpu_ops.cpp`，CUDA 为 `cuda_ops.cu`）：实现非计算类算子（如 `clone`、`index_put`），按功能分类组织
+   - 计算类算子实现文件（CPU 为 `add.cpp`、`divide.cpp` 等，CUDA 为 `add.cu`、`divide.cu` 等）：实现计算类算子（如 `add`、`divide`），按算子分类组织
+4. **Kernel 层**：基础操作定义文件（CPU 为 `cpu_kernels.h`，CUDA 为 `cuda_kernels.cuh`）定义所有基础操作函数，被所有实现文件包含
+
+**设计原则：**
+
+- **职责分离**：非计算类算子（数据操作）与计算类算子（数学运算）分开组织
+- **接口统一**：所有算子通过统一的接口声明文件（`cpu_ops.h` / `cuda_ops.cuh`）统一声明，便于管理和维护
+- **实现隔离**：基础操作定义集中在 kernel 文件（`cpu_kernels.h` / `cuda_kernels.cuh`），只在实现文件中使用，不暴露给上层
+
 ### 2.5.3 TorchMat 简要说明
 
 TorchMat 是基于 LibTorch 的 Mat 实现，将 OriginDL 的 Mat 接口桥接到 `torch::Tensor`，用于复用 LibTorch 的高性能算子。编译时需启用 LibTorch 依赖。
@@ -594,6 +630,36 @@ classDiagram
 - OriginMat 拥有 Storage 或作为视图共享 Storage（通过 `view()` 创建的 Mat 共享同一 Storage）
 - 支持 CPU 和 CUDA 设备，通过 `device_type_` 和 `device_index_` 区分
 
+### 2.5.5 视图设计：利用视图减少拷贝
+
+Mat 层的 `view`、`reshape`、`transpose` 等接口使用视图，在满足语义的前提下共享 Storage，避免使用 `clone` 重新分配内存并拷贝数据。
+
+**设计思路：** 形状变换（reshape、transpose）优先返回视图，仅调整 shape/strides，不分配新 Storage；仅在无法形成合法视图时（如非连续数据 reshape）才 fallback 到 `clone`。
+
+| 操作        | 实现方式                     | 是否拷贝     | 说明                                                         |
+| ----------- | ---------------------------- | ------------ | ------------------------------------------------------------ |
+| `view`      | 视图                         | 零拷贝       | 共享 Storage，仅改 shape/strides，O(1)                       |
+| `reshape`   | 连续→视图；非连续→clone+view | 连续时零拷贝 | 连续数据直接 `view()`；非连续需先 `contiguous()`（内部 `clone`）再 `view()` |
+| `transpose` | 当前为拷贝                   | 拷贝         | 分配新 Storage 并拷贝数据；未来可优化为视图转置              |
+
+**与 clone 的对比：** `clone` 始终分配新 Storage 并深拷贝，用于需要独立副本的场景；`view`/`reshape`（连续时）则不分配、不拷贝，多个 Mat 共享同一块内存。
+
+```cpp
+// origin_mat.cpp: OriginMat::reshape — 优先视图，避免 clone
+std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const {
+    if (new_shape.elements() != shape_.elements()) { /* 校验 */ }
+    if (is_contiguous()) {
+        return view(new_shape);  // 视图，零拷贝
+    }
+    auto contiguous_mat = contiguous();  // 非连续时不得已才 clone
+    return contiguous_mat->view(new_shape);
+}
+```
+
+## 2.6 内存所有权设计
+
+### 2.6.1 完整内存层次结构
+
 #### 内存所有权设计
 
 OriginDL 采用分层所有权模型：每一层明确「谁拥有数据、谁共享引用」，避免悬空指针和内存泄漏。
@@ -639,32 +705,6 @@ flowchart LR
 **Storage 与 MemoryPool：** Storage 构造时从 MemoryPool 申请内存，析构时归还；Storage 禁用拷贝、只支持移动，保证同一块内存仅由一个 Storage 实例管理生命周期。多个 OriginMat 通过 shared_ptr 共享同一 Storage，当最后一个 OriginMat 析构时，Storage 析构并释放内存。
 
 **生命周期与释放顺序：** Tensor 析构 → `impl_` ref_count-1；TensorImpl 析构 → `data_`、`grad_` ref_count-1；OriginMat 析构 → `storage_` ref_count-1；Storage 析构 → 归还 MemoryPool。引用计数确保无悬空指针和重复释放。
-
-### 2.5.5 视图设计：利用视图减少拷贝
-
-Mat 层的 `view`、`reshape`、`transpose` 等接口使用视图，在满足语义的前提下共享 Storage，避免使用 `clone` 重新分配内存并拷贝数据。
-
-**设计思路：** 形状变换（reshape、transpose）优先返回视图，仅调整 shape/strides，不分配新 Storage；仅在无法形成合法视图时（如非连续数据 reshape）才 fallback 到 `clone`。
-
-| 操作 | 实现方式 | 是否拷贝 | 说明 |
-|------|----------|----------|------|
-| `view` | 视图 | 零拷贝 | 共享 Storage，仅改 shape/strides，O(1) |
-| `reshape` | 连续→视图；非连续→clone+view | 连续时零拷贝 | 连续数据直接 `view()`；非连续需先 `contiguous()`（内部 `clone`）再 `view()` |
-| `transpose` | 当前为拷贝 | 拷贝 | 分配新 Storage 并拷贝数据；未来可优化为视图转置 |
-
-**与 clone 的对比：** `clone` 始终分配新 Storage 并深拷贝，用于需要独立副本的场景；`view`/`reshape`（连续时）则不分配、不拷贝，多个 Mat 共享同一块内存。
-
-```cpp
-// origin_mat.cpp: OriginMat::reshape — 优先视图，避免 clone
-std::unique_ptr<Mat> OriginMat::reshape(const Shape &new_shape) const {
-    if (new_shape.elements() != shape_.elements()) { /* 校验 */ }
-    if (is_contiguous()) {
-        return view(new_shape);  // 视图，零拷贝
-    }
-    auto contiguous_mat = contiguous();  // 非连续时不得已才 clone
-    return contiguous_mat->view(new_shape);
-}
-```
 
 ## 2.6 张量打印系统设计
 

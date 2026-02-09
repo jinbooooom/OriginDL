@@ -1,3 +1,31 @@
+/**
+ * @file cuda_kernels.cuh
+ * @brief CUDA Kernel 定义头文件
+ * 
+ * ============================================================================
+ * 文件功能说明
+ * ============================================================================
+ * 
+ * 本文件包含所有 CUDA kernel 函数的定义（__global__ 函数），只在 .cu 文件中被包含使用。
+ * 
+ * 架构位置：
+ * - origin_mat.cpp (封装层)
+ *   ↓ 包含
+ * - cuda_ops.cuh (所有 CUDA 算子的接口声明)
+ *   ↓ 声明
+ * - cuda_ops.cu (非计算类算子实现：clone、index_put)
+ * - add.cu, divide.cu 等 (计算类算子实现)
+ *   ↓ 都包含
+ * - cuda_kernels.cuh (本文件：kernel 定义，只在 .cu 文件中使用)
+ * 
+ * 使用说明：
+ * - 本文件只在 .cu 文件中被包含，用于定义 CUDA kernel 函数
+ * - 不要在 .cpp 文件中包含本文件，会导致编译错误
+ * - 所有 kernel 启动函数（launch_*）都在对应的 .cu 文件中实现
+ * 
+ * ============================================================================
+ */
+
 #ifndef __ORIGIN_DL_CUDA_KERNELS_H__
 #define __ORIGIN_DL_CUDA_KERNELS_H__
 
@@ -18,13 +46,6 @@ namespace origin
 namespace cuda
 {
 
-#ifdef WITH_CUDA
-// launch_index_put_kernel 在 origin_mat.cpp（普通 C++ 文件）中被调用
-// 其他启动函数（如 launch_elementwise_kernel）只在 .cu 文件中被调用
-// 为了保证编译通过，所以前向声明一下。
-template <typename T>
-void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream = 0);
-#endif  // WITH_CUDA
 
 #ifdef __CUDACC__
 /**
@@ -99,23 +120,6 @@ __global__ void type_conversion_kernel(const SrcT *__restrict__ src, DstT *__res
     if (idx < n)
     {
         dst[idx] = static_cast<DstT>(src[idx]);
-    }
-}
-
-/**
- * @brief 索引写入内核（单个元素）
- * @tparam T 数据类型
- * @param data 数据指针
- * @param index 线性索引
- * @param value 要写入的值
- */
-template <typename T>
-__global__ void index_put_kernel(T *data, size_t index, T value)
-{
-    // 只写入指定索引位置的值
-    if (threadIdx.x == 0 && blockIdx.x == 0)
-    {
-        data[index] = value;
     }
 }
 
@@ -399,17 +403,6 @@ void launch_complex_broadcast_kernel(const T *a,
                                                                 b_shape, c_shape, ndims, total_elements, op);
 }
 
-/**
- * @brief 启动索引写入内核（单个元素）
- * @tparam T 数据类型
- * @param data 数据指针
- * @param index 线性索引
- * @param value 要写入的值
- * @param stream CUDA流
- * @note 实现在 cuda_kernels.cu 中，用 nvcc 编译
- */
-template <typename T>
-void launch_index_put_kernel(T *data, size_t index, T value, cudaStream_t stream = 0);
 #endif  // __CUDACC__
 
 }  // namespace cuda

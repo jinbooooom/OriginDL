@@ -1,3 +1,4 @@
+#include <vector>
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
@@ -173,16 +174,31 @@ void launch_transpose_nd_kernel(const T *input, T *output, int last_dim, int sec
 }
 
 /**
- * @brief CUDA transpose算子实现
+ * @brief CUDA data_transpose算子实现（数据转置）
  * @param mat 输入矩阵
  * @return 转置后的矩阵
+ * 
+ * @details 使用数据转置策略：真正重新排列内存中的数据
+ * 
+ * 数据转置的特点：
+ * - 需要分配新内存并复制数据
+ * - 数据在内存中的顺序被重新排列
+ * - 转置后的张量是连续的
+ * - 适用于需要真正转置数据的操作（如矩阵乘法）
+ * 
+ * 注意：当前实现只转置最后两个维度
  */
-std::unique_ptr<Mat> transpose(const OriginMat &mat)
+std::unique_ptr<Mat> data_transpose(const OriginMat &mat)
 {
     // 验证设备类型
     VALIDATE_CUDA_DEVICE(mat);
 
-    if (mat.shape().size() == 1)
+    if (mat.shape().size() == 0)
+    {
+        // 0维张量（标量）：转置后保持不变
+        return std::make_unique<OriginMat>(mat);
+    }
+    else if (mat.shape().size() == 1)
     {
         // 一维张量：转置后保持不变
         return std::make_unique<OriginMat>(mat);
@@ -227,6 +243,75 @@ std::unique_ptr<Mat> transpose(const OriginMat &mat)
 
         return result;
     }
+}
+
+/**
+ * @brief CUDA view_transpose算子实现（视图转置）
+ * @param mat 输入矩阵
+ * @return 转置后的矩阵（视图，共享 storage）
+ * 
+ * @details 使用视图转置策略：只改变 shape 和 strides，不重新排列内存中的数据
+ * 
+ * 视图转置的特点：
+ * - 零拷贝操作，性能高
+ * - 数据在内存中的顺序保持不变
+ * - 通过改变 strides 来"模拟"转置效果
+ * - 转置后的张量是非连续的，如果需要进行元素级操作，需要先调用 contiguous()
+ * 
+ * 注意：当前实现只转置最后两个维度
+ */
+std::unique_ptr<Mat> view_transpose(const OriginMat &mat)
+{
+    // 验证设备类型
+    VALIDATE_CUDA_DEVICE(mat);
+
+    if (mat.shape().size() == 0)
+    {
+        // 0维张量（标量）：转置后保持不变
+        return std::make_unique<OriginMat>(mat);
+    }
+    else if (mat.shape().size() == 1)
+    {
+        // 一维张量：转置后保持不变
+        return std::make_unique<OriginMat>(mat);
+    }
+    else
+    {
+        // 二维或高维张量：转置最后两个维度（视图转置）
+        // 计算新的形状
+        std::vector<size_t> new_dims = mat.shape().dims();
+        std::swap(new_dims[new_dims.size() - 2], new_dims[new_dims.size() - 1]);
+        Shape new_shape(new_dims);
+
+        // 计算新的 strides：交换最后两个维度的 strides
+        std::vector<size_t> new_strides = mat.strides();
+        std::swap(new_strides[new_strides.size() - 2], new_strides[new_strides.size() - 1]);
+
+        // 使用视图构造函数创建转置后的张量（共享 storage，只改变 shape 和 strides）
+        return std::make_unique<OriginMat>(mat.storage(), new_shape, new_strides, mat.dtype());
+    }
+}
+
+/**
+ * @brief CUDA transpose算子实现（默认使用视图转置）
+ * @param mat 输入矩阵
+ * @return 转置后的矩阵（视图，共享 storage）
+ * 
+ * @details 调用 view_transpose 实现视图转置
+ * 
+ * 视图转置的特点：
+ * - 零拷贝操作，性能高
+ * - 数据在内存中的顺序保持不变
+ * - 通过改变 strides 来"模拟"转置效果
+ * - 转置后的张量是非连续的，如果需要进行元素级操作，需要先调用 contiguous()
+ */
+std::unique_ptr<Mat> transpose(const OriginMat &mat)
+{
+#if 0
+    return view_transpose(mat);
+#else
+    return data_transpose(mat);
+#endif
 }
 
 }  // namespace cuda

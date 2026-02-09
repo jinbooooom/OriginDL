@@ -19,6 +19,11 @@ namespace cuda
 /**
  * @brief CUDA dropout kernel（前向传播）
  * @details 每个线程处理一个元素
+ * @param scale 缩放因子 scale = 1/(1-p)，在主机端计算后传入
+ *              注意：不在核函数内计算 scale 的原因：
+ *              1. scale 对所有线程是常量，避免每个线程重复计算除法
+ *              2. 除法操作在 GPU 上相对昂贵，主机端计算一次更高效
+ *              3. 标量参数通过常量内存/寄存器传递，开销很小
  */
 template <typename T>
 __global__ void dropout_kernel(const T *__restrict__ x,
@@ -82,28 +87,22 @@ std::unique_ptr<Mat> dropout(const OriginMat &x, float p, bool training, OriginM
     if (unlikely(p < 0.0f || p >= 1.0f))
     {
         THROW_INVALID_ARG("Dropout: p must be in [0, 1), but got {}", p);
-    }
-
-    VALIDATE_SAME_CUDA_DEVICE(x, x);
+    };
 
     auto x_shape = x.shape();
     auto result  = std::make_unique<OriginMat>(x_shape, x.dtype(), x.device());
 
+    const void *x_data = x.storage()->data();
+    void *y_data       = result->storage()->data();
     if (!training)
     {
         // 推理模式：直接返回输入
-        const void *x_data = x.storage()->data();
-        void *y_data       = result->storage()->data();
         size_t data_size   = x_shape.elements() * element_size(x.dtype());
-        CUDA_CHECK(cudaMemcpy(y_data, x_data, data_size, cudaMemcpyDeviceToDevice));
+        CUDA_CHECK(cudaMemcpyAsync(y_data, x_data, data_size, cudaMemcpyDeviceToDevice));
         return result;
     }
 
     // 训练模式：生成 dropout mask
-    const void *x_data = x.storage()->data();
-    void *y_data       = result->storage()->data();
-
-    // 创建 mask（如果需要）
     OriginMat *mask_ptr = nullptr;
     std::unique_ptr<OriginMat> mask_unique;
     if (mask != nullptr)
@@ -136,8 +135,6 @@ std::unique_ptr<Mat> dropout(const OriginMat &x, float p, bool training, OriginM
                                                              static_cast<float *>(mask_data), num_elements, p, scale,
                                                              seed);
     });
-
-    CUDA_CHECK_ASYNC();
 
     return result;
 }
@@ -176,8 +173,6 @@ std::unique_ptr<Mat> dropout_backward(const OriginMat &gy, const OriginMat &mask
                                                                       static_cast<const float *>(mask_data),
                                                                       static_cast<T *>(gx_data), num_elements);
     });
-
-    CUDA_CHECK_ASYNC();
 
     return result;
 }

@@ -1,9 +1,39 @@
+/**
+ * @file cpu_ops.h
+ * @brief CPU 算子接口声明头文件
+ * 
+ * ============================================================================
+ * 文件功能说明
+ * ============================================================================
+ * 
+ * 本文件是 CPU 算子的统一接口声明层，提供所有 CPU 算子的接口声明。
+ * 
+ * 架构层次：
+ * - origin_mat.cpp (封装层)
+ *   ↓ 包含
+ * - cpu_ops.h (本文件：所有 CPU 算子的接口声明)
+ *   ↓ 声明
+ * - cpu_ops.cpp (非计算类算子实现：clone、index_put)
+ * - add.cpp, divide.cpp 等 (计算类算子实现)
+ *   ↓ 都包含
+ * - cpu_kernels.h (基础操作定义，只在 算子具体实现的 .cpp 文件中使用)
+ * 
+ * 使用说明：
+ * - origin_mat.cpp 只需包含 cpu_ops.h，即可使用所有 CPU 算子
+ * - 所有 CPU 算子的实现都在对应的 .cpp 文件中
+ * - cpu_kernels.h 只在 算子具体实现的 .cpp 文件中被包含，用于基础操作定义
+ * 
+ * ============================================================================
+ */
+
 #ifndef __ORIGIN_DL_CPU_OPS_H__
 #define __ORIGIN_DL_CPU_OPS_H__
 
 #include <memory>
+#include <initializer_list>
 #include "origin/mat/origin/../basic_types.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/mat/scalar.h"
 
 namespace origin
 {
@@ -383,6 +413,25 @@ std::unique_ptr<Mat> gather(const OriginMat &input, const OriginMat &indices);
  * @return one-hot 编码矩阵 (N, num_classes)
  */
 std::unique_ptr<Mat> one_hot(const OriginMat &indices, int num_classes);
+
+// ============================================================================
+// 非计算类算子（内存操作、索引操作等）
+// ============================================================================
+
+/**
+ * @brief CPU clone：深拷贝张量（支持非连续张量）
+ * @param mat 输入矩阵
+ * @return 拷贝后的矩阵（连续存储）
+ */
+std::unique_ptr<Mat> clone(const OriginMat &mat);
+
+/**
+ * @brief CPU index_put：根据多维索引写入单个元素
+ * @param mat 输入/输出矩阵（原地修改）
+ * @param indices 多维索引
+ * @param value 要写入的标量值
+ */
+void index_put(OriginMat &mat, std::initializer_list<size_t> indices, const Scalar &value);
 
 // === 自定义算子 ===
 

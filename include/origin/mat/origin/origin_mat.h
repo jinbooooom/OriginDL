@@ -26,18 +26,6 @@ protected:
     DataType dtype_;
     std::vector<size_t> strides_;
 
-private:
-    // Helper to calculate strides
-    std::vector<size_t> calculate_strides(const Shape &shape, DataType dtype);
-
-    // Helper to get data type size
-    size_t get_dtype_size(DataType dtype) const;
-
-    // Helper to validate shape
-    void validate_shape(const Shape &shape);
-
-    // Helper to compute strides
-    std::vector<size_t> compute_strides(const Shape &shape);
 
 public:
     /**
@@ -408,6 +396,15 @@ public:
     template <typename T>
     std::vector<T> to_vector() const
     {
+        // 如果张量不是连续的，需要先转换为连续（按逻辑顺序访问数据）
+        // 这对于视图转置等操作产生的非连续张量很重要
+        if (!is_contiguous())
+        {
+            auto contiguous_mat = contiguous();
+            // 使用基类的模板方法，它会调用虚函数 to_vector() 然后转换类型
+            return contiguous_mat->to_vector<T>();
+        }
+
         std::vector<T> result(shape_.elements());
         const T *data = data_ptr<T>();
         for (size_t i = 0; i < shape_.elements(); ++i)
