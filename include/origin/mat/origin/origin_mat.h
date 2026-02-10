@@ -352,9 +352,13 @@ public:
      * @param output_shape 输出形状 (N, C, OH, OW)
      * @param scale_h 高度缩放因子
      * @param scale_w 宽度缩放因子
+     * @param mode 插值模式 "nearest" 或 "bilinear"
      * @return 输出张量 (N, C, OH, OW)
      */
-    std::unique_ptr<Mat> upsample(const Shape &output_shape, int scale_h, int scale_w) const override;
+    std::unique_ptr<Mat> upsample(const Shape &output_shape,
+                                  int scale_h,
+                                  int scale_w,
+                                  const std::string &mode = "nearest") const override;
 
     /**
      * @brief upsample_backward：上采样反向传播
@@ -362,12 +366,14 @@ public:
      * @param x_shape 输入形状 (N, C, H, W)
      * @param scale_h 高度缩放因子
      * @param scale_w 宽度缩放因子
+     * @param mode 插值模式，须与前向一致
      * @return 输入梯度 (N, C, H, W)
      */
     std::unique_ptr<Mat> upsample_backward(const Mat &gy,
                                            const Shape &x_shape,
                                            int scale_h,
-                                           int scale_w) const override;
+                                           int scale_w,
+                                           const std::string &mode = "nearest") const override;
 
     // === Cat 和 Split 相关操作（Mat 接口实现）===
     /**

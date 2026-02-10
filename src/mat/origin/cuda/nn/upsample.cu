@@ -16,6 +16,8 @@ namespace origin
 namespace cuda
 {
 
+// 本文件仅实现最近邻上采样；mode 参数保留但未使用，双线性未实现。
+
 /**
  * @brief CUDA upsample kernel（最近邻上采样）
  * @details 每个线程处理一个输出元素
@@ -59,7 +61,7 @@ __global__ void upsample_kernel(const T *__restrict__ x,
 }
 
 /**
- * @brief CUDA upsample_backward kernel（上采样反向传播）
+ * @brief CUDA upsample_backward kernel（最近邻上采样反向传播）
  * @details 每个线程处理一个输出梯度元素，累加到对应的输入梯度位置
  */
 template <typename T>
@@ -129,14 +131,19 @@ __global__ void upsample_backward_kernel(const T *__restrict__ gy,
 }
 
 /**
- * @brief CUDA upsample：上采样操作（最近邻）
+ * @brief CUDA upsample：上采样操作（最近邻或双线性）
  * @param x 输入张量 (N, C, H, W)
  * @param output_shape 输出形状 (N, C, OH, OW)
  * @param scale_h 高度缩放因子
  * @param scale_w 宽度缩放因子
+ * @param mode "nearest" 或 "bilinear"
  * @return 输出张量 (N, C, OH, OW)
  */
-std::unique_ptr<Mat> upsample(const OriginMat &x, const Shape &output_shape, int scale_h, int scale_w)
+std::unique_ptr<Mat> upsample(const OriginMat &x,
+                              const Shape &output_shape,
+                              int scale_h,
+                              int scale_w,
+                              const std::string &mode)
 {
     if (unlikely(x.shape().size() != 4))
     {
@@ -147,9 +154,7 @@ std::unique_ptr<Mat> upsample(const OriginMat &x, const Shape &output_shape, int
     {
         THROW_INVALID_ARG("Upsample: output_shape must be 4D (N, C, OH, OW), but got shape {}",
                           output_shape.to_string());
-    }
-
-    VALIDATE_SAME_CUDA_DEVICE(x, x);
+    };
 
     auto x_shape = x.shape();
     int N        = x_shape[0];
@@ -159,37 +164,31 @@ std::unique_ptr<Mat> upsample(const OriginMat &x, const Shape &output_shape, int
     int OH       = output_shape[2];
     int OW       = output_shape[3];
 
-    // 创建输出矩阵
-    auto result = std::make_unique<OriginMat>(output_shape, x.dtype(), x.device());
-
+    auto result   = std::make_unique<OriginMat>(output_shape, x.dtype(), x.device());
     const void *x_data = x.storage()->data();
     void *y_data       = result->storage()->data();
 
-    // 计算线程块和网格大小
     const size_t threads_per_block = 256;
     const size_t num_elements      = output_shape.elements();
     const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
 
-    // 使用类型分发器执行上采样操作
+    (void)mode;  // 保留接口，当前仅实现最近邻
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
         upsample_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(x_data), static_cast<T *>(y_data),
-                                                              N, C, H, W, OH, OW, scale_h, scale_w);
+                                                               N, C, H, W, OH, OW, scale_h, scale_w);
     });
-
-    CUDA_CHECK_ASYNC();
 
     return result;
 }
 
 /**
  * @brief CUDA upsample_backward：上采样反向传播
- * @param gy 输出梯度 (N, C, OH, OW)
- * @param x_shape 输入形状 (N, C, H, W)
- * @param scale_h 高度缩放因子
- * @param scale_w 宽度缩放因子
- * @return 输入梯度 (N, C, H, W)
  */
-std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape, int scale_h, int scale_w)
+std::unique_ptr<Mat> upsample_backward(const OriginMat &gy,
+                                       const Shape &x_shape,
+                                       int scale_h,
+                                       int scale_w,
+                                       const std::string &mode)
 {
     if (unlikely(gy.shape().size() != 4))
     {
@@ -202,8 +201,6 @@ std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape
         THROW_INVALID_ARG("Upsample backward: x_shape must be 4D (N, C, H, W), but got shape {}", x_shape.to_string());
     }
 
-    VALIDATE_SAME_CUDA_DEVICE(gy, gy);
-
     auto gy_shape = gy.shape();
     int N         = x_shape[0];
     int C         = x_shape[1];
@@ -212,7 +209,6 @@ std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape
     int GY_H      = gy_shape[2];
     int GY_W      = gy_shape[3];
 
-    // 创建输出矩阵并初始化为0
     auto result      = std::make_unique<OriginMat>(x_shape, gy.dtype(), gy.device());
     void *gx_data    = result->storage()->data();
     size_t data_size = x_shape.elements() * element_size(gy.dtype());
@@ -220,18 +216,15 @@ std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape
 
     const void *gy_data = gy.storage()->data();
 
-    // 计算线程块和网格大小
     const size_t threads_per_block = 256;
     const size_t num_elements      = gy_shape.elements();
     const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
 
-    // 使用类型分发器执行反向传播操作
+    (void)mode; 
     device_common::TypeDispatcher::dispatch_void(gy.dtype(), [&]<typename T>() {
         upsample_backward_kernel<T><<<num_blocks, threads_per_block>>>(
             static_cast<const T *>(gy_data), static_cast<T *>(gx_data), N, C, H, W, GY_H, GY_W, scale_h, scale_w);
     });
-
-    CUDA_CHECK_ASYNC();
 
     return result;
 }

@@ -1753,17 +1753,18 @@ std::unique_ptr<Mat> OriginMat::dropout_backward(const Mat &gy, const Mat &mask)
 
 // === Upsample 相关操作实现 ===
 
-std::unique_ptr<Mat> OriginMat::upsample(const Shape &output_shape, int scale_h, int scale_w) const
+std::unique_ptr<Mat> OriginMat::upsample(const Shape &output_shape, int scale_h, int scale_w,
+                                         const std::string &mode) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
     {
-        return cpu::upsample(*this, output_shape, scale_h, scale_w);
+        return cpu::upsample(*this, output_shape, scale_h, scale_w, mode);
     }
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        return cuda::upsample(*this, output_shape, scale_h, scale_w);
+        return cuda::upsample(*this, output_shape, scale_h, scale_w, mode);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif
@@ -1774,7 +1775,8 @@ std::unique_ptr<Mat> OriginMat::upsample(const Shape &output_shape, int scale_h,
     }
 }
 
-std::unique_ptr<Mat> OriginMat::upsample_backward(const Mat &gy, const Shape &x_shape, int scale_h, int scale_w) const
+std::unique_ptr<Mat> OriginMat::upsample_backward(const Mat &gy, const Shape &x_shape, int scale_h, int scale_w,
+                                                   const std::string &mode) const
 {
     // 类型检查和转换
     const OriginMat *gy_mat = dynamic_cast<const OriginMat *>(&gy);
@@ -1786,12 +1788,12 @@ std::unique_ptr<Mat> OriginMat::upsample_backward(const Mat &gy, const Shape &x_
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)
     {
-        return cpu::upsample_backward(*gy_mat, x_shape, scale_h, scale_w);
+        return cpu::upsample_backward(*gy_mat, x_shape, scale_h, scale_w, mode);
     }
     else if (storage_->device_type() == DeviceType::kCUDA)
     {
 #ifdef WITH_CUDA
-        return cuda::upsample_backward(*gy_mat, x_shape, scale_h, scale_w);
+        return cuda::upsample_backward(*gy_mat, x_shape, scale_h, scale_w, mode);
 #else
         THROW_RUNTIME_ERROR("CUDA support not compiled in");
 #endif

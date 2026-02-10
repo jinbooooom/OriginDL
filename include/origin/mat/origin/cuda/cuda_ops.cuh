@@ -525,13 +525,13 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
 
 /**
  * @brief CUDA upsample：上采样操作（最近邻）
- * @param x 输入张量 (N, C, H, W)
- * @param output_shape 输出形状 (N, C, OH, OW)
- * @param scale_h 高度缩放因子
- * @param scale_w 宽度缩放因子
- * @return 输出张量 (N, C, OH, OW)
+ * @param mode 保留接口，当前未使用，仅实现最近邻
  */
-std::unique_ptr<Mat> upsample(const OriginMat &x, const Shape &output_shape, int scale_h, int scale_w);
+std::unique_ptr<Mat> upsample(const OriginMat &x,
+                              const Shape &output_shape,
+                              int scale_h,
+                              int scale_w,
+                              const std::string &mode = "nearest");
 
 /**
  * @brief CUDA upsample_backward：上采样反向传播
@@ -539,9 +539,14 @@ std::unique_ptr<Mat> upsample(const OriginMat &x, const Shape &output_shape, int
  * @param x_shape 输入形状 (N, C, H, W)
  * @param scale_h 高度缩放因子
  * @param scale_w 宽度缩放因子
+ * @param mode 插值模式，须与前向一致
  * @return 输入梯度 (N, C, H, W)
  */
-std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape, int scale_h, int scale_w);
+std::unique_ptr<Mat> upsample_backward(const OriginMat &gy,
+                                       const Shape &x_shape,
+                                       int scale_h,
+                                       int scale_w,
+                                       const std::string &mode = "nearest");
 
 // === Dropout 相关操作 ===
 

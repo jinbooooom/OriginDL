@@ -195,12 +195,16 @@ public:
     std::unique_ptr<Mat> dropout_backward(const Mat &gy, const Mat &mask) const override;
 
     // === Upsample 相关操作（Mat 接口实现）===
-    std::unique_ptr<Mat> upsample(const Shape &output_shape, int scale_h, int scale_w) const override;
+    std::unique_ptr<Mat> upsample(const Shape &output_shape,
+                                  int scale_h,
+                                  int scale_w,
+                                  const std::string &mode = "nearest") const override;
 
     std::unique_ptr<Mat> upsample_backward(const Mat &gy,
                                            const Shape &x_shape,
                                            int scale_h,
-                                           int scale_w) const override;
+                                           int scale_w,
+                                           const std::string &mode = "nearest") const override;
 
 private:
     torch::Tensor tensor_;

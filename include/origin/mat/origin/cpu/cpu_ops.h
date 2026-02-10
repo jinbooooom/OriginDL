@@ -30,6 +30,7 @@
 #define __ORIGIN_DL_CPU_OPS_H__
 
 #include <memory>
+#include <string>
 #include <initializer_list>
 #include "origin/mat/origin/../basic_types.h"
 #include "origin/mat/origin/origin_mat.h"
@@ -357,24 +358,24 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
 // === 上采样相关操作 ===
 
 /**
- * @brief CPU upsample：上采样操作（最近邻）
- * @param x 输入张量 (N, C, H, W)
- * @param output_shape 输出形状 (N, C, OH, OW)
- * @param scale_h 高度缩放因子
- * @param scale_w 宽度缩放因子
- * @return 输出张量 (N, C, OH, OW)
+ * @brief CPU upsample：上采样操作（最近邻或双线性）
+ * @param mode "nearest" 或 "bilinear"
  */
-std::unique_ptr<Mat> upsample(const OriginMat &x, const Shape &output_shape, int scale_h, int scale_w);
+std::unique_ptr<Mat> upsample(const OriginMat &x,
+                              const Shape &output_shape,
+                              int scale_h,
+                              int scale_w,
+                              const std::string &mode = "nearest");
 
 /**
  * @brief CPU upsample_backward：上采样反向传播
- * @param gy 输出梯度 (N, C, OH, OW)
- * @param x_shape 输入形状 (N, C, H, W)
- * @param scale_h 高度缩放因子
- * @param scale_w 宽度缩放因子
- * @return 输入梯度 (N, C, H, W)
+ * @param mode 插值模式，须与前向一致
  */
-std::unique_ptr<Mat> upsample_backward(const OriginMat &gy, const Shape &x_shape, int scale_h, int scale_w);
+std::unique_ptr<Mat> upsample_backward(const OriginMat &gy,
+                                       const Shape &x_shape,
+                                       int scale_h,
+                                       int scale_w,
+                                       const std::string &mode = "nearest");
 
 // === Dropout 相关操作 ===
 

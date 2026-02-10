@@ -1945,6 +1945,33 @@ Linear linear(10, 5);
 linear.reset_parameters();  // 重新初始化参数
 ```
 
+### upsample（上采样）
+
+`F::upsample` 对 4D 张量在空间维度上做上采样。
+
+**当前实现约束：** 仅支持 **4D** 输入，形状为 `(N, C, H, W)`；**mode** 接口保留，取值 `"nearest"` 或 `"bilinear"`，但**当前实现未使用**，实际均为最近邻插值。
+
+#### 函数签名
+
+```cpp
+Tensor upsample(const Tensor &x,
+                const std::string &mode = "nearest",
+                std::pair<float, float> scale_factor = {2.0f, 2.0f});
+```
+
+**参数:**
+- `x` (Tensor) – 输入张量，形状须为 `(N, C, H, W)`
+- `mode` (std::string, optional) – 插值模式，`"nearest"` 或 `"bilinear"`，默认 `"nearest"`。**注意：当前实现未使用，实际恒为最近邻。**
+- `scale_factor` (std::pair<float, float>, optional) – 空间缩放因子 (scale_h, scale_w)，默认 (2, 2)
+
+**返回值:** Tensor – 形状为 `(N, C, H_out, W_out)`，其中 `H_out = round(H * scale_h)`，`W_out = round(W * scale_w)`
+
+**例子:**
+```cpp
+auto x = Tensor::randn({2, 3, 32, 32});
+auto y = F::upsample(x, "nearest", {2.0f, 2.0f});  // 形状 (2, 3, 64, 64)
+```
+
 ### Optimizer 优化器
 
 `Optimizer` 是优化器基类，用于更新模型参数。

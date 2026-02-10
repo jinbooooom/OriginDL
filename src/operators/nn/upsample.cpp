@@ -20,6 +20,7 @@ std::vector<Tensor> Upsample::forward(const std::vector<Tensor> &xs)
     auto &x      = xs[0];
     auto x_shape = x.shape();
 
+    // 当前仅支持 4D (N,C,H,W)；mode 取 "nearest" 或 "bilinear"
     if (unlikely(x_shape.size() != 4))
     {
         THROW_RUNTIME_ERROR("Upsample forward: x must be 4D (N, C, H, W), but got shape {}", x_shape.to_string());
@@ -47,8 +48,8 @@ std::vector<Tensor> Upsample::forward(const std::vector<Tensor> &xs)
     // 获取 Mat 引用
     const Mat &x_mat = mat(x);
 
-    // 使用 Mat 接口的 upsample 方法
-    std::unique_ptr<Mat> result = x_mat.upsample(output_shape, scale_h, scale_w);
+    // 使用 Mat 接口的 upsample 方法（传入 mode）
+    std::unique_ptr<Mat> result = x_mat.upsample(output_shape, scale_h, scale_w, mode_);
 
     auto y = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
@@ -74,8 +75,8 @@ std::vector<Tensor> Upsample::backward(const std::vector<Tensor> &gys)
     // 获取 Mat 引用
     const Mat &gy_mat = mat(gy);
 
-    // 使用 Mat 接口的 upsample_backward 方法
-    std::unique_ptr<Mat> result = gy_mat.upsample_backward(gy_mat, x_shape, scale_h, scale_w);
+    // 使用 Mat 接口的 upsample_backward 方法（传入 mode 以匹配前向）
+    std::unique_ptr<Mat> result = gy_mat.upsample_backward(gy_mat, x_shape, scale_h, scale_w, mode_);
 
     auto gx = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(gx)};

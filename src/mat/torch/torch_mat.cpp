@@ -929,12 +929,12 @@ std::unique_ptr<Mat> TorchMat::dropout_backward(const Mat &, const Mat &) const
     THROW_RUNTIME_ERROR("TorchMat::dropout_backward is not implemented yet. Please use OriginMat backend.");
 }
 
-std::unique_ptr<Mat> TorchMat::upsample(const Shape &, int, int) const
+std::unique_ptr<Mat> TorchMat::upsample(const Shape &, int, int, const std::string &) const
 {
     THROW_RUNTIME_ERROR("TorchMat::upsample is not implemented yet. Please use OriginMat backend.");
 }
 
-std::unique_ptr<Mat> TorchMat::upsample_backward(const Mat &, const Shape &, int, int) const
+std::unique_ptr<Mat> TorchMat::upsample_backward(const Mat &, const Shape &, int, int, const std::string &) const
 {
     THROW_RUNTIME_ERROR("TorchMat::upsample_backward is not implemented yet. Please use OriginMat backend.");
 }
