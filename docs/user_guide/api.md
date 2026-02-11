@@ -808,10 +808,7 @@ std::vector<T> to_vector() const
 - 内部会执行以下步骤：
   - 调用 `contiguous()`，得到在内存中连续存储的中间张量
   - 如果张量在 CUDA 上，调用 `to(Device(DeviceType::kCPU))` 将其拷贝到 CPU（具体同步和拷贝由后端负责）
-  - 通过 `data_ptr<T>()` 读取底层数据，并线性拷贝到 `std::vector<T>`
-- 运行时要求模板参数 `T` 与张量的 `dtype()` 完全一致，否则会抛出 `RuntimeError`
-
-**返回值:** std::vector<T> – 拷贝出的向量数据
+  - 通过 `data_ptr<T>()` 读取底层数据，并拷贝到 `std::vector<T>`, 模板参数 `T` 与张量的 `dtype()` 不一致，内部会自动做类型转换。
 
 **例子:**
 ```cpp

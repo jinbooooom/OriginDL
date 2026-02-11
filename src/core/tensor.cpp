@@ -1,9 +1,11 @@
 #include "origin/core/tensor.h"
+#include <cstring>
 #include <stdexcept>
 #include "origin/core/config.h"
 #include "origin/core/tensor_options.h"
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
@@ -271,22 +273,33 @@ void Tensor::print(const std::string &desc) const
     impl_->print(desc);
 }
 
+namespace to_vector_detail
+{
+template <typename T>
+struct ToVectorConvert
+{
+    Tensor &t;
+    std::vector<T> &result;
+    size_t n;
+    template <typename SrcT>
+    void operator()()
+    {
+        const SrcT *p = t.data_ptr<SrcT>();
+        for (size_t i = 0; i < n; ++i)
+            result[i] = static_cast<T>(p[i]);
+    }
+};
+}  // namespace to_vector_detail
+
 // 这个函数就调式的时候用，在业务中尽量少用，因为会创建新的vector，耗时慢。
 // 如果只是为了访问数据，尽量使用item()或者data_ptr()方法。
 template <typename T>
 std::vector<T> Tensor::to_vector() const
 {
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-    // 运行时检查：只允许与张量 dtype 完全一致的 T
-    if (dtype() != DataTypeTraits<T>::type)
-    {
-        THROW_RUNTIME_ERROR("Tensor::to_vector dtype mismatch: tensor dtype={}, requested dtype={}",
-                            dtype_to_string(dtype()), dtype_to_string<T>());
-    }
 
     // 1. 获取在内存中连续存储的张量
-    Tensor t = *this;
-    t        = t.contiguous();
+    Tensor t = contiguous();
 
     // 2. 确保在 CPU 上（具体同步和拷贝由后端的 to()/to_device() 负责）
     if (t.device().type() != DeviceType::kCPU)
@@ -294,15 +307,19 @@ std::vector<T> Tensor::to_vector() const
         t = t.to(Device(DeviceType::kCPU));
     }
 
-    // 3. 通过 data_ptr<T>() 线性拷贝到 std::vector<T>
     size_t n = t.elements();
     std::vector<T> result(n);
 
-    T *src = t.data_ptr<T>();
-    for (size_t i = 0; i < n; ++i)
+    if (t.dtype() == DataTypeTraits<T>::type)
     {
-        result[i] = src[i];
+        // 类型一致：直接 memcpy，无需逐元素转换
+        const T *src = t.data_ptr<T>();
+        std::memcpy(result.data(), src, t.nbytes());
+        return result;
     }
+
+    // 类型不一致：按张量实际 dtype 分发，逐元素 static_cast 到 T
+    device_common::TypeDispatcher::dispatch_void(t.dtype(), to_vector_detail::ToVectorConvert<T>{t, result, n});
 
     return result;
 }

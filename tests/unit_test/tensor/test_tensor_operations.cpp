@@ -107,7 +107,7 @@ TEST_P(TensorOperationsTest, ToTensorOptionsConversion)
         EXPECT_EQ(t_converted.shape(), Shape({2, 2}));
 
         // 比较转换前后的值是否一致（转换为double类型比较，避免精度问题）
-        auto original_values  = t.to(DataType::kFloat64).to_vector<double>();
+        auto original_values  = t.to_vector<double>();
         auto converted_values = t_converted.to_vector<double>();
         EXPECT_EQ(original_values.size(), converted_values.size());
         for (size_t i = 0; i < original_values.size(); ++i)
