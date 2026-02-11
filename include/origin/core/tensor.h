@@ -2,6 +2,7 @@
 #define __ORIGIN_DL_TENSOR_H__
 
 #include "../common/inner_types.h"
+#include "../mat/shape.h"
 #include "../utils/static_assert.h"
 #include "tensor_impl.h"
 #include "tensor_options.h"
@@ -22,7 +23,7 @@ Mat (抽象接口)
 TorchMat/OriginMat (具体后端)
 
     Tensor (值语义包装)
-    └─> TensorImplPtr (shared_ptr<TensorImpl>)
+    └─> std::shared_ptr<TensorImpl>
           └─> data_: shared_ptr<Mat>
                 └─> OriginMat::storage_: shared_ptr<Storage>
                       └─> Storage::data_: void* (真正的数据)
@@ -78,22 +79,22 @@ data_->reshape(shape)  // 返回 unique_ptr<Mat>
 class Tensor
 {
 private:
-    TensorImplPtr impl_;  // 唯一的成员：智能指针
+    std::shared_ptr<TensorImpl> impl_;  // 唯一的成员：智能指针
 
     // 内部构造函数 - 仅限内部使用
-    Tensor(TensorImplPtr impl);
+    Tensor(std::shared_ptr<TensorImpl> impl);
 
 public:
-    // 默认构造函数
     Tensor() = default;  // TODO，可以去掉
-    // 拷贝构造函数 - 浅拷贝，共享实现
+
     Tensor(const Tensor &other);
-    // 移动构造函数 - 转移所有权
+
     Tensor(Tensor &&other) noexcept;
-    // 赋值运算符
+
     Tensor &operator=(const Tensor &other);
+
     Tensor &operator=(Tensor &&other) noexcept;
-    // 析构函数
+
     ~Tensor() = default;
 
     // 向量构造函数（自动推断类型）
@@ -209,6 +210,23 @@ public:
     template <typename T>
     T *data_ptr();
 
+    // === 索引访问 ===
+    /**
+     * @brief 根据多维索引读取单个元素
+     * @tparam T 返回类型
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @return 索引位置的值
+     */
+    template <typename T>
+    T index(std::initializer_list<size_t> indices) const;
+
+    /**
+     * @brief 根据多维索引写入单个元素
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @param value 要写入的标量值，会自动转换为与tensor相同的数据类型
+     */
+    void index_put(std::initializer_list<size_t> indices, const Scalar &value);
+
     // === 类型查询和转换 ===
     DataType dtype() const;
     Device device() const;
@@ -218,10 +236,17 @@ public:
 
     // === 梯度相关 ===
     Tensor grad() const;
-    void set_creator(const FunctionPtr &func);
+    void set_creator(const std::shared_ptr<Operator> &func);
     void backward();
     void clear_grad();
     void accumulate_grad(const Tensor &grad_to_add);
+
+    /**
+     * @brief 检查 tensor 是否需要梯度计算
+     * @return 如果 tensor 在计算图中（有 creator_）且全局反向传播启用，返回 true
+     * @details 类似 PyTorch 的 tensor.requires_grad 属性
+     */
+    bool requires_grad() const;
 
     // === 计算图管理 ===
     /**
@@ -231,12 +256,27 @@ public:
      */
     Tensor detach() const;
 
+    /**
+     * @brief 克隆tensor（深拷贝数据，保留计算图连接）
+     * @return 新的tensor，与原始tensor数据独立但保留计算图连接
+     * @details 类似于PyTorch的clone()方法：
+     *          - 深拷贝data_（创建独立的数据副本）
+     *          - 不复制grad_（初始化为nullptr，需要重新计算梯度）
+     *          - 复制creator_和generation_（保留计算图连接，仍可参与梯度计算）
+     *          - 如果需要完全独立（断开计算图），使用clone().detach()
+     */
+    Tensor clone() const;
+
     // === 张量操作 ===
     Tensor reshape(const Shape &shape) const;
     Tensor transpose() const;
-
-    // === 泛型标量操作 ===
-    // 注意：标量操作使用全局操作符重载，避免与成员操作符冲突
+    /**
+     * @brief 返回一个在内存中连续存储的张量
+     * @details
+     * - 如果当前张量已经是连续的，返回共享同一底层存储的视图（零拷贝）
+     * - 如果当前张量是非连续的，会创建新的存储并复制数据，返回连续副本
+     */
+    Tensor contiguous() const;
 
     // === 调试 ===
     void print(const std::string &desc = "") const;

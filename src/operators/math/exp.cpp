@@ -1,12 +1,15 @@
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Exp::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Exp operator requires exactly 1 input, but got {}", xs.size());
     }
@@ -14,14 +17,12 @@ std::vector<Tensor> Exp::forward(const std::vector<Tensor> &xs)
     // 使用抽象层进行指数运算
     auto result = mat(xs[0]).exp();
     auto y      = convert_mat_to_tensor(std::move(result));
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Exp::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Exp backward requires exactly 1 gradient, but got {}", gys.size());
     }
@@ -32,9 +33,18 @@ std::vector<Tensor> Exp::backward(const std::vector<Tensor> &gys)
     auto exp_x     = x.exp();
     auto gx_result = *exp_x * gy;
     auto gx        = convert_mat_to_tensor(std::move(gx_result));
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
+}
+
+void Exp::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (unlikely(&input1 != &kNullTensor_))
+    {
+        THROW_INVALID_ARG("Exp is a unary operator, cannot accept two operands");
+    }
+
+    // 原地操作：input0 = exp(input0)
+    mat(input0).exp_inplace();
 }
 
 Tensor exp(const std::vector<Tensor> &xs)
@@ -50,4 +60,12 @@ Tensor exp(const Tensor &x)
     return exp(xs);
 }
 
+void exp_(Tensor &x)
+{
+    // 创建 Exp 实例并调用 forward_inplace
+    Exp op;
+    op.forward_inplace(x, Operator::kNullTensor_);
+}
+
+}  // namespace functional
 }  // namespace origin

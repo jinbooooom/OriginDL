@@ -57,7 +57,7 @@ public:
                 if (weight_decay_term.shape() != grad_shape)
                 {
                     // 如果形状不匹配，需要广播（通常不会发生，因为param和grad形状相同）
-                    weight_decay_term = broadcast_to(weight_decay_term, grad_shape);
+                    weight_decay_term = functional::broadcast_to(weight_decay_term, grad_shape);
                 }
 
                 // 累加权重衰减到梯度：grad = grad + rate * param

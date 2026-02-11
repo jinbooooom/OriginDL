@@ -587,6 +587,46 @@ for (int i = 0; i < epochs; ++i) {
 }
 ```
 
+#### clone
+
+```cpp
+Tensor clone() const
+```
+
+克隆张量（深拷贝数据，保留计算图连接）。类似于 PyTorch 的 `clone()` 方法。
+
+**返回值:** Tensor – 新的张量，与原始张量数据独立但保留计算图连接
+
+**注意:**
+- 深拷贝 `data_`（创建独立的数据副本）
+- 不复制 `grad_`（初始化为 `nullptr`，需要重新计算梯度）
+- 复制 `creator_` 和 `generation_`（保留计算图连接，仍可参与梯度计算）
+- 如果需要完全独立（断开计算图），使用 `clone().detach()`
+
+**例子:**
+```cpp
+auto x = Tensor::ones({2, 2});
+auto y = x * x;
+auto loss = sum(y);
+
+// 克隆tensor，保留计算图连接
+auto cloned_loss = loss.clone();
+// cloned_loss 与 loss 数据独立，但仍可参与梯度计算
+
+// 反向传播（对原始loss）
+loss.backward();
+// 此时 loss 有梯度，但 cloned_loss 没有梯度（需要重新计算）
+
+// 如果需要完全独立的tensor（断开计算图）
+auto independent_loss = loss.clone().detach();
+// independent_loss 数据独立，且不参与梯度计算
+
+// 典型用法：在需要修改tensor数据但不想影响原始tensor时
+auto x_cloned = x.clone();
+x_cloned.data_ptr<float>()[0] = 999.0f;  // 修改克隆的tensor
+// x 的值不受影响，因为数据是独立的
+```
+
 ---
 
 ## 张量操作
@@ -629,6 +669,22 @@ auto transposed = t.transpose();
 // 原始: 2x3
 // 转置后: 3x2
 ```
+
+### contiguous
+
+```cpp
+Tensor contiguous() const
+```
+
+返回一个在内存中连续存储的张量。
+
+**行为说明:**
+- 如果当前张量已经是连续的：返回共享同一底层存储的新张量（零拷贝）
+- 如果当前张量是非连续的：创建新的存储并复制数据，返回连续副本
+
+**典型用途:**
+- 在需要通过 `data_ptr()` 或外部库要求连续内存时手动调用
+- `to_vector()` 会在内部自动调用 `contiguous()`，用户一般不需要显式调用
 
 ### to (类型转换)
 
@@ -747,13 +803,113 @@ std::vector<T> to_vector() const
 
 将张量转换为向量。
 
-**返回值:** std::vector<T> – 向量数据
+**行为说明:**
+- 该接口主要用于 **调试 / 单元测试**，在业务代码中应优先使用 `item()` 或 `data_ptr()`
+- 内部会执行以下步骤：
+  - 调用 `contiguous()`，得到在内存中连续存储的中间张量
+  - 如果张量在 CUDA 上，调用 `to(Device(DeviceType::kCPU))` 将其拷贝到 CPU（具体同步和拷贝由后端负责）
+  - 通过 `data_ptr<T>()` 读取底层数据，并拷贝到 `std::vector<T>`, 模板参数 `T` 与张量的 `dtype()` 不一致，内部会自动做类型转换。
 
 **例子:**
 ```cpp
 auto t = Tensor::ones({2, 2});
 auto vec = t.to_vector<float>();
 // vec: {1.0, 1.0, 1.0, 1.0}
+```
+
+### index
+
+```cpp
+template <typename T>
+T index(std::initializer_list<size_t> indices) const
+```
+
+根据多维索引读取单个元素。
+
+**参数:**
+- `T` – 返回值的类型，必须与张量的数据类型兼容
+- `indices` (std::initializer_list<size_t>) – 多维索引，例如 `{i, j, k}` 表示访问 `tensor[i][j][k]`
+
+**返回值:** T – 索引位置的值
+
+**注意:**
+- 索引数量必须与张量的维度数匹配，否则会抛出 `std::invalid_argument` 异常
+- 索引值必须在有效范围内（0 到对应维度大小减1），否则会抛出异常
+- 支持不同数据类型（float、double、int32_t 等），但返回类型 `T` 必须与张量的数据类型兼容
+- 对于视图（view）和转置后的张量，索引操作会正确映射到底层数据
+
+**例子:**
+```cpp
+// 创建3维张量
+std::vector<float> data(3 * 4 * 5);
+for (size_t i = 0; i < data.size(); ++i) {
+    data[i] = static_cast<float>(i);
+}
+auto t = Tensor(data, {3, 4, 5}, dtype(DataType::kFloat32));
+
+// 读取元素 tensor[1][2][3]
+float value = t.index<float>({1, 2, 3});
+// 计算期望值：1*4*5 + 2*5 + 3 = 20 + 10 + 3 = 33
+
+// 2维张量示例
+auto t2d = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, {2, 2});
+float val1 = t2d.index<float>({0, 0});  // 1.0
+float val2 = t2d.index<float>({1, 1});  // 4.0
+
+// 不同数据类型
+auto int_tensor = Tensor({10, 20, 30, 40}, {2, 2}, DataType::kInt32);
+int32_t int_val = int_tensor.index<int32_t>({1, 0});  // 30
+
+// 视图操作
+auto view = t.reshape({12, 5});
+float view_val = view.index<float>({6, 2});  // 正确映射到底层数据
+```
+
+### index_put
+
+```cpp
+void index_put(std::initializer_list<size_t> indices, const Scalar &value)
+```
+
+根据多维索引写入单个元素。
+
+**参数:**
+- `indices` (std::initializer_list<size_t>) – 多维索引，例如 `{i, j, k}` 表示访问 `tensor[i][j][k]`
+- `value` (Scalar) – 要写入的标量值，会自动转换为与张量相同的数据类型
+
+**注意:**
+- 索引数量必须与张量的维度数匹配，否则会抛出 `std::invalid_argument` 异常
+- 索引值必须在有效范围内（0 到对应维度大小减1），否则会抛出异常
+- `value` 会自动转换为与张量相同的数据类型
+- 对于视图（view），写入操作会影响底层共享的数据
+- 对于转置后的张量，写入操作会正确映射到底层数据（注意：当前转置是数据转置，不是视图转置）
+
+**例子:**
+```cpp
+// 创建3维张量
+auto t = Tensor::zeros({3, 4, 5}, dtype(DataType::kFloat32));
+
+// 写入元素 tensor[1][2][3] = 42.0
+t.index_put({1, 2, 3}, 42.0f);
+
+// 读取验证
+float value = t.index<float>({1, 2, 3});  // 42.0
+
+// 2维张量示例
+auto t2d = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, {2, 2});
+t2d.index_put({0, 0}, 10.0f);
+t2d.index_put({0, 1}, 20.0f);
+t2d.index_put({1, 0}, 30.0f);
+t2d.index_put({1, 1}, 40.0f);
+
+// 不同数据类型
+auto int_tensor = Tensor({1, 2, 3, 4}, {2, 2}, DataType::kInt32);
+int_tensor.index_put({1, 1}, 100);  // 自动转换为int32
+
+// 视图操作（会影响底层数据）
+auto original = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, {2, 2});
+auto view = original.reshape({4});
+view.index_put({2}, 999.0f);  // 修改视图会影响原始张量
 ```
 
 ---
@@ -765,11 +921,19 @@ auto vec = t.to_vector<float>();
 #### 加法
 
 ```cpp
-Tensor operator+(const Tensor &lhs, const Tensor &rhs)
-Tensor add(const Tensor &lhs, const Tensor &rhs)
+Tensor operator+(const Tensor &lhs, const Tensor &rhs)  // 非就地操作，返回新的张量，不修改输入
+Tensor operator+(const Tensor &lhs, const Scalar &rhs)  // 非就地操作，张量与标量相加
+Tensor operator+(const Scalar &lhs, const Tensor &rhs)  // 非就地操作，标量与张量相加
+Tensor add(const Tensor &lhs, const Tensor &rhs)         // 非就地操作，返回新的张量，不修改输入
+void add_(Tensor &lhs, const Tensor &rhs)                // 就地操作，直接修改 lhs
+Tensor &operator+=(Tensor &lhs, const Tensor &rhs)      // 就地操作，等价于 add_(lhs, rhs)，返回 lhs 的引用
+Tensor &operator+=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价于 add_(lhs, rhs)，返回 lhs 的引用
 ```
 
 张量加法，支持广播。
+
+- `+` 和 `add()`: 非就地操作，返回新的张量，不修改输入
+- `+=`: 就地操作，直接修改左边的操作数，等价于 `add_()`
 
 **例子:**
 ```cpp
@@ -785,11 +949,19 @@ auto c = a + b;  // 或者 add(a, b)
 #### 减法
 
 ```cpp
-Tensor operator-(const Tensor &lhs, const Tensor &rhs)
-Tensor sub(const Tensor &lhs, const Tensor &rhs)
+Tensor operator-(const Tensor &lhs, const Tensor &rhs)  // 非就地操作，返回新的张量，不修改输入
+Tensor operator-(const Tensor &lhs, const Scalar &rhs)  // 非就地操作，张量减去标量
+Tensor operator-(const Scalar &lhs, const Tensor &rhs)  // 非就地操作，标量减去张量
+Tensor sub(const Tensor &lhs, const Tensor &rhs)         // 非就地操作，返回新的张量，不修改输入
+void sub_(Tensor &lhs, const Tensor &rhs)                // 就地操作，直接修改 lhs
+Tensor &operator-=(Tensor &lhs, const Tensor &rhs)      // 就地操作，等价于 sub_(lhs, rhs)，返回 lhs 的引用
+Tensor &operator-=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价于 sub_(lhs, rhs)，返回 lhs 的引用
 ```
 
 张量减法。
+
+- `-` 和 `sub()`: 非就地操作，返回新的张量，不修改输入
+- `-=`: 就地操作，直接修改左边的操作数，等价于 `sub_()`
 
 **例子:**
 ```cpp
@@ -805,11 +977,19 @@ auto c = a - b;  // 或者 sub(a, b)
 #### 乘法
 
 ```cpp
-Tensor operator*(const Tensor &lhs, const Tensor &rhs)
-Tensor mul(const Tensor &lhs, const Tensor &rhs)
+Tensor operator*(const Tensor &lhs, const Tensor &rhs)  // 非就地操作，返回新的张量，不修改输入
+Tensor operator*(const Tensor &lhs, const Scalar &rhs)  // 非就地操作，张量与标量相乘
+Tensor operator*(const Scalar &lhs, const Tensor &rhs)  // 非就地操作，标量与张量相乘
+Tensor mul(const Tensor &lhs, const Tensor &rhs)         // 非就地操作，返回新的张量，不修改输入
+void mul_(Tensor &lhs, const Tensor &rhs)                // 就地操作，直接修改 lhs
+Tensor &operator*=(Tensor &lhs, const Tensor &rhs)      // 就地操作，等价于 mul_(lhs, rhs)，返回 lhs 的引用
+Tensor &operator*=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价于 mul_(lhs, rhs)，返回 lhs 的引用
 ```
 
 张量乘法（逐元素）。
+
+- `*` 和 `mul()`: 非就地操作，返回新的张量，不修改输入
+- `*=`: 就地操作，直接修改左边的操作数，等价于 `mul_()`
 
 **例子:**
 ```cpp
@@ -825,11 +1005,19 @@ auto c = a * b;  // 或者 mul(a, b)
 #### 除法
 
 ```cpp
-Tensor operator/(const Tensor &lhs, const Tensor &rhs)
-Tensor div(const Tensor &lhs, const Tensor &rhs)
+Tensor operator/(const Tensor &lhs, const Tensor &rhs)  // 非就地操作，返回新的张量，不修改输入
+Tensor operator/(const Tensor &lhs, const Scalar &rhs)  // 非就地操作，张量除以标量
+Tensor operator/(const Scalar &lhs, const Tensor &rhs)  // 非就地操作，标量除以张量
+Tensor div(const Tensor &lhs, const Tensor &rhs)         // 非就地操作，返回新的张量，不修改输入
+void div_(Tensor &lhs, const Tensor &rhs)                // 就地操作，直接修改 lhs
+Tensor &operator/=(Tensor &lhs, const Tensor &rhs)      // 就地操作，等价于 div_(lhs, rhs)，返回 lhs 的引用
+Tensor &operator/=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价于 div_(lhs, rhs)，返回 lhs 的引用
 ```
 
 张量除法。
+
+- `/` 和 `div()`: 非就地操作，返回新的张量，不修改输入
+- `/=`: 就地操作，直接修改左边的操作数，等价于 `div_()`
 
 **例子:**
 ```cpp
@@ -845,8 +1033,9 @@ auto c = a / b;  // 或者 div(a, b)
 #### 取负
 
 ```cpp
-Tensor operator-(const Tensor &x)
-Tensor neg(const Tensor &x)
+Tensor operator-(const Tensor &x)  // 非就地操作，返回新的张量
+Tensor neg(const Tensor &x)        // 非就地操作，返回新的张量
+void neg_(Tensor &x)               // 就地操作，直接修改 x
 ```
 
 张量取负。
@@ -859,6 +1048,82 @@ auto b = -a;  // 或者 neg(a)
 // [[-1, -1],
 //  [-1, -1]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+```
+
+### 比较运算
+
+```cpp
+// 张量与张量比较
+Tensor operator==(const Tensor &lhs, const Tensor &rhs)  // 等于
+Tensor operator!=(const Tensor &lhs, const Tensor &rhs)  // 不等于
+Tensor operator<(const Tensor &lhs, const Tensor &rhs)    // 小于
+Tensor operator<=(const Tensor &lhs, const Tensor &rhs)   // 小于等于
+Tensor operator>(const Tensor &lhs, const Tensor &rhs)    // 大于
+Tensor operator>=(const Tensor &lhs, const Tensor &rhs)   // 大于等于
+
+// 张量与标量比较
+Tensor operator==(const Tensor &lhs, const Scalar &rhs)  // 等于
+Tensor operator!=(const Tensor &lhs, const Scalar &rhs)  // 不等于
+Tensor operator<(const Tensor &lhs, const Scalar &rhs)    // 小于
+Tensor operator<=(const Tensor &lhs, const Scalar &rhs)   // 小于等于
+Tensor operator>(const Tensor &lhs, const Scalar &rhs)    // 大于
+Tensor operator>=(const Tensor &lhs, const Scalar &rhs)   // 大于等于
+```
+
+张量比较运算，支持广播。返回与输入张量相同数据类型的张量，但值只有 0（表示 `false`）和 1（表示 `true`）。
+
+**参数:**
+- `lhs` (Tensor) – 左侧张量
+- `rhs` (Tensor 或 Scalar) – 右侧张量或标量值
+
+**返回值:** Tensor – 比较结果张量，形状与输入张量相同（支持广播），数据类型与输入张量相同
+
+**注意:**
+- 比较运算符支持张量与张量的比较（需要形状相同或可广播）
+- 比较运算符是不可微的，在反向传播中梯度为零
+
+**例子:**
+```cpp
+// 张量与标量比较
+auto a = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, {2, 2});
+auto eq_result = a == Scalar(2.0f);
+// eq_result.print() 输出:
+// [[0, 1],
+//  [0, 0]]
+//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+auto lt_result = a < Scalar(3.0f);
+// lt_result.print() 输出:
+// [[1, 1],
+//  [0, 0]]
+//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+auto ge_result = a >= Scalar(2.0f);
+// ge_result.print() 输出:
+// [[0, 1],
+//  [1, 1]]
+//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+// 张量与张量比较
+auto b = Tensor({2.0f, 2.0f, 2.0f, 2.0f}, {2, 2});
+auto compare_result = a > b;
+// compare_result.print() 输出:
+// [[0, 0],
+//  [1, 1]]
+//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+// 所有比较运算符
+auto eq = a == Scalar(2.0f);   // 等于
+auto ne = a != Scalar(2.0f);   // 不等于
+auto lt = a < Scalar(3.0f);    // 小于
+auto le = a <= Scalar(3.0f);   // 小于等于
+auto gt = a > Scalar(2.0f);    // 大于
+auto ge = a >= Scalar(2.0f);   // 大于等于
+
+// 负数比较
+auto neg = Tensor({-2.0f, -1.0f, 0.0f, 1.0f, 2.0f}, {5});
+auto pos_result = neg > Scalar(0.0f);
+// pos_result: [0, 0, 0, 1, 1]
 ```
 
 ### 标量运算
@@ -912,10 +1177,20 @@ auto b4 = a4 + 2L;    // 结果类型: int64
 #### square
 
 ```cpp
-Tensor square(const Tensor &x)
+Tensor square(const Tensor &x)      // 非就地操作，返回新的张量，不修改输入 x
+void square_(Tensor &x)             // 就地操作，直接修改 x，不返回新张量
 ```
 
-计算张量的平方。
+计算张量的平方，即 x^2 = x * x。
+
+**参数:**
+- `x` (Tensor) – 输入张量
+
+**返回值:** Tensor – 平方结果，形状和数据类型与输入相同
+
+**注意:**
+- `square()` 函数本质上是 `x * x` 的快捷方式，但使用专门的实现以获得更好的性能
+- 支持所有数值类型（整数和浮点数）
 
 **例子:**
 ```cpp
@@ -929,13 +1204,32 @@ auto b = square(a);
 // [[1, 4],
 //  [9, 16]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+// 支持整数类型
+auto int_tensor = Tensor({2, 3, 4}, {1, 3}, dtype(DataType::kInt32));
+auto int_square = square(int_tensor);
+// int_square.dtype() == DataType::kInt32  // true
+
+// 支持浮点数类型
+auto float_tensor = Tensor({1.5f, 2.5f, 3.5f}, {1, 3}, dtype(DataType::kFloat32));
+auto float_square = square(float_tensor);
+// float_square 的值: [2.25, 6.25, 12.25]
+
+// 原地操作
+auto x = Tensor({1.0f, 2.0f, 3.0f}, {1, 3});
+square_(x);  // x 被原地修改为 [1.0, 4.0, 9.0]
+
+// 负数平方
+auto neg = Tensor({-2.0f, -3.0f}, {1, 2});
+auto pos = square(neg);  // 结果: [4.0, 9.0]（负数平方为正数）
 ```
 
 #### pow
 
 ```cpp
-Tensor pow(const Tensor &base, const Scalar &exponent)
-Tensor operator^(const Tensor &base, const Scalar &exponent)
+Tensor pow(const Tensor &base, const Scalar &exponent)  // 非就地操作，返回新的张量
+Tensor operator^(const Tensor &base, const Scalar &exponent)  // 非就地操作，返回新的张量
+void pow_(Tensor &x, const Scalar &exponent)            // 就地操作，直接修改 x
 ```
 
 计算张量的幂。
@@ -950,7 +1244,13 @@ Tensor operator^(const Tensor &base, const Scalar &exponent)
 - **负数底数与非整数指数**: 当底数为负数且指数为非整数时，结果为 `NaN`（Not a Number）。这是因为负数的非整数次幂在实数域中无定义，底层使用 `std::pow` 函数会返回 `NaN`。例如：`pow(-2.0, 2.5)` 会产生 `NaN`
 - **负数底数与整数指数**: 当底数为负数但指数为整数时，运算正常进行。例如：`pow(-2.0, 2)` 结果为 `4.0`，`pow(-2.0, 3)` 结果为 `-8.0`
 - **零的负指数**: 当底数为0且指数为负数时，结果可能为 `inf`（无穷大）或抛出异常
-- **类型提升**: 如果底数张量和指数的类型不同，会按照类型提升规则自动提升到更高精度的类型
+- **类型提升规则**: 
+  - 如果底数张量和指数的类型不同，会按照标准类型提升规则自动提升到更高精度的类型
+  - **pow 操作的特殊规则**: 即使底数和指数都是整数类型（如 `int32`），类型提升后的结果类型也会强制转换为 `float32`。这是因为：
+    - pow 运算的结果可能是非整数（如 `2^0.5 = 1.414...`），无法用整数类型表示
+    - CUDA 底层实现只支持浮点数计算（`float32` 和 `float64`）
+    - 这与 PyTorch 的行为一致：即使输入都是整数，pow 的结果也通常是浮点数
+  - 如果类型提升后已经是浮点数类型（`float32` 或 `float64`），则保持该类型不变
 
 **例子:**
 ```cpp
@@ -973,12 +1273,23 @@ auto neg = Tensor({-2.0, -3.0}, {1, 2});
 auto pos_int_pow = pow(neg, 2);     // 结果: [4.0, 9.0]（正常）
 auto neg_int_pow = pow(neg, 3);     // 结果: [-8.0, -27.0]（正常）
 auto non_int_pow = pow(neg, 2.5);   // 结果: [NaN, NaN]（负数非整数次幂产生NaN）
+
+// 整数类型提升示例
+auto int_tensor = Tensor({2, 3, 4}, {1, 3}, dtype(DataType::kInt32));
+auto int_pow_result = pow(int_tensor, 2);  // 即使输入是 int32，结果也是 float32
+// int_pow_result.dtype() == DataType::kFloat32  // true
+
+auto int_base_float_exp = pow(int_tensor, 2.5);  // int32 + float32 → float32
+auto float_base_int_exp = pow(Tensor({2.0, 3.0}, {1, 2}), 2);  // float32 + int32 → float32
+auto float64_base_int_exp = pow(Tensor({2.0, 3.0}, {1, 2}, dtype(DataType::kFloat64)), 2);
+// float64_base_int_exp.dtype() == DataType::kFloat64  // true（保持 float64）
 ```
 
 #### exp
 
 ```cpp
-Tensor exp(const Tensor &x)
+Tensor exp(const Tensor &x)  // 非就地操作，返回新的张量
+void exp_(Tensor &x)          // 就地操作，直接修改 x
 ```
 
 计算张量的指数函数。
@@ -993,6 +1304,57 @@ auto b = exp(a);
 // b.print() 输出:
 // [[1, 2.718, 7.389]]
 //  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
+```
+
+#### log
+
+```cpp
+Tensor log(const Tensor &x)  // 非就地操作，返回新的张量
+void log_(Tensor &x)         // 就地操作，直接修改 x
+```
+
+计算张量的自然对数（以 e 为底），即 log_e(x) = ln(x)。
+
+**参数:**
+- `x` (Tensor) – 输入张量，必须为正数
+
+**返回值:** Tensor – 自然对数结果
+
+**注意:**
+- **类型限制**: `log()` 函数只支持浮点类型（`float32` 和 `float64`），不支持整型。这与 PyTorch 的行为一致。如果输入是整型张量，会抛出异常。
+- **精度**: 
+  - `float32` 类型使用 `logf` 函数，性能最优
+  - `float64` 类型使用 `log` 函数，精度最高
+
+**例子:**
+```cpp
+// 基本用法
+auto a = Tensor({1.0f, std::exp(1.0f), std::exp(2.0f)}, {1, 3});
+auto b = log(a);
+// a.print() 输出:
+// [[1, 2.718, 7.389]]
+//  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
+// b.print() 输出:
+// [[0, 1, 2]]
+//  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
+
+// log(1) = 0
+auto ones = Tensor::ones({2, 2});
+auto zeros = log(ones);
+// zeros 的所有元素都是 0
+
+// 支持 float64
+auto x_f64 = Tensor({1.0, std::exp(1.0)}, {1, 2}, dtype(DataType::kFloat64));
+auto y_f64 = log(x_f64);
+// y_f64.dtype() == DataType::kFloat64  // true
+
+// 原地操作
+auto x = Tensor({1.0f, std::exp(1.0f)}, {1, 2});
+log_(x);  // x 被原地修改为 [0, 1]
+
+// 整型输入会抛出异常
+auto int_tensor = Tensor({1, 2, 3}, {1, 3}, dtype(DataType::kInt32));
+// log(int_tensor);  // 抛出异常: "Log operator only supports float32 and float64 types"
 ```
 
 ### 形状操作
@@ -1064,12 +1426,113 @@ auto b = sum_to(a, {1, 2});
 // 将3x2的张量求和到1x2
 ```
 
+#### cat
+
+```cpp
+Tensor cat(const std::vector<Tensor> &xs, int dim = 0)
+```
+
+在指定维度上拼接多个张量。
+
+**参数:**
+- `xs` (std::vector<Tensor>) – 要拼接的张量列表，至少需要1个张量
+- `dim` (int, optional) – 拼接的维度，默认为 0
+
+**返回值:** Tensor – 拼接后的张量
+
+**注意:**
+- 所有输入张量必须在同一设备上
+- 除了 `dim` 维度外，所有输入张量的其他维度必须相同
+- 如果只有一个输入张量，直接返回该张量（不进行拼接）
+- 输出张量在 `dim` 维度上的大小等于所有输入张量在该维度上的大小之和
+
+**例子:**
+```cpp
+// 在 dim=0 上拼接：Shape{1, 3} 和 Shape{2, 3} 的矩阵拼接成 Shape{3, 3}
+auto x0 = Tensor({1.0f, 2.0f, 3.0f}, Shape{1, 3});
+auto x1 = Tensor({4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, Shape{2, 3});
+auto result = cat({x0, x1}, 0);
+// result.shape() = Shape{3, 3}
+// result 的值:
+// [[1.0, 2.0, 3.0],
+//  [4.0, 5.0, 6.0],
+//  [7.0, 8.0, 9.0]]
+
+// 在 dim=1 上拼接：Shape{2, 2} 和 Shape{2, 1} 的矩阵拼接成 Shape{2, 3}
+auto a0 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2});
+auto a1 = Tensor({5.0f, 6.0f}, Shape{2, 1});
+auto result2 = cat({a0, a1}, 1);
+// result2.shape() = Shape{2, 3}
+// result2 的值:
+// [[1.0, 2.0, 5.0],
+//  [3.0, 4.0, 6.0]]
+
+// 拼接多个张量
+auto b0 = Tensor({1.0f}, {1});
+auto b1 = Tensor({2.0f}, {1});
+auto b2 = Tensor({3.0f}, {1});
+auto result3 = cat({b0, b1, b2}, 0);
+// result3.shape() = {3}
+// result3 的值: [1.0, 2.0, 3.0]
+```
+
+#### split
+
+```cpp
+std::vector<Tensor> split(const Tensor &x, SizeArrayRef split_sizes, int dim = 0)
+std::vector<Tensor> split(const Tensor &x, size_t split_size, int dim = 0)
+```
+
+在指定维度上分割张量。
+
+**参数:**
+- `x` (Tensor) – 输入张量
+- `split_sizes` (SizeArrayRef) – 每个分割的大小列表，支持 `std::vector<size_t>`、`std::initializer_list<size_t>` 等
+- `split_size` (size_t) – 每个分割的固定大小（用于重载版本）
+- `dim` (int, optional) – 分割的维度，默认为 0
+
+**返回值:** std::vector<Tensor> – 分割后的张量列表
+
+**注意:**
+- `dim` 必须在有效范围内（0 到 `x.ndim() - 1`）
+- **按大小列表分割**：`split_sizes` 中所有大小的总和必须等于输入张量在 `dim` 维度上的大小
+- **按固定大小分割**：如果 `dim` 维度的大小不能被 `split_size` 整除，最后一个分割的大小会小于 `split_size`
+- 所有输出张量与输入张量在同一设备上，数据类型相同
+
+**例子:**
+```cpp
+// 创建一个从0开始递增的 Shape{3, 4} 矩阵
+// [[0, 1, 2, 3],
+//  [4, 5, 6, 7],
+//  [8, 9, 10, 11]]
+auto x = Tensor({0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f}, Shape{3, 4});
+
+// 在 dim=0 上按大小列表分割
+auto results1 = split(x, {1, 2}, 0);
+// results1.size() = 2
+// results1[0].shape() = Shape{1, 4}, 值: [[0, 1, 2, 3]]  (第1行)
+// results1[1].shape() = Shape{2, 4}, 值: [[4, 5, 6, 7], [8, 9, 10, 11]]  (第2-3行)
+
+// 在 dim=0 上按固定大小分割
+auto results2 = split(x, 2, 0);  // 每个分割大小为 2
+// results2.size() = 2  (向上取整: ceil(3/2) = 2)
+// results2[0].shape() = Shape{2, 4}, 值: [[0, 1, 2, 3], [4, 5, 6, 7]]  (第1-2行)
+// results2[1].shape() = Shape{1, 4}, 值: [[8, 9, 10, 11]]  (第3行，最后一个分割小于 split_size)
+
+// 在 dim=1 上按不等大小列表分割
+auto results3 = split(x, {1, 2, 1}, 1);
+// results3.size() = 3
+// results3[0].shape() = Shape{3, 1}, 值: [[0], [4], [8]]  (第1列)
+// results3[1].shape() = Shape{3, 2}, 值: [[1, 2], [5, 6], [9, 10]]  (第2-3列)
+// results3[2].shape() = Shape{3, 1}, 值: [[3], [7], [11]]  (第4列)
+```
+
 ### 归约操作
 
 #### sum
 
 ```cpp
-Tensor sum(const Tensor &x, int axis = -1)
+Tensor sum(const Tensor &x, int axis = -1, bool keepdim = false)
 ```
 
 对张量求和。
@@ -1077,13 +1540,16 @@ Tensor sum(const Tensor &x, int axis = -1)
 **参数:**
 - `x` (Tensor) – 输入张量
 - `axis` (int, optional) – 求和的轴，-1表示所有元素
+- `keepdim` (bool, optional) – 是否保持维度，默认为false。如果为true，求和后的维度大小变为1而不是被移除
 
 **例子:**
 ```cpp
-auto a = Tensor({1, 2, 3, 4}, {2, 2});
-auto b = sum(a);      // 所有元素求和: 10
-auto c = sum(a, 0);   // 按第0轴求和
-auto d = sum(a, 1);   // 按第1轴求和
+auto a = Tensor({1, 2, 3, 4, 5, 6}, {2, 3});
+auto b = sum(a);           // 所有元素求和: 21，形状 (1,)
+auto c = sum(a, 0);        // 按第0轴求和，形状 (3,)
+auto d = sum(a, 1);        // 按第1轴求和，形状 (2,)
+auto e = sum(a, 1, true);  // 按第1轴求和，keepdim=true，形状 (2, 1)
+auto f = sum(a, -1, true); // 全局求和，keepdim=true，形状 (1, 1)
 ```
 
 ### 矩阵运算
@@ -1500,6 +1966,72 @@ Linear linear(10, 5);
 linear.reset_parameters();  // 重新初始化参数
 ```
 
+### BatchNorm（批归一化）
+
+接口与 PyTorch 对齐：Functional 使用 `batch_norm`（对应 `torch.nn.functional.batch_norm`），NN 层使用 `BatchNorm1d`、`BatchNorm2d`（对应 `torch.nn.BatchNorm1d`、`torch.nn.BatchNorm2d`）。**BatchNorm3d 当前未实现。**
+
+#### 函数式接口：batch_norm
+
+```cpp
+Tensor batch_norm(const Tensor &x,
+                  const Tensor &gamma,
+                  const Tensor &beta,
+                  const Tensor &running_mean,
+                  const Tensor &running_var,
+                  bool training  = false,
+                  float eps      = 1e-5f,
+                  float momentum = 0.1f,
+                  int num_dims   = 4);
+```
+
+对输入按通道做批归一化。`num_dims` 表示输入张量的维度数：`2` 表示 (N, C)（等价 BatchNorm1d），`4` 表示 (N, C, H, W)（等价 BatchNorm2d）。**当前仅支持 num_dims=2 与 num_dims=4；num_dims=5（BatchNorm3d）未实现。**
+
+**参数：**
+- `x` – 输入张量，形状 (N, C) 或 (N, C, H, W)
+- `gamma`、`beta` – 缩放与平移参数，形状 (C,)
+- `running_mean`、`running_var` – 运行均值/方差，形状 (C,)
+- `training` – 是否为训练模式（训练时用当前 batch 统计量并更新 running，推理时用 running）
+- `eps`、`momentum` – 数值稳定与动量，默认 1e-5、0.1
+- `num_dims` – 输入维度数，仅支持 2 或 4
+
+#### NN 层：BatchNorm1d / BatchNorm2d
+
+```cpp
+nn::BatchNorm1d(int num_features, float eps = 1e-5f, float momentum = 0.1f)  // 输入 (N, C)
+nn::BatchNorm2d(int num_features, float eps = 1e-5f, float momentum = 0.1f)  // 输入 (N, C, H, W)
+```
+
+用法与 PyTorch 的 `nn.BatchNorm1d`、`nn.BatchNorm2d` 一致。训练/评估模式由 `model.train()` / `model.eval()` 控制。
+
+**未支持：** `nn::BatchNorm3d`（输入 (N, C, D, H, W)）当前未实现，如需 3D 批归一化需后续版本支持。
+
+### upsample（上采样）
+
+`F::upsample` 对 4D 张量在空间维度上做上采样。
+
+**当前实现约束：** 仅支持 **4D** 输入，形状为 `(N, C, H, W)`；**mode** 接口保留，取值 `"nearest"` 或 `"bilinear"`，但**当前实现未使用**，实际均为最近邻插值。
+
+#### 函数签名
+
+```cpp
+Tensor upsample(const Tensor &x,
+                const std::string &mode = "nearest",
+                std::pair<float, float> scale_factor = {2.0f, 2.0f});
+```
+
+**参数:**
+- `x` (Tensor) – 输入张量，形状须为 `(N, C, H, W)`
+- `mode` (std::string, optional) – 插值模式，`"nearest"` 或 `"bilinear"`，默认 `"nearest"`。**注意：当前实现未使用，实际恒为最近邻。**
+- `scale_factor` (std::pair<float, float>, optional) – 空间缩放因子 (scale_h, scale_w)，默认 (2, 2)
+
+**返回值:** Tensor – 形状为 `(N, C, H_out, W_out)`，其中 `H_out = round(H * scale_h)`，`W_out = round(W * scale_w)`
+
+**例子:**
+```cpp
+auto x = Tensor::randn({2, 3, 32, 32});
+auto y = F::upsample(x, "nearest", {2.0f, 2.0f});  // 形状 (2, 3, 64, 64)
+```
+
 ### Optimizer 优化器
 
 `Optimizer` 是优化器基类，用于更新模型参数。
@@ -1883,13 +2415,14 @@ auto s = sin(t);  // 抛出异常: "sin function not implemented yet"
 auto c = cos(t);  // 抛出异常: "cos function not implemented yet"
 ```
 
-#### log 函数
+### BatchNorm 限制
 
-**限制**: `log()` 函数在 Origin 后端仅在 CPU 上实现，CUDA 张量会回退到 CPU 计算。
+**限制**: 仅支持 **BatchNorm1d** 和 **BatchNorm2d**，**BatchNorm3d 未实现**。
 
-**当前状态**: 即使 CUDA 有实现，`OriginMat::log()` 也只调用 CPU 版本。
+- **已支持**：`nn::BatchNorm1d`（输入 (N, C)）、`nn::BatchNorm2d`（输入 (N, C, H, W)）；functional `batch_norm(..., num_dims)` 仅支持 `num_dims=2` 与 `num_dims=4`。
+- **未支持**：`nn::BatchNorm3d` 及 `batch_norm(..., num_dims=5)`（输入 (N, C, D, H, W)）。传入 `num_dims=5` 会报错。
 
-**影响范围**: CUDA 张量的 `log()` 操作会先复制到 CPU，计算后再复制回 CUDA，影响性能。
+**与 PyTorch 的差异**: PyTorch 提供 `torch.nn.BatchNorm3d` 与 `F.batch_norm` 对 5D 输入的支持，OriginDL 暂未实现。
 
 ### 矩阵乘法限制
 
@@ -1917,6 +2450,10 @@ auto c = cos(t);  // 抛出异常: "cos function not implemented yet"
 auto x = Tensor({5.0}, Shape{1});
 auto result = sum_to(x, Shape{3});  // 抛出异常: 不支持广播
 ```
+
+### 池化算子的类型支持
+
+池化算子（平均池化、最大值池化、自适应平均池化）, 与 PyTorch 类似：**池化多用于浮点特征，不面向整型**。
 
 ### CUDA 支持限制
 

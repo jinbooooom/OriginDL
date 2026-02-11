@@ -3,98 +3,108 @@
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/scalar.h"
 #include "origin/mat/type_promotion.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Pow::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Pow operator requires exactly 1 input, but got {}", xs.size());
     }
 
-    // 使用统一的类型提升工具
-    DataType base_dtype     = xs[0].dtype();
-    DataType exponent_dtype = exponent_.dtype();
+    // exponent_ 在构造时已经提升为 float32 或 float64
+    // 只需要将 base 提升到 exponent_ 的类型即可
+    DataType promoted_dtype = exponent_.dtype();
+    auto base_maybe         = TypePromotion::to_type_maybe_owned(xs[0], promoted_dtype);
 
-    if (TypePromotion::needs_promotion(base_dtype, exponent_dtype))
-    {
-        // 自动类型提升
-        DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
-        Tensor promoted_base    = TypePromotion::to_type(xs[0], promoted_dtype);
-
-        // 使用提升后的base进行运算
-        auto &x     = mat(promoted_base);
-        auto result = x.pow(exponent_);
-        return std::vector<Tensor>{convert_mat_to_tensor(std::move(result))};
-    }
-
-    // 类型匹配，直接运算
-    auto &x     = mat(xs[0]);
+    // 使用提升后的base进行运算
+    auto &x     = mat(base_maybe);
     auto result = x.pow(exponent_);
     return std::vector<Tensor>{convert_mat_to_tensor(std::move(result))};
 }
 
 std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Pow backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
-    // 使用统一的类型提升工具
-    DataType base_dtype     = this->inputs_[0].dtype();
-    DataType exponent_dtype = exponent_.dtype();
-
-    if (TypePromotion::needs_promotion(base_dtype, exponent_dtype))
-    {
-        // 自动类型提升
-        DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
-        Tensor promoted_base    = TypePromotion::to_type(this->inputs_[0], promoted_dtype);
-
-        // 使用提升后的base进行梯度计算
-        auto &x  = mat(promoted_base);
-        auto &gy = mat(gys[0]);
-
-        // ∂y/∂x = exponent * x^(exponent-1) * gy
-        Scalar exponent_minus_1 = Scalar(exponent_.to_float32() - 1.0f);
-        auto x_pow_minus_1      = x.pow(exponent_minus_1);
-        auto temp_mult          = *x_pow_minus_1 * gy;
-        // 创建值为exponent的维度为0的张量
-        auto scalar_exponent = Tensor(exponent_, Shape({}), dtype(promoted_dtype).device(x.device()));
-        auto gx_result       = mat(scalar_exponent) * *temp_mult;
-        auto gx              = convert_mat_to_tensor(std::move(gx_result));
-
-        std::vector<Tensor> result;
-        result.push_back(gx);
-        return result;
-    }
-
-    // 类型匹配，直接计算
-    auto &x  = mat(this->inputs_[0]);
-    auto &gy = mat(gys[0]);
+    // Pow的梯度计算：∂y/∂x = exponent * x^(exponent-1) * gy
+    // exponent_ 在构造时已经提升为 float32 或 float64
+    // inputs_[0] 是原始输入（由 Operator::setup_computation_graph 保存），需要提升到 exponent_ 的类型
+    DataType promoted_dtype = exponent_.dtype();
+    auto base_maybe         = TypePromotion::to_type_maybe_owned(this->inputs_[0], promoted_dtype);
+    auto &x                 = mat(base_maybe);
+    auto &gy                = mat(gys[0]);
 
     // ∂y/∂x = exponent * x^(exponent-1) * gy
-    Scalar exponent_minus_1 = Scalar(exponent_.to_float32() - 1.0f);
-    auto x_pow_minus_1      = x.pow(exponent_minus_1);
-    auto temp_mult          = *x_pow_minus_1 * gy;
-    // 创建值为exponent的维度为0的张量
-    auto scalar_exponent = Tensor(exponent_, Shape({}), dtype(x.dtype()).device(x.device()));
-    auto gx_result       = mat(scalar_exponent) * *temp_mult;
-    auto gx              = convert_mat_to_tensor(std::move(gx_result));
+    // 使用 exponent_ 的类型进行指数计算
+    Scalar exponent_minus_1 = (promoted_dtype == DataType::kFloat64) ? Scalar(exponent_.to_float64() - 1.0)
+                                                                     : Scalar(exponent_.to_float32() - 1.0f);
+    // 优化：最大化利用 tmp 内存，所有操作都在 tmp 上进行
+    auto tmp = x.pow(exponent_minus_1);
+    tmp->mul_inplace(gy);
+    tmp->mul_inplace(mat(Tensor(exponent_, Shape({}), dtype(promoted_dtype).device(x.device()))));
+    auto gx = convert_mat_to_tensor(std::move(tmp));
 
-    std::vector<Tensor> result;
-    result.push_back(gx);
-    return result;
+    return std::vector<Tensor>{std::move(gx)};
+}
+
+void Pow::forward_inplace(Tensor &input0, const Tensor &input1)
+{
+    if (unlikely(&input1 != &kNullTensor_))
+    {
+        THROW_INVALID_ARG("Pow is a unary operator, cannot accept two operands");
+    }
+
+    // exponent_ 在构造时已经提升为 float32 或 float64
+    // 只需要将 input0 提升到 exponent_ 的类型即可
+    DataType promoted_dtype = exponent_.dtype();
+
+    // 因为 input0 需要原地修改，所以不用临时的 MaybeOwned<Tensor>，而是直接修改 input0
+    if (input0.dtype() != promoted_dtype)
+    {
+        input0 = input0.to(promoted_dtype);
+    }
+
+    // 执行原地操作
+    mat(input0).pow_inplace(exponent_);
 }
 
 // 支持Scalar类型的pow函数
 Tensor pow(const std::vector<Tensor> &xs, const Scalar &exponent)
 {
-    // TODO:虽然cuda底层是用 float32 类型，但这里是否转换为float32还有待商榷
-    auto op = std::make_shared<Pow>(exponent.to_float32());
+    if (unlikely(xs.empty()))
+    {
+        THROW_RUNTIME_ERROR("pow requires at least 1 input tensor");
+    }
+
+    // 在构造 Pow 算子时进行类型提升，确保 exponent 只能是 float32 或 float64
+    // 这样在 forward 和 backward 中就不需要重复计算类型提升了
+    DataType base_dtype     = xs[0].dtype();
+    DataType exponent_dtype = exponent.dtype();
+    DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
+
+    // pow 操作的特殊规则：如果提升后的类型是整数，强制转换为 float32
+    // 因为 pow 的结果可能是非整数，且 CUDA 层只支持浮点数计算
+    // 这与 PyTorch 的行为一致：即使输入都是整数，pow 的结果也通常是浮点数
+    if (promoted_dtype != DataType::kFloat32 && promoted_dtype != DataType::kFloat64)
+    {
+        promoted_dtype = DataType::kFloat32;
+    }
+
+    // 将 exponent 提升为 float32 或 float64
+    Scalar promoted_exponent =
+        (promoted_dtype == DataType::kFloat64) ? Scalar(exponent.to_float64()) : Scalar(exponent.to_float32());
+
+    auto op = std::make_shared<Pow>(promoted_exponent);
     return (*op)(xs)[0];
 }
 
@@ -103,9 +113,34 @@ Tensor pow(const Tensor &base, const Scalar &exponent)
     return pow(std::vector<Tensor>{base}, exponent);
 }
 
+void pow_(Tensor &x, const Scalar &exponent)
+{
+    DataType base_dtype     = x.dtype();
+    DataType exponent_dtype = exponent.dtype();
+    DataType promoted_dtype = TypePromotion::promote_types(base_dtype, exponent_dtype);
+
+    if (promoted_dtype != DataType::kFloat32 && promoted_dtype != DataType::kFloat64)
+    {
+        promoted_dtype = DataType::kFloat32;
+    }
+
+    Scalar promoted_exponent =
+        (promoted_dtype == DataType::kFloat64) ? Scalar(exponent.to_float64()) : Scalar(exponent.to_float32());
+    Pow op(promoted_exponent);
+    op.forward_inplace(x, Operator::kNullTensor_);
+}
+
+}  // namespace functional
+
 Tensor operator^(const Tensor &base, const Scalar &exponent)
 {
-    return pow(std::vector<Tensor>{base}, exponent);
+    return functional::pow(std::vector<Tensor>{base}, exponent);
+}
+
+Tensor &operator^=(Tensor &x, const Scalar &exponent)
+{
+    functional::pow_(x, exponent);
+    return x;
 }
 
 }  // namespace origin

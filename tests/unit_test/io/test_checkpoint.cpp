@@ -9,6 +9,7 @@
 #include "test_utils.h"
 
 using namespace origin;
+namespace F  = origin::functional;
 namespace fs = std::filesystem;
 
 class CheckpointTest : public ::testing::Test

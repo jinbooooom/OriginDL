@@ -1,8 +1,8 @@
 #include <cuda_runtime.h>
 #include <memory>
 #include "origin/mat/basic_types.h"
-#include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/device_common/operation_templates.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
@@ -15,43 +15,243 @@ namespace cuda
 {
 
 /**
- * @brief add算子实现
+ * @brief 元素级加法kernel（相同形状）- 基础版本
+ * @details 每个线程处理一个元素的加法运算，用于不支持向量化的类型或边界情况
+ */
+template <typename T>
+__global__ void add_elementwise_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
+{
+    size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < N)
+    {
+        C[i] = A[i] + B[i];
+    }
+}
+
+/**
+ * @brief 向量化元素级加法kernel - float4版本
+ * @details 每个线程使用float4一次处理4个float元素，提高内存带宽利用率
+ */
+__global__ void add_elementwise_vectorized_float4_kernel(const float *__restrict__ A,
+                                                         const float *__restrict__ B,
+                                                         float *__restrict__ C,
+                                                         size_t N)
+{
+    // 计算向量化的元素数量（每个float4包含4个float）
+    constexpr size_t VECTOR_SIZE = 4;
+    size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
+    size_t vector_idx            = (blockIdx.x * blockDim.x + threadIdx.x) * VECTOR_SIZE;
+
+    // 向量化处理主体部分
+    if (vector_idx + VECTOR_SIZE <= vectorized_N)
+    {
+        // 使用float4一次加载4个float
+        float4 vec_a = *reinterpret_cast<const float4 *>(&A[vector_idx]);
+        float4 vec_b = *reinterpret_cast<const float4 *>(&B[vector_idx]);
+
+        // 执行向量化加法
+        float4 vec_c;
+        vec_c.x = vec_a.x + vec_b.x;
+        vec_c.y = vec_a.y + vec_b.y;
+        vec_c.z = vec_a.z + vec_b.z;
+        vec_c.w = vec_a.w + vec_b.w;
+
+        // 使用float4一次存储4个float
+        *reinterpret_cast<float4 *>(&C[vector_idx]) = vec_c;
+    }
+    else
+    {
+        // 处理边界情况：逐个处理剩余元素
+        size_t base_idx = vector_idx;
+        for (size_t i = 0; i < VECTOR_SIZE && base_idx + i < N; ++i)
+        {
+            C[base_idx + i] = A[base_idx + i] + B[base_idx + i];
+        }
+    }
+}
+
+/**
+ * @brief 广播加法kernel - B是标量
+ * @details A和C是长度为N的向量，B是标量（长度为1），计算 C[i] = A[i] + B[0]
+ */
+template <typename T>
+__global__ void add_broadcast_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
+{
+    size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < N)
+    {
+        C[i] = A[i] + B[0];
+    }
+}
+
+/**
+ * @brief 向量化广播加法kernel - float4版本，B是标量
+ * @details A和C是长度为N的向量，B是标量（长度为1），使用float4向量化优化
+ *          计算 C[i:i+4] = A[i:i+4] + B[0]
+ */
+__global__ void add_broadcast_vectorized_float4_kernel(const float *__restrict__ A,
+                                                       const float *__restrict__ B,
+                                                       float *__restrict__ C,
+                                                       size_t N)
+{
+    constexpr size_t VECTOR_SIZE = 4;
+    size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
+    size_t vector_idx            = (blockIdx.x * blockDim.x + threadIdx.x) * VECTOR_SIZE;
+
+    // 向量化处理主体部分
+    if (vector_idx + VECTOR_SIZE <= vectorized_N)
+    {
+        // A是向量：向量化加载
+        float4 vec_a = *reinterpret_cast<const float4 *>(&A[vector_idx]);
+        // B是标量：广播B[0]到float4
+        float scalar_b = B[0];
+        float4 vec_b   = make_float4(scalar_b, scalar_b, scalar_b, scalar_b);
+
+        // 执行向量化加法
+        float4 vec_c;
+        vec_c.x = vec_a.x + vec_b.x;
+        vec_c.y = vec_a.y + vec_b.y;
+        vec_c.z = vec_a.z + vec_b.z;
+        vec_c.w = vec_a.w + vec_b.w;
+
+        // 向量化存储
+        *reinterpret_cast<float4 *>(&C[vector_idx]) = vec_c;
+    }
+    else
+    {
+        // 处理边界情况：逐个处理剩余元素
+        size_t base_idx = vector_idx;
+        for (size_t i = 0; i < VECTOR_SIZE && base_idx + i < N; ++i)
+        {
+            C[base_idx + i] = A[base_idx + i] + B[0];
+        }
+    }
+}
+
+/**
+ * @brief CUDA加法算子统一实现
  * @param a 输入矩阵A
  * @param b 输入矩阵B
- * @return 加法结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵返回新矩阵，否则将结果写入out，返回nullptr
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
+std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
 {
-    // 验证输入
     VALIDATE_SAME_DTYPE(a, b);
     VALIDATE_SAME_CUDA_DEVICE(a, b);
 
-    // 计算广播形状
     Shape result_shape = origin::utils::compute::compute_broadcast_shape(a, b);
-    auto result        = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
 
-    // 获取数据指针
+    OriginMat *result_ptr = nullptr;
+    std::unique_ptr<OriginMat> result_unique;
+
+    if (out != nullptr)
+    {
+        if (unlikely(out->shape() != result_shape || out->dtype() != a.dtype() || out->device() != a.device()))
+        {
+            THROW_INVALID_ARG(
+                "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
+                "dtype={}, device={}",
+                result_shape.to_string(), dtype_to_string(a.dtype()), a.device().to_string(), out->shape().to_string(),
+                dtype_to_string(out->dtype()), out->device().to_string());
+        }
+        result_ptr = out;
+    }
+    else
+    {
+        result_unique = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
+        result_ptr    = result_unique.get();
+    }
+
     const void *a_data = a.storage()->data();
     const void *b_data = b.storage()->data();
-    void *c_data       = result->storage()->data();
+    void *c_data       = result_ptr->storage()->data();
 
-    // 检查运算类型，按出现频率排序
     if (a.shape() == b.shape())
     {
         // 相同形状：直接元素级运算（最常见）
-        device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            launch_elementwise_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                                                static_cast<T *>(c_data), a.elements(), AddOp{}, 0);
-        });
+        const size_t num_elements = a.elements();
+        if (a.dtype() == DataType::kFloat32)  // float32 类型是最常见的
+        {
+            // float4向量化版本：每个线程处理4个元素
+            constexpr size_t VECTOR_SIZE     = 4;
+            const size_t threads_per_block   = 256;
+            const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+            const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+            add_elementwise_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
+                static_cast<const float *>(a_data), static_cast<const float *>(b_data), static_cast<float *>(c_data),
+                num_elements);
+        }
+        else
+        {
+            const size_t threads_per_block = 256;
+            const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+            device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+                add_elementwise_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
+                                                                             static_cast<const T *>(b_data),
+                                                                             static_cast<T *>(c_data), num_elements);
+            });
+        }
     }
     else if (a.elements() == 1 || b.elements() == 1)
     {
         // 简单广播：一个操作数是标量（次常见）
-        device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            launch_simple_broadcast_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                                                     static_cast<T *>(c_data), a.elements(), b.elements(),
-                                                     result->elements(), AddOp{}, 0);
-        });
+        const size_t num_elements = result_ptr->elements();
+
+        // 只支持B是标量的情况，如果A是标量则交换A和B
+        if (a.elements() == 1)
+        {
+            // A是标量，B是向量：交换A和B，调用B是标量的kernel
+            // 仅对float类型使用向量化优化，其他类型使用基础版本
+            if (a.dtype() == DataType::kFloat32)
+            {
+                constexpr size_t VECTOR_SIZE     = 4;
+                const size_t threads_per_block   = 256;
+                const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+                const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+                // 交换A和B：B是标量，A是向量
+                add_broadcast_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
+                    static_cast<const float *>(b_data), static_cast<const float *>(a_data),
+                    static_cast<float *>(c_data), num_elements);
+            }
+            else
+            {
+                const size_t threads_per_block = 256;
+                const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+                device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+                    // 交换A和B：B是标量，A是向量
+                    add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(b_data),
+                                                                               static_cast<const T *>(a_data),
+                                                                               static_cast<T *>(c_data), num_elements);
+                });
+            }
+        }
+        else
+        {
+            // B是标量，A是向量
+            if (a.dtype() == DataType::kFloat32)
+            {
+                constexpr size_t VECTOR_SIZE     = 4;
+                const size_t threads_per_block   = 256;
+                const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+                const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+                add_broadcast_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
+                    static_cast<const float *>(a_data), static_cast<const float *>(b_data),
+                    static_cast<float *>(c_data), num_elements);
+            }
+            else
+            {
+                const size_t threads_per_block = 256;
+                const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+                device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+                    add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
+                                                                               static_cast<const T *>(b_data),
+                                                                               static_cast<T *>(c_data), num_elements);
+                });
+            }
+        }
     }
     else
     {
@@ -59,41 +259,7 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b)
         THROW_RUNTIME_ERROR("Complex broadcasting not yet implemented for CUDA add operation");
     }
 
-    CUDA_CHECK_ASYNC();
-
-    return result;
-}
-
-/**
- * @brief CUDA原地加法算子实现（累加到目标矩阵）
- * @param a 目标矩阵（会被修改）
- * @param b 源矩阵（不会被修改）
- * @note 要求 a 和 b 的形状相同
- */
-void add_inplace(OriginMat &a, const OriginMat &b)
-{
-    // 验证输入
-    VALIDATE_SAME_DTYPE(a, b);
-    VALIDATE_SAME_CUDA_DEVICE(a, b);
-
-    // 验证形状必须相同（原地操作要求）
-    if (a.shape() != b.shape())
-    {
-        THROW_INVALID_ARG("add_inplace: shapes must match. a.shape() = {}, b.shape() = {}", a.shape().to_string(),
-                          b.shape().to_string());
-    }
-
-    // 获取数据指针
-    void *a_data       = a.storage()->data();
-    const void *b_data = b.storage()->data();
-
-    // 执行原地加法：a = a + b
-    device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-        launch_elementwise_kernel<T, AddOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                                            static_cast<T *>(a_data), a.elements(), AddOp{}, 0);
-    });
-
-    CUDA_CHECK_ASYNC();
+    return result_unique;
 }
 
 }  // namespace cuda

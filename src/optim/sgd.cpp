@@ -20,14 +20,6 @@ void SGD::step_one(Parameter &param)
     // 获取梯度
     auto grad = param.grad();
 
-    // 调试：检查参数更新前的值（已修复，移除调试输出）
-    // float old_val = 0.0f;
-    // try {
-    //     if (param.shape().elements() == 1) {
-    //         old_val = param.item<float>();
-    //     }
-    // } catch (...) {}
-
     // 权重衰减
     if (weight_decay_ > 0.0f)
     {
@@ -69,16 +61,6 @@ void SGD::step_one(Parameter &param)
     // 这会调用Parameter::operator=(const Tensor&)，它会调用Tensor::operator=
     // Tensor::operator=会将impl_指针（shared_ptr）更新为新的TensorImpl
     param = Parameter(updated);
-
-    // 调试：检查参数更新后的值（已修复，移除调试输出）
-    // float new_val = 0.0f;
-    // try {
-    //     if (param.shape().elements() == 1) {
-    //         new_val = param.item<float>();
-    //         std::cout << "   SGD Debug: param old_val=" << old_val << ", expected=" << expected_new_val << ",
-    //         actual=" << new_val << std::endl;
-    //     }
-    // } catch (...) {}
 }
 
 std::unordered_map<std::string, std::any> SGD::state_dict() const

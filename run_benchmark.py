@@ -1,0 +1,831 @@
+#!/usr/bin/env python3
+"""
+OriginDL算子性能对比测试脚本
+调用C++性能测试程序和PyTorch测试程序，输出OriginDL与PyTorch的性能对比数据
+"""
+
+import subprocess
+import sys
+import argparse
+import os
+from pathlib import Path
+from typing import List, Dict, Optional, Tuple
+from datetime import datetime
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import PatternFill, Font, Alignment
+    from openpyxl.utils import get_column_letter
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
+
+
+def discover_benchmark_operators(project_root: Path) -> List[str]:
+    """自动发现可用的benchmark算子
+    
+    在所有类别目录中搜索 bench_*.py 文件，提取算子名称
+    
+    Args:
+        project_root: 项目根目录路径
+    
+    Returns:
+        算子名称列表，例如 ['add', 'sub', 'reshape', 'conv2d', 'mat_mul', 'matmul']
+    """
+    operators = []
+    benchmark_dir = project_root / "tests" / "benchmark"
+    
+    if not benchmark_dir.exists():
+        return operators
+    
+    # 遍历 benchmark 目录下的所有类别目录（排除 common）
+    for category_dir in benchmark_dir.iterdir():
+        if not category_dir.is_dir() or category_dir.name == "common":
+            continue
+        
+        # 遍历类别目录下的所有 bench_*.py 文件
+        for py_file in category_dir.glob("bench_*.py"):
+            # 从文件名提取算子名称：bench_add.py -> add
+            operator_name = py_file.stem.replace("bench_", "")
+            
+            # 如果算子名称已存在，跳过（避免重复，虽然理论上不应该有重复）
+            if operator_name not in operators:
+                operators.append(operator_name)
+            
+            # 为 mat_mul 添加 matmul 别名
+            if operator_name == "mat_mul" and "matmul" not in operators:
+                operators.append("matmul")
+    
+    return sorted(operators)
+
+
+def find_benchmark_executable(operator: str, project_root: Path) -> Optional[str]:
+    """查找benchmark可执行文件
+    
+    Args:
+        operator: 算子名称，例如 'add' 或 'matmul'（matmul 会查找 bench_mat_mul）
+        project_root: 项目根目录路径
+    
+    Returns:
+        可执行文件路径，如果未找到返回None
+    """
+    # 支持 matmul 作为 mat_mul 的别名
+    executable_operator = operator
+    if operator == "matmul":
+        executable_operator = "mat_mul"
+    
+    possible_paths = [
+        project_root / "build" / "bin" / "benchmark" / f"bench_{executable_operator}",
+        project_root / "torch_build" / "bin" / "benchmark" / f"bench_{executable_operator}",
+        project_root / "build" / "bin" / f"bench_{executable_operator}",
+        project_root / "torch_build" / "bin" / f"bench_{executable_operator}",
+    ]
+    
+    for path in possible_paths:
+        if path.exists() and os.access(path, os.X_OK):
+            return str(path)
+    
+    return None
+
+
+def import_pytorch_benchmark_module(operator: str, project_root: Path):
+    """动态导入PyTorch benchmark模块
+    
+    在所有类别目录中搜索 bench_{operator}.py 文件
+    
+    Args:
+        operator: 算子名称，例如 'add'
+        project_root: 项目根目录路径
+    
+    Returns:
+        导入的模块对象
+    
+    Raises:
+        FileNotFoundError: 如果找不到对应的benchmark脚本
+    """
+    benchmark_dir = project_root / "tests" / "benchmark"
+    
+    # 支持 matmul 作为 mat_mul 的别名
+    search_operator = operator
+    if operator == "matmul":
+        search_operator = "mat_mul"
+    
+    module_file = f"bench_{search_operator}.py"
+    
+    # 在所有类别目录中搜索
+    found_paths = []
+    for category_dir in benchmark_dir.iterdir():
+        if not category_dir.is_dir() or category_dir.name == "common":
+            continue
+        
+        module_path = category_dir / module_file
+        if module_path.exists():
+            found_paths.append(module_path)
+    
+    # 如果找到多个，报错（理论上不应该有重复的算子名称）
+    if len(found_paths) > 1:
+        categories = [p.parent.name for p in found_paths]
+        raise FileNotFoundError(
+            f"Multiple benchmark scripts found for operator '{operator}' in categories: {categories}. "
+            f"Please ensure operator names are unique across all categories."
+        )
+    
+    # 如果没找到，尝试向后兼容：检查旧结构（每个算子一个目录）
+    if len(found_paths) == 0:
+        old_path = benchmark_dir / operator / module_file
+        if old_path.exists():
+            found_paths.append(old_path)
+        else:
+            raise FileNotFoundError(
+                f"PyTorch benchmark script not found for operator '{operator}'. "
+                f"Searched in all category directories under {benchmark_dir}"
+            )
+    
+    module_path = found_paths[0]
+    
+    # 添加模块路径到sys.path
+    module_dir = str(module_path.parent)
+    if module_dir not in sys.path:
+        sys.path.insert(0, module_dir)
+    
+    # 导入模块
+    module_name = f"bench_{operator}"
+    if module_name in sys.modules:
+        del sys.modules[module_name]
+    
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(module_name, str(module_path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    
+    return module
+
+
+def run_cpp_benchmark(executable_path: str,
+                      device_filter: Optional[str] = None,
+                      shape_filter: Optional[str] = None,
+                      warmup_cnt: Optional[int] = None,
+                      repeat_cnt: Optional[int] = None,
+                      inplace: bool = False) -> List[Dict]:
+    """运行C++ benchmark可执行文件并解析输出
+    
+    Args:
+        executable_path: C++可执行文件路径
+        device_filter: 设备过滤，'cpu' 或 'cuda'
+        shape_filter: shape过滤，例如 '1000,1000'
+        warmup_cnt: 预热次数
+        repeat_cnt: 重复次数
+        inplace: 是否使用就地操作
+    
+    Returns:
+        OriginDL测试结果列表，每个元素为:
+        {'shape': str, 'device': str, 'dtype': str, 'time_us': float, 'repeat_cnt': int}
+    """
+    # 构建命令行参数
+    cmd = [executable_path]
+    
+    if device_filter:
+        cmd.extend(['-d', device_filter])
+    
+    if shape_filter:
+        cmd.extend(['-s', shape_filter])
+    
+    if warmup_cnt is not None:
+        cmd.extend(['-w', str(warmup_cnt)])
+    
+    if repeat_cnt is not None:
+        cmd.extend(['-r', str(repeat_cnt)])
+    
+    if inplace:
+        cmd.append('--inplace')
+    
+    try:
+        # 运行C++程序并捕获输出
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output_lines = result.stdout.strip().split('\n')
+        
+        # 跳过表头行（第一行）
+        if len(output_lines) < 2:
+            return []
+        
+        results = []
+        for line in output_lines[1:]:  # 跳过表头
+            if not line.strip():
+                continue
+            
+            # 解析制表符分隔的行: shape \t repeat \t device \t dtype \t origindl_time_us
+            parts = line.split('\t')
+            if len(parts) < 5:
+                continue
+            
+            shape_str = parts[0].strip()
+            repeat_str = parts[1].strip()
+            device_str = parts[2].strip()
+            dtype_str = parts[3].strip()
+            time_str = parts[4].strip()
+            
+            # 统一shape格式：移除空格，例如 {1, 1} -> {1,1}
+            # 保持与Python输出格式一致
+            shape_str = shape_str.replace(' ', '')
+            
+            try:
+                time_us = float(time_str)
+                repeat_cnt_value = int(repeat_str) if repeat_str.isdigit() else None
+                
+                results.append({
+                    'shape': shape_str,
+                    'device': device_str,
+                    'dtype': dtype_str,
+                    'time_us': time_us,
+                    'repeat_cnt': repeat_cnt_value
+                })
+            except ValueError:
+                continue
+        
+        return results
+        
+    except subprocess.CalledProcessError as e:
+        # C++程序执行失败
+        return []
+    except Exception as e:
+        return []
+
+
+def run_operator_benchmark(operator: str, 
+                          project_root: Path,
+                          device_filter: Optional[str] = None,
+                          shape_filter: Optional[str] = None,
+                          warmup_cnt: Optional[int] = None,
+                          repeat_cnt: Optional[int] = None,
+                          inplace: bool = False,
+                          verbose: bool = False) -> Optional[Tuple[List[Dict], List[Dict]]]:
+    """运行单个算子的性能对比测试
+    
+    Args:
+        operator: 算子名称
+        project_root: 项目根目录路径
+        device_filter: 设备过滤，'cpu' 或 'cuda'
+        shape_filter: shape过滤，例如 '1000,1000'
+        inplace: 是否使用就地操作
+        verbose: 是否输出详细信息
+    
+    Returns:
+        (origindl_results, pytorch_results) 元组，如果失败返回None
+    """
+    try:
+        # 1. 调用C++可执行文件获取OriginDL结果
+        executable_path = find_benchmark_executable(operator, project_root)
+        origindl_results = []
+        
+        if executable_path:
+            origindl_results = run_cpp_benchmark(
+                executable_path=executable_path,
+                device_filter=device_filter,
+                shape_filter=shape_filter,
+                warmup_cnt=warmup_cnt,
+                repeat_cnt=repeat_cnt,
+                inplace=inplace
+            )
+        elif verbose:
+            print(f"Warning: C++ executable not found for operator '{operator}'", file=sys.stderr)
+        
+        # 2. 调用Python函数获取PyTorch结果
+        module = import_pytorch_benchmark_module(operator, project_root)
+        
+        # 查找benchmark函数（例如 benchmark_add_comparison）
+        # 支持 matmul 作为 mat_mul 的别名
+        benchmark_func_name = f"benchmark_{operator}_comparison"
+        if operator == "matmul":
+            # matmul 是 mat_mul 的别名
+            benchmark_func_name = "benchmark_mat_mul_comparison"
+        
+        if not hasattr(module, benchmark_func_name):
+            if verbose:
+                print(f"Warning: Module {module.__name__} does not have function {benchmark_func_name}", 
+                      file=sys.stderr)
+            return None
+        
+        benchmark_func = getattr(module, benchmark_func_name)
+        
+        # 运行PyTorch benchmark测试
+        # 检查函数是否支持参数
+        import inspect
+        func_sig = inspect.signature(benchmark_func)
+        func_params = {}
+        
+        if 'device_filter' in func_sig.parameters:
+            func_params['device_filter'] = device_filter
+        if 'shape_filter' in func_sig.parameters:
+            func_params['shape_filter'] = shape_filter
+        if 'warmup_cnt' in func_sig.parameters and warmup_cnt is not None:
+            func_params['warmup_cnt'] = warmup_cnt
+        if 'repeat_cnt' in func_sig.parameters and repeat_cnt is not None:
+            func_params['repeat_cnt'] = repeat_cnt
+        if 'inplace' in func_sig.parameters:
+            func_params['inplace'] = inplace
+        if 'verbose' in func_sig.parameters:
+            func_params['verbose'] = verbose
+        
+        # 调用Python函数获取PyTorch结果
+        pytorch_results = benchmark_func(**func_params)
+        
+        return origindl_results, pytorch_results
+        
+    except Exception as e:
+        if verbose:
+            print(f"Error running benchmark for operator '{operator}': {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+        return None
+
+
+def get_comparison_data(operator: str,
+                       origindl_results: List[Dict], 
+                       pytorch_results: List[Dict],
+                       inplace: bool = False) -> List[Dict]:
+    """获取性能对比数据（用于打印和Excel输出）
+    
+    Args:
+        operator: 算子名称
+        origindl_results: OriginDL测试结果列表
+        pytorch_results: PyTorch测试结果列表
+        inplace: 是否使用就地操作
+    
+    Returns:
+        数据行列表，每个元素包含所有列的数据
+    """
+
+    origindl_map = {(r['shape'], r['device'], r['dtype']): {'time_us': r['time_us'], 'repeat_cnt': r.get('repeat_cnt', 100)} 
+                    for r in origindl_results}
+    pytorch_map = {(r['shape'], r['device'], r['dtype']): r['time_us'] 
+                   for r in pytorch_results}
+    
+    # 算子名称（首字母大写）
+    operator_name = operator.capitalize()
+    
+    # 如果使用就地操作，在标题中显示
+    mode_suffix = " (Inplace)" if inplace else ""
+    
+    # 收集所有需要输出的行，用于计算列宽
+    all_keys = sorted(set(origindl_map.keys()) | set(pytorch_map.keys()))
+    rows = []
+    for key in all_keys:
+        shape, device, dtype = key
+        origindl_data = origindl_map.get(key, None)
+        pytorch_time = pytorch_map.get(key, None)
+        
+        if origindl_data is not None:
+            origindl_time = origindl_data['time_us']
+            repeat_cnt = origindl_data['repeat_cnt']
+        else:
+            origindl_time = None
+            repeat_cnt = None
+        
+        repeat_str = str(repeat_cnt) if repeat_cnt is not None else 'N/A'
+        origindl_str = f"{origindl_time:.4f}" if origindl_time is not None else 'N/A'
+        pytorch_str = f"{pytorch_time:.4f}" if pytorch_time is not None else 'N/A'
+        
+        if origindl_time is not None and pytorch_time is not None:
+            speedup = pytorch_time / origindl_time if origindl_time > 0 else 0.0
+            speedup_str = f"{speedup:.4f}"
+        else:
+            speedup_str = 'N/A'
+        
+        speedup_value = None
+        if origindl_time is not None and pytorch_time is not None:
+            speedup_value = pytorch_time / origindl_time if origindl_time > 0 else 0.0
+        
+        rows.append({
+            'operator': operator,
+            'shape': shape,
+            'repeat': repeat_str,
+            'repeat_value': repeat_cnt,
+            'device': device,
+            'dtype': dtype,
+            'origindl': origindl_str,
+            'origindl_value': origindl_time,
+            'pytorch': pytorch_str,
+            'pytorch_value': pytorch_time,
+            'speedup': speedup_str,
+            'speedup_value': speedup_value
+        })
+    
+    return rows
+
+
+def print_comparison_table(operator: str,
+                          origindl_results: List[Dict], 
+                          pytorch_results: List[Dict],
+                          inplace: bool = False):
+    """打印性能对比表格
+    
+    Args:
+        operator: 算子名称
+        origindl_results: OriginDL测试结果列表
+        pytorch_results: PyTorch测试结果列表
+        inplace: 是否使用就地操作
+    """
+    rows = get_comparison_data(operator, origindl_results, pytorch_results, inplace)
+    
+    # 算子名称（首字母大写）
+    operator_name = operator.capitalize()
+    
+    # 如果使用就地操作，在标题中显示
+    mode_suffix = " (Inplace)" if inplace else ""
+    
+    # 计算每列的最大宽度
+    max_shape_width = max(5, max(len(row['shape']) for row in rows))  # "Shape" 长度
+    max_repeat_width = max(6, max(len(row['repeat']) for row in rows))  # "Repeat" 长度
+    max_device_width = max(6, max(len(row['device']) for row in rows))  # "Device" 长度
+    max_dtype_width = max(5, max(len(row['dtype']) for row in rows))  # "Dtype" 长度
+    max_origindl_width = max(13, max(len(row['origindl']) for row in rows))  # "OriginDL(us)" 长度
+    max_pytorch_width = max(13, max(len(row['pytorch']) for row in rows))  # "PyTorch(us)" 长度
+    max_speedup_width = max(7, max(len(row['speedup']) for row in rows))  # "Speedup" 长度
+    
+    # 输出对比表格（每列之间至少3个字符间距）
+    column_spacing = 3
+    
+    # 计算表头行宽度
+    header_line = (f"{'Shape':<{max_shape_width}}{' ' * column_spacing}"
+                   f"{'Repeat':<{max_repeat_width}}{' ' * column_spacing}"
+                   f"{'Device':<{max_device_width}}{' ' * column_spacing}"
+                   f"{'Dtype':<{max_dtype_width}}{' ' * column_spacing}"
+                   f"{'OriginDL(us)':<{max_origindl_width}}{' ' * column_spacing}"
+                   f"{'PyTorch(us)':<{max_pytorch_width}}{' ' * column_spacing}"
+                   f"{'Speedup':<{max_speedup_width}}")
+    
+    # 计算最长数据行宽度
+    max_line_width = len(header_line)
+    for row in rows:
+        data_line = (f"{row['shape']:<{max_shape_width}}{' ' * column_spacing}"
+                     f"{row['repeat']:<{max_repeat_width}}{' ' * column_spacing}"
+                     f"{row['device']:<{max_device_width}}{' ' * column_spacing}"
+                     f"{row['dtype']:<{max_dtype_width}}{' ' * column_spacing}"
+                     f"{row['origindl']:<{max_origindl_width}}{' ' * column_spacing}"
+                     f"{row['pytorch']:<{max_pytorch_width}}{' ' * column_spacing}"
+                     f"{row['speedup']:<{max_speedup_width}}")
+        max_line_width = max(max_line_width, len(data_line))
+    
+    print("\n" + "="*max_line_width)
+    print(f"{operator_name} Operator Performance Comparison{mode_suffix}")
+    print("="*max_line_width)
+    print(header_line)
+    print("-"*max_line_width)
+    
+    # 输出所有结果
+    for row in rows:
+        data_line = (f"{row['shape']:<{max_shape_width}}{' ' * column_spacing}"
+                     f"{row['repeat']:<{max_repeat_width}}{' ' * column_spacing}"
+                     f"{row['device']:<{max_device_width}}{' ' * column_spacing}"
+                     f"{row['dtype']:<{max_dtype_width}}{' ' * column_spacing}"
+                     f"{row['origindl']:<{max_origindl_width}}{' ' * column_spacing}"
+                     f"{row['pytorch']:<{max_pytorch_width}}{' ' * column_spacing}"
+                     f"{row['speedup']:<{max_speedup_width}}")
+        print(data_line)
+    
+    print("="*max_line_width)
+
+
+def get_speedup_color(speedup: Optional[float]) -> Optional[str]:
+    """根据Speedup值返回颜色代码
+    
+    Args:
+        speedup: Speedup值
+    
+    Returns:
+        颜色代码（十六进制），如果不需要标记返回None
+    """
+    if speedup is None:
+        return None
+    
+    if speedup <= 0.6:
+        return "FF0000"  # 红色
+    elif speedup <= 0.8:
+        return "FFFF00"  # 黄色
+    elif speedup <= 0.9:
+        return "00FF00"  # 绿色
+    else:
+        return None  # 无标记
+
+
+def write_results_to_excel(all_results: Dict[str, Tuple[List[Dict], List[Dict]]],
+                           output_path: Path,
+                           inplace: bool = False):
+    """将测试结果写入Excel文件
+    
+    Args:
+        all_results: 所有算子的测试结果字典，key为算子名，value为(origindl_results, pytorch_results)元组
+        output_path: 输出文件路径
+        inplace: 是否使用就地操作
+    """
+    if not OPENPYXL_AVAILABLE:
+        print("Warning: openpyxl is not installed. Cannot export to Excel.", file=sys.stderr)
+        print("Please install openpyxl: pip install openpyxl", file=sys.stderr)
+        return
+    
+    wb = Workbook()
+    wb.remove(wb.active)  # 删除默认sheet
+    
+    # 收集所有数据用于统一表格
+    all_unified_rows = []
+    
+    # 先收集所有数据
+    operator_sheets_data = {}
+    for operator, (origindl_results, pytorch_results) in all_results.items():
+        rows = get_comparison_data(operator, origindl_results, pytorch_results, inplace)
+        operator_sheets_data[operator] = rows
+        all_unified_rows.extend(rows)
+    
+    # 如果有多于一个算子，先创建统一表格Sheet（放在最前面）
+    if len(all_results) > 1:
+        ws_unified = wb.create_sheet(title="All Results", index=0)
+        
+        # 写入表头
+        headers_unified = ['Operator', 'Shape', 'Repeat', 'Device', 'Dtype', 'OriginDL(us)', 'PyTorch(us)', 'Speedup']
+        ws_unified.append(headers_unified)
+        
+        # 设置表头样式
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", name="Times New Roman")
+        times_font = Font(name="Times New Roman")
+        for cell in ws_unified[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        # 写入数据
+        for row_data in all_unified_rows:
+            row = [
+                row_data['operator'],
+                row_data['shape'],
+                row_data['repeat_value'] if row_data['repeat_value'] is not None else row_data['repeat'],
+                row_data['device'],
+                row_data['dtype'],
+                row_data['origindl_value'] if row_data['origindl_value'] is not None else 0.0,
+                row_data['pytorch_value'] if row_data['pytorch_value'] is not None else 0.0,
+                row_data['speedup_value'] if row_data['speedup_value'] is not None else 0.0
+            ]
+            ws_unified.append(row)
+            
+            # 设置Speedup列的颜色和数据行字体
+            for cell in ws_unified[ws_unified.max_row]:
+                cell.font = times_font
+            speedup_cell = ws_unified.cell(row=ws_unified.max_row, column=8)
+            color = get_speedup_color(row_data['speedup_value'])
+            if color:
+                speedup_cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+        
+        # 设置列宽
+        ws_unified.column_dimensions['A'].width = 15
+        ws_unified.column_dimensions['B'].width = max(15, max(len(str(r['shape'])) for r in all_unified_rows) + 2)
+        ws_unified.column_dimensions['C'].width = 10
+        ws_unified.column_dimensions['D'].width = 12
+        ws_unified.column_dimensions['E'].width = 10
+        ws_unified.column_dimensions['F'].width = 15
+        ws_unified.column_dimensions['G'].width = 15
+        ws_unified.column_dimensions['H'].width = 12
+        
+        # 冻结首行
+        ws_unified.freeze_panes = 'A2'
+        
+        # 设置数值格式
+        for row in ws_unified.iter_rows(min_row=2, max_row=ws_unified.max_row):
+            row[5].number_format = '0.0000'  # OriginDL(us)
+            row[6].number_format = '0.0000'  # PyTorch(us)
+            row[7].number_format = '0.0000'  # Speedup
+    
+    # 为每个算子创建单独的Sheet
+    for operator, rows in operator_sheets_data.items():
+        # 创建算子Sheet
+        ws = wb.create_sheet(title=operator)
+        
+        # 写入表头
+        headers = ['Shape', 'Repeat', 'Device', 'Dtype', 'OriginDL(us)', 'PyTorch(us)', 'Speedup']
+        ws.append(headers)
+        
+        # 设置表头样式（如果还没有定义，说明是单算子情况）
+        if len(all_results) == 1:
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF", name="Times New Roman")
+            times_font = Font(name="Times New Roman")
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+        
+        # 写入数据
+        for row_data in rows:
+            row = [
+                row_data['shape'],
+                row_data['repeat_value'] if row_data['repeat_value'] is not None else row_data['repeat'],
+                row_data['device'],
+                row_data['dtype'],
+                row_data['origindl_value'] if row_data['origindl_value'] is not None else 0.0,
+                row_data['pytorch_value'] if row_data['pytorch_value'] is not None else 0.0,
+                row_data['speedup_value'] if row_data['speedup_value'] is not None else 0.0
+            ]
+            ws.append(row)
+            
+            # 设置Speedup列的颜色和数据行字体
+            for cell in ws[ws.max_row]:
+                cell.font = times_font
+            speedup_cell = ws.cell(row=ws.max_row, column=7)
+            color = get_speedup_color(row_data['speedup_value'])
+            if color:
+                speedup_cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+        
+        # 设置列宽
+        ws.column_dimensions['A'].width = max(15, max(len(str(r['shape'])) for r in rows) + 2)
+        ws.column_dimensions['B'].width = 10
+        ws.column_dimensions['C'].width = 12
+        ws.column_dimensions['D'].width = 10
+        ws.column_dimensions['E'].width = 15
+        ws.column_dimensions['F'].width = 15
+        ws.column_dimensions['G'].width = 12
+        
+        # 冻结首行
+        ws.freeze_panes = 'A2'
+        
+        # 设置数值格式
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+            row[4].number_format = '0.0000'  # OriginDL(us)
+            row[5].number_format = '0.0000'  # PyTorch(us)
+            row[6].number_format = '0.0000'  # Speedup
+    
+    # 保存文件
+    wb.save(output_path)
+    print(f"\nResults exported to: {output_path}", file=sys.stderr)
+
+
+def main():
+    """命令行入口"""
+    # 获取项目根目录
+    script_path = Path(__file__).resolve()
+    project_root = script_path.parent
+    
+    # 发现可用的算子（用于help信息）
+    available_operators = discover_benchmark_operators(project_root)
+    
+    # 构建算子列表的帮助信息
+    if available_operators:
+        operators_list = ',\n                        '.join(available_operators)
+        operators_help = (f"Operator name(s) to benchmark (comma-separated for multiple operators).\n"
+                          f"                        Available operators:\n"
+                          f"                        {operators_list}\n"
+                          f"                        \n"
+                          f"                        If not specified, all operators will be tested.")
+    else:
+        operators_help = 'Operator name to benchmark (e.g., add). If not specified, all operators will be tested.'
+    
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(
+        description='OriginDL operator performance comparison with PyTorch',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python3 run_benchmark.py                    # Test all operators
+  python3 run_benchmark.py -f add             # Test add operator only
+  python3 run_benchmark.py -f add,sub,mul      # Test multiple operators (comma-separated)
+  python3 run_benchmark.py -f add -d cuda:0   # Test add operator on CUDA device 0 (or use -d cpu for CPU)
+  python3 run_benchmark.py -f add -d cuda:0 -s 1000,1000  # Test add with specific shape
+  python3 run_benchmark.py -f add -w 5 -r 50   # Test with custom warmup and repeat counts
+  python3 run_benchmark.py -f add --inplace   # Test with inplace operations
+  python3 run_benchmark.py -f add -d cuda:0 -o ./results  # Export results to Excel file
+  python3 run_benchmark.py -f add,sub,mul -d cuda:0 -o ./results  # Test multiple operators and export
+        """
+    )
+    
+    parser.add_argument(
+        '-f', '--function',
+        dest='operator',
+        help=operators_help
+    )
+    parser.add_argument(
+        '-d', '--device',
+        help='Device type filter (cpu or cuda). If not specified, all devices will be tested.'
+    )
+    parser.add_argument(
+        '-s', '--shape',
+        help='Tensor shape filter (e.g., "1000,1000"). If not specified, default shapes will be used.'
+    )
+    parser.add_argument(
+        '-w', '--warmup',
+        type=int,
+        help='Number of warmup iterations (default: 10)'
+    )
+    parser.add_argument(
+        '-r', '--repeat',
+        type=int,
+        help='Number of repeat iterations (default: 100)'
+    )
+    parser.add_argument(
+        '--inplace',
+        action='store_true',
+        help='Use inplace operations (default: false)'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        dest='output_dir',
+        help='Output directory for Excel files. If not specified, results will only be printed to console.'
+    )
+    
+    args = parser.parse_args()
+    
+    # 再次发现可用的算子（用于验证和测试）
+    available_operators = discover_benchmark_operators(project_root)
+    
+    if not available_operators:
+        print("Error: No benchmark operators found.", file=sys.stderr)
+        print("Please ensure benchmark operators are built and available.", file=sys.stderr)
+        sys.exit(1)
+    
+    # 确定要测试的算子列表（支持逗号分割）
+    if args.operator:
+        # 支持逗号分割的多个算子
+        operator_list = [op.strip() for op in args.operator.split(',')]
+        # 过滤掉无效的算子名
+        valid_operators = []
+        invalid_operators = []
+        for op in operator_list:
+            if op in available_operators:
+                valid_operators.append(op)
+            else:
+                invalid_operators.append(op)
+        
+        if invalid_operators:
+            print(f"Warning: Invalid operator(s) ignored: {', '.join(invalid_operators)}", file=sys.stderr)
+            print(f"Available operators: {', '.join(available_operators)}", file=sys.stderr)
+        
+        if not valid_operators:
+            print("Error: No valid operators specified.", file=sys.stderr)
+            sys.exit(1)
+        
+        operators_to_test = valid_operators
+    else:
+        operators_to_test = available_operators
+    
+    # 运行测试
+    success_count = 0
+    fail_count = 0
+    all_results = {}  # 用于收集所有结果以便写入Excel
+    
+    for operator in operators_to_test:
+        # if len(operators_to_test) > 1:
+        #     print(f"\n{'='*80}", file=sys.stderr)
+        #     print(f"Testing operator: {operator}", file=sys.stderr)
+        #     print('='*80, file=sys.stderr)
+        
+        result = run_operator_benchmark(
+            operator=operator,
+            project_root=project_root,
+            device_filter=args.device,
+            shape_filter=args.shape,
+            warmup_cnt=args.warmup,
+            repeat_cnt=args.repeat,
+            inplace=args.inplace,
+            verbose=(len(operators_to_test) == 1)  # 只在测试单个算子时输出详细信息
+        )
+        
+        if result is not None:
+            origindl_results, pytorch_results = result
+            print_comparison_table(operator, origindl_results, pytorch_results, inplace=args.inplace)
+            all_results[operator] = (origindl_results, pytorch_results)
+            success_count += 1
+        else:
+            print(f"\nError: Failed to run benchmark for operator '{operator}'", file=sys.stderr)
+            fail_count += 1
+    
+    # 输出总结
+    if len(operators_to_test) > 1:
+        print(f"\n{'='*80}", file=sys.stderr)
+        print(f"Summary: {success_count} succeeded, {fail_count} failed", file=sys.stderr)
+    
+    # 如果指定了输出目录，写入Excel
+    if args.output_dir and all_results:
+        output_dir = Path(args.output_dir)
+        # 如果路径是相对路径，相对于项目根目录
+        if not output_dir.is_absolute():
+            output_dir = project_root / output_dir
+        
+        # 创建输出目录（如果不存在）
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 生成文件名
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        if len(operators_to_test) == len(available_operators):
+            # 测试所有算子
+            operator_name = "all"
+        else:
+            # 使用用户指定的算子列表（以下划线连接）
+            operator_name = "_".join(sorted(operators_to_test))
+        
+        output_path = output_dir / f"benchmark_{operator_name}_{timestamp}.xlsx"
+        
+        write_results_to_excel(all_results, output_path, inplace=args.inplace)
+    
+    # 如果所有测试都失败，返回错误码
+    if fail_count > 0 and success_count == 0:
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

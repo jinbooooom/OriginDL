@@ -1,508 +1,212 @@
 #include "origin/mat/torch/torch_mat.h"
-#include <torch/torch.h>
-#include <stdexcept>
-#include "origin/core/tensor_options.h"
-#include "origin/mat/basic_types.h"
+
+#include <algorithm>
+#include <cstring>
+#include <iostream>
+
 #include "origin/utils/exception.h"
-#include "origin/utils/log.h"
 
 namespace origin
 {
 
-// === 类型分发辅助函数对象（对齐 OriginMat 的分发器用法） ===
 namespace
 {
-template <typename Func>
-auto dispatch_supported(DataType dtype, Func &&func)
+
+// 映射 OriginDL 的 DataType 到 LibTorch 的 ScalarType
+at::ScalarType to_torch_scalar_type(DataType dtype)
 {
     switch (dtype)
     {
         case DataType::kFloat32:
-            return func.template operator()<float>();
-        case DataType::kDouble:
-            return func.template operator()<double>();
+            return at::kFloat;
+        case DataType::kFloat64:
+            return at::kDouble;
         case DataType::kInt8:
-            return func.template operator()<int8_t>();
-        case DataType::kInt16:
-            return func.template operator()<int16_t>();
+            return at::kChar;
         case DataType::kInt32:
-            return func.template operator()<int32_t>();
+            return at::kInt;
         case DataType::kInt64:
-            return func.template operator()<int64_t>();
+            return at::kLong;
         case DataType::kUInt8:
-            return func.template operator()<uint8_t>();
-        case DataType::kBool:
-            return func.template operator()<bool>();
+            return at::kByte;
         default:
-            THROW_INVALID_ARG("Unsupported data type {} for torch operation", dtype_to_string(dtype));
+            THROW_INVALID_ARG("Unsupported DataType {} for TorchMat", static_cast<int>(dtype));
     }
 }
 
-struct VectorConverter
+DataType from_torch_scalar_type(at::ScalarType scalar_type)
 {
-    const torch::Tensor &t;
-    template <typename U>
-    std::vector<data_t> operator()() const
+    switch (scalar_type)
     {
-        auto vec_u = TorchMat::tensor_to_vector<U>(t);
-        std::vector<data_t> result;
-        result.reserve(vec_u.size());
-        for (const auto &v : vec_u)
-        {
-            result.push_back(static_cast<data_t>(v));
-        }
-        return result;
+        case at::kFloat:
+            return DataType::kFloat32;
+        case at::kDouble:
+            return DataType::kFloat64;
+        case at::kChar:
+            return DataType::kInt8;
+        case at::kInt:
+            return DataType::kInt32;
+        case at::kLong:
+            return DataType::kInt64;
+        case at::kByte:
+            return DataType::kUInt8;
+        default:
+            THROW_INVALID_ARG("Unsupported Torch scalar type {}", static_cast<int>(scalar_type));
     }
-};
+}
 
-struct ScalarReader
+torch::Device to_torch_device(const Device &device)
 {
-    const torch::Tensor &t;
-    template <typename T>
-    Scalar operator()() const
+    if (device.type() == DeviceType::kCPU)
     {
-        return Scalar(t.item<T>());
+        return torch::Device(torch::kCPU);
     }
-};
-
-struct ToTorchScalar
-{
-    const Scalar &s;
-    template <typename T>
-    torch::Scalar operator()() const
+    if (device.type() == DeviceType::kCUDA)
     {
-        if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, int8_t> ||
-                      std::is_same_v<T, int16_t> || std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
-                      std::is_same_v<T, uint8_t> || std::is_same_v<T, bool>)
-        {
-            return torch::Scalar(static_cast<T>(s.to<T>()));
-        }
-        else
-        {
-            THROW_INVALID_ARG("Unsupported data type {} for torch scalar conversion",
-                              dtype_to_string(DataTypeTraits<T>::type));
-        }
+        return torch::Device(torch::kCUDA, device.index());
     }
-};
-}  // namespace
-
-std::unique_ptr<Mat> TorchMat::clone() const
-{
-    return std::make_unique<TorchMat>(data_.clone());
+    THROW_INVALID_ARG("Unsupported device type {}", static_cast<int>(device.type()));
 }
 
-std::unique_ptr<Mat> TorchMat::view(const Shape &shape) const
+Device from_torch_device(const torch::Device &device)
 {
-    // 验证元素总数必须匹配
-    size_t current_elements = 1;
-    for (int64_t i = 0; i < data_.dim(); ++i)
+    if (device.type() == torch::kCPU)
     {
-        current_elements *= data_.size(i);
+        return Device(DeviceType::kCPU, 0);
     }
-    if (shape.elements() != current_elements)
+    if (device.type() == torch::kCUDA)
     {
-        THROW_INVALID_ARG("View: total elements must match. Original: {}, Target: {}", current_elements,
-                          shape.elements());
+        return Device(DeviceType::kCUDA, device.index());
     }
-
-    // 确保张量是连续的（view() 的要求）
-    auto contiguous_data = data_.contiguous();
-    auto sizes           = TorchMat::convert_shape_to_torch_sizes(shape);
-    return std::make_unique<TorchMat>(contiguous_data.view(sizes));
+    THROW_INVALID_ARG("Unsupported Torch device type {}", static_cast<int>(device.type()));
 }
 
-bool TorchMat::is_contiguous() const
-{
-    return data_.is_contiguous();
-}
-
-std::unique_ptr<Mat> TorchMat::contiguous() const
-{
-    // 如果已经是连续的，返回视图（共享Storage）
-    if (is_contiguous())
-    {
-        auto sizes = TorchMat::convert_shape_to_torch_sizes(shape());
-        return std::make_unique<TorchMat>(data_.view(sizes));
-    }
-
-    // 如果不是连续的，创建连续副本
-    return std::make_unique<TorchMat>(data_.contiguous());
-}
-
-std::unique_ptr<Mat> TorchMat::reshape(const Shape &shape) const
-{
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    return std::make_unique<TorchMat>(data_.reshape(sizes));
-}
-
-std::unique_ptr<Mat> TorchMat::transpose() const
-{
-    /*
-    对于2D张量：交换行和列（完全转置）
-    对于高维张量：只交换最后两个维度
-    # 对于2D张量
-    x = torch.randn(3, 4)
-    x_t = x.T  # 结果形状为 (4, 3)
-
-    # 对于高维张量
-    y = torch.randn(2, 3, 4, 5)
-    y_t = y.T  # 结果形状为 (2, 3, 5, 4)
-    */
-    auto dims = data_.dim();
-    if (dims < 2)
-    {
-        // 一维张量转置返回自身
-        return std::make_unique<TorchMat>(data_);
-    }
-    else
-    {
-        // 二维及以上张量转置最后两个维度
-        return std::make_unique<TorchMat>(data_.transpose(-2, -1));
-    }
-}
-
-std::unique_ptr<Mat> TorchMat::operator+(const Mat &other) const
-{
-    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
-    return std::make_unique<TorchMat>(data_ + other_torch.data_);
-}
-
-void TorchMat::add_inplace(const Mat &other)
-{
-    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
-    // PyTorch 的原地操作：data_.add_(other_torch.data_)
-    data_.add_(other_torch.data_);
-}
-
-std::unique_ptr<Mat> TorchMat::operator-(const Mat &other) const
-{
-    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
-    return std::make_unique<TorchMat>(data_ - other_torch.data_);
-}
-
-std::unique_ptr<Mat> TorchMat::operator*(const Mat &other) const
-{
-    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
-    return std::make_unique<TorchMat>(data_ * other_torch.data_);
-}
-
-std::unique_ptr<Mat> TorchMat::matmul(const Mat &other) const
-{
-    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
-    return std::make_unique<TorchMat>(torch::matmul(data_, other_torch.data_));
-}
-
-std::unique_ptr<Mat> TorchMat::operator/(const Mat &other) const
-{
-    const TorchMat &other_torch = dynamic_cast<const TorchMat &>(other);
-    return std::make_unique<TorchMat>(data_ / other_torch.data_);
-}
-
-std::unique_ptr<Mat> TorchMat::operator-() const
-{
-    return std::make_unique<TorchMat>(-data_);
-}
-
-std::unique_ptr<Mat> TorchMat::broadcast_to(const Shape &shape) const
-{
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    // 使用clone()确保返回实际的数据副本，而不是视图
-    // 注意：LibTorch的expand()方法遵循严格的广播规则：
-    // 1. 从右到左比较维度大小
-    // 2. 每个维度要么大小相同，要么其中一个为1，要么其中一个不存在
-    // 3. 如果违反规则会抛出"expanded size must match existing size"异常
-    return std::make_unique<TorchMat>(data_.expand(sizes).clone());
-}
-
-std::unique_ptr<Mat> TorchMat::sum_to(const Shape &shape) const
-{
-    auto sizes  = TorchMat::convert_shape_to_torch_sizes(shape);
-    auto result = data_;
-
-    // 计算需要求和的维度
-    auto current_sizes = data_.sizes();
-    auto target_sizes  = sizes;
-
-    // 如果源数组已经是目标形状，则直接返回
-    if (current_sizes == target_sizes)
-    {
-        return std::make_unique<TorchMat>(result);
-    }
-
-    // 计算元素总数
-    size_t current_elements = 1;
-    for (auto dim : current_sizes)
-    {
-        current_elements *= dim;
-    }
-
-    size_t target_elements = 1;
-    for (auto dim : target_sizes)
-    {
-        target_elements *= dim;
-    }
-
-    if (target_elements > current_elements)
-    {
-        // 目标形状更大，libtorch的sum_to不支持广播，抛出异常
-        THROW_RUNTIME_ERROR("sum_to: Target shape cannot have more elements than source tensor");
-    }
-    else
-    {
-        // 目标形状更小或相等，需要求和压缩
-        // 收集需要求和的维度
-        std::vector<int> sum_dims;
-        for (size_t i = 0; i < std::min(current_sizes.size(), target_sizes.size()); ++i)
-        {
-            if (target_sizes[i] == 1 && current_sizes[i] > 1)
-            {
-                sum_dims.push_back(i);
-            }
-        }
-
-        // 处理多余的维度
-        for (size_t i = target_sizes.size(); i < current_sizes.size(); ++i)
-        {
-            sum_dims.push_back(i);
-        }
-
-        // 一次性对所有需要求和的维度进行求和
-        // 注意：需要从大到小排序，避免维度索引变化
-        std::sort(sum_dims.begin(), sum_dims.end(), std::greater<int>());
-        for (int dim : sum_dims)
-        {
-            result = result.sum(dim, false);
-        }
-
-        // 确保结果的形状正确
-        if (result.sizes() != target_sizes)
-        {
-            result = result.reshape(sizes);
-        }
-    }
-
-    return std::make_unique<TorchMat>(result);
-}
-
-std::unique_ptr<Mat> TorchMat::sum(int axis) const
-{
-    if (axis == -1)
-    {
-        // 对所有元素求和，返回形状为[1]的张量（与PyTorch测试期望一致）
-        auto result = data_.sum();
-        // 将标量转换为形状为[1]的张量
-        return std::make_unique<TorchMat>(result.unsqueeze(0));
-    }
-    else
-    {
-        // 沿指定轴求和，压缩维度（与PyTorch默认行为一致）
-        return std::make_unique<TorchMat>(data_.sum(axis, false));
-    }
-}
-
-Shape TorchMat::shape() const
-{
-    return TorchMat::convert_torch_sizes_to_shape(data_.sizes());
-}
-
-size_t TorchMat::elements() const
-{
-    return data_.numel();
-}
-
-std::vector<data_t> TorchMat::to_vector() const
-{
-    auto dt = get_data_type_from_torch(data_.scalar_type());
-    VectorConverter converter{data_};
-    return dispatch_supported(dt, converter);
-}
-
-template <typename U>
-std::vector<U> TorchMat::to_vector() const
-{
-    return TorchMat::tensor_to_vector<U>(data_);
-}
-
-// 数学函数实现
-std::unique_ptr<Mat> TorchMat::exp() const
-{
-    return std::make_unique<TorchMat>(torch::exp(data_));
-}
-
-std::unique_ptr<Mat> TorchMat::log() const
-{
-    return std::make_unique<TorchMat>(torch::log(data_));
-}
-
-std::unique_ptr<Mat> TorchMat::sin() const
-{
-    return std::make_unique<TorchMat>(torch::sin(data_));
-}
-
-std::unique_ptr<Mat> TorchMat::cos() const
-{
-    return std::make_unique<TorchMat>(torch::cos(data_));
-}
-
-std::unique_ptr<Mat> TorchMat::sqrt() const
-{
-    return std::make_unique<TorchMat>(torch::sqrt(data_));
-}
-
-std::unique_ptr<Mat> TorchMat::square() const
-{
-    return std::make_unique<TorchMat>(data_ * data_);
-}
-
-std::unique_ptr<Mat> TorchMat::pow(const Scalar &exponent) const
-{
-    auto torch_scalar = make_torch_scalar_from_scalar(exponent, dtype());
-    return std::make_unique<TorchMat>(torch::pow(data_, torch_scalar));
-}
-
-// 数据访问方法
-template <typename U>
-U TorchMat::scalar() const
-{
-    return data_.item<U>();
-}
-
-// 调试方法
-void TorchMat::print(const std::string &desc) const
-{
-    if (!desc.empty())
-    {
-        std::cout << desc << ": " << std::endl;
-    }
-    std::cout << data_ << std::endl;
-}
-
-// 显式实例化
-template data_t TorchMat::scalar<data_t>() const;
-template int TorchMat::scalar<int>() const;
-
-int TorchMat::backend_type() const
-{
-    return TORCH_BACKEND_TYPE;
-}
-
-bool TorchMat::is_scalar() const
-{
-    return data_.dim() == 0 || data_.numel() == 1;
-}
-
-Scalar TorchMat::scalar_value() const
-{
-    if (!is_scalar())
-    {
-        THROW_RUNTIME_ERROR("scalar_value() can only be called on scalar tensors");
-    }
-    auto dt = get_data_type_from_torch(data_.scalar_type());
-    ScalarReader reader{data_};
-    return dispatch_supported(dt, reader);
-}
-
-/*
-视图转置 vs 数据转置：PyTorch的transpose()是视图操作，不重新排列内存数据
-连续性检查：使用contiguous()确保数据按逻辑形状排列
-性能考虑：contiguous()只在需要时重新排列数据，避免不必要的内存拷贝
-*/
-// 静态辅助函数实现
-template <typename U>
-std::vector<U> TorchMat::tensor_to_vector(const torch::Tensor &tensor)
-{
-    std::vector<U> result(tensor.numel());
-    // 确保张量是连续的，这样数据会按照逻辑形状重新排列。
-    // 考虑到转置的情况，使用视图转置，数据的内存顺序不会改变。所以直接返回tensor.data_ptr<U>()导致看不出转置的效果。
-    auto contiguous_tensor = tensor.contiguous();
-    auto data_ptr          = contiguous_tensor.data_ptr<U>();
-    std::copy(data_ptr, data_ptr + tensor.numel(), result.begin());
-    return result;
-}
-
-template <typename U>
-torch::Tensor TorchMat::vector_to_tensor(const std::vector<U> &data, const Shape &shape)
-{
-    auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
-    auto data_type  = DataTypeTraits<U>::type;
-    auto torch_type = get_torch_type(data_type);
-    return torch::from_blob(const_cast<U *>(data.data()), sizes, torch_type).clone();
-}
-
-std::vector<int64_t> TorchMat::convert_shape_to_torch_sizes(const Shape &shape)
+std::vector<int64_t> shape_to_sizes(const Shape &shape)
 {
     const auto &dims = shape.dims();
-    if (dims.empty())
-    {
-        return {1};
-    }
-
     std::vector<int64_t> sizes;
     sizes.reserve(dims.size());
-    for (size_t dim : dims)
+    for (auto d : dims)
     {
-        sizes.push_back(static_cast<int64_t>(dim));
+        sizes.push_back(static_cast<int64_t>(d));
     }
-
     return sizes;
 }
 
-Shape TorchMat::convert_torch_sizes_to_shape(const torch::IntArrayRef &sizes)
+Shape sizes_to_shape(const c10::IntArrayRef &sizes)
 {
-    std::vector<size_t> shape_dims;
-    shape_dims.reserve(sizes.size());
-    for (int64_t size : sizes)
+    std::vector<size_t> dims;
+    dims.reserve(sizes.size());
+    for (auto s : sizes)
     {
-        shape_dims.push_back(static_cast<size_t>(size));
+        dims.push_back(static_cast<size_t>(s));
     }
-    return Shape(shape_dims);
+    return Shape(dims);
 }
 
-// 静态工厂方法实现
-std::unique_ptr<Mat> TorchMat::randn(const Shape &shape)
+torch::TensorOptions make_torch_options(const TensorOptions &options)
 {
-    auto sizes                = TorchMat::convert_shape_to_torch_sizes(shape);
-    torch::Tensor rand_tensor = torch::randn(sizes, torch::kFloat32);
-    return std::make_unique<TorchMat>(std::move(rand_tensor));
+    auto scalar_type  = to_torch_scalar_type(options.dtype());
+    auto torch_device = to_torch_device(options.device());
+    torch::TensorOptions torch_opts;
+    torch_opts = torch_opts.dtype(scalar_type).device(torch_device);
+    // 不使用 LibTorch 的 requires_grad，梯度由 OriginDL 自己管理
+    return torch_opts;
 }
 
-std::unique_ptr<Mat> TorchMat::randn(const Shape &shape, const TensorOptions &options)
+at::Scalar make_torch_scalar(const Scalar &scalar, DataType target_dtype)
 {
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-
-    // 对于非浮点类型，先生成float32再转换
-    if (options.dtype() == DataType::kFloat32 || options.dtype() == DataType::kDouble)
+    switch (target_dtype)
     {
-        auto torch_options        = get_torch_tensor_options(options);
-        torch::Tensor rand_tensor = torch::randn(sizes, torch_options);
-        return std::make_unique<TorchMat>(std::move(rand_tensor));
+        case DataType::kFloat32:
+            return at::Scalar(scalar.to<float>());
+        case DataType::kFloat64:
+            return at::Scalar(scalar.to<double>());
+        case DataType::kInt8:
+            return at::Scalar(scalar.to<int8_t>());
+        case DataType::kInt32:
+            return at::Scalar(scalar.to<int32_t>());
+        case DataType::kInt64:
+            return at::Scalar(scalar.to<int64_t>());
+        case DataType::kUInt8:
+            return at::Scalar(scalar.to<uint8_t>());
+        default:
+            THROW_INVALID_ARG("Unsupported DataType {} for scalar conversion", static_cast<int>(target_dtype));
     }
-    else
+}
+
+// 将 Mat 引用安全地转换为 TorchMat 引用
+const TorchMat &as_torch_mat(const Mat &m, const char *op_name)
+{
+    auto ptr = dynamic_cast<const TorchMat *>(&m);
+    if (!ptr)
     {
-        // 对于整数类型，先生成float32再转换
-        torch::Tensor rand_tensor = torch::randn(sizes, torch::kFloat32);
-        auto result               = std::make_unique<TorchMat>(std::move(rand_tensor));
+        THROW_RUNTIME_ERROR("{}: Mat backend must be TorchMat (backend_type={} ), got {}", op_name, TORCH_BACKEND_TYPE,
+                            m.backend_type());
+    }
+    return *ptr;
+}
 
-        // 转换到目标类型
-        auto converted = result->to(options.dtype());
+TorchMat &as_torch_mat(Mat &m, const char *op_name)
+{
+    auto ptr = dynamic_cast<TorchMat *>(&m);
+    if (!ptr)
+    {
+        THROW_RUNTIME_ERROR("{}: Mat backend must be TorchMat (backend_type={} ), got {}", op_name, TORCH_BACKEND_TYPE,
+                            m.backend_type());
+    }
+    return *ptr;
+}
 
-        // 如果设备不是CPU，移动到指定设备
-        if (options.device().type() != DeviceType::kCPU)
+// 计算按行优先（row-major）的扁平索引，假设张量是连续的
+size_t compute_flat_index(const Shape &shape, std::initializer_list<size_t> indices)
+{
+    if (indices.size() != shape.size())
+    {
+        THROW_INVALID_ARG("Index count ({}) does not match tensor dimension ({}). Shape: {}", indices.size(),
+                          shape.size(), shape.to_string());
+    }
+
+    size_t flat_index = 0;
+    size_t stride     = 1;
+    size_t dim_count  = shape.size();
+
+    // 从最后一维开始计算
+    size_t idx_pos = dim_count;
+    auto it        = indices.end();
+    while (idx_pos > 0)
+    {
+        --idx_pos;
+        --it;
+        size_t idx = *it;
+        if (idx >= shape[idx_pos])
         {
-            converted = converted->to_device(options.device());
+            THROW_INVALID_ARG("Index {} out of range for dimension {} (size: {}). Shape: {}", idx, idx_pos,
+                              shape[idx_pos], shape.to_string());
         }
-
-        return converted;
+        flat_index += idx * stride;
+        stride *= shape[idx_pos];
     }
+
+    return flat_index;
 }
+
+}  // namespace
+
+// 构造函数
+TorchMat::TorchMat(const torch::Tensor &tensor) : tensor_(tensor) {}
+
+TorchMat::TorchMat(torch::Tensor &&tensor) : tensor_(std::move(tensor)) {}
+
+// === 静态工厂方法实现 ===
 
 std::unique_ptr<Mat> TorchMat::from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options)
 {
-    auto sizes         = TorchMat::convert_shape_to_torch_sizes(shape);
-    auto torch_options = get_torch_tensor_options(options);
-    // 使用与 Origin 风格一致的分发器辅助
-    auto value      = make_torch_scalar_from_scalar(scalar, options.dtype());
-    torch::Tensor t = torch::full(sizes, value, torch_options);
+    auto sizes      = shape_to_sizes(shape);
+    auto torch_opts = make_torch_options(options);
+    auto torch_val  = make_torch_scalar(scalar, options.dtype());
+
+    auto t = torch::full(sizes, torch_val, torch_opts);
     return std::make_unique<TorchMat>(std::move(t));
 }
 
@@ -511,169 +215,728 @@ std::unique_ptr<Mat> TorchMat::from_memory(const void *data,
                                            const Shape &shape,
                                            const TensorOptions &options)
 {
-    auto sizes = TorchMat::convert_shape_to_torch_sizes(shape);
-    // 先用用户数据类型创建，再转换到目标dtype与设备
-    auto user_torch_dtype = get_torch_type(user_dtype);
-    torch::Tensor t       = torch::from_blob(const_cast<void *>(data), sizes,
-                                             torch::TensorOptions().dtype(user_torch_dtype).device(torch::kCPU))
-                          .clone();
+    auto sizes = shape_to_sizes(shape);
 
+    // 先在 CPU 上按照用户数据类型创建张量视图，然后 clone 拷贝一份由 Torch 持有的内存
+    auto src_opts = torch::TensorOptions().dtype(to_torch_scalar_type(user_dtype)).device(torch::kCPU);
+
+    auto src = torch::from_blob(const_cast<void *>(data), sizes, src_opts).clone();
+
+    // 数据类型转换
     if (options.dtype() != user_dtype)
     {
-        t = t.to(get_torch_type(options.dtype()));
+        src = src.to(to_torch_scalar_type(options.dtype()));
     }
 
-    if (options.device().type() != DeviceType::kCPU)
+    // 设备转换（当前绝大多数测试都在 CPU 上，这里逻辑先保留）
+    if (options.device().type() == DeviceType::kCUDA)
     {
-        t = t.to(torch::Device(torch::kCUDA, options.device().index()));
+        src = src.to(to_torch_device(options.device()));
     }
+
+    return std::make_unique<TorchMat>(std::move(src));
+}
+
+std::unique_ptr<Mat> TorchMat::randn(const Shape &shape, const TensorOptions &options)
+{
+    auto sizes      = shape_to_sizes(shape);
+    auto torch_opts = make_torch_options(options);
+    auto t          = torch::randn(sizes, torch_opts);
     return std::make_unique<TorchMat>(std::move(t));
 }
 
-// 类型相关方法实现
-DataType TorchMat::dtype() const
+// === 卷积 / 池化 / BatchNorm / 其他复杂算子 ===
+// 这些接口当前仍然未在 Torch 后端实现，需要时可以基于 LibTorch 逐步补全。
+
+std::unique_ptr<Mat> TorchMat::im2col(std::pair<int, int>, std::pair<int, int>, std::pair<int, int>, bool) const
 {
-    return get_data_type_from_torch(data_.scalar_type());
+    THROW_RUNTIME_ERROR("TorchMat::im2col is not implemented yet. Please use OriginMat backend.");
 }
 
-std::unique_ptr<Mat> TorchMat::to(DataType target_type) const
+std::unique_ptr<Mat> TorchMat::col2im(const Shape &,
+                                      std::pair<int, int>,
+                                      std::pair<int, int>,
+                                      std::pair<int, int>,
+                                      bool) const
 {
-    auto torch_type       = get_torch_type(target_type);
-    auto converted_tensor = data_.to(torch_type);
-    return std::make_unique<TorchMat>(std::move(converted_tensor));
+    THROW_RUNTIME_ERROR("TorchMat::col2im is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::conv2d(const Mat &, const Mat *, std::pair<int, int>, std::pair<int, int>) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::conv2d is not implemented yet. Please use OriginMat backend.");
+}
+
+std::vector<std::unique_ptr<Mat>> TorchMat::conv2d_backward(const Mat &,
+                                                            const Mat &,
+                                                            const Mat &,
+                                                            const Mat *,
+                                                            std::pair<int, int>,
+                                                            std::pair<int, int>) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::conv2d_backward is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::avg_pool2d(std::pair<int, int>, std::pair<int, int>, std::pair<int, int>) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::avg_pool2d is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::avg_pool2d_backward(const Mat &,
+                                                   std::pair<int, int>,
+                                                   std::pair<int, int>,
+                                                   std::pair<int, int>) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::avg_pool2d_backward is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::adaptive_avg_pool2d(std::pair<int, int>) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::adaptive_avg_pool2d is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::adaptive_avg_pool2d_backward(const Mat &, std::pair<int, int>) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::adaptive_avg_pool2d_backward is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::max_pool2d(std::pair<int, int>,
+                                          std::pair<int, int>,
+                                          std::pair<int, int>,
+                                          std::vector<size_t> &) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::max_pool2d is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::max_pool2d_backward(const Mat &,
+                                                   std::pair<int, int>,
+                                                   std::pair<int, int>,
+                                                   std::pair<int, int>,
+                                                   const std::vector<size_t> &) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::max_pool2d_backward is not implemented yet. Please use OriginMat backend.");
+}
+
+Mat::BatchNormResult TorchMat::batch_norm_forward(const Mat &, const Mat &, const Mat &, const Mat &, bool, float, int)
+    const
+{
+    THROW_RUNTIME_ERROR("TorchMat::batch_norm_forward is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::batch_norm(const Mat &, const Mat &, const Mat &, const Mat &, bool, float, float, int)
+    const
+{
+    THROW_RUNTIME_ERROR("TorchMat::batch_norm is not implemented yet. Please use OriginMat backend.");
+}
+
+std::vector<std::unique_ptr<Mat>>
+TorchMat::batch_norm_backward(const Mat &, const Mat &, const Mat &, const Mat &, const Mat &, float, int) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::batch_norm_backward is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::gather(const Mat &) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::gather is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat> TorchMat::one_hot(const Mat &, int) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::one_hot is not implemented yet. Please use OriginMat backend.");
+}
+
+std::unique_ptr<Mat>
+TorchMat::yolo_detect_forward(const Mat &, const Mat *, const Mat &, const Mat &, float, int32_t, int32_t) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::yolo_detect_forward is not implemented yet. Please use OriginMat backend.");
+}
+
+// === 基本张量操作实现 ===
+
+std::unique_ptr<Mat> TorchMat::clone() const
+{
+    return std::make_unique<TorchMat>(tensor_.clone());
+}
+
+std::unique_ptr<Mat> TorchMat::view(const Shape &new_shape) const
+{
+    if (!tensor_.is_contiguous())
+    {
+        THROW_RUNTIME_ERROR("TorchMat::view requires contiguous tensor");
+    }
+
+    if (new_shape.elements() != elements())
+    {
+        THROW_INVALID_ARG("TorchMat::view: total elements must match. Original: {}, Target: {}", elements(),
+                          new_shape.elements());
+    }
+
+    auto sizes = shape_to_sizes(new_shape);
+    auto t     = tensor_.view(sizes);
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+bool TorchMat::is_contiguous() const
+{
+    return tensor_.is_contiguous();
+}
+
+std::unique_ptr<Mat> TorchMat::contiguous() const
+{
+    if (tensor_.is_contiguous())
+    {
+        return clone();
+    }
+    auto t = tensor_.contiguous();
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+std::unique_ptr<Mat> TorchMat::reshape(const Shape &new_shape) const
+{
+    if (new_shape.elements() != elements())
+    {
+        THROW_INVALID_ARG("TorchMat::reshape: total elements must match. Original: {}, Target: {}", elements(),
+                          new_shape.elements());
+    }
+
+    auto sizes = shape_to_sizes(new_shape);
+    auto t     = tensor_.reshape(sizes);
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+std::unique_ptr<Mat> TorchMat::transpose() const
+{
+    // 与 OriginMat 一致：做数据转置（产生新 tensor），而不是视图转置
+    int64_t dim0 = 0;
+    int64_t dim1 = 0;
+
+    if (tensor_.dim() < 2)
+    {
+        return clone();
+    }
+
+    if (tensor_.dim() == 2)
+    {
+        dim0 = 0;
+        dim1 = 1;
+    }
+    else
+    {
+        dim0 = tensor_.dim() - 2;
+        dim1 = tensor_.dim() - 1;
+    }
+
+    auto t = tensor_.transpose(dim0, dim1).contiguous();
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+// === 二元运算（加减乘除 + matmul）===
+
+std::unique_ptr<Mat> TorchMat::operator+(const Mat &other) const
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::operator+");
+    auto t          = tensor_ + rhs.tensor_;
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+void TorchMat::add_inplace(const Mat &other)
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::add_inplace");
+    tensor_.add_(rhs.tensor_);
+}
+
+Mat &TorchMat::operator+=(const Mat &other)
+{
+    add_inplace(other);
+    return *this;
+}
+
+std::unique_ptr<Mat> TorchMat::operator-(const Mat &other) const
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::operator-");
+    auto t          = tensor_ - rhs.tensor_;
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+void TorchMat::sub_inplace(const Mat &other)
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::sub_inplace");
+    tensor_.sub_(rhs.tensor_);
+}
+
+Mat &TorchMat::operator-=(const Mat &other)
+{
+    sub_inplace(other);
+    return *this;
+}
+
+std::unique_ptr<Mat> TorchMat::operator*(const Mat &other) const
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::operator*");
+    auto t          = tensor_ * rhs.tensor_;
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+void TorchMat::mul_inplace(const Mat &other)
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::mul_inplace");
+    tensor_.mul_(rhs.tensor_);
+}
+
+Mat &TorchMat::operator*=(const Mat &other)
+{
+    mul_inplace(other);
+    return *this;
+}
+
+std::unique_ptr<Mat> TorchMat::matmul(const Mat &other) const
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::matmul");
+    auto t          = torch::matmul(tensor_, rhs.tensor_);
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+std::unique_ptr<Mat> TorchMat::operator/(const Mat &other) const
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::operator/");
+    auto t          = tensor_ / rhs.tensor_;
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+void TorchMat::div_inplace(const Mat &other)
+{
+    const auto &rhs = as_torch_mat(other, "TorchMat::div_inplace");
+    tensor_.div_(rhs.tensor_);
+}
+
+Mat &TorchMat::operator/=(const Mat &other)
+{
+    div_inplace(other);
+    return *this;
+}
+
+std::unique_ptr<Mat> TorchMat::operator-() const
+{
+    auto t = -tensor_;
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+std::unique_ptr<Mat> TorchMat::operator>(const Scalar &threshold) const
+{
+    auto torch_scalar = make_torch_scalar(threshold, dtype());
+    auto bool_result  = tensor_.gt(torch_scalar);
+    // 将 bool tensor 转换为与输入相同类型的 mask (0 或 1)
+    auto result = bool_result.to(tensor_.scalar_type());
+    return std::make_unique<TorchMat>(std::move(result));
+}
+
+// === 广播与归约 ===
+
+std::unique_ptr<Mat> TorchMat::broadcast_to(const Shape &target_shape) const
+{
+    auto target_sizes = shape_to_sizes(target_shape);
+    auto t            = tensor_.expand(target_sizes).clone();
+    return std::make_unique<TorchMat>(std::move(t));
+}
+
+std::unique_ptr<Mat> TorchMat::sum_to(const Shape &target_shape) const
+{
+    Shape src_shape = shape();
+
+    if (src_shape == target_shape)
+    {
+        return clone();
+    }
+
+    size_t current_elements = elements();
+    size_t target_elements  = target_shape.elements();
+
+    if (target_elements > current_elements)
+    {
+        THROW_RUNTIME_ERROR("TorchMat::sum_to: target elements ({}) cannot be larger than source ({})", target_elements,
+                            current_elements);
+    }
+
+    const auto &src_dims = src_shape.dims();
+    const auto &tgt_dims = target_shape.dims();
+
+    std::vector<int64_t> sum_dims;
+    size_t min_dims = std::min(src_dims.size(), tgt_dims.size());
+
+    for (size_t i = 0; i < min_dims; ++i)
+    {
+        if (tgt_dims[i] == 1 && src_dims[i] > 1)
+        {
+            sum_dims.push_back(static_cast<int64_t>(i));
+        }
+    }
+
+    if (src_dims.size() > tgt_dims.size())
+    {
+        for (size_t i = tgt_dims.size(); i < src_dims.size(); ++i)
+        {
+            sum_dims.push_back(static_cast<int64_t>(i));
+        }
+    }
+
+    auto result = tensor_;
+
+    std::sort(sum_dims.begin(), sum_dims.end(), std::greater<int64_t>());
+    for (auto dim : sum_dims)
+    {
+        result = result.sum(dim, /*keepdim=*/false);
+    }
+
+    if (sizes_to_shape(result.sizes()) != target_shape)
+    {
+        auto sizes = shape_to_sizes(target_shape);
+        result     = result.reshape(sizes);
+    }
+
+    return std::make_unique<TorchMat>(std::move(result));
+}
+
+std::unique_ptr<Mat> TorchMat::sum(int axis, bool keepdim) const
+{
+    torch::Tensor result;
+    if (axis == -1)
+    {
+        result = tensor_.sum();
+        if (keepdim)
+        {
+            // 全局求和，keepdim=true时保持所有维度为1
+            std::vector<int64_t> dims(tensor_.dim(), 1);
+            result = result.reshape(dims);
+        }
+    }
+    else
+    {
+        result = tensor_.sum(axis, keepdim);
+    }
+    return std::make_unique<TorchMat>(std::move(result));
+}
+
+std::unique_ptr<Mat> TorchMat::max(int axis) const
+{
+    torch::Tensor result;
+    if (axis == -1)
+    {
+        result = std::get<0>(tensor_.max(/*dim=*/0, /*keepdim=*/false));
+        for (int64_t d = 1; d < tensor_.dim(); ++d)
+        {
+            result = std::get<0>(result.max(/*dim=*/0, /*keepdim=*/false));
+        }
+    }
+    else
+    {
+        result = std::get<0>(tensor_.max(axis));
+    }
+    return std::make_unique<TorchMat>(std::move(result));
+}
+
+// 数学函数（本任务暂不需要，先保留抛异常实现，未来可基于 LibTorch 完成）
+
+std::unique_ptr<Mat> TorchMat::exp() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::exp is not implemented yet.");
+}
+
+void TorchMat::exp_inplace()
+{
+    THROW_RUNTIME_ERROR("TorchMat::exp_inplace is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::log() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::log is not implemented yet.");
+}
+
+void TorchMat::log_inplace()
+{
+    THROW_RUNTIME_ERROR("TorchMat::log_inplace is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::sin() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::sin is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::cos() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::cos is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::sqrt() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::sqrt is not implemented yet.");
+}
+
+void TorchMat::sqrt_inplace()
+{
+    THROW_RUNTIME_ERROR("TorchMat::sqrt_inplace is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::square() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::square is not implemented yet.");
+}
+
+void TorchMat::square_inplace()
+{
+    THROW_RUNTIME_ERROR("TorchMat::square_inplace is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::pow(const Scalar &) const
+{
+    THROW_RUNTIME_ERROR("TorchMat::pow is not implemented yet.");
+}
+
+void TorchMat::pow_inplace(const Scalar &)
+{
+    THROW_RUNTIME_ERROR("TorchMat::pow_inplace is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::relu() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::relu is not implemented yet.");
+}
+
+void TorchMat::relu_inplace()
+{
+    THROW_RUNTIME_ERROR("TorchMat::relu_inplace is not implemented yet.");
+}
+
+void TorchMat::neg_inplace()
+{
+    tensor_.neg_();
+}
+
+// === 形状和属性 ===
+
+Shape TorchMat::shape() const
+{
+    return sizes_to_shape(tensor_.sizes());
+}
+
+size_t TorchMat::elements() const
+{
+    return static_cast<size_t>(tensor_.numel());
+}
+
+bool TorchMat::is_scalar() const
+{
+    return tensor_.dim() == 0;
+}
+
+Scalar TorchMat::scalar_value() const
+{
+    if (elements() != 1)
+    {
+        THROW_INVALID_ARG("scalar_value() can only be called on scalar tensors, but tensor has {} elements",
+                          elements());
+    }
+
+    switch (dtype())
+    {
+        case DataType::kFloat32:
+            return Scalar(tensor_.item<float>());
+        case DataType::kFloat64:
+            return Scalar(tensor_.item<double>());
+        case DataType::kInt8:
+            return Scalar(tensor_.item<int8_t>());
+        case DataType::kInt32:
+            return Scalar(tensor_.item<int32_t>());
+        case DataType::kInt64:
+            return Scalar(tensor_.item<int64_t>());
+        case DataType::kUInt8:
+            return Scalar(tensor_.item<uint8_t>());
+        default:
+            THROW_INVALID_ARG("Unsupported dtype {} in scalar_value()", static_cast<int>(dtype()));
+    }
+}
+
+Scalar TorchMat::index(std::initializer_list<size_t> indices) const
+{
+    Shape s           = shape();
+    size_t flat_index = compute_flat_index(s, indices);
+
+    switch (dtype())
+    {
+        case DataType::kFloat32:
+        {
+            const float *p = tensor_.data_ptr<float>();
+            return Scalar(p[flat_index]);
+        }
+        case DataType::kFloat64:
+        {
+            const double *p = tensor_.data_ptr<double>();
+            return Scalar(p[flat_index]);
+        }
+        case DataType::kInt8:
+        {
+            const int8_t *p = tensor_.data_ptr<int8_t>();
+            return Scalar(p[flat_index]);
+        }
+        case DataType::kInt32:
+        {
+            const int32_t *p = tensor_.data_ptr<int32_t>();
+            return Scalar(p[flat_index]);
+        }
+        case DataType::kInt64:
+        {
+            const int64_t *p = tensor_.data_ptr<int64_t>();
+            return Scalar(p[flat_index]);
+        }
+        case DataType::kUInt8:
+        {
+            const uint8_t *p = tensor_.data_ptr<uint8_t>();
+            return Scalar(p[flat_index]);
+        }
+        default:
+            THROW_INVALID_ARG("Unsupported dtype {} in index()", static_cast<int>(dtype()));
+    }
+}
+
+void TorchMat::index_put(std::initializer_list<size_t> indices, const Scalar &value)
+{
+    Shape s           = shape();
+    size_t flat_index = compute_flat_index(s, indices);
+
+    switch (dtype())
+    {
+        case DataType::kFloat32:
+        {
+            float *p      = tensor_.data_ptr<float>();
+            p[flat_index] = value.to<float>();
+            break;
+        }
+        case DataType::kFloat64:
+        {
+            double *p     = tensor_.data_ptr<double>();
+            p[flat_index] = value.to<double>();
+            break;
+        }
+        case DataType::kInt8:
+        {
+            int8_t *p     = tensor_.data_ptr<int8_t>();
+            p[flat_index] = value.to<int8_t>();
+            break;
+        }
+        case DataType::kInt32:
+        {
+            int32_t *p    = tensor_.data_ptr<int32_t>();
+            p[flat_index] = value.to<int32_t>();
+            break;
+        }
+        case DataType::kInt64:
+        {
+            int64_t *p    = tensor_.data_ptr<int64_t>();
+            p[flat_index] = value.to<int64_t>();
+            break;
+        }
+        case DataType::kUInt8:
+        {
+            uint8_t *p    = tensor_.data_ptr<uint8_t>();
+            p[flat_index] = value.to<uint8_t>();
+            break;
+        }
+        default:
+            THROW_INVALID_ARG("Unsupported dtype {} in index_put()", static_cast<int>(dtype()));
+    }
+}
+
+void *TorchMat::data_ptr()
+{
+    if (!tensor_.is_contiguous())
+    {
+        THROW_RUNTIME_ERROR("TorchMat::data_ptr currently only supports contiguous tensors");
+    }
+    // 返回基础数据指针，由上层通过模板 data_ptr<T>() 进行类型转换
+    return tensor_.data_ptr();
+}
+
+void TorchMat::print(const std::string &desc) const
+{
+    if (!desc.empty())
+    {
+        std::cout << desc << std::endl;
+    }
+    std::cout << tensor_ << std::endl;
+}
+
+std::vector<float> TorchMat::to_vector() const
+{
+    torch::Tensor t = tensor_;
+
+    // 确保在 CPU 上
+    if (t.device().type() != torch::kCPU)
+    {
+        t = t.to(torch::kCPU);
+    }
+
+    // 转为 float32
+    if (t.scalar_type() != at::kFloat)
+    {
+        t = t.to(at::kFloat);
+    }
+
+    t = t.contiguous();
+
+    size_t n = static_cast<size_t>(t.numel());
+    std::vector<float> v(n);
+    std::memcpy(v.data(), t.data_ptr<float>(), n * sizeof(float));
+    return v;
+}
+
+// === 类型和设备 ===
+
+int TorchMat::backend_type() const
+{
+    return TORCH_BACKEND_TYPE;
+}
+
+DataType TorchMat::dtype() const
+{
+    return from_torch_scalar_type(tensor_.scalar_type());
 }
 
 Device TorchMat::device() const
 {
-    auto torch_device = data_.device();
-    if (torch_device.is_cpu())
-    {
-        return Device(DeviceType::kCPU);
-    }
-    else if (torch_device.is_cuda())
-    {
-        return Device(DeviceType::kCUDA, torch_device.index());
-    }
-    else
-    {
-        THROW_RUNTIME_ERROR("Unsupported device type");
-    }
+    return from_torch_device(tensor_.device());
+}
+
+std::unique_ptr<Mat> TorchMat::to(DataType target_type) const
+{
+    auto t = tensor_.to(to_torch_scalar_type(target_type));
+    return std::make_unique<TorchMat>(std::move(t));
 }
 
 std::unique_ptr<Mat> TorchMat::to_device(Device device) const
 {
-    torch::Device torch_device = torch::kCPU;  // 默认初始化为CPU
-    if (device.type() == DeviceType::kCPU)
-    {
-        torch_device = torch::kCPU;
-    }
-    else if (device.type() == DeviceType::kCUDA)
-    {
-        torch_device = torch::Device(torch::kCUDA, device.index());
-    }
-    else
-    {
-        THROW_INVALID_ARG("Unsupported device type");
-    }
-
-    auto moved_tensor = data_.to(torch_device);
-    return std::make_unique<TorchMat>(std::move(moved_tensor));
+    auto t = tensor_.to(to_torch_device(device));
+    return std::make_unique<TorchMat>(std::move(t));
 }
 
-torch::ScalarType TorchMat::get_torch_type(DataType dtype)
+// === Dropout / Upsample 相关（暂未在 Torch 后端实现）===
+
+std::unique_ptr<Mat> TorchMat::dropout(float, bool, Mat *) const
 {
-    switch (dtype)
-    {
-        case DataType::kFloat32:
-            return torch::kFloat32;
-        case DataType::kDouble:
-            return torch::kFloat64;
-        case DataType::kInt32:
-            return torch::kInt32;
-        case DataType::kInt8:
-            return torch::kInt8;
-        case DataType::kInt16:
-            return torch::kInt16;
-        case DataType::kInt64:
-            return torch::kInt64;
-        case DataType::kUInt8:
-            return torch::kUInt8;
-        case DataType::kBool:
-            return torch::kBool;
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for torch operation", dtype_to_string(dtype));
-    }
+    THROW_RUNTIME_ERROR("TorchMat::dropout is not implemented yet. Please use OriginMat backend.");
 }
 
-DataType TorchMat::get_data_type_from_torch(torch::ScalarType torch_type)
+std::unique_ptr<Mat> TorchMat::dropout_backward(const Mat &, const Mat &) const
 {
-    switch (torch_type)
-    {
-        case torch::kFloat32:
-            return DataType::kFloat32;
-        case torch::kFloat64:
-            return DataType::kDouble;
-        case torch::kInt32:
-            return DataType::kInt32;
-        case torch::kInt8:
-            return DataType::kInt8;
-        case torch::kInt16:
-            return DataType::kInt16;
-        case torch::kInt64:
-            return DataType::kInt64;
-        case torch::kUInt8:
-            return DataType::kUInt8;
-        // UInt16/UInt32/UInt64 在 LibTorch 中无对应标量类型
-        case torch::kBool:
-            return DataType::kBool;
-        default:
-            THROW_INVALID_ARG("Unsupported torch scalar type");
-    }
+    THROW_RUNTIME_ERROR("TorchMat::dropout_backward is not implemented yet. Please use OriginMat backend.");
 }
 
-torch::TensorOptions TorchMat::get_torch_tensor_options(const TensorOptions &options)
+std::unique_ptr<Mat> TorchMat::upsample(const Shape &, int, int, const std::string &) const
 {
-    auto torch_options = torch::TensorOptions().dtype(get_torch_type(options.dtype()));
-
-    if (options.device().type() == DeviceType::kCUDA)
-    {
-        torch_options = torch_options.device(torch::kCUDA, options.device().index());
-    }
-    else
-    {
-        torch_options = torch_options.device(torch::kCPU);
-    }
-
-    return torch_options;
+    THROW_RUNTIME_ERROR("TorchMat::upsample is not implemented yet. Please use OriginMat backend.");
 }
 
-// === 助手：通过类型分发器将 Scalar 转为 torch::Scalar ===
-torch::Scalar TorchMat::make_torch_scalar_from_scalar(const Scalar &scalar, DataType dtype)
+std::unique_ptr<Mat> TorchMat::upsample_backward(const Mat &, const Shape &, int, int, const std::string &) const
 {
-    ToTorchScalar fn{scalar};
-    return dispatch_supported(dtype, fn);
+    THROW_RUNTIME_ERROR("TorchMat::upsample_backward is not implemented yet. Please use OriginMat backend.");
 }
-
-// === TorchMat数据访问方法实现 ===
-void *TorchMat::data_ptr()
-{
-    // TODO: 实现 TorchMat::data_ptr() 虚函数版本
-    // 需要根据数据类型分发到对应的 data_ptr<T>()
-
-    THROW_RUNTIME_ERROR("TorchMat::data_ptr() not implemented yet");
-}
-
-// === TorchMat泛型方法实现 ===
-template <typename U>
-U *TorchMat::data_ptr()
-{
-    return data_.data_ptr<U>();
-}
-
-// === 模板实例化 ===
-template float *TorchMat::data_ptr<float>();
-template double *TorchMat::data_ptr<double>();
-template int32_t *TorchMat::data_ptr<int32_t>();
-template int8_t *TorchMat::data_ptr<int8_t>();
 
 }  // namespace origin

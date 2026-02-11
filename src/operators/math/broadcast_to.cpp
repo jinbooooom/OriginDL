@@ -1,36 +1,33 @@
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> BroadcastTo::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("BroadcastTo operator requires exactly 1 input, but got {}", xs.size());
     }
     this->x_shape_ = xs[0].shape();
     auto result    = mat(xs[0]).broadcast_to(this->shape_);
     auto y         = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> BroadcastTo::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("BroadcastTo backward requires exactly 1 gradient, but got {}", gys.size());
     }
     auto result = mat(gys[0]).sum_to(this->x_shape_);
     auto gx     = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor broadcast_to(const Tensor &x, const Shape &shape)
@@ -41,4 +38,5 @@ Tensor broadcast_to(const Tensor &x, const Shape &shape)
     return result[0];
 }
 
+}  // namespace functional
 }  // namespace origin

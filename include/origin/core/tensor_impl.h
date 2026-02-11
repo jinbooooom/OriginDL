@@ -9,11 +9,10 @@
 #include "../mat/shape.h"
 #include "tensor_options.h"
 
-// 前向声明
-class Operator;
-
 namespace origin
 {
+// 前向声明
+class Operator;
 /*
 为了使 Tensor 看起来像是值语义的指针，把Tensor中所有的数据下沉到 TensorImpl,
 Tensor中只保留一个智能指针，方便值传递。
@@ -28,10 +27,10 @@ class TensorImpl
 public:
     std::shared_ptr<Mat> data_;  // 使用Mat抽象层，支持共享（与PyTorch行为一致）
     std::shared_ptr<Mat> grad_;  // 使用Mat抽象层，支持共享（与PyTorch行为一致）
-    FunctionPtr creator_;
+    std::shared_ptr<Operator> creator_;
     int generation_;
 
-    // 核心构造函数 - 接受 unique_ptr 并转换为 shared_ptr（底层返回 unique_ptr，上层转换为 shared_ptr）
+    // 核心构造函数 - 接受 unique_ptr 并转换为 shared_ptr（底层返回 unique_ptr，表示数据所有权转移）
     TensorImpl(std::unique_ptr<Mat> data)
         : data_(std::shared_ptr<Mat>(std::move(data))), grad_(nullptr), creator_(nullptr), generation_(0)
     {}
@@ -74,7 +73,7 @@ public:
     ~TensorImpl() = default;
 
     // 核心方法
-    void set_creator(const FunctionPtr &func);
+    void set_creator(const std::shared_ptr<Operator> &func);
     void backward();
     void clear_grad();
 
@@ -97,25 +96,34 @@ public:
     size_t elements() const;
     template <typename T>
     T item() const;
-    template <typename T>
-    std::vector<T> to_vector() const;
     int backend_type() const;
 
     // === 泛型数据访问方法 ===
     template <typename T>
     T *data_ptr();
 
+    // === 索引访问 ===
+    /**
+     * @brief 根据多维索引读取单个元素
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @return 索引位置的值
+     */
+
+    Scalar index(std::initializer_list<size_t> indices) const;
+
+    /**
+     * @brief 根据多维索引写入单个元素
+     * @param indices 多维索引，例如 {i, j, k} 表示访问 tensor[i][j][k]
+     * @param value 要写入的标量值，会自动转换为与tensor相同的数据类型
+     */
+    void index_put(std::initializer_list<size_t> indices, const Scalar &value);
+
     // 调试
     void print(const std::string &desc = "") const;
 
     // 类型转换
     TensorImpl to(const TensorOptions &options) const;
-
-private:
-    // 移除所有私有辅助方法，直接实现核心逻辑
 };
-
-using TensorImplPtr = std::shared_ptr<TensorImpl>;
 
 }  // namespace origin
 

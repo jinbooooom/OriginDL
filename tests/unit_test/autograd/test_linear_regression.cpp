@@ -8,6 +8,7 @@
 #include "origin/utils/log.h"
 
 using namespace origin;
+namespace F = origin::functional;
 /**
  * @brief 线性回归测试类（参数化版本）
  * @details 使用参数化测试，自动为CPU和CUDA生成测试用例
@@ -24,7 +25,7 @@ protected:
     // 预测函数（带偏置）
     Tensor Predict(const Tensor &x, const Tensor &w, const Tensor &b)
     {
-        auto y = origin::mat_mul(x, w) + b;
+        auto y = F::mat_mul(x, w) + b;
         return y;
     }
 
@@ -32,7 +33,7 @@ protected:
     Tensor MSE(const Tensor &x0, const Tensor &x1)
     {
         auto diff       = x0 - x1;
-        auto sum_result = origin::sum(origin::pow(diff, 2.0f));
+        auto sum_result = F::sum(F::pow(diff, Scalar(2.0f)));
         // 使用除法算子而不是直接创建Tensor，确保有正确的creator_
         // 确保elements张量在正确的设备上（使用sum_result的设备，而不是deviceType()）
         auto elements = Tensor(static_cast<float>(diff.elements()), sum_result.shape(),

@@ -6,6 +6,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 /**
  * @brief 取反算子测试类（参数化版本）
  */
@@ -19,7 +20,7 @@ TEST_P(NegOperatorTest, ForwardBasic)
     // 测试基本负号运算
     auto x = Tensor({1.0f, -2.0f, 3.0f, -4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -45,7 +46,7 @@ TEST_P(NegOperatorTest, ForwardZeroTensor)
     // 测试零张量
     auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     // 结果应该等于x（零的负号还是零）
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
@@ -56,7 +57,7 @@ TEST_P(NegOperatorTest, ForwardPositiveValues)
     // 测试正值
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     auto expected = Tensor({-1.0f, -2.0f, -3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -67,7 +68,7 @@ TEST_P(NegOperatorTest, ForwardNegativeValues)
     // 测试负值
     auto x = Tensor({-1.0f, -2.0f, -3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     auto expected = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -80,7 +81,7 @@ TEST_P(NegOperatorTest, BackwardBasic)
     // 测试基本反向传播
     auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = neg(x);
+    auto y = F::neg(x);
     y.backward();
 
     // 负号算子的梯度：∂y/∂x = -1
@@ -93,7 +94,7 @@ TEST_P(NegOperatorTest, BackwardWithGradient)
     // 测试带梯度的反向传播
     auto x = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = neg(x);
+    auto y = F::neg(x);
     y.backward();
 
     // 梯度会累积
@@ -106,7 +107,7 @@ TEST_P(NegOperatorTest, BackwardDifferentShapes)
     // 测试不同形状的张量
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = neg(x);
+    auto y = F::neg(x);
     y.backward();
 
     auto expected_grad =
@@ -121,7 +122,7 @@ TEST_P(NegOperatorTest, SingleElement)
     // 测试单元素张量
     auto x = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -134,7 +135,7 @@ TEST_P(NegOperatorTest, LargeTensor)
     std::vector<float> data(100, 2.0f);
     auto x = Tensor(data, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -150,7 +151,7 @@ TEST_P(NegOperatorTest, ThreeDimensional)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
                     dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -171,7 +172,7 @@ TEST_P(NegOperatorTest, NumericalStability)
     // 测试数值稳定性
     auto x = Tensor({1e10f, 1e-10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     auto expected = Tensor({-1e10f, -1e-10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -182,7 +183,7 @@ TEST_P(NegOperatorTest, PrecisionTest)
     // 测试精度
     auto x = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     auto expected = Tensor({-0.1f, -0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -195,7 +196,7 @@ TEST_P(NegOperatorTest, DoubleNegation)
     // 测试双重负号
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(neg(x));
+    auto result = F::neg(F::neg(x));
 
     // 双重负号应该等于原值
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
@@ -206,10 +207,48 @@ TEST_P(NegOperatorTest, MixedSigns)
     // 测试混合符号
     auto x = Tensor({1.0f, -2.0f, 0.0f, -4.0f, 5.0f}, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = neg(x);
+    auto result = F::neg(x);
 
     auto expected = Tensor({-1.0f, 2.0f, 0.0f, 4.0f, -5.0f}, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+// ==================== 原地操作测试 ====================
+
+TEST_P(NegOperatorTest, InplaceBasic)
+{
+    // 测试基本原地取负运算
+    auto x = Tensor({1.0f, -2.0f, 3.0f, -4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    F::neg_(x);
+
+    auto expected = Tensor({-1.0f, 2.0f, -3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(NegOperatorTest, InplaceZeroTensor)
+{
+    // 测试零张量原地取负
+    auto x          = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x_original = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    F::neg_(x);
+
+    // 结果应该等于x（零的负号还是零）
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, x_original, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(NegOperatorTest, InplaceDoubleNegation)
+{
+    // 测试双重负号原地操作
+    auto x          = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x_original = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+
+    F::neg_(x);
+    F::neg_(x);
+
+    // 双重负号应该等于原值
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, x_original, origin::test::TestTolerance::kDefault);
 }
 
 // 实例化测试套件：自动为CPU和可用CUDA生成测试

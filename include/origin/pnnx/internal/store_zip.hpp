@@ -21,15 +21,18 @@
 #include <string>
 #include <vector>
 
-namespace origin {
-namespace pnnx {
-namespace internal {
+namespace origin
+{
+namespace pnnx
+{
+namespace internal
+{
 
 // ZIP 文件格式结构体定义
 #ifdef _MSC_VER
-#define PACK(__Declaration__) __pragma(pack(push, 1)) __Declaration__ __pragma(pack(pop))
+#    define PACK(__Declaration__) __pragma(pack(push, 1)) __Declaration__ __pragma(pack(pop))
 #else
-#define PACK(__Declaration__) __Declaration__ __attribute__((__packed__))
+#    define PACK(__Declaration__) __Declaration__ __attribute__((__packed__))
 #endif
 
 PACK(struct local_file_header {
@@ -74,52 +77,56 @@ PACK(struct end_of_central_directory_record {
     uint16_t comment_length;
 });
 
-class StoreZipReader {
- public:
-  StoreZipReader();
-  ~StoreZipReader();
+class StoreZipReader
+{
+public:
+    StoreZipReader();
+    ~StoreZipReader();
 
-  int open(const std::string& path);
+    int open(const std::string &path);
 
-  size_t get_file_size(const std::string& name);
+    size_t get_file_size(const std::string &name);
 
-  int read_file(const std::string& name, char* data);
+    int read_file(const std::string &name, char *data);
 
-  int close();
+    int close();
 
- private:
-  FILE* fp;
+private:
+    FILE *fp;
 
-  struct StoreZipMeta {
-    size_t offset;
-    size_t size;
-  };
+    struct StoreZipMeta
+    {
+        size_t offset;
+        size_t size;
+    };
 
-  std::map<std::string, StoreZipMeta> filemetas;
+    std::map<std::string, StoreZipMeta> filemetas;
 };
 
-class StoreZipWriter {
- public:
-  StoreZipWriter();
-  ~StoreZipWriter();
+class StoreZipWriter
+{
+public:
+    StoreZipWriter();
+    ~StoreZipWriter();
 
-  int open(const std::string& path);
+    int open(const std::string &path);
 
-  int write_file(const std::string& name, const char* data, size_t size);
+    int write_file(const std::string &name, const char *data, size_t size);
 
-  int close();
+    int close();
 
- private:
-  FILE* fp;
+private:
+    FILE *fp;
 
-  struct StoreZipMeta {
-    std::string name;
-    size_t lfh_offset;
-    uint32_t crc32;
-    uint32_t size;
-  };
+    struct StoreZipMeta
+    {
+        std::string name;
+        size_t lfh_offset;
+        uint32_t crc32;
+        uint32_t size;
+    };
 
-  std::vector<StoreZipMeta> filemetas;
+    std::vector<StoreZipMeta> filemetas;
 };
 
 }  // namespace internal

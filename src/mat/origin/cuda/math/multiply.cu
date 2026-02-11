@@ -15,31 +15,46 @@ namespace cuda
 {
 
 /**
- * @brief multiply算子实现
+ * @brief CUDA乘法算子统一实现
  * @param a 输入矩阵A
  * @param b 输入矩阵B
- * @return 乘法结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b)
+std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b, OriginMat *out)
 {
-    // 验证输入
-    // 验证输入
     VALIDATE_SAME_DTYPE(a, b);
     VALIDATE_SAME_CUDA_DEVICE(a, b);
 
-    // 计算广播形状
     Shape result_shape = origin::utils::compute::compute_broadcast_shape(a, b);
-    auto result        = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
 
-    // 获取数据指针
+    OriginMat *result_ptr = nullptr;
+    std::unique_ptr<OriginMat> result_unique;
+
+    if (out != nullptr)
+    {
+        if (unlikely(out->shape() != result_shape || out->dtype() != a.dtype() || out->device() != a.device()))
+        {
+            THROW_INVALID_ARG(
+                "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
+                "dtype={}, device={}",
+                result_shape.to_string(), dtype_to_string(a.dtype()), a.device().to_string(), out->shape().to_string(),
+                dtype_to_string(out->dtype()), out->device().to_string());
+        }
+        result_ptr = out;
+    }
+    else
+    {
+        result_unique = std::make_unique<OriginMat>(result_shape, a.dtype(), a.device());
+        result_ptr    = result_unique.get();
+    }
+
     const void *a_data = a.storage()->data();
     const void *b_data = b.storage()->data();
-    void *c_data       = result->storage()->data();
+    void *c_data       = result_ptr->storage()->data();
 
-    // 检查运算类型，按出现频率排序
     if (a.shape() == b.shape())
     {
-        // 相同形状：直接元素级运算（最常见）
         device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
             launch_elementwise_kernel<T, MultiplyOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
                                                      static_cast<T *>(c_data), a.elements(), MultiplyOp{}, 0);
@@ -47,22 +62,18 @@ std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b)
     }
     else if (a.elements() == 1 || b.elements() == 1)
     {
-        // 简单广播：一个操作数是标量（次常见）
         device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
             launch_simple_broadcast_kernel<T, MultiplyOp>(
                 static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data), a.elements(),
-                b.elements(), result->elements(), MultiplyOp{}, 0);
+                b.elements(), result_ptr->elements(), MultiplyOp{}, 0);
         });
     }
     else
     {
-        // 复杂广播：需要计算步长信息
         THROW_RUNTIME_ERROR("Complex broadcasting not yet implemented for CUDA multiply operation");
     }
 
-    CUDA_CHECK_ASYNC();
-
-    return result;
+    return result_unique;
 }
 
 }  // namespace cuda

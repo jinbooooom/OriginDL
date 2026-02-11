@@ -151,33 +151,60 @@ void launch_pow_scalar_kernel(const T *input, T *output, U exponent, size_t n)
 }
 
 /**
- * @brief CUDA标量幂运算算子实现（支持不同类型指数）
+ * @brief CUDA标量幂运算算子统一实现
  * @details 支持任意数值类型的指数，根据底数和指数类型自动选择最优的核函数
  * 类型选择规则：
  * - 如果底数或指数中有一个是double类型，使用double版本（pow函数，高精度）
  * - 否则使用float版本（powf函数，高性能）
  * @param mat 输入矩阵
  * @param exponent 指数
- * @return 幂运算结果矩阵
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-auto pow(const OriginMat &base, const Scalar &exponent) -> std::unique_ptr<Mat>
+auto pow(const OriginMat &mat, const Scalar &exponent, OriginMat *out) -> std::unique_ptr<Mat>
 {
-    auto result = std::make_unique<OriginMat>(base.shape(), base.dtype(), base.device());
+    OriginMat *result_ptr = nullptr;
+    std::unique_ptr<OriginMat> result_unique;
 
-    device_common::TypeDispatcher::dispatch_void(base.dtype(), [&]<typename T>() {
+    if (out != nullptr)
+    {
+        if (unlikely(out->shape() != mat.shape() || out->dtype() != mat.dtype() || out->device() != mat.device()))
+        {
+            THROW_INVALID_ARG(
+                "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
+                "dtype={}, device={}",
+                mat.shape().to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
+                out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
+        }
+        result_ptr = out;
+    }
+    else
+    {
+        result_unique = std::make_unique<OriginMat>(mat.shape(), mat.dtype(), mat.device());
+        result_ptr    = result_unique.get();
+    }
+
+    device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
         if (exponent.dtype() == DataType::kFloat64)
         {
-            launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(), exponent.to_float64(), base.elements());
+            launch_pow_scalar_kernel(mat.data_ptr<T>(), result_ptr->data_ptr<T>(), exponent.to_float64(),
+                                     mat.elements());
         }
         else
         {
-            launch_pow_scalar_kernel(base.data_ptr<T>(), result->data_ptr<T>(), exponent.to_float32(), base.elements());
+            launch_pow_scalar_kernel(mat.data_ptr<T>(), result_ptr->data_ptr<T>(), exponent.to_float32(),
+                                     mat.elements());
         }
     });
 
     CUDA_CHECK_ASYNC();
 
-    return result;
+    return result_unique;
+}
+
+void pow_inplace(OriginMat &mat, const Scalar &exponent)
+{
+    pow(mat, exponent, &mat);
 }
 
 }  // namespace cuda

@@ -1,6 +1,7 @@
 #include "origin/nn/layers/batch_norm2d.h"
 #include <cmath>
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -11,7 +12,7 @@ namespace nn
 BatchNorm2d::BatchNorm2d(int num_features, float eps, float momentum)
     : num_features_(num_features), eps_(eps), momentum_(momentum)
 {
-    if (num_features <= 0)
+    if (unlikely(num_features <= 0))
     {
         THROW_INVALID_ARG("BatchNorm2d: num_features must be positive, but got {}", num_features);
     }
@@ -39,20 +40,20 @@ Tensor BatchNorm2d::forward(const Tensor &input)
 {
     // 验证输入形状
     auto input_shape = input.shape();
-    if (input_shape.size() != 4)
+    if (unlikely(input_shape.size() != 4))
     {
         THROW_RUNTIME_ERROR("BatchNorm2d forward: input must be 4D (N, C, H, W), but got shape {}",
                             input_shape.to_string());
     }
 
-    if (input_shape[1] != static_cast<size_t>(num_features_))
+    if (unlikely(input_shape[1] != static_cast<size_t>(num_features_)))
     {
         THROW_RUNTIME_ERROR("BatchNorm2d forward: input feature size {} does not match num_features {}", input_shape[1],
                             num_features_);
     }
 
     // 创建 BatchNorm Operator
-    auto op = std::make_shared<BatchNorm>(is_training(), eps_, momentum_, 4);  // 4 表示 4D 输入
+    auto op = std::make_shared<functional::BatchNorm>(is_training(), eps_, momentum_, 4);  // 4 表示 4D 输入
 
     // 准备输入
     std::vector<Tensor> inputs;

@@ -8,148 +8,34 @@
 #include "../basic_types.h"
 #include "../mat.h"
 #include "../shape.h"
-#include "origin/mat/origin/device_common/type_dispatcher.h"
 
 namespace origin
 {
 
 /**
- * @brief Torch后端的矩阵实现
- * @details 继承自Mat接口，使用LibTorch库实现矩阵计算
+ * @brief TorchMat后端的矩阵实现
+ *
+ * 这是基于LibTorch的矩阵计算后端实现
+ * 注意：当前很多操作尚未实现，会抛出不支持异常
  */
 class TorchMat : public Mat
 {
 public:
-    // 将data_设为public，便于友元类访问
-    torch::Tensor data_;
-
-public:
-    /**
-     * @brief 默认构造函数
-     */
+    // 构造函数
     TorchMat() = default;
+    explicit TorchMat(const torch::Tensor &tensor);
+    explicit TorchMat(torch::Tensor &&tensor);
 
-    /**
-     * @brief 从Torch张量构造
-     * @param tensor Torch张量
-     */
-    explicit TorchMat(const torch::Tensor &tensor) : data_(tensor) {}
+    // === 静态工厂方法 ===
+    static std::unique_ptr<Mat> from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
+    static std::unique_ptr<Mat> from_memory(const void *data,
+                                            DataType user_dtype,
+                                            const Shape &shape,
+                                            const TensorOptions &options);
+    static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options = TensorOptions());
 
-    /**
-     * @brief 从Torch张量移动构造
-     * @param tensor Torch张量
-     */
-    explicit TorchMat(torch::Tensor &&tensor) : data_(std::move(tensor)) {}
-
-    /**
-     * @brief 通用构造函数：从不同数据类型创建
-     * @param data 数据向量
-     * @param shape 矩阵形状
-     */
-    template <typename T>
-    TorchMat(const std::vector<T> &data, const Shape &shape)
-    {
-        // 验证数据是否为空
-        if (data.empty())
-        {
-            throw std::invalid_argument("TorchMat: Tensor data cannot be empty. Data vector is empty.");
-        }
-
-        // 验证形状是否有效
-        for (size_t i = 0; i < shape.size(); ++i)
-        {
-            if (shape[i] == 0)
-            {
-                throw std::invalid_argument("TorchMat: Tensor shape cannot have zero dimensions. Dimension " +
-                                            std::to_string(i) + " is zero in shape " + shape.to_string());
-            }
-        }
-
-        auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
-        auto data_type  = DataTypeTraits<T>::type;
-        auto torch_type = get_torch_type(data_type);
-        data_           = torch::from_blob(const_cast<T *>(data.data()), sizes, torch_type).clone();
-    }
-
-    /**
-     * @brief 通用构造函数：从标量创建
-     * @param value 标量值
-     * @param shape 矩阵形状
-     */
-    template <typename T>
-    TorchMat(T value, const Shape &shape)
-    {
-        // 验证形状是否有效
-        for (size_t i = 0; i < shape.size(); ++i)
-        {
-            if (shape[i] == 0)
-            {
-                throw std::invalid_argument("TorchMat: Tensor shape cannot have zero dimensions. Dimension " +
-                                            std::to_string(i) + " is zero in shape " + shape.to_string());
-            }
-        }
-
-        auto sizes      = TorchMat::convert_shape_to_torch_sizes(shape);
-        auto data_type  = DataTypeTraits<T>::type;
-        auto torch_type = get_torch_type(data_type);
-        data_           = torch::full(sizes, static_cast<T>(value), torch_type);
-    }
-
-    /**
-     * @brief 通用构造函数：从数据创建（支持TensorOptions）
-     * @param data 数据向量
-     * @param shape 矩阵形状
-     * @param options 张量选项
-     */
-    template <typename T>
-    TorchMat(const std::vector<T> &data, const Shape &shape, const TensorOptions &options)
-    {
-        // 验证数据是否为空
-        if (data.empty())
-        {
-            throw std::invalid_argument("TorchMat: Tensor data cannot be empty. Data vector is empty.");
-        }
-
-        // 验证形状是否有效
-        for (size_t i = 0; i < shape.size(); ++i)
-        {
-            if (shape[i] == 0)
-            {
-                throw std::invalid_argument("TorchMat: Tensor shape cannot have zero dimensions. Dimension " +
-                                            std::to_string(i) + " is zero in shape " + shape.to_string());
-            }
-        }
-
-        auto sizes         = TorchMat::convert_shape_to_torch_sizes(shape);
-        auto torch_options = get_torch_tensor_options(options);
-        data_              = torch::from_blob(const_cast<T *>(data.data()), sizes, torch_options).clone();
-    }
-
-    /**
-     * @brief 通用构造函数：从标量创建（支持TensorOptions）
-     * @param value 标量值
-     * @param shape 矩阵形状
-     * @param options 张量选项
-     */
-    template <typename T>
-    TorchMat(T value, const Shape &shape, const TensorOptions &options)
-    {
-        // 验证形状是否有效
-        for (size_t i = 0; i < shape.size(); ++i)
-        {
-            if (shape[i] == 0)
-            {
-                throw std::invalid_argument("TorchMat: Tensor shape cannot have zero dimensions. Dimension " +
-                                            std::to_string(i) + " is zero in shape " + shape.to_string());
-            }
-        }
-
-        auto sizes         = TorchMat::convert_shape_to_torch_sizes(shape);
-        auto torch_options = get_torch_tensor_options(options);
-        data_              = torch::full(sizes, static_cast<T>(value), torch_options);
-    }
-
-    // 实现Mat接口的所有虚函数
+    // === Mat 接口实现 ===
+    // 基本操作（需要实现，但这里先占位）
     std::unique_ptr<Mat> clone() const override;
     std::unique_ptr<Mat> view(const Shape &shape) const override;
     bool is_contiguous() const override;
@@ -157,145 +43,171 @@ public:
     std::unique_ptr<Mat> reshape(const Shape &shape) const override;
     std::unique_ptr<Mat> transpose() const override;
 
-    // 兼容性方法
-    std::unique_ptr<Mat> T() const { return transpose(); }
+    // 二元运算
     std::unique_ptr<Mat> operator+(const Mat &other) const override;
     void add_inplace(const Mat &other) override;
+    Mat &operator+=(const Mat &other) override;  // 返回 Mat&，是为了支持链式调用（y += x += z; // 先算 x+=z，再 y+=）
     std::unique_ptr<Mat> operator-(const Mat &other) const override;
+    void sub_inplace(const Mat &other) override;
+    Mat &operator-=(const Mat &other) override;
     std::unique_ptr<Mat> operator*(const Mat &other) const override;
+    void mul_inplace(const Mat &other) override;
+    Mat &operator*=(const Mat &other) override;
     std::unique_ptr<Mat> matmul(const Mat &other) const override;
     std::unique_ptr<Mat> operator/(const Mat &other) const override;
-
+    void div_inplace(const Mat &other) override;
+    Mat &operator/=(const Mat &other) override;
     std::unique_ptr<Mat> operator-() const override;
+    std::unique_ptr<Mat> operator>(const Scalar &threshold) const override;
+
+    // 广播和归约
     std::unique_ptr<Mat> broadcast_to(const Shape &shape) const override;
     std::unique_ptr<Mat> sum_to(const Shape &shape) const override;
-    std::unique_ptr<Mat> sum(int axis = -1) const override;
-    Shape shape() const override;
-    size_t elements() const override;
-    // 虚函数重写
-    std::vector<data_t> to_vector() const override;
-
-    // 模板版本
-    template <typename U>
-    std::vector<U> to_vector() const;
+    std::unique_ptr<Mat> sum(int axis = -1, bool keepdim = false) const override;
+    std::unique_ptr<Mat> max(int axis = -1) const override;
 
     // 数学函数
     std::unique_ptr<Mat> exp() const override;
+    void exp_inplace() override;
     std::unique_ptr<Mat> log() const override;
+    void log_inplace() override;
     std::unique_ptr<Mat> sin() const override;
     std::unique_ptr<Mat> cos() const override;
     std::unique_ptr<Mat> sqrt() const override;
+    void sqrt_inplace() override;
     std::unique_ptr<Mat> square() const override;
-    // 虚函数重写（与OriginMat接口对齐）
+    void square_inplace() override;
     std::unique_ptr<Mat> pow(const Scalar &exponent) const override;
+    void pow_inplace(const Scalar &exponent) override;
+    std::unique_ptr<Mat> relu() const override;
+    void relu_inplace() override;
+    void neg_inplace() override;
 
-    // 0维张量支持（与OriginMat接口对齐）
+    // 形状和属性
+    Shape shape() const override;
+    size_t elements() const override;
     bool is_scalar() const override;
     Scalar scalar_value() const override;
+    Scalar index(std::initializer_list<size_t> indices) const override;
+    void index_put(std::initializer_list<size_t> indices, const Scalar &value) override;
+    void *data_ptr() override;
+    void print(const std::string &desc = "") const override;
+    std::vector<float> to_vector() const;
 
-    // 模板版本
-    template <typename U>
-    std::unique_ptr<Mat> pow(U exponent) const;
-
-    // 数据访问
-    template <typename U>
-    U scalar() const;
+    // 类型和设备
     int backend_type() const override;
-
-    // 新增：类型相关方法
     DataType dtype() const override;
-    std::unique_ptr<Mat> to(DataType target_type) const override;
-
-    // 新增：设备相关方法
     Device device() const override;
+    std::unique_ptr<Mat> to(DataType target_type) const override;
     std::unique_ptr<Mat> to_device(Device device) const override;
 
-    // === 泛型数据访问方法 ===
-    void *data_ptr() override;
+    // === 卷积相关操作（Mat 接口实现）===
+    std::unique_ptr<Mat> im2col(std::pair<int, int> kernel_size,
+                                std::pair<int, int> stride,
+                                std::pair<int, int> pad,
+                                bool to_matrix = true) const override;
 
-    template <typename U>
-    U *data_ptr();
+    std::unique_ptr<Mat> col2im(const Shape &input_shape,
+                                std::pair<int, int> kernel_size,
+                                std::pair<int, int> stride,
+                                std::pair<int, int> pad,
+                                bool to_matrix = true) const override;
 
-    // 调试方法
-    void print(const std::string &desc = "") const override;
+    std::unique_ptr<Mat> conv2d(const Mat &W,
+                                const Mat *b,
+                                std::pair<int, int> stride,
+                                std::pair<int, int> pad) const override;
 
-    /**
-     * @brief 静态辅助函数：将Torch张量转换为向量
-     * @param tensor Torch张量
-     * @return 数据向量
-     */
-    template <typename U>
-    static std::vector<U> tensor_to_vector(const torch::Tensor &tensor);
+    std::vector<std::unique_ptr<Mat>> conv2d_backward(const Mat &gy,
+                                                      const Mat &x,
+                                                      const Mat &W,
+                                                      const Mat *b,
+                                                      std::pair<int, int> stride,
+                                                      std::pair<int, int> pad) const override;
 
-    /**
-     * @brief 静态辅助函数：将向量转换为Torch张量
-     * @param data 数据向量
-     * @param shape 矩阵形状
-     * @return Torch张量
-     */
-    template <typename U>
-    static torch::Tensor vector_to_tensor(const std::vector<U> &data, const Shape &shape);
+    // === 池化相关操作（Mat 接口实现）===
+    std::unique_ptr<Mat> avg_pool2d(std::pair<int, int> kernel_size,
+                                    std::pair<int, int> stride,
+                                    std::pair<int, int> pad) const override;
 
-    /**
-     * @brief 静态辅助函数：将Shape转换为torch::IntArrayRef
-     * @param shape Shape对象
-     * @return std::vector<int64_t>对象
-     */
-    static std::vector<int64_t> convert_shape_to_torch_sizes(const Shape &shape);
+    std::unique_ptr<Mat> avg_pool2d_backward(const Mat &gy,
+                                             std::pair<int, int> kernel_size,
+                                             std::pair<int, int> stride,
+                                             std::pair<int, int> pad) const override;
 
-    /**
-     * @brief 静态辅助函数：将torch::IntArrayRef转换为Shape
-     * @param sizes torch::IntArrayRef对象
-     * @return Shape对象
-     */
-    static Shape convert_torch_sizes_to_shape(const torch::IntArrayRef &sizes);
+    std::unique_ptr<Mat> adaptive_avg_pool2d(std::pair<int, int> output_size) const override;
 
-    /**
-     * @brief 静态工厂方法：创建随机数矩阵
-     * @param shape 矩阵形状
-     * @return 随机数矩阵
-     */
-    static std::unique_ptr<Mat> randn(const Shape &shape);
+    std::unique_ptr<Mat> adaptive_avg_pool2d_backward(const Mat &gy, std::pair<int, int> output_size) const override;
 
-    /**
-     * @brief 静态工厂方法：创建随机数矩阵（支持TensorOptions）
-     * @param shape 矩阵形状
-     * @param options 张量选项
-     * @return 随机数矩阵
-     */
-    static std::unique_ptr<Mat> randn(const Shape &shape, const TensorOptions &options);
+    std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size,
+                                    std::pair<int, int> stride,
+                                    std::pair<int, int> pad,
+                                    std::vector<size_t> &indices) const override;
 
-    static std::unique_ptr<Mat> from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
+    std::unique_ptr<Mat> max_pool2d_backward(const Mat &gy,
+                                             std::pair<int, int> kernel_size,
+                                             std::pair<int, int> stride,
+                                             std::pair<int, int> pad,
+                                             const std::vector<size_t> &indices) const override;
 
-    static std::unique_ptr<Mat> from_memory(const void *data,
-                                            DataType user_dtype,
-                                            const Shape &shape,
-                                            const TensorOptions &options);
+    // === BatchNorm 相关操作（Mat 接口实现）===
+    BatchNormResult batch_norm_forward(const Mat &gamma,
+                                       const Mat &beta,
+                                       const Mat &running_mean,
+                                       const Mat &running_var,
+                                       bool training,
+                                       float eps,
+                                       int num_dims) const override;
+
+    std::unique_ptr<Mat> batch_norm(const Mat &gamma,
+                                    const Mat &beta,
+                                    const Mat &running_mean,
+                                    const Mat &running_var,
+                                    bool training,
+                                    float eps,
+                                    float momentum,
+                                    int num_dims) const override;
+
+    std::vector<std::unique_ptr<Mat>> batch_norm_backward(const Mat &gy,
+                                                          const Mat &gamma,
+                                                          const Mat &saved_mean,
+                                                          const Mat &saved_var,
+                                                          const Mat &saved_x_norm,
+                                                          float eps,
+                                                          int num_dims) const override;
+
+    // === 其他操作（Mat 接口实现）===
+    std::unique_ptr<Mat> gather(const Mat &indices) const override;
+
+    std::unique_ptr<Mat> one_hot(const Mat &indices, int num_classes) const override;
+
+    std::unique_ptr<Mat> yolo_detect_forward(const Mat &conv_weight,
+                                             const Mat *conv_bias,
+                                             const Mat &grid,
+                                             const Mat &anchor_grid,
+                                             float stride,
+                                             int32_t num_anchors,
+                                             int32_t num_classes) const override;
+
+    // === Dropout 相关操作（Mat 接口实现）===
+    std::unique_ptr<Mat> dropout(float p, bool training, Mat *mask) const override;
+
+    std::unique_ptr<Mat> dropout_backward(const Mat &gy, const Mat &mask) const override;
+
+    // === Upsample 相关操作（Mat 接口实现）===
+    std::unique_ptr<Mat> upsample(const Shape &output_shape,
+                                  int scale_h,
+                                  int scale_w,
+                                  const std::string &mode = "nearest") const override;
+
+    std::unique_ptr<Mat> upsample_backward(const Mat &gy,
+                                           const Shape &x_shape,
+                                           int scale_h,
+                                           int scale_w,
+                                           const std::string &mode = "nearest") const override;
 
 private:
-    // 辅助：根据 DataType 和 Scalar 生成 torch::Scalar（通过类型分发器）
-    static torch::Scalar make_torch_scalar_from_scalar(const Scalar &scalar, DataType dtype);
-
-    /**
-     * @brief 将DataType转换为torch::ScalarType
-     * @param dtype DataType枚举
-     * @return 对应的torch::ScalarType
-     */
-    static torch::ScalarType get_torch_type(DataType dtype);
-
-    /**
-     * @brief 将torch::ScalarType转换为DataType
-     * @param torch_type torch::ScalarType
-     * @return 对应的DataType
-     */
-    static DataType get_data_type_from_torch(torch::ScalarType torch_type);
-
-    /**
-     * @brief 将TensorOptions转换为torch::TensorOptions
-     * @param options 张量选项
-     * @return 对应的torch::TensorOptions
-     */
-    static torch::TensorOptions get_torch_tensor_options(const TensorOptions &options);
+    torch::Tensor tensor_;
 };
 
 }  // namespace origin

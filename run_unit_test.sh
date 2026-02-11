@@ -137,10 +137,27 @@ check_cuda_tests() {
     fi
 }
 
+# 检查CUDA是否可用（用于判断测试是否包含CUDA版本）
+check_cuda_available() {
+    # 检查是否有CUDA设备可用
+    if command -v nvidia-smi &> /dev/null; then
+        if nvidia-smi &> /dev/null; then
+            return 0  # CUDA可用
+        fi
+    fi
+    return 1  # CUDA不可用
+}
+
 # 运行单元测试
 run_tests() {
     BUILD_DIR=$(get_build_directory)
     TEST_FAILED=false
+    HAS_CUDA_TESTS=false
+    
+    # 检查CUDA是否可用（如果可用，参数化测试会包含CUDA版本）
+    if check_cuda_available; then
+        HAS_CUDA_TESTS=true
+    fi
     
         # 如果请求CUDA测试，创建统一的测试环境
     if [ "$CUDA_TESTS" = true ]; then
@@ -180,10 +197,10 @@ run_tests() {
         # 清理临时目录
         rm -rf "$UNIFIED_TEST_DIR"
     else
-        # 只运行CPU单元测试
+        # 运行单元测试（可能包含CPU和CUDA参数化测试）
         if [ "$QUIET_MODE" = true ]; then
             # 静默模式
-            print_info "Running CPU unit tests..."
+            print_info "Running unit tests..."
             cd $BUILD_DIR/tests/unit_test
             if ! ctest --quiet; then
                 TEST_FAILED=true
@@ -191,9 +208,9 @@ run_tests() {
             cd - > /dev/null  # 返回原目录
         else
             # 详细模式
-            print_info "Starting CPU unit tests for $BACKEND backend..."
+            print_info "Starting unit tests for $BACKEND backend..."
             print_info "Using build directory: $BUILD_DIR"
-            print_info "Running CPU tests with ctest --verbose"
+            print_info "Running tests with ctest --verbose"
             echo "----------------------------------------"
 
             # 进入单元测试目录
@@ -201,10 +218,8 @@ run_tests() {
 
             # 运行ctest
             if ! ctest --verbose; then
-                print_warning "Some CPU tests failed"
+                print_warning "Some tests failed"
                 TEST_FAILED=true
-            else
-                print_success "All CPU tests completed successfully"
             fi
             cd - > /dev/null  # 返回原目录
         fi
@@ -215,10 +230,10 @@ run_tests() {
         print_warning "Some tests failed, please check the output above"
         exit 1
     else
-        if [ "$CUDA_TESTS" = true ]; then
-            print_success "All CPU and CUDA tests completed successfully"
+        if [ "$HAS_CUDA_TESTS" = true ] || [ "$CUDA_TESTS" = true ]; then
+            print_success "All tests completed successfully (CPU and CUDA)"
         else
-            print_success "All CPU tests completed successfully"
+            print_success "All tests completed successfully"
         fi
     fi
 }

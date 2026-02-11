@@ -110,7 +110,7 @@ TEST_F(MultiTypeTensorTest, ExplicitTypeConstructor)
     EXPECT_EQ(t6.dtype(), DataType::kFloat32);
 
     Tensor t7(5.0, Shape{1});  // 没有加 .f，当做 double 处理
-    EXPECT_EQ(t7.dtype(), DataType::kDouble);
+    EXPECT_EQ(t7.dtype(), DataType::kFloat64);
 
     Tensor t8(5.0, Shape{1}, DataType::kInt32);  // 指定类型，当做 int32 处理
     EXPECT_EQ(t8.dtype(), DataType::kInt32);
@@ -193,7 +193,7 @@ TEST_F(MultiTypeTensorTest, InitializerListConstructor)
 TEST_F(MultiTypeTensorTest, BackwardCompatibility)
 {
     // 测试原有的构造函数仍然工作（现在使用模板版本）
-    std::vector<data_t> data = {1.0f, 2.0f, 3.0f};
+    std::vector<float> data = {1.0f, 2.0f, 3.0f};
     Tensor t1(data, Shape{3});
     EXPECT_EQ(t1.dtype(), DataType::kFloat32);
 

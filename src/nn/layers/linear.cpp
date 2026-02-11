@@ -3,6 +3,7 @@
 #include <vector>
 #include "origin/core/operator.h"
 #include "origin/mat/scalar.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -13,7 +14,7 @@ namespace nn
 Linear::Linear(int in_features, int out_features, bool bias)
     : in_features_(in_features), out_features_(out_features), use_bias_(bias)
 {
-    // 初始化参数（必须在成员变量初始化后才能调用）
+    // 初始化参数
     weight_ = init_weight();
     if (use_bias_)
     {
@@ -39,7 +40,7 @@ Parameter Linear::init_weight()
 
     // 确保scaled_weight有正确的shape
     auto scaled_shape = scaled_weight.shape();
-    if (scaled_shape.elements() == 0)
+    if (unlikely(scaled_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR("init_weight: scaled_weight has empty shape!");
     }
@@ -49,7 +50,7 @@ Parameter Linear::init_weight()
 
     // 验证Parameter的shape
     auto w_shape = w.shape();
-    if (w_shape.elements() == 0)
+    if (unlikely(w_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR("init_weight: Parameter w has empty shape after construction! scaled_weight.shape() = {}",
                             scaled_shape.to_string());
@@ -87,7 +88,7 @@ Tensor Linear::forward(const Tensor &input)
     // 矩阵乘法：y = input * weight
     // 检查weight_的状态
     auto w_shape = weight_.shape();
-    if (w_shape.elements() == 0)
+    if (unlikely(w_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR("Weight is empty in forward! weight_.shape() = {}", w_shape.to_string());
     }
@@ -95,14 +96,14 @@ Tensor Linear::forward(const Tensor &input)
     // 直接使用weight_，因为Parameter继承自Tensor
     // 问题可能在于Parameter的拷贝/传递导致impl_丢失
     // 直接传递引用而不是拷贝
-    auto output = mat_mul(input, static_cast<const Tensor &>(weight_));
+    auto output = functional::mat_mul(input, static_cast<const Tensor &>(weight_));
 
     // 添加偏置
     // 由于加法操作只支持相同形状或标量广播，需要先使用broadcast_to
     if (use_bias_)
     {
         // bias_ 的形状是 {1, out_features}，需要广播到 {batch_size, out_features}
-        auto bias_broadcast = broadcast_to(bias_, output.shape());
+        auto bias_broadcast = functional::broadcast_to(bias_, output.shape());
         output              = output + bias_broadcast;
     }
 

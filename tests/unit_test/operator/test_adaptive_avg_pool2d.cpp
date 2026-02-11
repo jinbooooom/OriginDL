@@ -1,19 +1,18 @@
 #include <gtest/gtest.h>
 #include <vector>
-#include "origin.h"
-#include "origin/operators/conv/adaptive_avg_pool2d.h"
 #include "../common/device_test_base.h"
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
+#include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief AdaptiveAvgPool2d 算子测试类（参数化版本）
  */
 class AdaptiveAvgPool2dOperatorTest : public origin::test::OperatorTestBase
-{
-};
+{};
 
 // ==================== 前向传播测试 ====================
 
@@ -24,14 +23,11 @@ TEST_P(AdaptiveAvgPool2dOperatorTest, ForwardBasic)
     // 输出尺寸: (2, 2)
     // 期望输出: (1, 1, 2, 2)
 
-    std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 
-                                 5.0f, 6.0f, 7.0f, 8.0f,
-                                 9.0f, 10.0f, 11.0f, 12.0f, 
-                                 13.0f, 14.0f, 15.0f, 16.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 4, 4}, dtype(DataType::kFloat32).device(deviceType()));
+    std::vector<float> x_data = {1.0f, 2.0f,  3.0f,  4.0f,  5.0f,  6.0f,  7.0f,  8.0f,
+                                 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
+    auto x                    = Tensor(x_data, Shape{1, 1, 4, 4}, dtype(DataType::kFloat32).device(deviceType()));
 
-    AdaptiveAvgPool2d op({2, 2});
-    auto result = op.forward({x})[0];
+    auto result = F::adaptive_avg_pool2d(x, {2, 2});
 
     Shape expected_shape{1, 1, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -51,10 +47,9 @@ TEST_P(AdaptiveAvgPool2dOperatorTest, ForwardToOne)
 {
     // 测试输出为 1x1 的情况
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    AdaptiveAvgPool2d op({1, 1});
-    auto result = op.forward({x})[0];
+    auto result = F::adaptive_avg_pool2d(x, {1, 1});
 
     Shape expected_shape{1, 1, 1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -70,10 +65,9 @@ TEST_P(AdaptiveAvgPool2dOperatorTest, ForwardMultiChannel)
 {
     // 测试多通道情况
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f};
-    auto x = Tensor(x_data, Shape{1, 2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    AdaptiveAvgPool2d op({1, 1});
-    auto result = op.forward({x})[0];
+    auto result = F::adaptive_avg_pool2d(x, {1, 1});
 
     Shape expected_shape{1, 2, 1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -90,14 +84,12 @@ TEST_P(AdaptiveAvgPool2dOperatorTest, ForwardNonDivisible)
 {
     // 测试输入尺寸不能被输出尺寸整除的情况
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
-    auto x = Tensor(x_data, Shape{1, 1, 3, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 1, 3, 3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    AdaptiveAvgPool2d op({2, 2});
-    auto result = op.forward({x})[0];
+    auto result = F::adaptive_avg_pool2d(x, {2, 2});
 
     Shape expected_shape{1, 1, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
 }
 
 INSTANTIATE_DEVICE_TEST_SUITE_P(AdaptiveAvgPool2dOperatorTest);
-

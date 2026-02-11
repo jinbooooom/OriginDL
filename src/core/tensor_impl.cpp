@@ -10,6 +10,7 @@
 #include "origin/mat/backend.h"
 #include "origin/mat/basic_types.h"
 #include "origin/mat/origin/origin_mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -73,7 +74,7 @@ TensorImpl &TensorImpl::operator=(TensorImpl &&other) noexcept
     return *this;
 }
 
-void TensorImpl::set_creator(const FunctionPtr &func)
+void TensorImpl::set_creator(const std::shared_ptr<Operator> &func)
 {
     creator_    = func;
     generation_ = creator_->generation_ + 1;
@@ -96,24 +97,25 @@ void TensorImpl::backward()
         grad_                 = std::shared_ptr<Mat>(Mat_t::from_scalar(1, data_->shape(), options));
     }
 
-    auto funcs    = std::list<FunctionPtr>();
-    auto func_set = std::set<FunctionPtr>();
+    auto funcs    = std::list<std::shared_ptr<Operator>>();
+    auto func_set = std::set<std::shared_ptr<Operator>>();
 
-    auto add_func = [&funcs, &func_set](const FunctionPtr &f) {
+    auto add_func = [&funcs, &func_set](const std::shared_ptr<Operator> &f) {
         if (f && func_set.find(f) == func_set.end())
         {
             funcs.push_back(f);
             func_set.insert(f);
-            funcs.sort(
-                [](const FunctionPtr &lhs, const FunctionPtr &rhs) { return lhs->generation_ < rhs->generation_; });
+            funcs.sort([](const std::shared_ptr<Operator> &lhs, const std::shared_ptr<Operator> &rhs) {
+                return lhs->generation_ < rhs->generation_;
+            });
         }
     };
 
     add_func(this->creator_);
 
     // 记录已处理的Operator和tensor，用于后续清理
-    std::vector<FunctionPtr> processed_ops;
-    std::set<TensorImplPtr> processed_tensors;
+    std::vector<std::shared_ptr<Operator>> processed_ops;
+    std::set<std::shared_ptr<TensorImpl>> processed_tensors;
 
     while (!funcs.empty())
     {
@@ -122,7 +124,7 @@ void TensorImpl::backward()
 
         auto gys = std::vector<Tensor>();
         // 检查 outputs_ 是否为空
-        if (f->outputs_.empty())
+        if (unlikely(f->outputs_.empty()))
         {
             // 如果outputs_为空，跳过这个Operator
             continue;
@@ -133,7 +135,8 @@ void TensorImpl::backward()
 
         // 收集所有输出tensor的impl_，用于后续清理
         // 将 weak_ptr 转换为 shared_ptr（如果有效）
-        std::vector<TensorImplPtr> valid_outputs;  // 临时保存有效的 shared_ptr，确保在 backward() 期间有效
+        std::vector<std::shared_ptr<TensorImpl>>
+            valid_outputs;  // 临时保存有效的 shared_ptr，确保在 backward() 期间有效
         for (const auto &weak_output : f->outputs_)
         {
             // 将 weak_ptr 转换为 shared_ptr
@@ -157,13 +160,13 @@ void TensorImpl::backward()
         }
 
         // 如果所有 weak_ptr 都失效，跳过这个 Operator
-        if (gys.empty())
+        if (unlikely(gys.empty()))
         {
             continue;
         }
         auto gxs = f->backward(gys);
 
-        if (gxs.size() != f->inputs_.size())
+        if (unlikely(gxs.size() != f->inputs_.size()))
         {
             THROW_RUNTIME_ERROR("backward error!, gxs size {} inputs size {}", gxs.size(), f->inputs_.size());
         }
@@ -207,7 +210,7 @@ void TensorImpl::backward()
     // 4. 清理所有相关tensor的grad_和creator_，彻底断开循环引用并释放内存
 
     // 第一步：收集输入tensor信息（在清理inputs_之前）
-    std::set<TensorImplPtr> input_tensors;
+    std::set<std::shared_ptr<TensorImpl>> input_tensors;
     for (const auto &f : processed_ops)
     {
         if (f)
@@ -288,10 +291,10 @@ void TensorImpl::detach()
     }
 
     // 收集所有相关的Operator和tensor，递归清理整个计算图
-    std::set<FunctionPtr> processed_ops;
-    std::set<TensorImplPtr> processed_tensors;
+    std::set<std::shared_ptr<Operator>> processed_ops;
+    std::set<std::shared_ptr<TensorImpl>> processed_tensors;
 
-    std::function<void(const FunctionPtr &)> collect_ops = [&](const FunctionPtr &op) {
+    std::function<void(const std::shared_ptr<Operator> &)> collect_ops = [&](const std::shared_ptr<Operator> &op) {
         if (!op || processed_ops.find(op) != processed_ops.end())
         {
             return;
@@ -381,17 +384,23 @@ size_t TensorImpl::elements() const
 template <typename T>
 T TensorImpl::item() const
 {
-    if (elements() != 1)
+    if (unlikely(elements() != 1))
     {
         THROW_RUNTIME_ERROR("item() can only be called on scalar tensors, but tensor has {} elements", elements());
     }
-    return data_->to_vector<T>()[0];
-}
-
-template <typename T>
-std::vector<T> TensorImpl::to_vector() const
-{
-    return data_->to_vector<T>();
+    // 0维张量（真正的标量）直接使用 scalar_value()
+    Scalar value;
+    if (data_->is_scalar())
+    {
+        value = data_->scalar_value();
+    }
+    else
+    {
+        // 对于任意形状但元素数为1的张量，通过 reshape 到标量再读取
+        auto scalar_mat = data_->reshape(Shape{});  // 形状 {}，元素仍为1
+        value           = scalar_mat->scalar_value();
+    }
+    return value.to<T>();
 }
 
 // === 泛型数据访问方法实现 ===
@@ -406,6 +415,18 @@ T *TensorImpl::data_ptr()
     // 模板版本 template <typename T> T *data_ptr() 保留给内部实现代码（如 cpu/ 和 cuda/
     // 目录下的文件）直接使用，提供类型安全。
     return static_cast<T *>(data_->data_ptr());
+}
+
+// === 索引访问实现 ===
+
+Scalar TensorImpl::index(std::initializer_list<size_t> indices) const
+{
+    return data_->index(indices);
+}
+
+void TensorImpl::index_put(std::initializer_list<size_t> indices, const Scalar &value)
+{
+    data_->index_put(indices, value);
 }
 
 // === 泛型标量操作实现 ===
@@ -451,16 +472,16 @@ template double *TensorImpl::data_ptr<double>();
 template int32_t *TensorImpl::data_ptr<int32_t>();
 template int8_t *TensorImpl::data_ptr<int8_t>();
 
-template std::vector<float> TensorImpl::to_vector<float>() const;
-template std::vector<double> TensorImpl::to_vector<double>() const;
-template std::vector<int32_t> TensorImpl::to_vector<int32_t>() const;
-template std::vector<int8_t> TensorImpl::to_vector<int8_t>() const;
-
 // 泛型标量操作已移除，统一通过算子层处理
 
 // 额外的模板实例化（只添加新的类型）
 template unsigned long TensorImpl::item<unsigned long>() const;
 template unsigned long *TensorImpl::data_ptr<unsigned long>();
-template std::vector<unsigned long> TensorImpl::to_vector<unsigned long>() const;
+
+// 新增：支持 uint8_t / int64_t（通常为 unsigned char / long）在 TensorImpl 层的显式实例化
+template unsigned char TensorImpl::item<unsigned char>() const;
+template unsigned char *TensorImpl::data_ptr<unsigned char>();
+template long TensorImpl::item<long>() const;
+template long *TensorImpl::data_ptr<long>();
 
 }  // namespace origin

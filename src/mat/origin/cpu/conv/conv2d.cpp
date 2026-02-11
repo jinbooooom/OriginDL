@@ -18,6 +18,21 @@ namespace cpu
 namespace
 {
 
+/// 将 OriginMat 按当前 dtype 读出并写入 float 缓冲区，与 CUDA 侧用 data_ptr<T> 一致
+struct MatToFloatBuffer
+{
+    const OriginMat &mat;
+    std::vector<float> &out;
+    template <typename SrcT>
+    void operator()()
+    {
+        const SrcT *p = mat.data_ptr<SrcT>();
+        size_t n      = mat.shape().elements();
+        for (size_t i = 0; i < n; ++i)
+            out[i] = static_cast<float>(p[i]);
+    }
+};
+
 /**
  * @brief im2col：将图像转换为列矩阵（内部实现）
  */
@@ -59,19 +74,18 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
             OH, OW, H, W, KH, KW, SH, SW, PH, PW);
     }
 
-    // 获取输入数据指针（使用类型分发器支持多种类型）
+    // 获取输入数据指针：与 CUDA 一致，float32 直接用 data_ptr，其它 dtype 经 TypeDispatcher 写入 float 缓冲
     std::vector<float> img_data_vec;
     const float *img_data = nullptr;
-
     if (img.dtype() == DataType::kFloat32)
     {
         img_data = img.data_ptr<float>();
     }
     else
     {
-        // 对于非 float32 类型，先转换为 float32 向量
-        img_data_vec = img.to_vector<float>();
-        img_data     = img_data_vec.data();
+        img_data_vec.resize(img.shape().elements());
+        device_common::TypeDispatcher::dispatch_void(img.dtype(), MatToFloatBuffer{img, img_data_vec});
+        img_data = img_data_vec.data();
     }
 
     // 创建填充后的图像
@@ -226,18 +240,18 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col,
     int OH = get_conv_outsize(static_cast<int>(H), KH, SH, PH);
     int OW = get_conv_outsize(static_cast<int>(W), KW, SW, PW);
 
-    // 获取列矩阵数据
+    // 获取列矩阵数据：与 CUDA 一致，float32 直接用 data_ptr，其它 dtype 经 TypeDispatcher 写入 float 缓冲
     std::vector<float> col_data_vec;
     const float *col_data = nullptr;
-
     if (col.dtype() == DataType::kFloat32)
     {
         col_data = col.data_ptr<float>();
     }
     else
     {
-        col_data_vec = col.to_vector<float>();
-        col_data     = col_data_vec.data();
+        col_data_vec.resize(col.shape().elements());
+        device_common::TypeDispatcher::dispatch_void(col.dtype(), MatToFloatBuffer{col, col_data_vec});
+        col_data = col_data_vec.data();
     }
 
     // 如果是从矩阵形式转换，先 reshape

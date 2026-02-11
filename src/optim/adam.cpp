@@ -100,7 +100,7 @@ void Adam::step_one(Parameter &param)
     // 但需要检查 pow 是否支持浮点指数
 
     // 计算 sqrt(v_hat) = v_hat^0.5
-    auto sqrt_v_hat = pow(v_hat, Scalar(0.5f));
+    auto sqrt_v_hat = functional::pow(v_hat, Scalar(0.5f));
 
     // 计算分母：sqrt(v_hat) + eps
     auto denominator = sqrt_v_hat + Scalar(eps_);

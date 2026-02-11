@@ -3,28 +3,9 @@
 #include <iomanip>
 #include <set>
 #include "origin.h"
-#include "origin/core/config.h"
-#include "origin/core/operator.h"
-#include "origin/data/dataloader.h"
-#include "origin/data/mnist.h"
-#include "origin/io/checkpoint.h"
-#include "origin/io/model_io.h"
-#include "origin/nn/layers/batch_norm2d.h"
-#include "origin/nn/layers/conv2d.h"
-#include "origin/nn/layers/flatten.h"
-#include "origin/nn/layers/linear.h"
-#include "origin/nn/layers/max_pool2d.h"
-#include "origin/nn/layers/relu.h"
-#include "origin/optim/adam.h"
-#include "origin/optim/hooks.h"
-#include "origin/utils/log.h"
-#include "origin/utils/metrics.h"
-#ifdef WITH_CUDA
-#    include "origin/cuda/cuda.h"
-#endif
 
 using namespace origin;
-
+namespace F  = origin::functional;
 namespace nn = origin::nn;
 
 /**
@@ -211,7 +192,7 @@ public:
     Tensor forward(const Tensor &input) override
     {
         // 输入形状: (N, 784) -> reshape为 (N, 1, 28, 28)
-        auto x = reshape(input, Shape{input.shape()[0], 1, 28, 28});
+        auto x = F::reshape(input, Shape{input.shape()[0], 1, 28, 28});
 
         // 第一层：Conv2d(1, 64, 3x3, pad=1) -> BatchNorm2d(64) -> ReLU -> MaxPool2d(2x2)
         x = conv1_->forward(x);
@@ -296,14 +277,16 @@ public:
  */
 struct TrainingConfig
 {
-    int max_epoch           = 10;
-    int batch_size          = 256;
-    float learning_rate     = 0.0005f;
+    int max_epoch  = 10;
+    int batch_size = 256;
+    float learning_rate = 0.0001f;  // 降低学习率：0.0005 -> 0.0001，学习率太大，训练到后期越训精度越低
     float weight_decay_rate = 1e-4f;
     int log_interval        = 50;
     std::string model_path  = "model/mnist_model.odl";
     int checkpoint_interval = 5;
     int random_seed         = 42;
+    std::string data_dir    = "./data/mnist";
+    int device_id           = -2;  // -2=auto, -1=CPU, >=0=GPU id
 
     /**
      * @brief 获取 checkpoint 目录（从 model_path 的目录派生）
@@ -338,6 +321,8 @@ struct TrainingConfig
         logi("Checkpoint dir: {}", checkpoint_dir());
         logi("Checkpoint interval: {} epochs", checkpoint_interval);
         logi("Random seed: {}", random_seed);
+        logi("Data dir: {}", data_dir);
+        logi("Device id: {} (-2=auto -1=CPU >=0=GPU)", device_id);
         logi("==============================");
     }
 };
@@ -348,17 +333,19 @@ struct TrainingConfig
  */
 void usage(const char *program_name)
 {
-    logi("Usage: {} [OPTIONS]", program_name);
-    logi("Options:");
-    logi("  -e, --epochs EPOCHS          Maximum number of epochs (default: 10)");
-    logi("  -b, --batch-size SIZE        Batch size (default: 256)");
-    logi("  -l, --learning-rate LR       Learning rate (default: 0.0005)");
-    logi("  -w, --weight-decay RATE      Weight decay rate (default: 1e-4)");
-    logi("  -i, --log-interval INTERVAL  Log interval in batches (default: 50)");
-    logi("  -m, --model-path PATH        Path to save model (default: model/mnist_model.odl)");
-    logi("  -c, --checkpoint-interval N  Save checkpoint every N epochs (default: 5)");
-    logi("  -s, --seed SEED              Random seed (default: 42)");
-    logi("  -h, --help                   Show this help message");
+    loga("Usage: %s [OPTIONS]\n", program_name);
+    loga("Options:\n");
+    loga("  -e, --epochs EPOCHS          Maximum number of epochs (default: 10)\n");
+    loga("  -b, --batch-size SIZE        Batch size (default: 256)\n");
+    loga("  -l, --learning-rate LR       Learning rate (default: 0.0001)\n");
+    loga("  -w, --weight-decay RATE      Weight decay rate (default: 1e-4)\n");
+    loga("  -i, --log-interval INTERVAL  Log interval in batches (default: 50)\n");
+    loga("  -m, --model-path PATH        Path to save model (default: model/mnist_model.odl)\n");
+    loga("  -c, --checkpoint-interval N  Save checkpoint every N epochs (default: 5)\n");
+    loga("  -s, --seed SEED              Random seed (default: 42)\n");
+    loga("  -p, --path DIR               MNIST data directory (default: ./data/mnist)\n");
+    loga("  -d, --device ID              Device: -2=auto, -1=CPU, >=0=GPU id (default: auto)\n");
+    loga("  -h, --help                   Show this help message\n");
 }
 
 /**
@@ -380,13 +367,15 @@ TrainingConfig parse_args(int argc, char *argv[])
                                            {"model-path", required_argument, 0, 'm'},
                                            {"checkpoint-interval", required_argument, 0, 'c'},
                                            {"seed", required_argument, 0, 's'},
+                                           {"path", required_argument, 0, 'p'},
+                                           {"device", required_argument, 0, 'd'},
                                            {"help", no_argument, 0, 'h'},
                                            {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "e:b:l:w:i:m:c:s:h", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "e:b:l:w:i:m:c:s:p:d:h", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -410,8 +399,8 @@ TrainingConfig parse_args(int argc, char *argv[])
                 config.learning_rate = std::atof(optarg);
                 if (config.learning_rate <= 0.0f)
                 {
-                    logw("Invalid learning_rate: {}. Using default: 0.0005", optarg);
-                    config.learning_rate = 0.0005f;
+                    logw("Invalid learning_rate: {}. Using default: 0.0001", optarg);
+                    config.learning_rate = 0.0001f;
                 }
                 break;
             case 'w':
@@ -444,6 +433,12 @@ TrainingConfig parse_args(int argc, char *argv[])
             case 's':
                 config.random_seed = std::atoi(optarg);
                 break;
+            case 'p':
+                config.data_dir = optarg;
+                break;
+            case 'd':
+                config.device_id = std::atoi(optarg);
+                break;
             case 'h':
                 usage(argv[0]);
                 std::exit(0);
@@ -464,34 +459,44 @@ int main(int argc, char *argv[])
     // 解析命令行参数
     TrainingConfig config = parse_args(argc, argv);
 
-    // 设置随机种子
     std::srand(config.random_seed);
 
-    // 检测并选择设备（GPU优先，如果没有GPU则使用CPU）
+    // Auto: prefer CUDA if available
+    int device_id = config.device_id;
+    if (device_id == -2)
+    {
+        device_id = cuda::is_available() ? 0 : -1;
+    }
+
     Device device(DeviceType::kCPU);
-#ifdef WITH_CUDA
-    if (cuda::is_available())
+    bool use_gpu = (device_id >= 0);
+    if (use_gpu)
     {
-        device = Device(DeviceType::kCUDA, 0);
-        logi("CUDA is available. Using GPU for training.");
-        logi("CUDA device count: {}", cuda::device_count());
+        if (!cuda::is_available())
+        {
+            loge("CUDA is not available on this system.");
+            return 1;
+        }
+        int device_count = cuda::device_count();
+        if (device_id >= device_count)
+        {
+            loge("Invalid GPU device ID: {}. Available devices: 0-{}", device_id, device_count - 1);
+            return 1;
+        }
+        device = Device(DeviceType::kCUDA, device_id);
+        cuda::set_device(device_id);
+        cuda::device_info();
     }
-    else
-    {
-        logw("CUDA is not available. Using CPU for training.");
-    }
-#else
-    logi("CUDA support not compiled. Using CPU for training.");
-#endif
+
+    loga("Use Device: {}", device.to_string());
 
     logi("=== MNIST Handwritten Digit Recognition with CNN ===");
-    logi("Device: {}", device.to_string());
     config.print();
 
     // 加载数据集
     logi("Loading MNIST dataset...");
-    MNIST train_dataset("./data/mnist", true);  // 训练集
-    MNIST test_dataset("./data/mnist", false);  // 测试集
+    MNIST train_dataset(config.data_dir, true);  // 训练集
+    MNIST test_dataset(config.data_dir, false);  // 测试集
 
     logi("Train dataset size: {}", train_dataset.size());
     logi("Test dataset size: {}", test_dataset.size());
@@ -503,7 +508,7 @@ int main(int argc, char *argv[])
     // 创建模型
     logi("Creating CNN model...");
     SimpleCNN model;
-    model.to(device);  // 将模型移到指定设备
+    model.to(device);
     logi("Model created with {} parameters", model.parameters().size());
 
     // 创建优化器
@@ -513,7 +518,6 @@ int main(int argc, char *argv[])
     WeightDecay weight_decay(config.weight_decay_rate);
     optimizer.register_hook(weight_decay.hook());
 
-    // 训练循环
     logi("Starting training...");
     for (int epoch = 0; epoch < config.max_epoch; ++epoch)
     {
@@ -526,6 +530,8 @@ int main(int argc, char *argv[])
         int train_correct = 0;
         int train_total   = 0;
 
+        // 在每个 epoch 开始时调用 reset()，清空并重新生成索引列表, 随机打乱索引。
+        // 确保每个 epoch 都能遍历完整的训练集，且数据顺序不同，有助于模型训练。
         train_loader.reset();
         // while (train_loader.has_next() && train_batches < 10)
         while (train_loader.has_next())  // 完整训练：训练整个 epoch
@@ -539,7 +545,7 @@ int main(int argc, char *argv[])
 
                 // 前向传播
                 auto y    = model(x);
-                auto loss = softmax_cross_entropy(y, t);
+                auto loss = F::softmax_cross_entropy(y, t);
 
                 // 先提取loss和准确率（在反向传播前，避免计算图累积）
                 float loss_value       = loss.item<float>();
@@ -568,18 +574,14 @@ int main(int argc, char *argv[])
                 // 定期清理CUDA内存碎片
                 if (train_batches % 100 == 0 && device.type() == DeviceType::kCUDA)
                 {
-#ifdef WITH_CUDA
-                    cudaDeviceSynchronize();
-#endif
+                    cuda::synchronize();
                 }
 
                 train_correct += static_cast<int>(acc_value * static_cast<float>(current_batch_size));
                 train_total += current_batch_size;
                 train_loss += loss_value;
                 train_batches++;
-                // train_iter_count++;  // 快速测试模式计数（已注释）
 
-                // 根据log_interval控制打印频率
                 if (train_batches % config.log_interval == 0)
                 {
                     float avg_loss = train_loss / train_batches;
@@ -603,13 +605,11 @@ int main(int argc, char *argv[])
         int test_batches = 0;
         int test_correct = 0;
         int test_total   = 0;
-        // 快速测试模式（已注释，恢复完整测试）
-        // const int max_test_iters = 5;  // 快速测试：只测试5个批次
 
         {
             auto guard = no_grad();  // 测试时禁用梯度计算
             test_loader.reset();
-            // int test_iter_count = 0;  // 快速测试模式计数（已注释）
+
             while (test_loader.has_next())  // 完整测试：测试整个测试集
             {
                 {
@@ -619,22 +619,13 @@ int main(int argc, char *argv[])
                     x = x.to(device);
                     t = t.to(device);
 
-                    // 将 targets 从 float 转换为 int32_t 类型（softmax_cross_entropy 需要）
-                    auto t_float_data = t.to(Device(DeviceType::kCPU)).to_vector<float>();
-                    std::vector<int32_t> t_int32_data(t_float_data.size());
-                    for (size_t i = 0; i < t_float_data.size(); ++i)
-                    {
-                        t_int32_data[i] = static_cast<int32_t>(t_float_data[i]);
-                    }
-                    auto t_int32 = Tensor(t_int32_data, t.shape(), dtype(DataType::kInt32).device(device));
-
-                    // 前向传播（不需要梯度，已在no_grad作用域内）
+                    //在 no_grad 作用域内, 无梯度计算, 前向传播
                     auto y         = model(x);
-                    auto loss      = softmax_cross_entropy(y, t_int32);
+                    auto loss      = F::softmax_cross_entropy(y, t);
                     float loss_val = loss.item<float>();
 
                     // 使用accuracy函数计算准确率
-                    auto acc               = accuracy(y, t_int32);
+                    auto acc               = accuracy(y, t);
                     float acc_value        = acc.item<float>();
                     int current_batch_size = static_cast<int>(x.shape()[0]);
 
@@ -643,9 +634,7 @@ int main(int argc, char *argv[])
                     test_total += current_batch_size;
                     test_loss += loss_val;
                     test_batches++;
-                    // test_iter_count++;  // 快速测试模式计数（已注释）
 
-                    // 根据log_interval控制打印频率
                     if (test_batches % config.log_interval == 0)
                     {
                         float avg_test_loss_so_far = test_loss / test_batches;
@@ -671,10 +660,8 @@ int main(int argc, char *argv[])
         {
             try
             {
-                // 确保 checkpoint 目录存在（忽略返回值）
                 std::string ckpt_dir = config.checkpoint_dir();
                 (void)system(("mkdir -p " + ckpt_dir).c_str());
-
                 std::string checkpoint_path = ckpt_dir + "/checkpoint_epoch_" + std::to_string(epoch + 1) + ".ckpt";
 
                 Checkpoint checkpoint;
@@ -705,10 +692,9 @@ int main(int argc, char *argv[])
     logi("Saving model to {}...", config.model_path);
     try
     {
-        // 确保 model 目录存在（忽略返回值）
         (void)system("mkdir -p model");
 
-        model.eval();  // 设置为评估模式
+        model.eval();
         save(model.state_dict(), config.model_path);
         logi("Model saved successfully to {}", config.model_path);
     }
@@ -750,22 +736,13 @@ int main(int argc, char *argv[])
                     x = x.to(device);
                     t = t.to(device);
 
-                    // 将 targets 从 float 转换为 int32_t 类型（softmax_cross_entropy 需要）
-                    auto t_float_data = t.to(Device(DeviceType::kCPU)).to_vector<float>();
-                    std::vector<int32_t> t_int32_data(t_float_data.size());
-                    for (size_t i = 0; i < t_float_data.size(); ++i)
-                    {
-                        t_int32_data[i] = static_cast<int32_t>(t_float_data[i]);
-                    }
-                    auto t_int32 = Tensor(t_int32_data, t.shape(), dtype(DataType::kInt32).device(device));
-
                     // 使用加载的模型进行前向传播
                     auto y         = loaded_model(x);
-                    auto loss      = softmax_cross_entropy(y, t_int32);
+                    auto loss      = F::softmax_cross_entropy(y, t);
                     float loss_val = loss.item<float>();
 
                     // 使用accuracy函数计算准确率
-                    auto acc               = accuracy(y, t_int32);
+                    auto acc               = accuracy(y, t);
                     float acc_value        = acc.item<float>();
                     int current_batch_size = static_cast<int>(x.shape()[0]);
 

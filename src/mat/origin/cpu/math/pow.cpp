@@ -1,5 +1,7 @@
 #include <cmath>
-#include <stdexcept>
+#include <memory>
+#include "origin/mat/basic_types.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/scalar.h"
 #include "origin/utils/exception.h"
@@ -13,57 +15,58 @@ std::unique_ptr<OriginMat> pow(const OriginMat &mat, const Scalar &exponent)
 {
     auto result = std::make_unique<OriginMat>(mat.shape(), mat.dtype());
 
-    switch (mat.dtype())
-    {
-        case DataType::kFloat32:
+    const void *a_data = mat.storage()->data();
+    void *c_data       = result->storage()->data();
+
+    device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
+        const T *input_data = static_cast<const T *>(a_data);
+        T *output_data      = static_cast<T *>(c_data);
+
+        if (exponent.dtype() == DataType::kFloat64)
         {
-            const float *a_data = mat.data_ptr<float>();
-            float *c_data       = result->data_ptr<float>();
-            float exp           = exponent.to_float32();
+            double exp_value = exponent.to_float64();
             for (size_t i = 0; i < mat.elements(); ++i)
             {
-                c_data[i] = std::pow(a_data[i], exp);
+                output_data[i] = static_cast<T>(std::pow(static_cast<double>(input_data[i]), exp_value));
             }
-            break;
         }
-        case DataType::kFloat64:
+        else
         {
-            const double *a_data = mat.data_ptr<double>();
-            double *c_data       = result->data_ptr<double>();
-            double exp           = exponent.to_float64();
+            float exp_value = exponent.to_float32();
             for (size_t i = 0; i < mat.elements(); ++i)
             {
-                c_data[i] = std::pow(a_data[i], exp);
+                output_data[i] = static_cast<T>(powf(static_cast<float>(input_data[i]), exp_value));
             }
-            break;
         }
-        case DataType::kInt32:
-        {
-            const int32_t *a_data = mat.data_ptr<int32_t>();
-            int32_t *c_data       = result->data_ptr<int32_t>();
-            int32_t exp           = exponent.to_int32();
-            for (size_t i = 0; i < mat.elements(); ++i)
-            {
-                c_data[i] = static_cast<int32_t>(std::pow(static_cast<double>(a_data[i]), static_cast<double>(exp)));
-            }
-            break;
-        }
-        case DataType::kInt8:
-        {
-            const int8_t *a_data = mat.data_ptr<int8_t>();
-            int8_t *c_data       = result->data_ptr<int8_t>();
-            int8_t exp           = exponent.to_int8();
-            for (size_t i = 0; i < mat.elements(); ++i)
-            {
-                c_data[i] = static_cast<int8_t>(std::pow(static_cast<double>(a_data[i]), static_cast<double>(exp)));
-            }
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for power operation", dtype_to_string(mat.dtype()));
-    }
+    });
 
     return result;
+}
+
+void pow_inplace(OriginMat &mat, const Scalar &exponent)
+{
+    void *data = mat.storage()->data();
+
+    device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
+        T *data_ptr = static_cast<T *>(data);
+
+        if (exponent.dtype() == DataType::kFloat64)
+        {
+            double exp_value = exponent.to_float64();
+            for (size_t i = 0; i < mat.elements(); ++i)
+            {
+                data_ptr[i] = static_cast<T>(std::pow(static_cast<double>(data_ptr[i]), exp_value));
+            }
+        }
+        else
+        {
+            float exp_value = exponent.to_float32();
+            for (size_t i = 0; i < mat.elements(); ++i)
+            {
+                data_ptr[i] = static_cast<T>(powf(static_cast<float>(data_ptr[i]), exp_value));
+            }
+        }
+    });
 }
 
 }  // namespace cpu

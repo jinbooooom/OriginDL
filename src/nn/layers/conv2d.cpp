@@ -4,6 +4,7 @@
 #include "origin/core/operator.h"
 #include "origin/mat/scalar.h"
 #include "origin/operators/conv/conv2d.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -25,24 +26,24 @@ Conv2d::Conv2d(int in_channels,
       use_bias_(bias)
 {
     // 验证参数有效性
-    if (in_channels <= 0)
+    if (unlikely(in_channels <= 0))
     {
         THROW_INVALID_ARG("Conv2d: in_channels must be positive, but got {}", in_channels);
     }
-    if (out_channels <= 0)
+    if (unlikely(out_channels <= 0))
     {
         THROW_INVALID_ARG("Conv2d: out_channels must be positive, but got {}", out_channels);
     }
-    if (kernel_size.first <= 0 || kernel_size.second <= 0)
+    if (unlikely(kernel_size.first <= 0 || kernel_size.second <= 0))
     {
         THROW_INVALID_ARG("Conv2d: kernel_size must be positive, but got ({}, {})", kernel_size.first,
                           kernel_size.second);
     }
-    if (stride.first <= 0 || stride.second <= 0)
+    if (unlikely(stride.first <= 0 || stride.second <= 0))
     {
         THROW_INVALID_ARG("Conv2d: stride must be positive, but got ({}, {})", stride.first, stride.second);
     }
-    if (pad.first < 0 || pad.second < 0)
+    if (unlikely(pad.first < 0 || pad.second < 0))
     {
         THROW_INVALID_ARG("Conv2d: pad must be non-negative, but got ({}, {})", pad.first, pad.second);
     }
@@ -84,7 +85,7 @@ Parameter Conv2d::init_weight()
 
     // 确保scaled_weight有正确的shape
     auto scaled_shape = scaled_weight.shape();
-    if (scaled_shape.elements() == 0)
+    if (unlikely(scaled_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR("Conv2d init_weight: scaled_weight has empty shape!");
     }
@@ -94,7 +95,7 @@ Parameter Conv2d::init_weight()
 
     // 验证Parameter的shape
     auto w_shape = w.shape();
-    if (w_shape.elements() == 0)
+    if (unlikely(w_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR(
             "Conv2d init_weight: Parameter w has empty shape after construction! scaled_weight.shape() = {}",
@@ -130,20 +131,20 @@ Tensor Conv2d::forward(const Tensor &input)
 {
     // 检查weight_的状态
     auto w_shape = weight_.shape();
-    if (w_shape.elements() == 0)
+    if (unlikely(w_shape.elements() == 0))
     {
         THROW_RUNTIME_ERROR("Conv2d weight is empty in forward! weight_.shape() = {}", w_shape.to_string());
     }
 
     // 验证输入形状
     auto input_shape = input.shape();
-    if (input_shape.size() != 4)
+    if (unlikely(input_shape.size() != 4))
     {
         THROW_RUNTIME_ERROR("Conv2d forward: input must be 4D (N, C, H, W), but got shape {}", input_shape.to_string());
     }
 
     // 验证输入通道数是否匹配
-    if (input_shape[1] != static_cast<size_t>(in_channels_))
+    if (unlikely(input_shape[1] != static_cast<size_t>(in_channels_)))
     {
         THROW_RUNTIME_ERROR(
             "Conv2d forward: input channel mismatch - input has {} channels, but layer expects {} channels",
@@ -153,7 +154,7 @@ Tensor Conv2d::forward(const Tensor &input)
     // 调用conv2d算子
     // 如果使用偏置，传递bias_的指针；否则传递nullptr
     const Tensor *bias_ptr = use_bias_ ? &static_cast<const Tensor &>(bias_) : nullptr;
-    auto output            = conv2d(input, static_cast<const Tensor &>(weight_), bias_ptr, stride_, pad_);
+    auto output            = functional::conv2d(input, static_cast<const Tensor &>(weight_), bias_ptr, stride_, pad_);
 
     return output;
 }

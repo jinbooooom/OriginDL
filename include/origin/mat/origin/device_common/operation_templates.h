@@ -26,15 +26,7 @@ struct AddOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            // 布尔类型不支持加法，使用逻辑OR作为替代
-            return a || b;
-        }
-        else
-        {
-            return a + b;  // 对于数值类型使用加法
-        }
+        return a + b;
     }
 };
 
@@ -46,15 +38,7 @@ struct DivideOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            // 布尔类型不支持除法操作
-            THROW_UNSUPPORTED("Division is not supported for boolean tensors");
-        }
-        else
-        {
-            return a / b;  // 对于数值类型使用除法
-        }
+        return a / b;
     }
 };
 
@@ -66,14 +50,7 @@ struct SquareOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T value) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            return value && value;  // 对于布尔类型使用逻辑AND
-        }
-        else
-        {
-            return value * value;  // 对于数值类型使用乘法
-        }
+        return value * value;
     }
 };
 
@@ -85,15 +62,7 @@ struct SubtractOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            // 布尔类型不支持减法，使用逻辑异或 (XOR) 作为替代
-            return a != b;
-        }
-        else
-        {
-            return a - b;  // 对于数值类型使用减法
-        }
+        return a - b;
     }
 };
 
@@ -105,15 +74,7 @@ struct MultiplyOp
     template <typename T>
     ORIGIN_HOST_DEVICE T operator()(T a, T b) const
     {
-        if constexpr (std::is_same_v<T, bool>)
-        {
-            // 布尔类型乘法等同于逻辑AND
-            return a && b;
-        }
-        else
-        {
-            return a * b;  // 对于数值类型使用乘法
-        }
+        return a * b;
     }
 };
 
@@ -178,6 +139,96 @@ struct NegOp
 };
 
 /**
+ * @brief ReLU 操作
+ */
+struct ReLUOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value) const
+    {
+        return (value > T(0)) ? value : T(0);
+    }
+};
+
+/**
+ * @brief 等于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct EqualOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
+    {
+        return (a == b) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 不等于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct NotEqualOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
+    {
+        return (a != b) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 小于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct LessThanOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
+    {
+        return (value < threshold) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 小于等于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct LessEqualOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
+    {
+        return (value <= threshold) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 大于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct GreaterThanOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
+    {
+        return (value > threshold) ? T(1) : T(0);
+    }
+};
+
+/**
+ * @brief 大于等于操作（用于比较运算，返回mask）
+ * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
+ */
+struct GreaterEqualOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value, T threshold) const
+    {
+        return (value >= threshold) ? T(1) : T(0);
+    }
+};
+
+/**
  * @brief 轴求和操作
  * @details 提供模板化的轴求和实现，减少重复的类型处理代码
  */
@@ -215,6 +266,9 @@ public:
             }
 
             // 构建源索引
+            // 判断是否是keepdim：如果输出和输入维度数相同，说明是keepdim=true
+            bool is_keepdim = (src_shape.size() == dst_shape.size());
+
             for (size_t i = 0; i < src_shape.size(); ++i)
             {
                 if (i == static_cast<size_t>(axis))
@@ -224,8 +278,18 @@ public:
                 else
                 {
                     // 找到对应的输出维度索引
-                    size_t output_dim = (i < static_cast<size_t>(axis)) ? i : i - 1;
-                    src_indices[i]    = dst_indices[output_dim];
+                    size_t output_dim;
+                    if (is_keepdim)
+                    {
+                        // keepdim=true时，输出和输入维度对应，axis位置在输出中是1
+                        output_dim = i;  // 直接对应
+                    }
+                    else
+                    {
+                        // keepdim=false时，输出移除了axis维度
+                        output_dim = (i < static_cast<size_t>(axis)) ? i : i - 1;
+                    }
+                    src_indices[i] = dst_indices[output_dim];
                 }
             }
 
@@ -297,6 +361,32 @@ public:
             for (size_t j = 0; j < cols; ++j)
             {
                 dst_data[j * rows + i] = src_data[i * cols + j];
+            }
+        }
+    }
+
+    /**
+     * @brief 执行高维张量转置（转置最后两个维度）
+     * @tparam T 数据类型
+     * @param src 输入数据指针
+     * @param dst 输出数据指针
+     * @param last_dim 最后一个维度大小
+     * @param second_last_dim 倒数第二个维度大小
+     * @param outer_elements 外层元素数量
+     */
+    template <typename T>
+    static void transpose_nd(const T *src, T *dst, size_t last_dim, size_t second_last_dim, size_t outer_elements)
+    {
+        for (size_t outer = 0; outer < outer_elements; ++outer)
+        {
+            for (size_t i = 0; i < second_last_dim; ++i)
+            {
+                for (size_t j = 0; j < last_dim; ++j)
+                {
+                    size_t src_idx = outer * (last_dim * second_last_dim) + i * last_dim + j;
+                    size_t dst_idx = outer * (last_dim * second_last_dim) + j * second_last_dim + i;
+                    dst[dst_idx]   = src[src_idx];
+                }
             }
         }
     }

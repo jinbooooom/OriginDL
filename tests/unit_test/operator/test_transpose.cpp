@@ -7,6 +7,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 /**
  * @brief 转置算子测试类（参数化版本）
  */
@@ -20,7 +21,7 @@ TEST_P(TransposeOperatorTest, ForwardBasic)
     // 测试基本转置运算,行主序
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -34,7 +35,7 @@ TEST_P(TransposeOperatorTest, Forward3x2Matrix)
     // 测试3x2矩阵转置
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{2, 3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -50,7 +51,7 @@ TEST_P(TransposeOperatorTest, ForwardSquareMatrix)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, Shape{3, 3},
                     dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{3, 3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -65,7 +66,7 @@ TEST_P(TransposeOperatorTest, ForwardOneDimensional)
     // 测试一维张量
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -77,7 +78,7 @@ TEST_P(TransposeOperatorTest, ForwardZeroTensor)
     // 测试零张量
     auto x = Tensor::zeros(Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -92,10 +93,10 @@ TEST_P(TransposeOperatorTest, BackwardBasic)
     // 测试基本反向传播
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = transpose(x);
+    auto y = F::transpose(x);
     y.backward();
 
-    // 转置算子的梯度：∂y/∂x = transpose(gy)
+    // 转置算子的梯度：∂y/∂x = F::transpose(gy)
     // 梯度应该是转置后的结果（gy=1时，梯度=1）
     auto expected_grad = Tensor::ones(Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, origin::test::TestTolerance::kDefault);
@@ -106,7 +107,7 @@ TEST_P(TransposeOperatorTest, BackwardWithGradient)
     // 测试带梯度的反向传播
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = transpose(x);
+    auto y = F::transpose(x);
     y.backward();
 
     // 梯度会累积
@@ -119,7 +120,7 @@ TEST_P(TransposeOperatorTest, Backward3x2Matrix)
     // 测试3x2矩阵的反向传播
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = transpose(x);
+    auto y = F::transpose(x);
     y.backward();
 
     // 梯度应该是转置后的结果（gy=1时，梯度=1）
@@ -132,7 +133,7 @@ TEST_P(TransposeOperatorTest, BackwardOneDimensional)
     // 测试一维张量的反向传播
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y = transpose(x);
+    auto y = F::transpose(x);
     y.backward();
 
     auto expected_grad = Tensor::ones(Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
@@ -146,7 +147,7 @@ TEST_P(TransposeOperatorTest, SingleElement)
     // 测试单元素张量
     auto x = Tensor({5.0f}, Shape{1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{1, 1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -159,7 +160,7 @@ TEST_P(TransposeOperatorTest, LargeMatrix)
     std::vector<float> data(100, 1.0f);
     auto x = Tensor(data, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -174,7 +175,7 @@ TEST_P(TransposeOperatorTest, ThreeDimensional)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2, 2},
                     dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -199,7 +200,7 @@ TEST_P(TransposeOperatorTest, NumericalStability)
     // 测试数值稳定性
     auto x = Tensor({1e10f, 1e-10f, 1e10f, 1e-10f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -214,7 +215,7 @@ TEST_P(TransposeOperatorTest, PrecisionTest)
     // 测试精度
     auto x = Tensor({0.1f, 0.2f, 0.3f, 0.4f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -230,7 +231,7 @@ TEST_P(TransposeOperatorTest, MixedSigns)
     // 测试混合符号
     auto x = Tensor({1.0f, -2.0f, 3.0f, -4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(x);
+    auto result = F::transpose(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -241,34 +242,34 @@ TEST_P(TransposeOperatorTest, MixedSigns)
 
 TEST_P(TransposeOperatorTest, IdentityProperty)
 {
-    // 测试恒等性质：transpose(transpose(x)) = x
+    // 测试恒等性质：F::transpose(F::transpose(x)) = x
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = transpose(transpose(x));
+    auto result = F::transpose(F::transpose(x));
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(TransposeOperatorTest, CommutativeProperty)
 {
-    // 测试交换性质：transpose(x + y) = transpose(x) + transpose(y)
+    // 测试交换性质：F::transpose(x + y) = F::transpose(x) + F::transpose(y)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto y = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result1 = transpose(x + y);
-    auto result2 = transpose(x) + transpose(y);
+    auto result1 = F::transpose(x + y);
+    auto result2 = F::transpose(x) + F::transpose(y);
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, result2, origin::test::TestTolerance::kDefault);
 }
 
 TEST_P(TransposeOperatorTest, AssociativeProperty)
 {
-    // 测试结合性质：transpose(x * y) = transpose(y) * transpose(x)
+    // 测试结合性质：F::transpose(x * y) = F::transpose(y) * F::transpose(x)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto y = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result1 = transpose(x * y);
-    auto result2 = transpose(y) * transpose(x);
+    auto result1 = F::transpose(x * y);
+    auto result2 = F::transpose(y) * F::transpose(x);
 
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, result2, origin::test::TestTolerance::kDefault);
 }

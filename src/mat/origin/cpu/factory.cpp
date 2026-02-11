@@ -1,5 +1,7 @@
+#include <memory>
 #include <random>
-#include <stdexcept>
+#include <type_traits>
+#include "origin/mat/basic_types.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
@@ -10,7 +12,42 @@ namespace origin
 {
 namespace cpu
 {
-// TODO:未来删除 switch case 语句，使用 TypeDispatcher 进行类型分发。
+
+namespace
+{
+
+/**
+ * @brief 生成随机数的辅助函数
+ * @tparam T 数据类型
+ * @param data 数据指针
+ * @param elements 元素数量
+ * @param gen 随机数生成器
+ */
+template <typename T>
+void fill_randn_impl(T *data, size_t elements, std::mt19937 &gen)
+{
+    if constexpr (std::is_floating_point_v<T>)
+    {
+        // 浮点类型：直接使用对应类型的正态分布
+        std::normal_distribution<T> dist(T(0), T(1));
+        for (size_t i = 0; i < elements; ++i)
+        {
+            data[i] = dist(gen);
+        }
+    }
+    else
+    {
+        // 整数类型：使用 float 分布然后转换
+        std::normal_distribution<float> dist(0.0f, 1.0f);
+        for (size_t i = 0; i < elements; ++i)
+        {
+            data[i] = static_cast<T>(dist(gen));
+        }
+    }
+}
+
+}  // namespace
+
 std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &options)
 {
     auto result = std::make_unique<OriginMat>(shape, options.dtype());
@@ -18,51 +55,10 @@ std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &option
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    switch (options.dtype())
-    {
-        case DataType::kFloat32:
-        {
-            std::normal_distribution<float> dist(0.0f, 1.0f);
-            float *data = result->data_ptr<float>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = dist(gen);
-            }
-            break;
-        }
-        case DataType::kFloat64:
-        {
-            std::normal_distribution<double> dist(0.0, 1.0);
-            double *data = result->data_ptr<double>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = dist(gen);
-            }
-            break;
-        }
-        case DataType::kInt32:
-        {
-            std::normal_distribution<float> dist(0.0f, 1.0f);
-            int32_t *data = result->data_ptr<int32_t>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = static_cast<int32_t>(dist(gen));
-            }
-            break;
-        }
-        case DataType::kInt8:
-        {
-            std::normal_distribution<float> dist(0.0f, 1.0f);
-            int8_t *data = result->data_ptr<int8_t>();
-            for (size_t i = 0; i < shape.elements(); ++i)
-            {
-                data[i] = static_cast<int8_t>(dist(gen));
-            }
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for randn operation", dtype_to_string(options.dtype()));
-    }
+    void *data = result->storage()->data();
+
+    device_common::TypeDispatcher::dispatch_void(
+        options.dtype(), [&]<typename T>() { fill_randn_impl<T>(static_cast<T *>(data), shape.elements(), gen); });
 
     return result;
 }

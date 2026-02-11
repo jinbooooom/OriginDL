@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "origin/mat/basic_types.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -29,7 +30,7 @@ Device parse_device_string(const std::string &device_str)
     trimmed.erase(0, trimmed.find_first_not_of(" \t"));
     trimmed.erase(trimmed.find_last_not_of(" \t") + 1);
 
-    if (trimmed.empty())
+    if (unlikely(trimmed.empty()))
     {
         THROW_INVALID_ARG("Empty device string provided. Expected one of: cpu, cuda, cuda:0, cuda:1, etc.");
     }

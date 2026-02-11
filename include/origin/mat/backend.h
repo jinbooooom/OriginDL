@@ -9,20 +9,15 @@
 
 // 支持多种后端选择
 #ifdef MAT_BACKEND
-#    if MAT_BACKEND == 1  // TORCH
+#    if MAT_BACKEND == 0  // ORIGIN（默认）
+#        include "origin/origin_mat.h"
+#    elif MAT_BACKEND == 1  // TORCH
 #        include <torch/torch.h>
 #        include "torch/torch_mat.h"
-#    elif MAT_BACKEND == 2  // ORIGIN
-#        include "origin/origin_mat.h"
-#    elif MAT_BACKEND == 3       // EIGEN
-#        include "eigen_mat.h"   // 未来扩展
-#    elif MAT_BACKEND == 4       // CUSTOM
-#        include "custom_mat.h"  // 未来扩展
 #    endif
 #else
-// 默认使用TORCH后端
-#    include <torch/torch.h>
-#    include "torch/torch_mat.h"
+// 默认使用ORIGIN后端
+#    include "origin/origin_mat.h"
 #endif
 
 namespace origin
@@ -30,19 +25,15 @@ namespace origin
 
 // 根据后端选择对应的Mat类型
 #ifdef MAT_BACKEND
-#    if MAT_BACKEND == 1  // TORCH
-using Mat_t = TorchMat;
-#    elif MAT_BACKEND == 2  // ORIGIN
+#    if MAT_BACKEND == 0  // ORIGIN（默认）
 using Mat_t = OriginMat;
-#    elif MAT_BACKEND == 3  // EIGEN
-using Mat_t = EigenMat;  // 未来扩展
-#    elif MAT_BACKEND == 4  // CUSTOM
-using Mat_t = CustomMat;  // 未来扩展
+#    elif MAT_BACKEND == 1  // TORCH
+using Mat_t = TorchMat;
 #    else
-using Mat_t = TorchMat;  // 默认使用TorchMat
+using Mat_t = OriginMat;  // 默认使用OriginMat
 #    endif
 #else
-using Mat_t = TorchMat;  // 默认使用TorchMat
+using Mat_t = OriginMat;  // 默认使用OriginMat
 #endif
 
 }  // namespace origin

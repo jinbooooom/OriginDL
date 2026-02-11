@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include "origin/core/tensor.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -21,13 +22,13 @@ static std::string read_string(std::ifstream &in)
 {
     size_t len;
     in.read(reinterpret_cast<char *>(&len), sizeof(len));
-    if (in.fail())
+    if (unlikely(in.fail()))
     {
         THROW_RUNTIME_ERROR("Failed to read string length from file");
     }
     std::string str(len, '\0');
     in.read(&str[0], len);
-    if (in.fail())
+    if (unlikely(in.fail()))
     {
         THROW_RUNTIME_ERROR("Failed to read string data from file");
     }

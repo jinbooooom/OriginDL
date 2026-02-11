@@ -1,5 +1,6 @@
 #include "origin/nn/models/mlp.h"
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -10,7 +11,7 @@ namespace nn
 MLP::MLP(const std::vector<int> &hidden_sizes, std::function<Tensor(const Tensor &)> activation)
     : activation_(activation)
 {
-    if (hidden_sizes.size() < 2)
+    if (unlikely(hidden_sizes.size() < 2))
     {
         THROW_INVALID_ARG("MLP requires at least 2 layer sizes (input and output), but got {}", hidden_sizes.size());
     }
@@ -35,7 +36,7 @@ MLP::MLP(const std::vector<int> &hidden_sizes, std::function<Tensor(const Tensor
     // 如果没有指定激活函数，默认使用relu
     if (!activation_)
     {
-        activation_ = [](const Tensor &x) { return relu(x); };
+        activation_ = [](const Tensor &x) { return functional::relu(x); };
     }
 }
 

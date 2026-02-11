@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <random>
 #include "origin/core/tensor.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -34,7 +35,7 @@ void DataLoader::reset_indices()
 
 std::pair<Tensor, Tensor> DataLoader::next()
 {
-    if (!has_next())
+    if (unlikely(!has_next()))
     {
         // 对于空数据集，抛出异常或返回特殊值
         // 实际使用中，应该在调用 next() 之前检查 has_next()
@@ -47,15 +48,33 @@ std::pair<Tensor, Tensor> DataLoader::next()
 
     // 收集批次数据
     std::vector<std::vector<float>> batch_images;
-    std::vector<float> batch_labels;
     batch_images.reserve(actual_batch_size);
-    batch_labels.reserve(actual_batch_size);
 
-    // 获取第一个样本以确定输入维度
+    // 为了与 PyTorch 行为更一致，这里根据标签 dtype 决定批次标签的 dtype：
+    // - 如果标签是整型（int64/int32/int8/uint8），则批次标签使用 int64（LongTensor 语义）
+    // - 否则保持为 float32
+    // 这样对于分类任务（如 MNIST），DataLoader 会直接返回整型标签张量，后续
+    // softmax_cross_entropy / accuracy / gather 等算子可以直接消费整型 indices。
+    std::vector<int64_t> batch_labels_int;
+    std::vector<float> batch_labels_float;
+
+    // 获取第一个样本以确定输入维度和标签类型
     size_t first_idx                = indices_[current_index_];
     auto [first_image, first_label] = dataset_->get_item(first_idx);
     auto first_image_shape          = first_image.shape();
     size_t input_size               = first_image_shape.elements();  // 输入的总元素数（例如 784 或 1）
+    auto first_label_dtype          = first_label.dtype();
+
+    bool use_int_labels = (first_label_dtype == DataType::kInt64 || first_label_dtype == DataType::kInt32 ||
+                           first_label_dtype == DataType::kInt8 || first_label_dtype == DataType::kUInt8);
+    if (use_int_labels)
+    {
+        batch_labels_int.reserve(actual_batch_size);
+    }
+    else
+    {
+        batch_labels_float.reserve(actual_batch_size);
+    }
 
     for (size_t i = 0; i < actual_batch_size; ++i)
     {
@@ -74,7 +93,34 @@ std::pair<Tensor, Tensor> DataLoader::next()
         batch_images.push_back(image_data);
 
         // 将标签添加到批次
-        batch_labels.push_back(label.item<float>());
+        if (use_int_labels)
+        {
+            // 分类任务：统一转换为 int64，语义与 PyTorch 的 LongTensor 一致
+            switch (label.dtype())
+            {
+                case DataType::kInt64:
+                    batch_labels_int.push_back(label.item<int64_t>());
+                    break;
+                case DataType::kInt32:
+                    batch_labels_int.push_back(static_cast<int64_t>(label.item<int32_t>()));
+                    break;
+                case DataType::kInt8:
+                    batch_labels_int.push_back(static_cast<int64_t>(label.item<int8_t>()));
+                    break;
+                case DataType::kUInt8:
+                    batch_labels_int.push_back(static_cast<int64_t>(label.item<uint8_t>()));
+                    break;
+                default:
+                    // 理论上不会到这里（因为 use_int_labels 已经过滤），但为了安全加一层保护
+                    batch_labels_int.push_back(static_cast<int64_t>(label.item<float>()));
+                    break;
+            }
+        }
+        else
+        {
+            // 非整型标签（例如回归任务），保持 float32 语义
+            batch_labels_float.push_back(label.item<float>());
+        }
     }
 
     // 创建批次张量
@@ -89,7 +135,8 @@ std::pair<Tensor, Tensor> DataLoader::next()
     auto inputs = Tensor(inputs_flat, input_shape, dtype(DataType::kFloat32));
 
     // targets: (batch_size,)
-    auto targets = Tensor(batch_labels, Shape{actual_batch_size}, dtype(DataType::kFloat32));
+    Tensor targets = use_int_labels ? Tensor(batch_labels_int, Shape{actual_batch_size}, dtype(DataType::kInt64))
+                                    : Tensor(batch_labels_float, Shape{actual_batch_size}, dtype(DataType::kFloat32));
 
     // 更新当前索引
     current_index_ += actual_batch_size;

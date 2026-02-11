@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include "origin/core/tensor.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -30,53 +31,44 @@ MNIST::MNIST(const std::string &root, bool train) : train_(train), root_(root)
         labels_file = root_ + "/t10k-labels-idx1-ubyte";
     }
 
-    // 如果文件不存在，自动调用下载脚本
-    if (!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file))
-    {
-        std::cout << "MNIST data files not found. Running download script..." << std::endl;
-
-        // 获取脚本路径（相对于当前工作目录）
-        std::filesystem::path script_path = std::filesystem::current_path() / "scripts" / "download_mnist.sh";
-
-        // 检查脚本是否存在
-        if (!std::filesystem::exists(script_path))
-        {
-            THROW_RUNTIME_ERROR(
-                "MNIST data files not found and download script not found at: {}\n"
-                "Please ensure the script exists or download the data manually.",
-                script_path.string());
-        }
-
-        // 调用下载脚本
-        std::string cmd = "bash " + script_path.string();
-        int ret         = std::system(cmd.c_str());
-
-        if (ret != 0)
-        {
-            THROW_RUNTIME_ERROR(
-                "Failed to download MNIST dataset. Download script returned error code: {}\n"
-                "Please run the script manually: bash scripts/download_mnist.sh",
-                ret);
-        }
-
-        // 再次检查文件是否存在
-        if (!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file))
-        {
-            THROW_RUNTIME_ERROR(
-                "MNIST data files still not found after running download script.\n"
-                "Expected files: {} and {}",
-                images_file, labels_file);
-        }
-
-        std::cout << "MNIST dataset downloaded successfully." << std::endl;
-    }
+    // Dataset 仅负责加载，用户自行调用下载脚本
+    // if (!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file))
+    // {
+    //     std::cout << "MNIST data files not found. Running download script..." << std::endl;
+    //
+    //     std::filesystem::path script_path = std::filesystem::current_path() / "scripts" / "download_mnist.sh";
+    //     if (unlikely(!std::filesystem::exists(script_path)))
+    //     {
+    //         THROW_RUNTIME_ERROR(
+    //             "MNIST data files not found and download script not found at: {}\n"
+    //             "Please ensure the script exists or download the data manually.",
+    //             script_path.string());
+    //     }
+    //     std::string cmd = "bash " + script_path.string();
+    //     int ret         = std::system(cmd.c_str());
+    //     if (unlikely(ret != 0))
+    //     {
+    //         THROW_RUNTIME_ERROR(
+    //             "Failed to download MNIST dataset. Download script returned error code: {}\n"
+    //             "Please run the script manually: bash scripts/download_mnist.sh",
+    //             ret);
+    //     }
+    //     if (unlikely(!std::filesystem::exists(images_file) || !std::filesystem::exists(labels_file)))
+    //     {
+    //         THROW_RUNTIME_ERROR(
+    //             "MNIST data files still not found after running download script.\n"
+    //             "Expected files: {} and {}",
+    //             images_file, labels_file);
+    //     }
+    //     std::cout << "MNIST dataset downloaded successfully." << std::endl;
+    // }
 
     // 加载数据
-    if (!load_images(images_file))
+    if (unlikely(!load_images(images_file)))
     {
         THROW_RUNTIME_ERROR("Failed to load MNIST images from: {}", images_file);
     }
-    if (!load_labels(labels_file))
+    if (unlikely(!load_labels(labels_file)))
     {
         THROW_RUNTIME_ERROR("Failed to load MNIST labels from: {}", labels_file);
     }
@@ -174,7 +166,7 @@ bool MNIST::load_labels(const std::string &filepath)
 
 std::pair<Tensor, Tensor> MNIST::get_item(size_t index)
 {
-    if (index >= size())
+    if (unlikely(index >= size()))
     {
         THROW_INVALID_ARG("Index {} out of range for MNIST dataset with {} samples", index, size());
     }
@@ -182,8 +174,12 @@ std::pair<Tensor, Tensor> MNIST::get_item(size_t index)
     // 创建图像张量 (784,)
     auto image = Tensor(images_[index], Shape{784}, dtype(DataType::kFloat32));
 
-    // 创建标签张量 (标量)
-    auto label = Tensor({static_cast<float>(labels_[index])}, Shape{}, dtype(DataType::kFloat32));
+    // 创建标签张量 (标量, 使用 int64)
+    // 这里使用 int64 是为了与 PyTorch 中 MNIST / CrossEntropyLoss 对 target 的约定保持一致，
+    // 即分类标签使用 LongTensor（int64），后续 loss / accuracy / gather 等算子可以直接消费整型标签。
+    std::vector<int64_t> label_data(1);
+    label_data[0] = static_cast<int64_t>(labels_[index]);
+    auto label    = Tensor(label_data, Shape{}, dtype(DataType::kInt64));
 
     return std::make_pair(image, label);
 }

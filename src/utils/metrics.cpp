@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -13,15 +14,15 @@ Tensor accuracy(const Tensor &y, const Tensor &target)
     auto target_shape = target.shape();
 
     // 验证输入形状
-    if (y_shape.size() != 2)
+    if (unlikely(y_shape.size() != 2))
     {
         THROW_INVALID_ARG("accuracy expects y to be 2D (N, C), but got shape {}", y_shape.to_string());
     }
-    if (target_shape.size() != 1)
+    if (unlikely(target_shape.size() != 1))
     {
         THROW_INVALID_ARG("accuracy expects target to be 1D (N,), but got shape {}", target_shape.to_string());
     }
-    if (y_shape[0] != target_shape[0])
+    if (unlikely(y_shape[0] != target_shape[0]))
     {
         THROW_INVALID_ARG("accuracy: batch size mismatch. y has {} samples, target has {} samples", y_shape[0],
                           target_shape[0]);

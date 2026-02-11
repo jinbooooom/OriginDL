@@ -24,6 +24,9 @@ include_directories(${GTEST_INCLUDE_DIRS})
 # 设置单元测试输出目录
 set(UNIT_TEST_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/unit_test)
 
+# 添加公共测试工具库
+add_subdirectory(common)
+
 # 添加Tensor基础测试
 add_executable(test_tensor_create tensor/test_create_tensor.cpp)
 add_dependencies(test_tensor_create gtest gtest_main origindl test_utils gtest_utils)
@@ -36,7 +39,7 @@ target_link_libraries(test_tensor_create
 )
 target_include_directories(test_tensor_create PRIVATE
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/tests/common
+    ${CMAKE_SOURCE_DIR}/tests/unit_test/common
     ${GTEST_INCLUDE_DIRS}
 )
 set_target_properties(test_tensor_create PROPERTIES
@@ -48,7 +51,7 @@ set_target_properties(test_tensor_create PROPERTIES
 add_executable(test_no_grad core/test_no_grad.cpp)
 add_dependencies(test_no_grad gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_no_grad ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_no_grad PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_no_grad PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_no_grad PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -58,7 +61,7 @@ set_target_properties(test_no_grad PROPERTIES
 add_executable(test_dataset data/test_dataset.cpp)
 add_dependencies(test_dataset gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_dataset ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_dataset PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_dataset PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_dataset PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -68,7 +71,7 @@ set_target_properties(test_dataset PROPERTIES
 add_executable(test_dataloader data/test_dataloader.cpp)
 add_dependencies(test_dataloader gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_dataloader ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_dataloader PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_dataloader PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_dataloader PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -87,7 +90,7 @@ target_link_libraries(test_multi_type_tensor
 )
 target_include_directories(test_multi_type_tensor PRIVATE
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/tests/common
+    ${CMAKE_SOURCE_DIR}/tests/unit_test/common
     ${GTEST_INCLUDE_DIRS}
 )
 set_target_properties(test_multi_type_tensor PROPERTIES
@@ -108,7 +111,7 @@ target_link_libraries(test_tensor_options
 )
 target_include_directories(test_tensor_options PRIVATE
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/tests/common
+    ${CMAKE_SOURCE_DIR}/tests/unit_test/common
     ${GTEST_INCLUDE_DIRS}
 )
 set_target_properties(test_tensor_options PROPERTIES
@@ -121,7 +124,7 @@ set_target_properties(test_tensor_options PROPERTIES
 add_executable(test_tensor_attributes tensor/test_tensor_attributes.cpp)
 add_dependencies(test_tensor_attributes gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_tensor_attributes ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_tensor_attributes PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_tensor_attributes PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_tensor_attributes PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -132,8 +135,19 @@ set_target_properties(test_tensor_attributes PROPERTIES
 add_executable(test_tensor_operations tensor/test_tensor_operations.cpp)
 add_dependencies(test_tensor_operations gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_tensor_operations ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_tensor_operations PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_tensor_operations PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_tensor_operations PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+# 添加张量索引操作测试
+add_executable(test_tensor_index tensor/test_tensor_index.cpp)
+add_dependencies(test_tensor_index gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_tensor_index ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_tensor_index PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_tensor_index PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
@@ -144,7 +158,7 @@ set_target_properties(test_tensor_operations PROPERTIES
 add_executable(test_add operator/test_add.cpp)
 add_dependencies(test_add gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_add ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_add PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_add PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_add PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -154,7 +168,7 @@ set_target_properties(test_add PROPERTIES
 add_executable(test_sub operator/test_sub.cpp)
 add_dependencies(test_sub gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_sub ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_sub PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_sub PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_sub PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -164,7 +178,7 @@ set_target_properties(test_sub PROPERTIES
 add_executable(test_mul operator/test_mul.cpp)
 add_dependencies(test_mul gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_mul ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_mul PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_mul PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_mul PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -174,7 +188,7 @@ set_target_properties(test_mul PROPERTIES
 add_executable(test_div operator/test_div.cpp)
 add_dependencies(test_div gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_div ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_div PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_div PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_div PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -185,7 +199,7 @@ set_target_properties(test_div PROPERTIES
 add_executable(test_neg operator/test_neg.cpp)
 add_dependencies(test_neg gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_neg ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_neg PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_neg PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_neg PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -195,7 +209,7 @@ set_target_properties(test_neg PROPERTIES
 add_executable(test_square operator/test_square.cpp)
 add_dependencies(test_square gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_square ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_square PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_square PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_square PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -205,7 +219,7 @@ set_target_properties(test_square PROPERTIES
 add_executable(test_exp operator/test_exp.cpp)
 add_dependencies(test_exp gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_exp ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_exp PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_exp PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_exp PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -215,7 +229,7 @@ set_target_properties(test_exp PROPERTIES
 add_executable(test_log operator/test_log.cpp)
 add_dependencies(test_log gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_log ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_log PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_log PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_log PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -225,8 +239,18 @@ set_target_properties(test_log PROPERTIES
 add_executable(test_softmax operator/test_softmax.cpp)
 add_dependencies(test_softmax gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_softmax ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_softmax PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_softmax PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_softmax PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_compare operator/test_compare.cpp)
+add_dependencies(test_compare gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_compare ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_compare PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_compare PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
@@ -235,7 +259,7 @@ set_target_properties(test_softmax PROPERTIES
 add_executable(test_relu operator/test_relu.cpp)
 add_dependencies(test_relu gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_relu ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_relu PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_relu PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_relu PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -245,7 +269,7 @@ set_target_properties(test_relu PROPERTIES
 add_executable(test_sigmoid operator/test_sigmoid.cpp)
 add_dependencies(test_sigmoid gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_sigmoid ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_sigmoid PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_sigmoid PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_sigmoid PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -255,7 +279,7 @@ set_target_properties(test_sigmoid PROPERTIES
 add_executable(test_silu operator/test_silu.cpp)
 add_dependencies(test_silu gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_silu ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_silu PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_silu PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_silu PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -265,7 +289,7 @@ set_target_properties(test_silu PROPERTIES
 add_executable(test_upsample operator/test_upsample.cpp)
 add_dependencies(test_upsample gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_upsample ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_upsample PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_upsample PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_upsample PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -275,8 +299,18 @@ set_target_properties(test_upsample PROPERTIES
 add_executable(test_cat operator/test_cat.cpp)
 add_dependencies(test_cat gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_cat ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_cat PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_cat PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_cat PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_split operator/test_split.cpp)
+add_dependencies(test_split gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_split ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_split PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_split PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
@@ -285,8 +319,18 @@ set_target_properties(test_cat PROPERTIES
 add_executable(test_avg_pool2d operator/test_avg_pool2d.cpp)
 add_dependencies(test_avg_pool2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_avg_pool2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_avg_pool2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_avg_pool2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_avg_pool2d PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_batch_norm_operator operator/test_batch_norm.cpp)
+add_dependencies(test_batch_norm_operator gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_batch_norm_operator ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_batch_norm_operator PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_batch_norm_operator PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
@@ -295,7 +339,7 @@ set_target_properties(test_avg_pool2d PROPERTIES
 add_executable(test_max_pool2d operator/test_max_pool2d.cpp)
 add_dependencies(test_max_pool2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_max_pool2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_max_pool2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_max_pool2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_max_pool2d PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -305,7 +349,7 @@ set_target_properties(test_max_pool2d PROPERTIES
 add_executable(test_softmax_cross_entropy operator/test_softmax_cross_entropy.cpp)
 add_dependencies(test_softmax_cross_entropy gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_softmax_cross_entropy ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_softmax_cross_entropy PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_softmax_cross_entropy PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_softmax_cross_entropy PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -315,7 +359,7 @@ set_target_properties(test_softmax_cross_entropy PROPERTIES
 add_executable(test_accuracy utils/test_accuracy.cpp)
 add_dependencies(test_accuracy gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_accuracy ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_accuracy PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_accuracy PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_accuracy PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -325,7 +369,7 @@ set_target_properties(test_accuracy PROPERTIES
 add_executable(test_adam optim/test_adam.cpp)
 add_dependencies(test_adam gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_adam ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_adam PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_adam PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_adam PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -335,7 +379,7 @@ set_target_properties(test_adam PROPERTIES
 add_executable(test_weight_decay optim/test_weight_decay.cpp)
 add_dependencies(test_weight_decay gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_weight_decay ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_weight_decay PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_weight_decay PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_weight_decay PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -345,7 +389,7 @@ set_target_properties(test_weight_decay PROPERTIES
 add_executable(test_mlp nn/test_mlp.cpp)
 add_dependencies(test_mlp gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_mlp ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_mlp PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_mlp PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_mlp PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -356,7 +400,7 @@ set_target_properties(test_mlp PROPERTIES
 add_executable(test_checkpoint io/test_checkpoint.cpp)
 add_dependencies(test_checkpoint gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_checkpoint ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_checkpoint PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_checkpoint PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_checkpoint PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -366,7 +410,7 @@ set_target_properties(test_checkpoint PROPERTIES
 add_executable(test_conv2d_layer nn/test_conv2d_layer.cpp)
 add_dependencies(test_conv2d_layer gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_conv2d_layer ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_conv2d_layer PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_conv2d_layer PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_conv2d_layer PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -376,7 +420,7 @@ set_target_properties(test_conv2d_layer PROPERTIES
 add_executable(test_batch_norm nn/test_batch_norm.cpp)
 add_dependencies(test_batch_norm gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_batch_norm ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_batch_norm PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_batch_norm PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_batch_norm PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -386,7 +430,7 @@ set_target_properties(test_batch_norm PROPERTIES
 add_executable(test_dropout nn/test_dropout.cpp)
 add_dependencies(test_dropout gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_dropout ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_dropout PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_dropout PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_dropout PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -396,7 +440,7 @@ set_target_properties(test_dropout PROPERTIES
 add_executable(test_pow operator/test_pow.cpp)
 add_dependencies(test_pow gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_pow ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_pow PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_pow PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_pow PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -407,7 +451,7 @@ set_target_properties(test_pow PROPERTIES
 add_executable(test_adaptive_avg_pool2d operator/test_adaptive_avg_pool2d.cpp)
 add_dependencies(test_adaptive_avg_pool2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_adaptive_avg_pool2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_adaptive_avg_pool2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_adaptive_avg_pool2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_adaptive_avg_pool2d PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -417,7 +461,7 @@ set_target_properties(test_adaptive_avg_pool2d PROPERTIES
 add_executable(test_flatten operator/test_flatten.cpp)
 add_dependencies(test_flatten gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_flatten ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_flatten PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_flatten PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_flatten PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -427,7 +471,7 @@ set_target_properties(test_flatten PROPERTIES
 add_executable(test_linear operator/test_linear.cpp)
 add_dependencies(test_linear gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_linear ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_linear PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_linear PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_linear PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -438,7 +482,7 @@ set_target_properties(test_linear PROPERTIES
 add_executable(test_type_promotion operator/test_type_promotion.cpp)
 add_dependencies(test_type_promotion gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_type_promotion ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_type_promotion PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_type_promotion PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_type_promotion PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -449,7 +493,7 @@ set_target_properties(test_type_promotion PROPERTIES
 add_executable(test_sum operator/test_sum.cpp)
 add_dependencies(test_sum gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_sum ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_sum PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_sum PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_sum PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -459,7 +503,7 @@ set_target_properties(test_sum PROPERTIES
 add_executable(test_sum_to operator/test_sum_to.cpp)
 add_dependencies(test_sum_to gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_sum_to ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_sum_to PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_sum_to PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_sum_to PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -469,7 +513,7 @@ set_target_properties(test_sum_to PROPERTIES
 add_executable(test_broadcast_to operator/test_broadcast_to.cpp)
 add_dependencies(test_broadcast_to gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_broadcast_to ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_broadcast_to PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_broadcast_to PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_broadcast_to PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -480,7 +524,7 @@ set_target_properties(test_broadcast_to PROPERTIES
 add_executable(test_transpose operator/test_transpose.cpp)
 add_dependencies(test_transpose gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_transpose ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_transpose PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_transpose PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_transpose PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -490,7 +534,7 @@ set_target_properties(test_transpose PROPERTIES
 add_executable(test_reshape operator/test_reshape.cpp)
 add_dependencies(test_reshape gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_reshape ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_reshape PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_reshape PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_reshape PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -501,7 +545,7 @@ set_target_properties(test_reshape PROPERTIES
 add_executable(test_matmul operator/test_matmul.cpp)
 add_dependencies(test_matmul gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_matmul ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_matmul PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_matmul PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_matmul PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -511,18 +555,8 @@ set_target_properties(test_matmul PROPERTIES
 add_executable(test_conv2d operator/test_conv2d.cpp)
 add_dependencies(test_conv2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_conv2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_conv2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_conv2d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_conv2d PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
-)
-
-add_executable(test_yolo_detect operator/test_yolo_detect.cpp)
-add_dependencies(test_yolo_detect gtest gtest_main origindl test_utils gtest_utils)
-target_link_libraries(test_yolo_detect ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_yolo_detect PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
-set_target_properties(test_yolo_detect PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
@@ -532,7 +566,7 @@ set_target_properties(test_yolo_detect PROPERTIES
 add_executable(test_linear_regression autograd/test_linear_regression.cpp)
 add_dependencies(test_linear_regression gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_linear_regression ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
-target_include_directories(test_linear_regression PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/common ${GTEST_INCLUDE_DIRS})
+target_include_directories(test_linear_regression PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_linear_regression PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
@@ -552,6 +586,7 @@ add_test(NAME multi_type_tensor_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_multi_
 add_test(NAME tensor_options_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_options)
 add_test(NAME tensor_attributes_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_attributes)
 add_test(NAME tensor_operations_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_operations)
+add_test(NAME tensor_index_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_tensor_index)
 add_test(NAME add_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_add)
 add_test(NAME sub_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sub)
 add_test(NAME mul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_mul)
@@ -566,6 +601,7 @@ add_test(NAME sigmoid_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_sigmoid)
 add_test(NAME silu_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_silu)
 add_test(NAME upsample_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_upsample)
 add_test(NAME cat_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_cat)
+add_test(NAME split_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_split)
 add_test(NAME softmax_cross_entropy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_softmax_cross_entropy)
 add_test(NAME accuracy_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_accuracy)
 add_test(NAME adam_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_adam)
@@ -583,7 +619,7 @@ add_test(NAME transpose_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_transpose)
 add_test(NAME reshape_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_reshape)
 add_test(NAME matmul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_matmul)
 add_test(NAME conv2d_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_conv2d)
-add_test(NAME yolo_detect_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_yolo_detect)
+add_test(NAME batch_norm_operator_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_batch_norm_operator)
 add_test(NAME linear_regression_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_linear_regression)
 
 # 设置测试属性
@@ -592,6 +628,7 @@ set_tests_properties(multi_type_tensor_test PROPERTIES TIMEOUT 60)
 set_tests_properties(tensor_options_test PROPERTIES TIMEOUT 60)
 set_tests_properties(tensor_attributes_test PROPERTIES TIMEOUT 60)
 set_tests_properties(tensor_operations_test PROPERTIES TIMEOUT 60)
+set_tests_properties(tensor_index_test PROPERTIES TIMEOUT 60)
 set_tests_properties(add_test PROPERTIES TIMEOUT 60)
 set_tests_properties(sub_test PROPERTIES TIMEOUT 60)
 set_tests_properties(mul_test PROPERTIES TIMEOUT 60)
@@ -624,7 +661,7 @@ add_custom_target(run_unit_tests
 
 # 添加自定义目标来编译和运行测试
 add_custom_target(test_all
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_tensor_index test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
     DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_conv2d test_mlp test_conv2d_layer test_linear_regression
     COMMENT "Compile and run all unit tests"

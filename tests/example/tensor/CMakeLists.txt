@@ -24,30 +24,8 @@ if(ENABLE_CUDA AND MAT_BACKEND STREQUAL "ORIGIN")
     add_dependencies(${BIN_PREFIX}_tensor_cuda ${MY_LIB_NAME})
     target_link_libraries(${BIN_PREFIX}_tensor_cuda PRIVATE ${MY_LIB_NAME})
     
-    # 编译第四个可执行程序：tensor_cuda_extended (仅在启用CUDA时)
-    add_executable(${BIN_PREFIX}_tensor_cuda_extended tensor_cuda_extended.cpp)
-    add_dependencies(${BIN_PREFIX}_tensor_cuda_extended ${MY_LIB_NAME})
-    target_link_libraries(${BIN_PREFIX}_tensor_cuda_extended PRIVATE ${MY_LIB_NAME})
-    
-    # 编译第五个可执行程序：tensor_cuda_debug (仅在启用CUDA时)
-    add_executable(${BIN_PREFIX}_tensor_cuda_debug tensor_cuda_debug.cpp)
-    add_dependencies(${BIN_PREFIX}_tensor_cuda_debug ${MY_LIB_NAME})
-    target_link_libraries(${BIN_PREFIX}_tensor_cuda_debug PRIVATE ${MY_LIB_NAME})
-    
-    # 编译第六个可执行程序：tensor_cuda_simple (仅在启用CUDA时)
-    add_executable(${BIN_PREFIX}_tensor_cuda_simple tensor_cuda_simple.cpp)
-    add_dependencies(${BIN_PREFIX}_tensor_cuda_simple ${MY_LIB_NAME})
-    target_link_libraries(${BIN_PREFIX}_tensor_cuda_simple PRIVATE ${MY_LIB_NAME})
-    
-    # 编译第七个可执行程序：tensor_cuda_minimal
-    add_executable(${BIN_PREFIX}_tensor_cuda_minimal tensor_cuda_minimal.cpp)
-    add_dependencies(${BIN_PREFIX}_tensor_cuda_minimal ${MY_LIB_NAME})
-    target_link_libraries(${BIN_PREFIX}_tensor_cuda_minimal PRIVATE ${MY_LIB_NAME} originmat_cuda)
-    
     # 如果使用ORIGIN后端，还需要链接CUDA库
     target_link_libraries(${BIN_PREFIX}_tensor_cuda PRIVATE originmat_cuda)
-    target_link_libraries(${BIN_PREFIX}_tensor_cuda_extended PRIVATE originmat_cuda)
-    target_link_libraries(${BIN_PREFIX}_tensor_cuda_debug PRIVATE originmat_cuda)
 endif()
 
 # 设置输出目录
@@ -62,12 +40,6 @@ set_target_properties(${BIN_PREFIX}_tensor_print PROPERTIES
 # 设置CUDA示例的输出目录
 if(ENABLE_CUDA AND MAT_BACKEND STREQUAL "ORIGIN")
     set_target_properties(${BIN_PREFIX}_tensor_cuda PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-    )
-    set_target_properties(${BIN_PREFIX}_tensor_cuda_extended PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
-    )
-    set_target_properties(${BIN_PREFIX}_tensor_cuda_debug PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR}
     )
 endif()

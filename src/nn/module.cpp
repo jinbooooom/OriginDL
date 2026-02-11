@@ -1,5 +1,6 @@
 #include "origin/nn/module.h"
 #include <set>
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
@@ -35,7 +36,7 @@ std::vector<Parameter *> Module::parameters()
 void Module::register_parameter(const std::string &name, Parameter &param)
 {
     // 检查是否已存在
-    if (parameters_.find(name) != parameters_.end())
+    if (unlikely(parameters_.find(name) != parameters_.end()))
     {
         THROW_RUNTIME_ERROR("Parameter '{}' already registered", name);
     }
@@ -45,7 +46,7 @@ void Module::register_parameter(const std::string &name, Parameter &param)
 void Module::register_module(const std::string &name, std::unique_ptr<Module> module)
 {
     // 检查是否已存在
-    if (modules_.find(name) != modules_.end())
+    if (unlikely(modules_.find(name) != modules_.end()))
     {
         THROW_RUNTIME_ERROR("Module '{}' already registered", name);
     }
@@ -137,7 +138,7 @@ void Module::load_state_dict(const StateDict &state_dict, bool strict)
         if (it != state_dict.end())
         {
             // 检查形状是否匹配
-            if (param->shape() != it->second.shape())
+            if (unlikely(param->shape() != it->second.shape()))
             {
                 THROW_RUNTIME_ERROR("Shape mismatch for parameter '{}': expected {}, got {}", name,
                                     param->shape().to_string(), it->second.shape().to_string());
@@ -146,7 +147,7 @@ void Module::load_state_dict(const StateDict &state_dict, bool strict)
             *param = Parameter(it->second);
             loaded_keys.insert(name);
         }
-        else if (strict)
+        else if (unlikely(strict))
         {
             THROW_RUNTIME_ERROR("Missing parameter '{}' in state_dict (strict mode)", name);
         }
@@ -157,7 +158,7 @@ void Module::load_state_dict(const StateDict &state_dict, bool strict)
     {
         for (const auto &[key, value] : state_dict)
         {
-            if (loaded_keys.find(key) == loaded_keys.end())
+            if (unlikely(loaded_keys.find(key) == loaded_keys.end()))
             {
                 THROW_RUNTIME_ERROR("Unexpected parameter '{}' in state_dict (strict mode)", key);
             }

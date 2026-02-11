@@ -1,27 +1,27 @@
 #include "origin/core/operator.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Sum::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Sum operator requires exactly 1 input, but got {}", xs.size());
     }
-    // 使用抽象层进行求和运算
-    auto result = mat(xs[0]).sum(this->axis_);
+    // 使用抽象层进行求和运算，直接传递keepdim参数
+    auto result = mat(xs[0]).sum(this->axis_, this->keepdim_);
     auto y      = convert_mat_to_tensor(std::move(result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(y);
-    return outputs;
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> Sum::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Sum backward requires exactly 1 gradient, but got {}", gys.size());
     }
@@ -32,24 +32,22 @@ std::vector<Tensor> Sum::backward(const std::vector<Tensor> &gys)
     auto x_shape   = x->shape();
     auto gx_result = gy->broadcast_to(x_shape);
     auto gx        = convert_mat_to_tensor(std::move(gx_result));
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor sum(const std::vector<Tensor> &xs)
 {
-    auto op = std::make_shared<Sum>(-1);  // -1 意味着所有元素相加
+    auto op = std::make_shared<Sum>(-1, false);  // -1 意味着所有元素相加
     return (*op)(xs)[0];
 }
 
-Tensor sum(const Tensor &x, int axis)
+Tensor sum(const Tensor &x, int axis, bool keepdim)
 {
-    auto op                    = std::make_shared<Sum>(axis);
+    auto op                    = std::make_shared<Sum>(axis, keepdim);
     std::vector<Tensor> inputs = {x};
     std::vector<Tensor> result = (*op)(inputs);
     return result[0];
 }
 
+}  // namespace functional
 }  // namespace origin

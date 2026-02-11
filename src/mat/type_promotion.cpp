@@ -1,13 +1,14 @@
 #include "origin/mat/type_promotion.h"
 #include <algorithm>
 #include "origin/mat/basic_types.h"
+#include "origin/utils/branch_prediction.h"
 
 namespace origin
 {
 
 bool TypePromotion::needs_promotion(const std::vector<Tensor> &tensors)
 {
-    if (tensors.empty())
+    if (unlikely(tensors.empty()))
     {
         return false;
     }
@@ -17,19 +18,9 @@ bool TypePromotion::needs_promotion(const std::vector<Tensor> &tensors)
                        [first_type](const Tensor &t) { return t.dtype() != first_type; });
 }
 
-bool TypePromotion::needs_promotion(const Tensor &a, const Tensor &b)
-{
-    return a.dtype() != b.dtype();
-}
-
-bool TypePromotion::needs_promotion(DataType a, DataType b)
-{
-    return a != b;
-}
-
 std::vector<Tensor> TypePromotion::promote_tensors(const std::vector<Tensor> &tensors)
 {
-    if (tensors.empty())
+    if (unlikely(tensors.empty()))
     {
         return tensors;
     }
@@ -60,15 +51,9 @@ std::pair<Tensor, Tensor> TypePromotion::promote_tensors(const Tensor &a, const 
     return {to_type(a, promoted_type), to_type(b, promoted_type)};
 }
 
-DataType TypePromotion::promote_types(DataType a, DataType b)
-{
-    // 使用类型提升规则函数
-    return ::origin::promote_types_rule(a, b);
-}
-
 DataType TypePromotion::promote_types(const std::vector<Tensor> &tensors)
 {
-    if (tensors.empty())
+    if (unlikely(tensors.empty()))
     {
         return DataType::kFloat32;  // 默认类型
     }
@@ -82,9 +67,19 @@ DataType TypePromotion::promote_types(const std::vector<Tensor> &tensors)
     return result;
 }
 
-bool TypePromotion::is_type_match(const Tensor &tensor, DataType target_type)
+std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> TypePromotion::promote_tensors_maybe_owned(const Tensor &a,
+                                                                                             const Tensor &b)
 {
-    return tensor.dtype() == target_type;
+    if (!needs_promotion(a, b))
+    {
+        // 类型相同，直接借用，零开销
+        return {MaybeOwned<Tensor>::borrowed(a), MaybeOwned<Tensor>::borrowed(b)};
+    }
+
+    DataType promoted_type = promote_types(a.dtype(), b.dtype());
+
+    // 使用 MaybeOwned 优化：类型匹配时借用，不匹配时拥有
+    return {to_type_maybe_owned(a, promoted_type), to_type_maybe_owned(b, promoted_type)};
 }
 
 Tensor TypePromotion::to_type(const Tensor &tensor, DataType target_type)
@@ -94,6 +89,17 @@ Tensor TypePromotion::to_type(const Tensor &tensor, DataType target_type)
         return tensor;
     }
     return tensor.to(target_type);
+}
+
+MaybeOwned<Tensor> TypePromotion::to_type_maybe_owned(const Tensor &tensor, DataType target_type)
+{
+    if (is_type_match(tensor, target_type))
+    {
+        // 类型匹配，借用引用，零开销（不增加 shared_ptr 引用计数）
+        return MaybeOwned<Tensor>::borrowed(tensor);
+    }
+    // 类型不匹配，创建新对象并拥有所有权
+    return MaybeOwned<Tensor>::owned(tensor.to(target_type));
 }
 
 }  // namespace origin

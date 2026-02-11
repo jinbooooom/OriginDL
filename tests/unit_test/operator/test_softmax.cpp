@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "../../common/device_test_base.h"
-#include "../../common/gtest_utils.h"
-#include "../../common/test_utils.h"
+#include "../common/device_test_base.h"
+#include "../common/gtest_utils.h"
+#include "../common/test_utils.h"
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief Softmax 算子测试类（参数化版本）
@@ -23,13 +24,13 @@ TEST_P(SoftmaxOperatorTest, ForwardBasic)
     // 预期: 每个元素经过 softmax 归一化，和为 1
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = softmax(x);
+    auto result = F::softmax(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
 
     // 验证和为 1
-    auto sum_result = sum(result);
+    auto sum_result = F::sum(result);
     EXPECT_NEAR(sum_result.item<float>(), 1.0f, 1e-5f);
 
     // 验证所有值在 [0, 1] 范围内
@@ -47,7 +48,7 @@ TEST_P(SoftmaxOperatorTest, ForwardTwoDimensional)
     // 输入: [[1.0, 2.0], [3.0, 4.0]]
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = softmax(x);
+    auto result = F::softmax(x);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -67,13 +68,13 @@ TEST_P(SoftmaxOperatorTest, ForwardLargeValues)
     // 应该能正确处理，不会溢出
     auto x = Tensor({100.0f, 101.0f, 102.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = softmax(x);
+    auto result = F::softmax(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
 
     // 验证和为 1
-    auto sum_result = sum(result);
+    auto sum_result = F::sum(result);
     EXPECT_NEAR(sum_result.item<float>(), 1.0f, 1e-4f);
 
     // 验证所有值都是有效的（不是 NaN 或 Inf）
@@ -92,13 +93,13 @@ TEST_P(SoftmaxOperatorTest, ForwardNegativeValues)
     // 测试负值情况
     auto x = Tensor({-1.0f, 0.0f, 1.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = softmax(x);
+    auto result = F::softmax(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
 
     // 验证和为 1
-    auto sum_result = sum(result);
+    auto sum_result = F::sum(result);
     EXPECT_NEAR(sum_result.item<float>(), 1.0f, 1e-5f);
 }
 
@@ -107,7 +108,7 @@ TEST_P(SoftmaxOperatorTest, ForwardEqualValues)
     // 测试所有值相等的情况
     auto x = Tensor({1.0f, 1.0f, 1.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = softmax(x);
+    auto result = F::softmax(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -128,7 +129,7 @@ TEST_P(SoftmaxOperatorTest, BackwardBasic)
     // 测试基本反向传播
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = softmax(x);
+    auto y = F::softmax(x);
     y.backward();
 
     // 验证梯度不为空（通过检查梯度形状）
@@ -140,7 +141,7 @@ TEST_P(SoftmaxOperatorTest, BackwardWithGradient)
     // 测试反向传播
     auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = softmax(x);
+    auto y = F::softmax(x);
     y.backward();
 
     // 验证梯度形状
@@ -153,7 +154,7 @@ TEST_P(SoftmaxOperatorTest, BackwardTwoDimensional)
     auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
                     dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = softmax(x);
+    auto y = F::softmax(x);
     y.backward();
 
     // 验证梯度不为空（通过检查梯度形状）
@@ -167,7 +168,7 @@ TEST_P(SoftmaxOperatorTest, SingleElement)
     // 测试单个元素
     auto x = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = softmax(x);
+    auto result = F::softmax(x);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -184,7 +185,7 @@ TEST_P(SoftmaxOperatorTest, LargeTensor)
     }
     auto x = Tensor(data, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = softmax(x);
+    auto result = F::softmax(x);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -209,7 +210,7 @@ TEST_P(SoftmaxOperatorTest, NumericalStability)
     // 测试数值稳定性：非常大的值
     auto x = Tensor({1000.0f, 1001.0f, 1002.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = softmax(x);
+    auto result = F::softmax(x);
 
     // 验证没有溢出（所有值应该是有效的）
     auto result_data = result.to_vector<float>();
@@ -220,7 +221,7 @@ TEST_P(SoftmaxOperatorTest, NumericalStability)
     }
 
     // 验证和为 1
-    auto sum_result = sum(result);
+    auto sum_result = F::sum(result);
     EXPECT_NEAR(sum_result.item<float>(), 1.0f, 1e-3f);
 }
 

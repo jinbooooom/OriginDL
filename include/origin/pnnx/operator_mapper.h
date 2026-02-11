@@ -2,8 +2,8 @@
 #define __ORIGIN_DL_PNNX_OPERATOR_MAPPER_H__
 
 #include <memory>
-#include "pnnx_node.h"
 #include "../core/operator.h"
+#include "pnnx_node.h"
 
 namespace origin
 {
@@ -83,15 +83,14 @@ private:
     /**
      * @brief 从参数中获取整数值
      */
-    static int get_int_param(const std::map<std::string, Parameter> &params,
-                              const std::string &key, int default_value);
+    static int get_int_param(const std::map<std::string, Parameter> &params, const std::string &key, int default_value);
 
     /**
      * @brief 从参数中获取整数对
      */
     static std::pair<int, int> get_int_pair_param(const std::map<std::string, Parameter> &params,
-                                                   const std::string &key,
-                                                   std::pair<int, int> default_value);
+                                                  const std::string &key,
+                                                  std::pair<int, int> default_value);
 
     /**
      * @brief 从属性中加载权重 Tensor
@@ -103,4 +102,3 @@ private:
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_PNNX_OPERATOR_MAPPER_H__
-

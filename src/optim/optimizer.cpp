@@ -1,4 +1,5 @@
 #include "origin/optim/optimizer.h"
+#include "origin/utils/log.h"
 
 namespace origin
 {
@@ -10,11 +11,9 @@ Optimizer::Optimizer(Module &target) : target_(&target)
 
 void Optimizer::collect_parameters()
 {
-    // 自动收集所有参数
     parameters_ = target_->parameters();
 
-    // 调试：检查收集到的参数数量
-    // std::cout << "   Optimizer::collect_parameters: collected " << parameters_.size() << " parameters" << std::endl;
+    logd("   Optimizer::collect_parameters: collected {} parameters", parameters_.size());
 }
 
 void Optimizer::step()
@@ -36,14 +35,9 @@ void Optimizer::step()
         }
         catch (...)
         {
-            // 没有梯度，跳过
+            logw("   Optimizer::step: no gradient for parameter at {}", static_cast<const void *>(param));
         }
     }
-
-    // 调试：检查找到的参数数量
-    // if (params_with_grad.size() == 0) {
-    //     std::cout << "   Optimizer Debug: no params with grad! total params: " << parameters_.size() << std::endl;
-    // }
 
     // 执行Hook
     for (auto &hook : hooks_)

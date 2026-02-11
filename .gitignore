@@ -8,6 +8,7 @@
 
 data/*
 model/*
+!data/README.md
 !model/README.md
 
 **/exec
@@ -17,6 +18,7 @@ model/*
 **/*.o
 **/*.out
 *.h.gch
+**/__pycache__/*
 compile_commands.json
 originlog/*
 3rd/libtorch/*

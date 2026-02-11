@@ -6,6 +6,8 @@
 
 namespace origin
 {
+namespace functional
+{
 
 /**
  * @brief Conv2d 算子：二维卷积操作
@@ -47,6 +49,7 @@ Tensor conv2d(const Tensor &x,
 
 Tensor conv2d(const Tensor &x, const Tensor &W, const Tensor *b, int stride, int pad);
 
+}  // namespace functional
 }  // namespace origin
 
 #endif  // __ORIGIN_DL_CONV2D_H__

@@ -1,15 +1,9 @@
 #ifndef __ORIGIN_DL_INNER_TYPES_H__
 #define __ORIGIN_DL_INNER_TYPES_H__
 
-#include <memory>
-
 namespace origin
 {
-
-// 前向声明
-class Operator;
-using FunctionPtr = std::shared_ptr<Operator>;
-
+// 此文件保留用于未来可能的内部类型定义
 }  // namespace origin
 
 #endif

@@ -1,13 +1,16 @@
 #include "origin/core/operator.h"
 #include "origin/mat/mat.h"
+#include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
 namespace origin
 {
+namespace functional
+{
 
 std::vector<Tensor> Sigmoid::forward(const std::vector<Tensor> &xs)
 {
-    if (xs.size() != 1)
+    if (unlikely(xs.size() != 1))
     {
         THROW_RUNTIME_ERROR("Sigmoid operator requires exactly 1 input, but got {}", xs.size());
     }
@@ -31,40 +34,31 @@ std::vector<Tensor> Sigmoid::forward(const std::vector<Tensor> &xs)
     // 计算 1 / (1 + exp(-x))
     auto result = ones / one_plus_exp;
 
-    std::vector<Tensor> outputs;
-    outputs.push_back(result);
-    return outputs;
+    // 保存 sigmoid(x) 用于反向传播
+    sigmoid_x_ = result;
+
+    return std::vector<Tensor>{std::move(result)};
 }
 
 std::vector<Tensor> Sigmoid::backward(const std::vector<Tensor> &gys)
 {
-    if (gys.size() != 1)
+    if (unlikely(gys.size() != 1))
     {
         THROW_RUNTIME_ERROR("Sigmoid backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
     // Sigmoid 的梯度：gx = gy * sigmoid(x) * (1 - sigmoid(x))
-    auto &x  = this->inputs_[0];
+    // 直接使用 forward 中保存的 sigmoid_x_
     auto &gy = gys[0];
 
-    // 计算 sigmoid(x)
-    auto sigmoid_x_result = -mat(x);
-    auto neg_x            = convert_mat_to_tensor(std::move(sigmoid_x_result));
-    auto exp_neg_x        = exp(neg_x);
-    auto ones             = Tensor::ones(exp_neg_x.shape(), dtype(exp_neg_x.dtype()).device(exp_neg_x.device()));
-    auto one_plus_exp     = ones + exp_neg_x;
-    auto sigmoid_x        = ones / one_plus_exp;
+    // 计算 1 - sigmoid_x_
+    auto ones              = Tensor::ones(sigmoid_x_.shape(), dtype(sigmoid_x_.dtype()).device(sigmoid_x_.device()));
+    auto one_minus_sigmoid = ones - sigmoid_x_;
 
-    // 计算 1 - sigmoid(x)
-    auto one_minus_sigmoid = ones - sigmoid_x;
-
-    // 计算 gx = gy * sigmoid(x) * (1 - sigmoid(x))
-    auto temp = gy * sigmoid_x;
+    // 计算 gx = gy * sigmoid_x_ * (1 - sigmoid_x_)
+    auto temp = gy * sigmoid_x_;
     auto gx   = temp * one_minus_sigmoid;
-
-    std::vector<Tensor> outputs;
-    outputs.push_back(gx);
-    return outputs;
+    return std::vector<Tensor>{std::move(gx)};
 }
 
 Tensor sigmoid(const Tensor &x)
@@ -73,4 +67,5 @@ Tensor sigmoid(const Tensor &x)
     return (*op)(x);
 }
 
+}  // namespace functional
 }  // namespace origin

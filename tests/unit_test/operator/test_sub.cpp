@@ -6,6 +6,7 @@
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief 减法算子测试类（参数化版本）
@@ -23,7 +24,7 @@ TEST_P(SubOperatorTest, ForwardBasic)
     auto x0 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = sub(x0, x1);
+    auto result = F::sub(x0, x1);
 
     Shape expected_shape{2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -68,7 +69,7 @@ TEST_P(SubOperatorTest, ForwardZeroTensor)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = sub(x0, x1);
+    auto result = F::sub(x0, x1);
 
     // 结果应该等于x0
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, x0, origin::test::TestTolerance::kDefault);
@@ -80,7 +81,7 @@ TEST_P(SubOperatorTest, ForwardNegativeValues)
     auto x0 = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = sub(x0, x1);
+    auto result = F::sub(x0, x1);
 
     auto expected = Tensor({-4.0f, -6.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -94,7 +95,7 @@ TEST_P(SubOperatorTest, BackwardBasic)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({3.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = sub(x0, x1);
+    auto y = F::sub(x0, x1);
     y.backward();
 
     // 减法算子的梯度：∂y/∂x0 = 1, ∂y/∂x1 = -1
@@ -111,7 +112,7 @@ TEST_P(SubOperatorTest, BackwardWithGradient)
     auto x0 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({1.0f, 1.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = sub(x0, x1);
+    auto y = F::sub(x0, x1);
     y.backward();
 
     // 减法算子的梯度：∂y/∂x0 = 1, ∂y/∂x1 = -1
@@ -128,7 +129,7 @@ TEST_P(SubOperatorTest, BackwardDifferentShapes)
     auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     auto x1 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = sub(x0, x1);
+    auto y = F::sub(x0, x1);
     y.backward();
 
     // 梯度应该正确广播
@@ -154,7 +155,7 @@ TEST_P(SubOperatorTest, SingleElement)
     auto x0 = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({3.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = sub(x0, x1);
+    auto result = F::sub(x0, x1);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -169,7 +170,7 @@ TEST_P(SubOperatorTest, LargeTensor)
     auto x0 = Tensor(data1, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor(data2, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = sub(x0, x1);
+    auto result = F::sub(x0, x1);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -187,7 +188,7 @@ TEST_P(SubOperatorTest, ThreeDimensional)
     auto x1 = Tensor({0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f}, Shape{2, 2, 2},
                      dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = sub(x0, x1);
+    auto result = F::sub(x0, x1);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -206,7 +207,7 @@ TEST_P(SubOperatorTest, NumericalStability)
     auto x0 = Tensor({1e10f, 1e-10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({1e-10f, 1e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = sub(x0, x1);
+    auto result = F::sub(x0, x1);
 
     auto expected = Tensor({1e10f, -1e10f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, expected, 1e-3, 1e-3);  // 使用更宽松的容忍度
@@ -218,10 +219,38 @@ TEST_P(SubOperatorTest, PrecisionTest)
     auto x0 = Tensor({0.3f, 0.4f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor({0.1f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = sub(x0, x1);
+    auto result = F::sub(x0, x1);
 
     auto expected = Tensor({0.2f, 0.2f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+// ==================== 原地操作测试 ====================
+
+TEST_P(SubOperatorTest, InplaceBasic)
+{
+    // 测试基本原地减法运算
+    auto x0 = Tensor({5.0f, 6.0f, 7.0f, 8.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    F::sub_(x0, x1);
+
+    auto expected = Tensor({4.0f, 4.0f, 4.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(SubOperatorTest, InplaceZeroTensor)
+{
+    // 测试零张量原地减法
+    auto x0 = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x1 = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    auto x0_original = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    F::sub_(x0, x1);
+
+    // 结果应该等于x0的原始值
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x0, x0_original, origin::test::TestTolerance::kDefault);
 }
 
 // 实例化测试套件：自动为CPU和可用CUDA生成测试

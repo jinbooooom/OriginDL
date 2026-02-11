@@ -31,7 +31,7 @@ namespace visualize
 {
 
 void print_origin_mat(const std::string &desc,
-                      const std::vector<data_t> &data_vec,
+                      const std::vector<float> &data_vec,
                       const std::vector<size_t> &shape,
                       DataType dtype,
                       const std::string &device_str)
@@ -61,7 +61,7 @@ void print_origin_mat(const std::string &desc,
               << ", device=" << format_device(device_str) << ")" << std::endl;
 }
 
-void print_libtorch_style(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape)
+void print_libtorch_style(const std::vector<float> &data_vec, const std::vector<size_t> &shape)
 {
     if (shape.size() <= 2)
     {
@@ -74,7 +74,7 @@ void print_libtorch_style(const std::vector<data_t> &data_vec, const std::vector
     print_slice_format(data_vec, shape);
 }
 
-void print_simple_format(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape)
+void print_simple_format(const std::vector<float> &data_vec, const std::vector<size_t> &shape)
 {
     if (shape.size() == 1)
     {
@@ -128,7 +128,7 @@ void print_simple_format(const std::vector<data_t> &data_vec, const std::vector<
     }
 }
 
-void print_slice_format(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape)
+void print_slice_format(const std::vector<float> &data_vec, const std::vector<size_t> &shape)
 {
     if (shape.size() <= 2)
     {
@@ -157,7 +157,7 @@ void print_slice_format(const std::vector<data_t> &data_vec, const std::vector<s
     print_slice_recursive(data_vec, shape, indices, 0, display_dims);
 }
 
-void print_slice_recursive(const std::vector<data_t> &data_vec,
+void print_slice_recursive(const std::vector<float> &data_vec,
                            const std::vector<size_t> &shape,
                            std::vector<size_t> &indices,
                            size_t current_dim,
@@ -193,7 +193,7 @@ void print_slice_recursive(const std::vector<data_t> &data_vec,
     }
 }
 
-void print_slice_content(const std::vector<data_t> &data_vec,
+void print_slice_content(const std::vector<float> &data_vec,
                          const std::vector<size_t> &shape,
                          const std::vector<size_t> &indices,
                          size_t display_dims)
@@ -304,7 +304,7 @@ void print_slice_content(const std::vector<data_t> &data_vec,
     }
 }
 
-std::string format_element(data_t value, DataType dtype)
+std::string format_element(float value, DataType dtype)
 {
     std::ostringstream oss;
 
@@ -392,7 +392,7 @@ void print_debug_info(const std::string &desc,
     std::cout << "================================" << std::endl;
 }
 
-void print_memory_layout(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape)
+void print_memory_layout(const std::vector<float> &data_vec, const std::vector<size_t> &shape)
 {
     std::cout << "=== Memory Layout ===" << std::endl;
     for (size_t i = 0; i < std::min(data_vec.size(), size_t(20)); ++i)
@@ -406,7 +406,7 @@ void print_memory_layout(const std::vector<data_t> &data_vec, const std::vector<
     std::cout << "====================" << std::endl;
 }
 
-void print_tensor_stats(const std::vector<data_t> &data_vec, const std::vector<size_t> &shape)
+void print_tensor_stats(const std::vector<float> &data_vec, const std::vector<size_t> &shape)
 {
     if (data_vec.empty())
         return;
@@ -473,55 +473,55 @@ std::vector<size_t> calculate_indices_from_linear(size_t linear_index, const std
     return indices;
 }
 
-data_t calculate_sum(const std::vector<data_t> &data_vec)
+float calculate_sum(const std::vector<float> &data_vec)
 {
-    data_t sum = 0;
-    for (data_t value : data_vec)
+    float sum = 0;
+    for (float value : data_vec)
     {
         sum += value;
     }
     return sum;
 }
 
-data_t calculate_mean(const std::vector<data_t> &data_vec)
+float calculate_mean(const std::vector<float> &data_vec)
 {
     if (data_vec.empty())
         return 0;
-    return calculate_sum(data_vec) / static_cast<data_t>(data_vec.size());
+    return calculate_sum(data_vec) / static_cast<float>(data_vec.size());
 }
 
-data_t calculate_max(const std::vector<data_t> &data_vec)
+float calculate_max(const std::vector<float> &data_vec)
 {
     if (data_vec.empty())
         return 0;
     return *std::max_element(data_vec.begin(), data_vec.end());
 }
 
-data_t calculate_min(const std::vector<data_t> &data_vec)
+float calculate_min(const std::vector<float> &data_vec)
 {
     if (data_vec.empty())
         return 0;
     return *std::min_element(data_vec.begin(), data_vec.end());
 }
 
-data_t calculate_std(const std::vector<data_t> &data_vec)
+float calculate_std(const std::vector<float> &data_vec)
 {
     if (data_vec.empty())
         return 0;
 
-    data_t mean     = calculate_mean(data_vec);
-    data_t variance = 0;
-    for (data_t value : data_vec)
+    float mean     = calculate_mean(data_vec);
+    float variance = 0;
+    for (float value : data_vec)
     {
         variance += (value - mean) * (value - mean);
     }
-    variance /= static_cast<data_t>(data_vec.size());
+    variance /= static_cast<float>(data_vec.size());
     return std::sqrt(variance);
 }
 
-std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, DataType dtype)
+std::vector<float> convert_to_vector(const void *data_ptr, size_t elements, DataType dtype)
 {
-    std::vector<data_t> result(elements);
+    std::vector<float> result(elements);
 
     switch (dtype)
     {
@@ -530,7 +530,7 @@ std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, Dat
             const float *data = static_cast<const float *>(data_ptr);
             for (size_t i = 0; i < elements; ++i)
             {
-                result[i] = static_cast<data_t>(data[i]);
+                result[i] = static_cast<float>(data[i]);
             }
             break;
         }
@@ -539,7 +539,7 @@ std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, Dat
             const double *data = static_cast<const double *>(data_ptr);
             for (size_t i = 0; i < elements; ++i)
             {
-                result[i] = static_cast<data_t>(data[i]);
+                result[i] = static_cast<float>(data[i]);
             }
             break;
         }
@@ -548,7 +548,7 @@ std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, Dat
             const int32_t *data = static_cast<const int32_t *>(data_ptr);
             for (size_t i = 0; i < elements; ++i)
             {
-                result[i] = static_cast<data_t>(data[i]);
+                result[i] = static_cast<float>(data[i]);
             }
             break;
         }
@@ -557,7 +557,28 @@ std::vector<data_t> convert_to_vector(const void *data_ptr, size_t elements, Dat
             const int8_t *data = static_cast<const int8_t *>(data_ptr);
             for (size_t i = 0; i < elements; ++i)
             {
-                result[i] = static_cast<data_t>(data[i]);
+                result[i] = static_cast<float>(data[i]);
+            }
+            break;
+        }
+        case DataType::kInt64:
+        {
+            // 支持将 int64 数据转换为 float 向量。
+            // 这里统一转换为 float 主要用于打印、调试和通用 to_vector() 接口，
+            // 真正的计算/索引仍然在算子和 data_ptr<int64_t>() 层面保持整型语义。
+            const int64_t *data = static_cast<const int64_t *>(data_ptr);
+            for (size_t i = 0; i < elements; ++i)
+            {
+                result[i] = static_cast<float>(data[i]);
+            }
+            break;
+        }
+        case DataType::kUInt8:
+        {
+            const uint8_t *data = static_cast<const uint8_t *>(data_ptr);
+            for (size_t i = 0; i < elements; ++i)
+            {
+                result[i] = static_cast<float>(data[i]);
             }
             break;
         }
@@ -592,11 +613,6 @@ Scalar get_scalar_value(const void *data_ptr, DataType dtype)
             const int8_t *data = static_cast<const int8_t *>(data_ptr);
             return Scalar(data[0]);
         }
-        case DataType::kInt16:
-        {
-            const int16_t *data = static_cast<const int16_t *>(data_ptr);
-            return Scalar(data[0]);
-        }
         case DataType::kInt64:
         {
             const int64_t *data = static_cast<const int64_t *>(data_ptr);
@@ -607,32 +623,12 @@ Scalar get_scalar_value(const void *data_ptr, DataType dtype)
             const uint8_t *data = static_cast<const uint8_t *>(data_ptr);
             return Scalar(data[0]);
         }
-        case DataType::kUInt16:
-        {
-            const uint16_t *data = static_cast<const uint16_t *>(data_ptr);
-            return Scalar(data[0]);
-        }
-        case DataType::kUInt32:
-        {
-            const uint32_t *data = static_cast<const uint32_t *>(data_ptr);
-            return Scalar(data[0]);
-        }
-        case DataType::kUInt64:
-        {
-            const uint64_t *data = static_cast<const uint64_t *>(data_ptr);
-            return Scalar(data[0]);
-        }
-        case DataType::kBool:
-        {
-            const bool *data = static_cast<const bool *>(data_ptr);
-            return Scalar(data[0]);
-        }
         default:
             THROW_INVALID_ARG("Unsupported data type {} for scalar value extraction", dtype_to_string(dtype));
     }
 }
 
-void convert_from_vector(const std::vector<data_t> &data_vec, void *data_ptr, DataType dtype)
+void convert_from_vector(const std::vector<float> &data_vec, void *data_ptr, DataType dtype)
 {
     switch (dtype)
     {
@@ -688,15 +684,41 @@ Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b)
         return shape_a;
     }
 
-    // 如果一个是标量，返回另一个的形状
-    if (a.elements() == 1)
+    // 处理标量和单元素张量的广播情况
+    // 标量：shape{}（is_scalar() == true）
+    // 单元素张量：shape{1}、shape{1,1} 等（elements() == 1 但 is_scalar() == false）
+    //
+    // 广播规则：
+    // - 如果一个是标量（shape{}），另一个是单元素张量，返回另一个的形状
+    // - 如果两个都是单元素张量，需要进入复杂广播逻辑计算
+    // - 如果一个是单元素张量，另一个不是，返回另一个的形状
+    bool a_is_scalar         = shape_a.is_scalar();
+    bool b_is_scalar         = shape_b.is_scalar();
+    bool a_is_single_element = (a.elements() == 1);
+    bool b_is_single_element = (b.elements() == 1);
+
+    // 如果一个是真正的标量（shape{}），另一个是单元素张量或标量，返回另一个的形状
+    if (a_is_scalar && (b_is_single_element || b_is_scalar))
     {
         return shape_b;
     }
-    if (b.elements() == 1)
+    if (b_is_scalar && (a_is_single_element || a_is_scalar))
     {
         return shape_a;
     }
+
+    // 如果一个是单元素张量（但不是标量），另一个不是单元素，返回另一个的形状
+    if (a_is_single_element && !b_is_single_element)
+    {
+        return shape_b;
+    }
+    if (b_is_single_element && !a_is_single_element)
+    {
+        return shape_a;
+    }
+
+    // 如果两个都是单元素张量（但不是标量），需要进入复杂广播逻辑
+    // 例如：shape{1} + shape{1,1} 需要计算广播结果
 
     // 复杂广播：计算输出形状
     size_t max_dims = std::max(shape_a.size(), shape_b.size());
@@ -749,7 +771,7 @@ bool validate_indices(const std::vector<size_t> &indices, const std::vector<size
     return true;
 }
 
-bool compare_tensors(const std::vector<data_t> &data1, const std::vector<data_t> &data2, data_t tolerance)
+bool compare_tensors(const std::vector<float> &data1, const std::vector<float> &data2, float tolerance)
 {
     if (data1.size() != data2.size())
         return false;

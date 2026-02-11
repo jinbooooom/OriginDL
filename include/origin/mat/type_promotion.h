@@ -3,6 +3,7 @@
 #include <vector>
 #include "origin/core/tensor.h"
 #include "origin/mat/basic_types.h"
+#include "origin/utils/maybe_owned.h"
 
 namespace origin
 {
@@ -29,7 +30,7 @@ public:
      * @param b 第二个张量
      * @return true如果需要类型提升，false否则
      */
-    static bool needs_promotion(const Tensor &a, const Tensor &b);
+    static inline bool needs_promotion(const Tensor &a, const Tensor &b) { return a.dtype() != b.dtype(); }
 
     /**
      * @brief 检查两个数据类型是否需要类型提升
@@ -37,7 +38,7 @@ public:
      * @param b 第二个数据类型
      * @return true如果需要类型提升，false否则
      */
-    static bool needs_promotion(DataType a, DataType b);
+    static inline bool needs_promotion(DataType a, DataType b) { return a != b; }
 
     /**
      * @brief 对张量列表进行类型提升
@@ -55,12 +56,58 @@ public:
     static std::pair<Tensor, Tensor> promote_tensors(const Tensor &a, const Tensor &b);
 
     /**
+     * @brief 对两个张量进行类型提升（MaybeOwned 优化版本）
+     * @param a 第一个张量
+     * @param b 第二个张量
+     * @return 提升后的张量对（使用 MaybeOwned 优化，类型匹配时零开销）
+     * @details 如果类型匹配，返回借用的引用（不增加引用计数）
+     *          如果类型不匹配，只有需要转换的 tensor 才会创建新对象
+     */
+    static std::pair<MaybeOwned<Tensor>, MaybeOwned<Tensor>> promote_tensors_maybe_owned(const Tensor &a,
+                                                                                         const Tensor &b);
+
+    /**
+     * @brief 类型提升规则
+     * @param a 第一个数据类型
+     * @param b 第二个数据类型
+     * @return 提升后的数据类型
+     * @note 优先级：float64 > float32 > int64 > int32 > int8 > uint8
+     */
+    static inline DataType promote_types_rule(DataType a, DataType b)
+    {
+        // 如果类型相同，直接返回
+        if (a == b)
+            return a;
+
+        // 浮点数优先级最高
+        if (a == DataType::kFloat64 || b == DataType::kFloat64)
+            return DataType::kFloat64;
+        if (a == DataType::kFloat32 || b == DataType::kFloat32)
+            return DataType::kFloat32;
+
+        // 整数类型按精度排序
+        if (a == DataType::kInt64 || b == DataType::kInt64)
+            return DataType::kInt64;
+        if (a == DataType::kInt32 || b == DataType::kInt32)
+            return DataType::kInt32;
+        if (a == DataType::kInt8 || b == DataType::kInt8)
+            return DataType::kInt8;
+
+        // 无符号整数
+        if (a == DataType::kUInt8 || b == DataType::kUInt8)
+            return DataType::kUInt8;
+
+        // 默认返回第一个类型
+        return a;
+    }
+
+    /**
      * @brief 获取两个数据类型的提升类型
      * @param a 第一个数据类型
      * @param b 第二个数据类型
      * @return 提升后的数据类型
      */
-    static DataType promote_types(DataType a, DataType b);
+    static inline DataType promote_types(DataType a, DataType b) { return promote_types_rule(a, b); }
 
     /**
      * @brief 获取张量列表的提升类型
@@ -75,7 +122,10 @@ public:
      * @param target_type 目标类型
      * @return true如果匹配，false否则
      */
-    static bool is_type_match(const Tensor &tensor, DataType target_type);
+    static inline bool is_type_match(const Tensor &tensor, DataType target_type)
+    {
+        return tensor.dtype() == target_type;
+    }
 
     /**
      * @brief 将张量转换为目标类型（如果需要）
@@ -84,53 +134,16 @@ public:
      * @return 转换后的张量
      */
     static Tensor to_type(const Tensor &tensor, DataType target_type);
+
+    /**
+     * @brief 将张量转换为目标类型（MaybeOwned 优化版本）
+     * @param tensor 原始张量
+     * @param target_type 目标类型
+     * @return 转换后的张量（使用 MaybeOwned 优化，类型匹配时零开销）
+     * @details 如果类型匹配，返回借用的引用（不增加引用计数）
+     *          如果类型不匹配，创建新对象并拥有所有权
+     */
+    static MaybeOwned<Tensor> to_type_maybe_owned(const Tensor &tensor, DataType target_type);
 };
-
-/**
- * @brief 类型提升规则
- * @param a 第一个数据类型
- * @param b 第二个数据类型
- * @return 提升后的数据类型
- * @note 优先级：double > float > int64 > int32 > int16 > int8
- */
-inline DataType promote_types_rule(DataType a, DataType b)
-{
-    // 如果类型相同，直接返回
-    if (a == b)
-        return a;
-
-    // 浮点数优先级最高
-    if (a == DataType::kFloat64 || b == DataType::kFloat64)
-        return DataType::kFloat64;
-    if (a == DataType::kFloat32 || b == DataType::kFloat32)
-        return DataType::kFloat32;
-
-    // 整数类型按精度排序
-    if (a == DataType::kInt64 || b == DataType::kInt64)
-        return DataType::kInt64;
-    if (a == DataType::kInt32 || b == DataType::kInt32)
-        return DataType::kInt32;
-    if (a == DataType::kInt16 || b == DataType::kInt16)
-        return DataType::kInt16;
-    if (a == DataType::kInt8 || b == DataType::kInt8)
-        return DataType::kInt8;
-
-    // 无符号整数
-    if (a == DataType::kUInt64 || b == DataType::kUInt64)
-        return DataType::kUInt64;
-    if (a == DataType::kUInt32 || b == DataType::kUInt32)
-        return DataType::kUInt32;
-    if (a == DataType::kUInt16 || b == DataType::kUInt16)
-        return DataType::kUInt16;
-    if (a == DataType::kUInt8 || b == DataType::kUInt8)
-        return DataType::kUInt8;
-
-    // 布尔类型
-    if (a == DataType::kBool || b == DataType::kBool)
-        return DataType::kBool;
-
-    // 默认返回第一个类型
-    return a;
-}
 
 }  // namespace origin

@@ -10,6 +10,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # CUDA支持选项（不设置默认架构，由CUDA子项目自动检测）
 option(ENABLE_CUDA "Enable CUDA support for OriginMat" OFF)
+# cuBLAS支持选项（仅在启用CUDA时有效）
+# 如果用户开启此选项，CUDA子项目将尝试查找cuBLAS库；若找到则启用cuBLAS支持（ENABLE_CUBLAS=ON）
+# 如果用户未开启此选项，无论环境中是否安装cuBLAS，ENABLE_CUBLAS都将为OFF
+# 这样可以测试自定义的 CUDA 内核的性能，而不是使用 cuBLAS 库
+option(USER_USE_CUBLAS "User option to enable cuBLAS" OFF)
 
 set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -41,8 +46,11 @@ elseif(MAT_BACKEND STREQUAL "ORIGIN")
     file(GLOB_RECURSE ORIGIN_CPU_SRCS 
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/cpu/*.cpp
     )
+    # 收集 memory 目录下的源文件
+    file(GLOB ORIGIN_MEMORY_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/src/mat/origin/memory/*.cpp)
     list(APPEND MY_LIB_SRCS ${ORIGIN_SRCS})
     list(APPEND MY_LIB_SRCS ${ORIGIN_CPU_SRCS})
+    list(APPEND MY_LIB_SRCS ${ORIGIN_MEMORY_SRCS})
     
     # 如果启用CUDA，添加CUDA子项目
     if(ENABLE_CUDA)
@@ -54,13 +62,13 @@ endif()
 if(MAT_BACKEND STREQUAL "TORCH")
     add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
 elseif(MAT_BACKEND STREQUAL "ORIGIN")
-    add_definitions(-DMAT_BACKEND=2)  # ORIGIN = 2
+    add_definitions(-DMAT_BACKEND=0)  # ORIGIN = 0
     if(ENABLE_CUDA)
         add_definitions(-DWITH_CUDA)
     endif()
 else()
-    # 默认使用TORCH后端
-    add_definitions(-DMAT_BACKEND=1)  # TORCH = 1
+    # 默认使用ORIGIN后端
+    add_definitions(-DMAT_BACKEND=0)  # ORIGIN = 0
 endif()
 
 # CUDA支持现在由独立的子项目处理
@@ -94,16 +102,12 @@ if(MAT_BACKEND STREQUAL "TORCH")
     message(STATUS "LibTorch libraries: ${TORCH_LIBRARIES}")
 endif()
 
-add_compile_options(-std=c++17 -O2 -Wall -g -ggdb)
+add_compile_options(-std=c++20 -O2 -Wall -g -ggdb)
 # 禁止一些警告
 # add_compile_options(-Wno-unused-variable -Wno-unused-function -Wno-reorder -Wno-format) 
 
 # 根据后端设置输出目录
-if(MAT_BACKEND STREQUAL "TORCH")
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/lib/)
-else()
-    set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib/)
-endif()
+set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/lib/)
 link_directories(${PROJECT_SOURCE_DIR}/3rd/lib)
 
 # 根据后端添加相应的库目录
@@ -159,11 +163,7 @@ else()
 endif()
 
 # 根据后端设置可执行文件输出目录
-if(MAT_BACKEND STREQUAL "TORCH")
-    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/torch_build/bin)
-else()
-    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
-endif()
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/bin)
 
 # 设置传递给测试子目录的变量
 set(ORIGINDL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})

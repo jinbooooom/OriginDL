@@ -1,4 +1,6 @@
-#include <stdexcept>
+#include <memory>
+#include "origin/mat/basic_types.h"
+#include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
@@ -7,6 +9,72 @@ namespace origin
 {
 namespace cpu
 {
+
+namespace
+{
+
+/**
+ * @brief 矩阵乘法核心实现（2D x 2D）
+ * @tparam T 数据类型
+ * @param a_data 矩阵A的数据指针
+ * @param b_data 矩阵B的数据指针
+ * @param c_data 结果矩阵C的数据指针
+ * @param m A的行数
+ * @param n B的列数
+ * @param k A的列数和B的行数
+ */
+template <typename T>
+void matmul_2d_impl(const T *a_data, const T *b_data, T *c_data, size_t m, size_t n, size_t k)
+{
+    for (size_t i = 0; i < m; ++i)
+    {
+        for (size_t j = 0; j < n; ++j)
+        {
+            T sum = T(0);
+            for (size_t k_idx = 0; k_idx < k; ++k_idx)
+            {
+                sum += a_data[i * k + k_idx] * b_data[k_idx * n + j];
+            }
+            c_data[i * n + j] = sum;
+        }
+    }
+}
+
+/**
+ * @brief 矩阵乘法核心实现（3D x 2D）
+ * @tparam T 数据类型
+ * @param a_data 矩阵A的数据指针
+ * @param b_data 矩阵B的数据指针
+ * @param c_data 结果矩阵C的数据指针
+ * @param batch_size 批量大小
+ * @param m A的行数
+ * @param n B的列数
+ * @param k A的列数和B的行数
+ */
+template <typename T>
+void matmul_3d_impl(const T *a_data, const T *b_data, T *c_data, size_t batch_size, size_t m, size_t n, size_t k)
+{
+    for (size_t batch = 0; batch < batch_size; ++batch)
+    {
+        for (size_t i = 0; i < m; ++i)
+        {
+            for (size_t j = 0; j < n; ++j)
+            {
+                T sum = T(0);
+                for (size_t k_idx = 0; k_idx < k; ++k_idx)
+                {
+                    size_t a_idx = batch * m * k + i * k + k_idx;
+                    size_t b_idx = k_idx * n + j;
+                    sum += a_data[a_idx] * b_data[b_idx];
+                }
+                size_t c_idx  = batch * m * n + i * n + j;
+                c_data[c_idx] = sum;
+            }
+        }
+    }
+}
+
+}  // namespace
 
 std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
 {
@@ -69,217 +137,24 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
 
     auto result = std::make_unique<OriginMat>(result_shape, a.dtype());
 
-    switch (a.dtype())
-    {
-        case DataType::kFloat32:
+    const void *a_data = a.storage()->data();
+    const void *b_data = b.storage()->data();
+    void *c_data       = result->storage()->data();
+
+    device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+        const T *a_ptr = static_cast<const T *>(a_data);
+        const T *b_ptr = static_cast<const T *>(b_data);
+        T *c_ptr       = static_cast<T *>(c_data);
+
+        if (a.shape().size() == 2)
         {
-            const float *a_data = a.data_ptr<float>();
-            const float *b_data = b.data_ptr<float>();
-            float *c_data       = result->data_ptr<float>();
-
-            if (a.shape().size() == 2)
-            {
-                // 2D x 2D 矩阵乘法
-                for (size_t i = 0; i < a.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < b.shape()[1]; ++j)
-                    {
-                        float sum = 0.0f;
-                        for (size_t k = 0; k < a.shape()[1]; ++k)
-                        {
-                            sum += a_data[i * a.shape()[1] + k] * b_data[k * b.shape()[1] + j];
-                        }
-                        c_data[i * b.shape()[1] + j] = sum;
-                    }
-                }
-            }
-            else if (a.shape().size() == 3)
-            {
-                // 3D x 2D 矩阵乘法
-                size_t batch_size = a.shape()[0];
-                size_t m          = a.shape()[1];
-                size_t k          = a.shape()[2];
-                size_t n          = b.shape()[1];
-
-                for (size_t batch = 0; batch < batch_size; ++batch)
-                {
-                    for (size_t i = 0; i < m; ++i)
-                    {
-                        for (size_t j = 0; j < n; ++j)
-                        {
-                            float sum = 0.0f;
-                            for (size_t k_idx = 0; k_idx < k; ++k_idx)
-                            {
-                                size_t a_idx = batch * m * k + i * k + k_idx;
-                                size_t b_idx = k_idx * n + j;
-                                sum += a_data[a_idx] * b_data[b_idx];
-                            }
-                            size_t c_idx  = batch * m * n + i * n + j;
-                            c_data[c_idx] = sum;
-                        }
-                    }
-                }
-            }
-            break;
+            matmul_2d_impl<T>(a_ptr, b_ptr, c_ptr, a.shape()[0], b.shape()[1], a.shape()[1]);
         }
-        case DataType::kFloat64:
+        else if (a.shape().size() == 3)
         {
-            const double *a_data = a.data_ptr<double>();
-            const double *b_data = b.data_ptr<double>();
-            double *c_data       = result->data_ptr<double>();
-
-            if (a.shape().size() == 2)
-            {
-                // 2D x 2D 矩阵乘法
-                for (size_t i = 0; i < a.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < b.shape()[1]; ++j)
-                    {
-                        double sum = 0.0;
-                        for (size_t k = 0; k < a.shape()[1]; ++k)
-                        {
-                            sum += a_data[i * a.shape()[1] + k] * b_data[k * b.shape()[1] + j];
-                        }
-                        c_data[i * b.shape()[1] + j] = sum;
-                    }
-                }
-            }
-            else if (a.shape().size() == 3)
-            {
-                // 3D x 2D 矩阵乘法
-                size_t batch_size = a.shape()[0];
-                size_t m          = a.shape()[1];
-                size_t k          = a.shape()[2];
-                size_t n          = b.shape()[1];
-
-                for (size_t batch = 0; batch < batch_size; ++batch)
-                {
-                    for (size_t i = 0; i < m; ++i)
-                    {
-                        for (size_t j = 0; j < n; ++j)
-                        {
-                            double sum = 0.0;
-                            for (size_t k_idx = 0; k_idx < k; ++k_idx)
-                            {
-                                size_t a_idx = batch * m * k + i * k + k_idx;
-                                size_t b_idx = k_idx * n + j;
-                                sum += a_data[a_idx] * b_data[b_idx];
-                            }
-                            size_t c_idx  = batch * m * n + i * n + j;
-                            c_data[c_idx] = sum;
-                        }
-                    }
-                }
-            }
-            break;
+            matmul_3d_impl<T>(a_ptr, b_ptr, c_ptr, a.shape()[0], a.shape()[1], b.shape()[1], a.shape()[2]);
         }
-        case DataType::kInt32:
-        {
-            const int32_t *a_data = a.data_ptr<int32_t>();
-            const int32_t *b_data = b.data_ptr<int32_t>();
-            int32_t *c_data       = result->data_ptr<int32_t>();
-
-            if (a.shape().size() == 2)
-            {
-                // 2D x 2D 矩阵乘法
-                for (size_t i = 0; i < a.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < b.shape()[1]; ++j)
-                    {
-                        int32_t sum = 0;
-                        for (size_t k = 0; k < a.shape()[1]; ++k)
-                        {
-                            sum += a_data[i * a.shape()[1] + k] * b_data[k * b.shape()[1] + j];
-                        }
-                        c_data[i * b.shape()[1] + j] = sum;
-                    }
-                }
-            }
-            else if (a.shape().size() == 3)
-            {
-                // 3D x 2D 矩阵乘法
-                size_t batch_size = a.shape()[0];
-                size_t m          = a.shape()[1];
-                size_t k          = a.shape()[2];
-                size_t n          = b.shape()[1];
-
-                for (size_t batch = 0; batch < batch_size; ++batch)
-                {
-                    for (size_t i = 0; i < m; ++i)
-                    {
-                        for (size_t j = 0; j < n; ++j)
-                        {
-                            int32_t sum = 0;
-                            for (size_t k_idx = 0; k_idx < k; ++k_idx)
-                            {
-                                size_t a_idx = batch * m * k + i * k + k_idx;
-                                size_t b_idx = k_idx * n + j;
-                                sum += a_data[a_idx] * b_data[b_idx];
-                            }
-                            size_t c_idx  = batch * m * n + i * n + j;
-                            c_data[c_idx] = sum;
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        case DataType::kInt8:
-        {
-            const int8_t *a_data = a.data_ptr<int8_t>();
-            const int8_t *b_data = b.data_ptr<int8_t>();
-            int8_t *c_data       = result->data_ptr<int8_t>();
-
-            if (a.shape().size() == 2)
-            {
-                // 2D x 2D 矩阵乘法
-                for (size_t i = 0; i < a.shape()[0]; ++i)
-                {
-                    for (size_t j = 0; j < b.shape()[1]; ++j)
-                    {
-                        int32_t sum = 0;  // 使用int32_t避免溢出
-                        for (size_t k = 0; k < a.shape()[1]; ++k)
-                        {
-                            sum += static_cast<int32_t>(a_data[i * a.shape()[1] + k]) *
-                                   static_cast<int32_t>(b_data[k * b.shape()[1] + j]);
-                        }
-                        c_data[i * b.shape()[1] + j] = static_cast<int8_t>(sum);
-                    }
-                }
-            }
-            else if (a.shape().size() == 3)
-            {
-                // 3D x 2D 矩阵乘法
-                size_t batch_size = a.shape()[0];
-                size_t m          = a.shape()[1];
-                size_t k          = a.shape()[2];
-                size_t n          = b.shape()[1];
-
-                for (size_t batch = 0; batch < batch_size; ++batch)
-                {
-                    for (size_t i = 0; i < m; ++i)
-                    {
-                        for (size_t j = 0; j < n; ++j)
-                        {
-                            int32_t sum = 0;  // 使用int32_t避免溢出
-                            for (size_t k_idx = 0; k_idx < k; ++k_idx)
-                            {
-                                size_t a_idx = batch * m * k + i * k + k_idx;
-                                size_t b_idx = k_idx * n + j;
-                                sum += static_cast<int32_t>(a_data[a_idx]) * static_cast<int32_t>(b_data[b_idx]);
-                            }
-                            size_t c_idx  = batch * m * n + i * n + j;
-                            c_data[c_idx] = static_cast<int8_t>(sum);
-                        }
-                    }
-                }
-            }
-            break;
-        }
-        default:
-            THROW_INVALID_ARG("Unsupported data type {} for matrix multiplication operation",
-                              dtype_to_string(a.dtype()));
-    }
+    });
 
     return result;
 }

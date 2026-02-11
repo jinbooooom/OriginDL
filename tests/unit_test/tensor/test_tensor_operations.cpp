@@ -134,7 +134,7 @@ TEST_P(TensorOperationsTest, ToTensorOptionsConversion)
         EXPECT_EQ(t_cuda.device().type(), DeviceType::kCUDA);
 
         // 比较转换前后的值是否一致（转换为double类型比较）
-        auto original_values  = t_cuda.to_vector<double>();
+        auto original_values  = t_cuda.to(DataType::kFloat64).to_vector<double>();
         auto converted_values = t_cpu.to_vector<double>();
         EXPECT_EQ(original_values.size(), converted_values.size());
         for (size_t i = 0; i < original_values.size(); ++i)
@@ -159,7 +159,7 @@ TEST_P(TensorOperationsTest, ToTensorOptionsConversion)
         EXPECT_EQ(t_cpu.device().type(), DeviceType::kCPU);
 
         // 比较转换前后的值是否一致（转换为double类型比较）
-        auto original_values  = t_cpu.to_vector<double>();
+        auto original_values  = t_cpu.to(DataType::kFloat64).to_vector<double>();
         auto converted_values = t_cuda.to_vector<double>();
         EXPECT_EQ(original_values.size(), converted_values.size());
         for (size_t i = 0; i < original_values.size(); ++i)
@@ -271,8 +271,8 @@ TEST_P(TensorOperationsTest, DataPtrBasic)
     }
     else
     {
-        // CUDA版本：直接获取CUDA张量的指针，使用cudaMemcpy拷贝到CPU内存进行比较
 #ifdef WITH_CUDA
+        // CUDA版本：直接获取CUDA张量的指针，使用cudaMemcpy拷贝到CPU内存进行比较
         float *cuda_ptr = t.data_ptr<float>();
         EXPECT_NE(cuda_ptr, nullptr);
 
@@ -288,7 +288,7 @@ TEST_P(TensorOperationsTest, DataPtrBasic)
         EXPECT_EQ(err, cudaSuccess) << "cudaMemcpy failed: " << cudaGetErrorString(err);
 
         // 同步等待拷贝完成
-        cudaDeviceSynchronize();
+        cuda::synchronize();
 
         // 比较数据
         std::vector<float> expected_data = {1.0f, 2.0f, 3.0f, 4.0f};
@@ -298,7 +298,8 @@ TEST_P(TensorOperationsTest, DataPtrBasic)
             EXPECT_NEAR(cpu_data[i], expected_data[i], origin::test::TestTolerance::kDefault);
         }
 #else
-        GTEST_SKIP() << "CUDA support not compiled in";
+        // TORCH后端或其他后端：跳过CUDA特定测试
+        GTEST_SKIP() << "CUDA support not enabled, skipping CUDA-specific test";
 #endif
     }
 }
@@ -321,8 +322,8 @@ TEST_P(TensorOperationsTest, DataPtrModification)
     }
     else
     {
-        // CUDA版本：使用cudaMemcpy在CPU和GPU之间传输数据
 #ifdef WITH_CUDA
+        // CUDA版本：使用cudaMemcpy在CPU和GPU之间传输数据
         float *cuda_ptr = t.data_ptr<float>();
         EXPECT_NE(cuda_ptr, nullptr);
 
@@ -336,7 +337,7 @@ TEST_P(TensorOperationsTest, DataPtrModification)
         // 从GPU拷贝到CPU
         cudaError_t err = cudaMemcpy(cpu_data.data(), cuda_ptr, data_size, cudaMemcpyDeviceToHost);
         EXPECT_EQ(err, cudaSuccess) << "cudaMemcpy failed: " << cudaGetErrorString(err);
-        cudaDeviceSynchronize();
+        cuda::synchronize();
 
         // 在CPU上修改数据
         cpu_data[0] = 10.0f;
@@ -345,7 +346,7 @@ TEST_P(TensorOperationsTest, DataPtrModification)
         // 从CPU拷贝回GPU
         err = cudaMemcpy(cuda_ptr, cpu_data.data(), data_size, cudaMemcpyHostToDevice);
         EXPECT_EQ(err, cudaSuccess) << "cudaMemcpy failed: " << cudaGetErrorString(err);
-        cudaDeviceSynchronize();
+        cuda::synchronize();
 
         // 验证修改生效：使用to_vector获取数据进行比较
         auto verify_data = t.to_vector<float>();
@@ -353,7 +354,8 @@ TEST_P(TensorOperationsTest, DataPtrModification)
         EXPECT_NEAR(verify_data[0], 10.0f, origin::test::TestTolerance::kDefault);
         EXPECT_NEAR(verify_data[1], 20.0f, origin::test::TestTolerance::kDefault);
 #else
-        GTEST_SKIP() << "CUDA support not compiled in";
+        // TORCH后端或其他后端：跳过CUDA特定测试
+        GTEST_SKIP() << "CUDA support not enabled, skipping CUDA-specific test";
 #endif
     }
 }
@@ -429,9 +431,10 @@ TEST_P(TensorOperationsTest, ToVectorDifferentTypes)
         EXPECT_EQ(vec_i32[i], 1);
     }
 
-    // 测试类型转换：将float32类型的张量转换为int类型的vector
+    // 测试类型转换：将float32类型的张量转换为int32类型的vector（先转换dtype，再dump）
     auto t_float = Tensor({1.5f, 2.7f, 3.2f, 4.9f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
-    auto vec_int = t_float.to_vector<int32_t>();
+    auto t_int   = t_float.to(DataType::kInt32);
+    auto vec_int = t_int.to_vector<int32_t>();
     EXPECT_EQ(vec_int.size(), 4U);
     // 验证转换后的值（浮点数转整数会截断）
     EXPECT_EQ(vec_int[0], 1);  // 1.5 -> 1
@@ -439,9 +442,10 @@ TEST_P(TensorOperationsTest, ToVectorDifferentTypes)
     EXPECT_EQ(vec_int[2], 3);  // 3.2 -> 3
     EXPECT_EQ(vec_int[3], 4);  // 4.9 -> 4
 
-    // 测试将int32类型的张量转换为float类型的vector
-    auto t_int     = Tensor({1, 2, 3, 4}, Shape{2, 2}, dtype(DataType::kInt32).device(deviceType()));
-    auto vec_float = t_int.to_vector<float>();
+    // 测试将int32类型的张量转换为float32类型的vector（先转换dtype，再dump）
+    auto t_int2    = Tensor({1, 2, 3, 4}, Shape{2, 2}, dtype(DataType::kInt32).device(deviceType()));
+    auto t_float2  = t_int2.to(DataType::kFloat32);
+    auto vec_float = t_float2.to_vector<float>();
     EXPECT_EQ(vec_float.size(), 4U);
     for (size_t i = 0; i < vec_float.size(); ++i)
     {

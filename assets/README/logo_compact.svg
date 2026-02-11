@@ -1,0 +1,54 @@
+<svg width="110" height="135" viewBox="45 45 110 135" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mainGradientV3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="pulseV3">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Vertical O shape - thinner, modern look -->
+  <path d="M 100 150 Q 50 100, 100 50" 
+        stroke="url(#mainGradientV3)" 
+        stroke-width="5" 
+        fill="none" 
+        stroke-linecap="round"/>
+  
+  <path d="M 100 50 Q 150 100, 100 150" 
+        stroke="url(#mainGradientV3)" 
+        stroke-width="5" 
+        fill="none" 
+        stroke-linecap="round"/>
+  
+  <!-- Neural network - modern, minimal -->
+  <!-- Input layer nodes -->
+  <circle cx="70" cy="170" r="5" fill="#06B6D4" filter="url(#pulseV3)"/>
+  <circle cx="100" cy="170" r="5" fill="#06B6D4" filter="url(#pulseV3)"/>
+  <circle cx="130" cy="170" r="5" fill="#06B6D4" filter="url(#pulseV3)"/>
+  
+  <!-- Hidden layer nodes -->
+  <circle cx="85" cy="140" r="6" fill="#06B6D4"/>
+  <circle cx="115" cy="140" r="6" fill="#06B6D4"/>
+  
+  <!-- Connection lines - thin and subtle -->
+  <g stroke="#06B6D4" stroke-width="1.5" fill="none" opacity="0.35">
+    <line x1="70" y1="170" x2="85" y2="140"/>
+    <line x1="100" y1="170" x2="85" y2="140"/>
+    <line x1="130" y1="170" x2="85" y2="140"/>
+    <line x1="70" y1="170" x2="115" y2="140"/>
+    <line x1="100" y1="170" x2="115" y2="140"/>
+    <line x1="130" y1="170" x2="115" y2="140"/>
+  </g>
+  
+  <!-- Connection line to O -->
+  <g stroke="#06B6D4" stroke-width="2" fill="none" opacity="0.5">
+    <line x1="100" y1="140" x2="100" y2="150"/>
+  </g>
+</svg>

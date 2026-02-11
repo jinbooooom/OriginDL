@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <vector>
-#include "../../common/device_test_base.h"
-#include "../../common/gtest_utils.h"
-#include "../../common/test_utils.h"
+#include "../common/device_test_base.h"
+#include "../common/gtest_utils.h"
+#include "../common/test_utils.h"
 #include "origin.h"
 
 using namespace origin;
+namespace F = origin::functional;
 
 /**
  * @brief 对数算子测试类（参数化版本）
@@ -21,7 +22,7 @@ TEST_P(LogOperatorTest, ForwardBasic)
     // 测试基本对数运算
     auto x = Tensor({1.0f, std::exp(1.0f), std::exp(2.0f)}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = log(x);
+    auto result = F::log(x);
 
     Shape expected_shape{3};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -35,7 +36,7 @@ TEST_P(LogOperatorTest, ForwardOne)
     // 测试 log(1) = 0
     auto x = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = log(x);
+    auto result = F::log(x);
 
     auto expected = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -46,7 +47,7 @@ TEST_P(LogOperatorTest, ForwardSmallValues)
     // 测试小值
     auto x = Tensor({0.1f, 0.5f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = log(x);
+    auto result = F::log(x);
 
     std::vector<float> expected_data = {static_cast<float>(std::log(0.1)), static_cast<float>(std::log(0.5))};
     auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -58,7 +59,7 @@ TEST_P(LogOperatorTest, ForwardLargeValues)
     // 测试大值
     auto x = Tensor({std::exp(5.0f), std::exp(10.0f)}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = log(x);
+    auto result = F::log(x);
 
     std::vector<float> expected_data = {5.0f, 10.0f};
     auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -73,7 +74,7 @@ TEST_P(LogOperatorTest, BackwardBasic)
     // log(x) 的梯度：∂y/∂x = 1/x
     auto x = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = log(x);
+    auto y = F::log(x);
     y.backward();
 
     // 梯度应该是 1/x
@@ -87,7 +88,7 @@ TEST_P(LogOperatorTest, BackwardWithGradient)
     // 测试带梯度的反向传播
     auto x = Tensor({2.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = log(x);
+    auto y = F::log(x);
     y.backward();
 
     // 梯度应该是 1/x
@@ -101,7 +102,7 @@ TEST_P(LogOperatorTest, BackwardOne)
     // 测试 log(1) 的梯度
     auto x = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
-    auto y = log(x);
+    auto y = F::log(x);
     y.backward();
 
     // log(1) = 0，梯度是 1/1 = 1
@@ -116,7 +117,7 @@ TEST_P(LogOperatorTest, SingleElement)
     // 测试单元素张量
     auto x = Tensor({std::exp(1.0f)}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = log(x);
+    auto result = F::log(x);
 
     Shape expected_shape{1};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -133,7 +134,7 @@ TEST_P(LogOperatorTest, LargeTensor)
     }
     auto x = Tensor(data, Shape{10, 10}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = log(x);
+    auto result = F::log(x);
 
     Shape expected_shape{10, 10};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -153,7 +154,7 @@ TEST_P(LogOperatorTest, ThreeDimensional)
     }
     auto x = Tensor(data, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = log(x);
+    auto result = F::log(x);
 
     Shape expected_shape{2, 2, 2};
     EXPECT_EQ(result.shape(), expected_shape);
@@ -174,7 +175,7 @@ TEST_P(LogOperatorTest, PrecisionTest)
     // 测试精度
     auto x = Tensor({std::exp(0.1f), std::exp(0.2f)}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto result = log(x);
+    auto result = F::log(x);
 
     std::vector<float> expected_data = {0.1f, 0.2f};
     auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
@@ -186,8 +187,8 @@ TEST_P(LogOperatorTest, IdentityProperty)
     // 测试恒等性质：log(exp(x)) = x
     auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto exp_x  = exp(x);
-    auto result = log(exp_x);
+    auto exp_x  = F::exp(x);
+    auto result = F::log(exp_x);
 
     origin::test::GTestUtils::EXPECT_TENSORS_NEAR(result, x, 1e-5, 1e5);
 }
@@ -198,10 +199,62 @@ TEST_P(LogOperatorTest, MonotonicProperty)
     auto x1 = Tensor({1.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
     auto x2 = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
 
-    auto y1 = log(x1);
-    auto y2 = log(x2);
+    auto y1 = F::log(x1);
+    auto y2 = F::log(x2);
 
     EXPECT_LT(y1.item<float>(), y2.item<float>());
+}
+
+// ==================== 类型检查测试 ====================
+
+TEST_P(LogOperatorTest, TypeChecking)
+{
+    // PyTorch的对数算子只支持浮点类型，不支持整型
+    // 测试整型输入应该抛出异常
+    auto x_int32 = Tensor({1, 2, 3}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
+    EXPECT_THROW(F::log(x_int32), std::exception);
+
+    auto x_int64 = Tensor({1L, 2L, 3L}, Shape{3}, dtype(DataType::kInt64).device(deviceType()));
+    EXPECT_THROW(F::log(x_int64), std::exception);
+
+    auto x_int8 = Tensor({1, 2, 3}, Shape{3}, dtype(DataType::kInt8).device(deviceType()));
+    EXPECT_THROW(F::log(x_int8), std::exception);
+
+    // 测试原地操作时整型输入应该抛出异常
+    auto x_int32_inplace = Tensor({1, 2, 3}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
+    EXPECT_THROW(F::log_(x_int32_inplace), std::exception);
+
+    // 测试float64类型应该正常工作
+    auto x_f64  = Tensor({1.0, std::exp(1.0), std::exp(2.0)}, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
+    auto result = F::log(x_f64);
+    std::vector<double> expected_data = {0.0, 1.0, 2.0};
+    auto expected                     = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
+}
+
+// ==================== 原地操作测试 ====================
+
+TEST_P(LogOperatorTest, InplaceBasic)
+{
+    // 测试基本原地对数运算
+    auto x = Tensor({1.0f, std::exp(1.0f), std::exp(2.0f)}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+
+    F::log_(x);
+
+    std::vector<float> expected_data = {0.0f, 1.0f, 2.0f};
+    auto expected                    = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
+}
+
+TEST_P(LogOperatorTest, InplaceOne)
+{
+    // 测试 log(1) = 0 的原地操作
+    auto x = Tensor::ones(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+
+    F::log_(x);
+
+    auto expected = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    origin::test::GTestUtils::EXPECT_TENSORS_EQ(x, expected, origin::test::TestTolerance::kDefault);
 }
 
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
