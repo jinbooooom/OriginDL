@@ -1,32 +1,25 @@
-# 数据集目录
+# 数据目录
 
-本目录用于存放项目运行所需的数据集文件。
+本目录用于存放项目所需数据集。
 
-## 📦 数据下载
+## MNIST 数据集
 
-由于数据文件较大，未包含在 Git 仓库中。请通过以下方式获取：
+训练与测试 MNIST 手写数字识别时，需先下载 MNIST 数据集。
 
-### 方式一：使用下载脚本（推荐）
+### 使用脚本下载
+
+在**项目根目录**下执行：
 
 ```bash
-bash scripts/download_data.sh
+bash scripts/download_mnist.sh
 ```
 
-### 方式二：手动下载
+默认会将数据下载并解压到 `data/mnist/` 目录。
 
-1. 访问 [GitHub Releases](https://github.com/jinbooooom/origindl/releases)
-2. 下载最新版本的 `origindl-data-v1.0.0.tar.gz`
-3. 解压到项目根目录：
-   ```bash
-   tar -xzf origindl-data-v1.0.0.tar.gz
-   ```
+### 指定下载目录
 
-## 📂 目录结构
+若希望下载到其他目录，可使用 `-d` 或 `--dir` 指定：
 
-```
-data/
-├── mnist/          # MNIST 手写数字数据集
-├── imgs/           # 图像数据
-├── labels/         # 标签数据
-└── outputs/        # 输出结果
+```bash
+bash scripts/download_mnist.sh -d ./data/mnist
 ```
