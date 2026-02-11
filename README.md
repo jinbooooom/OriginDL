@@ -1,4 +1,9 @@
-# ![logo](./assets/README/logo.svg)OriginDL: 完全从零开始构建的深度学习框架
+ <p align="center" style="line-height:0; font-size:0">
+   <img src="./assets/README/logo_compact.svg" height="200" alt="logo" style="vertical-align:middle" /><img src="./assets/README/origindl_text_italic.svg" height="80" alt="OriginDL" style="vertical-align:middle" />
+ </p>
+
+
+# OriginDL: 完全从零开始构建的深度学习框架
 
 OriginDL 是一个**完全从零开始构建**的深度学习框架，采用 C++ 实现。OriginDL 不仅实现了高层的自动微分系统，更从最底层的矩阵运算开始，使用 CUDA 手写了 GPU 加速的矩阵计算核心，并在此基础上构建了完整的自动求导引擎和神经网络模块。目前已在框架上实现了线性回归与 MNIST 手写数字识别的训练示例，以及基于 PNNX 的 YOLOv5 目标检测推理，用于验证自动求导与推理链路。
 
