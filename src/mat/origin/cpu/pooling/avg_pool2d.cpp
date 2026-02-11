@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstring>
 #include <vector>
+#include "origin/mat/basic_types.h"
 #include "origin/mat/origin/cpu/cpu_ops.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/utils/conv_utils.h"
@@ -107,14 +108,15 @@ std::unique_ptr<Mat> avg_pool2d_backward(const OriginMat &gy,
 
     // 3. Reshape 为 (N, C, KH, KW, OH, OW) 以匹配 col2im 的期望格式
     // gcol_reshaped 当前是 (N, C, OH, OW, KH, KW)，需要重新排列为 (N, C, KH, KW, OH, OW)
+    // 与 CUDA 一致：仅支持 float32，用 data_ptr 直接读写
+    if (gy.dtype() != DataType::kFloat32)
+    {
+        THROW_INVALID_ARG("avg_pool2d_backward: only float32 is supported, got {}", dtype_to_string(gy.dtype()));
+    }
     Shape col_shape{N, C, static_cast<size_t>(KH), static_cast<size_t>(KW), OH, OW};
-
-    // 由于 reshape 不能改变元素顺序，我们需要手动重新排列
-    // 使用 to_vector 和 from_memory 来重新排列
-    auto gcol_data = gcol_reshaped_mat.to_vector<float>();
+    const float *src_data = gcol_reshaped_mat.data_ptr<float>();
     std::vector<float> reordered_data(N * C * KH * KW * OH * OW);
 
-    // 从 (N, C, OH, OW, KH, KW) 重新排列为 (N, C, KH, KW, OH, OW)
     for (size_t n = 0; n < N; ++n)
     {
         for (size_t c = 0; c < C; ++c)
@@ -132,7 +134,7 @@ std::unique_ptr<Mat> avg_pool2d_backward(const OriginMat &gy,
                             size_t dst_idx = n * C * KH * KW * OH * OW + c * KH * KW * OH * OW +
                                              static_cast<size_t>(kh) * KW * OH * OW +
                                              static_cast<size_t>(kw) * OH * OW + oh * OW + ow;
-                            reordered_data[dst_idx] = gcol_data[src_idx];
+                            reordered_data[dst_idx] = src_data[src_idx];
                         }
                     }
                 }
