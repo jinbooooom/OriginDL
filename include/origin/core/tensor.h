@@ -270,6 +270,13 @@ public:
     // === 张量操作 ===
     Tensor reshape(const Shape &shape) const;
     Tensor transpose() const;
+    /**
+     * @brief 返回一个在内存中连续存储的张量
+     * @details
+     * - 如果当前张量已经是连续的，返回共享同一底层存储的视图（零拷贝）
+     * - 如果当前张量是非连续的，会创建新的存储并复制数据，返回连续副本
+     */
+    Tensor contiguous() const;
 
     // === 调试 ===
     void print(const std::string &desc = "") const;

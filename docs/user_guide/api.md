@@ -670,6 +670,22 @@ auto transposed = t.transpose();
 // 转置后: 3x2
 ```
 
+### contiguous
+
+```cpp
+Tensor contiguous() const
+```
+
+返回一个在内存中连续存储的张量。
+
+**行为说明:**
+- 如果当前张量已经是连续的：返回共享同一底层存储的新张量（零拷贝）
+- 如果当前张量是非连续的：创建新的存储并复制数据，返回连续副本
+
+**典型用途:**
+- 在需要通过 `data_ptr()` 或外部库要求连续内存时手动调用
+- `to_vector()` 会在内部自动调用 `contiguous()`，用户一般不需要显式调用
+
 ### to (类型转换)
 
 ```cpp
@@ -787,7 +803,15 @@ std::vector<T> to_vector() const
 
 将张量转换为向量。
 
-**返回值:** std::vector<T> – 向量数据
+**行为说明:**
+- 该接口主要用于 **调试 / 单元测试**，在业务代码中应优先使用 `item()` 或 `data_ptr()`
+- 内部会执行以下步骤：
+  - 调用 `contiguous()`，得到在内存中连续存储的中间张量
+  - 如果张量在 CUDA 上，调用 `to(Device(DeviceType::kCPU))` 将其拷贝到 CPU（具体同步和拷贝由后端负责）
+  - 通过 `data_ptr<T>()` 读取底层数据，并线性拷贝到 `std::vector<T>`
+- 运行时要求模板参数 `T` 与张量的 `dtype()` 完全一致，否则会抛出 `RuntimeError`
+
+**返回值:** std::vector<T> – 拷贝出的向量数据
 
 **例子:**
 ```cpp

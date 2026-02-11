@@ -284,20 +284,11 @@ public:
      */
     virtual void *data_ptr() = 0;
 
-    template <typename T>
-    std::vector<T> to_vector() const;
-
     /**
      * @brief 打印矩阵内容
      * @param desc 描述信息
      */
     virtual void print(const std::string &desc = "") const = 0;
-
-    /**
-     * @brief 转换为向量
-     * @return 矩阵数据的向量表示
-     */
-    virtual std::vector<float> to_vector() const = 0;  // TODO：不再硬编码返回std::vector<float>
 
     // 数学函数
     /**
@@ -741,20 +732,6 @@ std::unique_ptr<Mat> create_mat(const std::vector<float> &data, const Shape &sha
  * @return Mat对象的智能指针
  */
 std::unique_ptr<Mat> create_mat(float value, const Shape &shape);
-
-template <typename T>
-std::vector<T> Mat::to_vector() const
-{
-    // 调用现有的虚函数，然后转换类型
-    auto float_vec = to_vector();
-    std::vector<T> result;
-    result.reserve(float_vec.size());
-    for (const auto &val : float_vec)
-    {
-        result.push_back(static_cast<T>(val));
-    }
-    return result;
-}
 
 }  // namespace origin
 

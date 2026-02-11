@@ -56,6 +56,9 @@ std::unique_ptr<Mat> convert_datatype(const OriginMat &mat, DataType target_type
     const void *src_data = mat.storage()->data();
     void *dst_data       = result->storage()->data();
 
+    // 等待所有CUDA操作完成,才能转换
+    cudaDeviceSynchronize();
+
     // 使用双重类型分发执行类型转换
     // 因为有两层对 dtype 做 switch case，所以需要两次分发
     device_common::TypeDispatcher::dispatch_void(/*一次分发*/ mat.dtype(), [&]<typename SrcT>() {

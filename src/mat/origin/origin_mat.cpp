@@ -816,7 +816,9 @@ std::vector<float> OriginMat::to_vector() const
     if (!is_contiguous())
     {
         auto contiguous_mat = contiguous();
-        return contiguous_mat->to_vector();
+        // contiguous() 返回的仍然是 OriginMat，可以安全地静态转换
+        const OriginMat &origin_mat = static_cast<const OriginMat &>(*contiguous_mat);
+        return origin_mat.to_vector();
     }
 
     // 如果数据在CUDA上，需要先复制到CPU

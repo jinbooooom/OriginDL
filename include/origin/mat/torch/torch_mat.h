@@ -92,7 +92,7 @@ public:
     void index_put(std::initializer_list<size_t> indices, const Scalar &value) override;
     void *data_ptr() override;
     void print(const std::string &desc = "") const override;
-    std::vector<float> to_vector() const override;
+    std::vector<float> to_vector() const;
 
     // 类型和设备
     int backend_type() const override;

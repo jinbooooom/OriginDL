@@ -96,8 +96,6 @@ public:
     size_t elements() const;
     template <typename T>
     T item() const;
-    template <typename T>
-    std::vector<T> to_vector() const;
     int backend_type() const;
 
     // === 泛型数据访问方法 ===

@@ -258,6 +258,13 @@ Tensor Tensor::transpose() const
     return Tensor(std::make_shared<TensorImpl>(std::move(new_impl)));
 }
 
+Tensor Tensor::contiguous() const
+{
+    // 通过 Mat 接口的 contiguous() 创建连续张量
+    auto new_mat = impl_->data_->contiguous();
+    return Tensor(std::move(new_mat));
+}
+
 // === 调试实现 ===
 void Tensor::print(const std::string &desc) const
 {
@@ -270,7 +277,34 @@ template <typename T>
 std::vector<T> Tensor::to_vector() const
 {
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
-    return impl_->to_vector<T>();
+    // 运行时检查：只允许与张量 dtype 完全一致的 T
+    if (dtype() != DataTypeTraits<T>::type)
+    {
+        THROW_RUNTIME_ERROR("Tensor::to_vector dtype mismatch: tensor dtype={}, requested dtype={}",
+                            dtype_to_string(dtype()), dtype_to_string<T>());
+    }
+
+    // 1. 获取在内存中连续存储的张量
+    Tensor t = *this;
+    t        = t.contiguous();
+
+    // 2. 确保在 CPU 上（具体同步和拷贝由后端的 to()/to_device() 负责）
+    if (t.device().type() != DeviceType::kCPU)
+    {
+        t = t.to(Device(DeviceType::kCPU));
+    }
+
+    // 3. 通过 data_ptr<T>() 线性拷贝到 std::vector<T>
+    size_t n = t.elements();
+    std::vector<T> result(n);
+
+    T *src = t.data_ptr<T>();
+    for (size_t i = 0; i < n; ++i)
+    {
+        result[i] = src[i];
+    }
+
+    return result;
 }
 
 int Tensor::backend_type() const
@@ -352,6 +386,5 @@ template std::vector<float> Tensor::to_vector<float>() const;
 template std::vector<double> Tensor::to_vector<double>() const;
 template std::vector<int32_t> Tensor::to_vector<int32_t>() const;
 template std::vector<int8_t> Tensor::to_vector<int8_t>() const;
-template std::vector<unsigned long> Tensor::to_vector<unsigned long>() const;
 
 }  // namespace origin

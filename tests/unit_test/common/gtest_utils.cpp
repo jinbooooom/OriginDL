@@ -20,9 +20,12 @@ void GTestUtils::EXPECT_TENSORS_EQ(const Tensor &a, const Tensor &b, double tole
         return;
     }
 
-    // 检查数据
-    auto data_a = a.to_vector<float>();
-    auto data_b = b.to_vector<float>();
+    // 检查数据：统一转换到 float32 再比较，避免不同dtype导致的问题
+    Tensor a_f = (a.dtype() == DataType::kFloat32) ? a : a.to(DataType::kFloat32);
+    Tensor b_f = (b.dtype() == DataType::kFloat32) ? b : b.to(DataType::kFloat32);
+
+    auto data_a = a_f.to_vector<float>();
+    auto data_b = b_f.to_vector<float>();
 
     if (data_a.size() != data_b.size())
     {
@@ -66,9 +69,12 @@ void GTestUtils::EXPECT_TENSORS_NEAR(const Tensor &a, const Tensor &b, double rt
         return;
     }
 
-    // 检查数据
-    auto data_a = a.to_vector<float>();
-    auto data_b = b.to_vector<float>();
+    // 检查数据：统一转换到 float32 再比较
+    Tensor a_f = (a.dtype() == DataType::kFloat32) ? a : a.to(DataType::kFloat32);
+    Tensor b_f = (b.dtype() == DataType::kFloat32) ? b : b.to(DataType::kFloat32);
+
+    auto data_a = a_f.to_vector<float>();
+    auto data_b = b_f.to_vector<float>();
 
     if (data_a.size() != data_b.size())
     {

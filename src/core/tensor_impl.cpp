@@ -388,13 +388,19 @@ T TensorImpl::item() const
     {
         THROW_RUNTIME_ERROR("item() can only be called on scalar tensors, but tensor has {} elements", elements());
     }
-    return data_->to_vector<T>()[0];
-}
-
-template <typename T>
-std::vector<T> TensorImpl::to_vector() const
-{
-    return data_->to_vector<T>();
+    // 0维张量（真正的标量）直接使用 scalar_value()
+    Scalar value;
+    if (data_->is_scalar())
+    {
+        value = data_->scalar_value();
+    }
+    else
+    {
+        // 对于任意形状但元素数为1的张量，通过 reshape 到标量再读取
+        auto scalar_mat = data_->reshape(Shape{});  // 形状 {}，元素仍为1
+        value           = scalar_mat->scalar_value();
+    }
+    return value.to<T>();
 }
 
 // === 泛型数据访问方法实现 ===
@@ -466,17 +472,11 @@ template double *TensorImpl::data_ptr<double>();
 template int32_t *TensorImpl::data_ptr<int32_t>();
 template int8_t *TensorImpl::data_ptr<int8_t>();
 
-template std::vector<float> TensorImpl::to_vector<float>() const;
-template std::vector<double> TensorImpl::to_vector<double>() const;
-template std::vector<int32_t> TensorImpl::to_vector<int32_t>() const;
-template std::vector<int8_t> TensorImpl::to_vector<int8_t>() const;
-
 // 泛型标量操作已移除，统一通过算子层处理
 
 // 额外的模板实例化（只添加新的类型）
 template unsigned long TensorImpl::item<unsigned long>() const;
 template unsigned long *TensorImpl::data_ptr<unsigned long>();
-template std::vector<unsigned long> TensorImpl::to_vector<unsigned long>() const;
 
 // 新增：支持 uint8_t / int64_t（通常为 unsigned char / long）在 TensorImpl 层的显式实例化
 template unsigned char TensorImpl::item<unsigned char>() const;

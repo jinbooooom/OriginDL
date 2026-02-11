@@ -398,7 +398,7 @@ public:
     size_t elements() const override;
 
     // 数据访问
-    std::vector<float> to_vector() const override;
+    std::vector<float> to_vector() const;
     template <typename T>
     std::vector<T> to_vector() const
     {
@@ -407,8 +407,9 @@ public:
         if (!is_contiguous())
         {
             auto contiguous_mat = contiguous();
-            // 使用基类的模板方法，它会调用虚函数 to_vector() 然后转换类型
-            return contiguous_mat->to_vector<T>();
+            // contiguous() 返回的仍然是 OriginMat，可以安全地静态转换后复用本方法
+            const OriginMat &origin_mat = static_cast<const OriginMat &>(*contiguous_mat);
+            return origin_mat.to_vector<T>();
         }
 
         std::vector<T> result(shape_.elements());

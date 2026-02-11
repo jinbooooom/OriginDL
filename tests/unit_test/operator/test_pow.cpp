@@ -321,7 +321,10 @@ TEST_P(PowOperatorTest, NegativeBaseWithNonIntegerExponent)
     auto result = F::pow(x, Scalar(exponent));
 
     // 负数底数的非整数次幂应该产生 NaN
-    auto result_data = result.to_vector<float>();
+    // 结果可能被提升为 float64，这里统一转换到 float32 再检查
+    Tensor result_f =
+        (result.dtype() == DataType::kFloat32) ? result : result.to(DataType::kFloat32);
+    auto result_data = result_f.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_TRUE(std::isnan(result_data[i]))
@@ -351,7 +354,9 @@ TEST_P(PowOperatorTest, NegativeBaseWithHalfExponent)
     auto result = F::pow(x, Scalar(exponent));
 
     // 负数的平方根应该产生 NaN
-    auto result_data = result.to_vector<float>();
+    Tensor result_f =
+        (result.dtype() == DataType::kFloat32) ? result : result.to(DataType::kFloat32);
+    auto result_data = result_f.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_TRUE(std::isnan(result_data[i]))
@@ -384,7 +389,9 @@ TEST_P(PowOperatorTest, FloatExponentWithOperator)
     auto result = x ^ exponent;
 
     // 验证结果不为 NaN（正数底数）
-    auto result_data = result.to_vector<float>();
+    Tensor result_f =
+        (result.dtype() == DataType::kFloat32) ? result : result.to(DataType::kFloat32);
+    auto result_data = result_f.to_vector<float>();
     for (size_t i = 0; i < result_data.size(); ++i)
     {
         EXPECT_FALSE(std::isnan(result_data[i])) << "Element " << i << " should not be NaN for positive base";
@@ -426,7 +433,10 @@ TEST_P(PowOperatorTest, MixedPositiveNegativeBaseWithFloatExponent)
 
     auto result = F::pow(x, Scalar(exponent));
 
-    auto result_data = result.to_vector<float>();
+    // 结果可能被提升为 float64，这里统一转换到 float32 再检查
+    Tensor result_f =
+        (result.dtype() == DataType::kFloat32) ? result : result.to(DataType::kFloat32);
+    auto result_data = result_f.to_vector<float>();
 
     // 正数底数应该正常计算
     EXPECT_FALSE(std::isnan(result_data[0])) << "Positive base should not produce NaN";
