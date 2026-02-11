@@ -1,11 +1,37 @@
 #!/bin/bash
 
 # MNIST 数据集下载脚本
-# 下载 MNIST 数据集到 ./data/mnist/ 目录
+# 用法: download_mnist.sh [-d DIR] [--dir DIR]
+# 默认下载到 ./data/mnist/
 
 set -e
 
 DATA_DIR="./data/mnist"
+
+# 解析选项：-d DIR / --dir DIR 指定下载目录
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--dir)
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: -d/--dir requires a directory argument." >&2
+                exit 1
+            fi
+            DATA_DIR="$2"
+            shift 2
+            ;;
+        -h|--help)
+            echo "Usage: $0 [-d DIR] [--dir DIR]"
+            echo "  -d, --dir DIR   Download MNIST to DIR (default: ./data/mnist)"
+            echo "  -h, --help      Show this help"
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown option: $1. Use -h or --help for usage." >&2
+            exit 1
+            ;;
+    esac
+done
+
 # 使用 Google Cloud Storage 镜像（更可靠）
 BASE_URL="https://storage.googleapis.com/cvdf-datasets/mnist"
 

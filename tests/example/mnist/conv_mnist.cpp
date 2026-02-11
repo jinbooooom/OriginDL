@@ -285,6 +285,7 @@ struct TrainingConfig
     std::string model_path  = "model/mnist_model.odl";
     int checkpoint_interval = 5;
     int random_seed         = 42;
+    std::string data_dir   = "./data/mnist";
 
     /**
      * @brief 获取 checkpoint 目录（从 model_path 的目录派生）
@@ -319,6 +320,7 @@ struct TrainingConfig
         logi("Checkpoint dir: {}", checkpoint_dir());
         logi("Checkpoint interval: {} epochs", checkpoint_interval);
         logi("Random seed: {}", random_seed);
+        logi("Data dir: {}", data_dir);
         logi("==============================");
     }
 };
@@ -339,6 +341,7 @@ void usage(const char *program_name)
     loga("  -m, --model-path PATH        Path to save model (default: model/mnist_model.odl)\n");
     loga("  -c, --checkpoint-interval N  Save checkpoint every N epochs (default: 5)\n");
     loga("  -s, --seed SEED              Random seed (default: 42)\n");
+    loga("  -d, --data DIR               MNIST data directory (default: ./data/mnist)\n");
     loga("  -h, --help                   Show this help message\n");
 }
 
@@ -361,13 +364,14 @@ TrainingConfig parse_args(int argc, char *argv[])
                                            {"model-path", required_argument, 0, 'm'},
                                            {"checkpoint-interval", required_argument, 0, 'c'},
                                            {"seed", required_argument, 0, 's'},
+                                           {"data", required_argument, 0, 'd'},
                                            {"help", no_argument, 0, 'h'},
                                            {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "e:b:l:w:i:m:c:s:h", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "e:b:l:w:i:m:c:s:d:h", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -425,6 +429,9 @@ TrainingConfig parse_args(int argc, char *argv[])
             case 's':
                 config.random_seed = std::atoi(optarg);
                 break;
+            case 'd':
+                config.data_dir = optarg;
+                break;
             case 'h':
                 usage(argv[0]);
                 std::exit(0);
@@ -466,8 +473,8 @@ int main(int argc, char *argv[])
 
     // 加载数据集
     logi("Loading MNIST dataset...");
-    MNIST train_dataset("./data/mnist", true);  // 训练集
-    MNIST test_dataset("./data/mnist", false);  // 测试集
+    MNIST train_dataset(config.data_dir, true);   // 训练集
+    MNIST test_dataset(config.data_dir, false);   // 测试集
 
     logi("Train dataset size: {}", train_dataset.size());
     logi("Test dataset size: {}", test_dataset.size());
