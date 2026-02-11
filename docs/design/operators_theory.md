@@ -1613,16 +1613,25 @@ Dropout 算子的前向传播执行：`y = dropout(x, p, training)`
 
 ### 7.1 批归一化算子（BatchNorm）
 
+**接口与 PyTorch 对齐说明：**
+- **Functional 接口**：OriginDL 使用 `batch_norm(...)`，与 PyTorch 的 `torch.nn.functional.batch_norm` 命名一致；通过参数区分输入维度（见下）。
+- **NN 层接口**：与 PyTorch 一致，提供 `BatchNorm1d`、`BatchNorm2d`、`BatchNorm3d` 三种层；当前实现仅支持 **BatchNorm1d** 和 **BatchNorm2d**，**BatchNorm3d 尚未实现**（见「当前支持范围」）。
+
+**当前支持范围：**
+- **BatchNorm1d**：已实现。输入形状 `(N, C)`，对应 functional 的 `num_dims=2`。
+- **BatchNorm2d**：已实现。输入形状 `(N, C, H, W)`，对应 functional 的 `num_dims=4`。
+- **BatchNorm3d**：**未实现**。输入形状应为 `(N, C, D, H, W)`，对应 functional 的 `num_dims=5`；当前 CPU/CUDA 后端仅处理 `num_dims=2` 与 `num_dims=4`，传入 `num_dims=5` 会报错。
+
 #### 7.1.1 前向传播原理
 
 批归一化算子的前向传播执行：`y = batch_norm(x, gamma, beta, running_mean, running_var, training)`
 
 **数学描述：**
-- 输入：`x` 形状 `(N, C, H, W)` 或 `(N, C)`（N 个样本，C 个通道）
+- 输入：`x` 形状 `(N, C, H, W)` 或 `(N, C)`（N 个样本，C 个通道）；当前实现仅支持上述两种形状（即 BatchNorm2d 与 BatchNorm1d）
 - 参数：缩放参数 `gamma`、平移参数 `beta`、运行均值 `running_mean`、运行方差 `running_var`
 - 训练模式：
   1. 计算当前 batch 的均值和方差：`mean = mean(x, axis=0)`，`var = var(x, axis=0)`
-  2. 归一化：`x_norm = (x - mean) / sqrt(var + ε)`
+  2. 归一化：`x_norm = (x - mean) / sqrt(var + ε)`。其中 ε 为小正数（如 1e-5），加在方差上可避免分母为零或过小，保证数值稳定。
   3. 缩放和平移：`y = gamma × x_norm + beta`
   4. 更新运行统计：`running_mean = momentum × running_mean + (1-momentum) × mean`
 - 推理模式：使用 `running_mean` 和 `running_var` 进行归一化
@@ -1674,17 +1683,37 @@ Dropout 算子的前向传播执行：`y = dropout(x, p, training)`
 
 Softmax 交叉熵损失算子的前向传播执行：`loss = softmax_cross_entropy(x, target)`
 
+**直观理解（为什么需要这个损失）：**
+- **场景**：分类问题。例如 N 张图片，每张图属于 C 个类别之一（如猫/狗/鸟）。网络对每张图输出 C 个“得分”`x`（logits），我们想知道：预测与真实标签差多少。
+- **两步合一**：先把得分变成“概率”`p`（softmax），再用量化“预测概率与真实标签的差距”的交叉熵作为损失。概率越集中在正确类别上，损失越小；越分散或给错误类别高概率，损失越大。
+
 **数学描述：**
-- 输入：`x` 形状 `(N, C)`（N 个样本，C 个类别），`target` 形状 `(N,)`（类别标签）
+- 输入：`x` 形状 `(N, C)`（N 个样本，C 个类别），`target` 形状 `(N,)`（每个样本的真实类别编号，取值 0 到 C-1）
 - 计算步骤：
   1. 计算 softmax：`p = softmax(x, axis=-1)`，形状 `(N, C)`
   2. 提取目标类别的概率：`p_selected = p[i, target[i]]`，形状 `(N,)`
   3. 计算交叉熵：`loss = -mean(log(p_selected + ε))`
 - 数学表达式：`loss = -1/N × Σ(i) log(p[i, target[i]] + ε)`
 
-**数学表示：**
-- `p = softmax(x)`：将 logits 转换为概率分布
-- `loss = -mean(log(p[target]))`：计算交叉熵损失
+**各步含义（便于普通人理解）：**
+
+1. **Softmax：从“得分”到“概率”**
+   - 输入 `x[i, c]` 是第 i 个样本在第 c 类上的得分（logit），可正可负、可大于 1。
+   - Softmax 公式：`p[i, c] = exp(x[i, c]) / Σ(k) exp(x[i, k])`。对每个样本 i，把 C 个得分用指数放大后归一化，得到 C 个非负且和为 1 的数，即“该类别的概率”。
+   - 直观：得分越高，对应概率越大；得分相对低时，概率被压小。
+
+2. **提取目标概率 `p_selected`**
+   - 对样本 i，真实类别是 `target[i]`，我们只关心“模型给正确类别多少概率”，即 `p[i, target[i]]`。
+   - `p_selected[i] = p[i, target[i]]`，形状 `(N,)`，表示每个样本上正确类别的预测概率。
+
+3. **交叉熵：用 `-log(概率)` 衡量“错多少”**
+   - 单样本：若正确类别概率为 `p_selected[i]`，定义该样本的损失为 `-log(p_selected[i] + ε)`。
+   - 直观：概率越接近 1，`log(p)` 越接近 0，`-log(p)` 越小（预测越对）；概率越小，`-log(p)` 越大（预测越错）。ε 是为了数值稳定，避免 log(0)。
+   - 多样本：对所有样本的 `-log(p_selected + ε)` 取平均，得到 `loss`。
+
+**数学表示（小结）：**
+- `p = softmax(x)`：将 logits 转换为概率分布（每行和为 1）
+- `loss = -mean(log(p[target]))`：交叉熵损失，衡量预测分布与“真实类别”的一致性；越小表示预测越准
 
 #### 8.1.2 反向传播原理
 
@@ -1733,7 +1762,7 @@ Softmax 交叉熵损失算子的前向传播执行：`loss = softmax_cross_entro
 | 池化运算 | MaxPool2d, AvgPool2d, AdaptiveAvgPool2d | 降维，减少计算量 |
 | 形状变换 | Cat, Split, Reshape, Transpose, Flatten | 改变张量形状和维度 |
 | 神经网络层 | Dropout, Upsample, Identity | 网络层操作 |
-| 归一化 | BatchNorm | 加速训练，稳定梯度 |
+| 归一化 | BatchNorm（BatchNorm1d/2d 已实现，BatchNorm3d 未实现） | 加速训练，稳定梯度 |
 | 损失函数 | SoftmaxCrossEntropy | 计算损失值 |
 
 ### 9.2 数学原理总结

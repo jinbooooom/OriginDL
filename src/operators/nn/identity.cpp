@@ -61,11 +61,8 @@ std::vector<Tensor> Identity::backward(const std::vector<Tensor> &gys)
     {
         THROW_RUNTIME_ERROR("Identity backward requires exactly 1 gradient, but got {}", gys.size());
     }
-
     auto &gy = gys[0];
-    auto &x  = this->inputs_[0];
 
-    // 梯度直接原样返回（恒等映射）
     return std::vector<Tensor>{std::move(gy)};
 }
 

@@ -1945,6 +1945,45 @@ Linear linear(10, 5);
 linear.reset_parameters();  // 重新初始化参数
 ```
 
+### BatchNorm（批归一化）
+
+接口与 PyTorch 对齐：Functional 使用 `batch_norm`（对应 `torch.nn.functional.batch_norm`），NN 层使用 `BatchNorm1d`、`BatchNorm2d`（对应 `torch.nn.BatchNorm1d`、`torch.nn.BatchNorm2d`）。**BatchNorm3d 当前未实现。**
+
+#### 函数式接口：batch_norm
+
+```cpp
+Tensor batch_norm(const Tensor &x,
+                  const Tensor &gamma,
+                  const Tensor &beta,
+                  const Tensor &running_mean,
+                  const Tensor &running_var,
+                  bool training  = false,
+                  float eps      = 1e-5f,
+                  float momentum = 0.1f,
+                  int num_dims   = 4);
+```
+
+对输入按通道做批归一化。`num_dims` 表示输入张量的维度数：`2` 表示 (N, C)（等价 BatchNorm1d），`4` 表示 (N, C, H, W)（等价 BatchNorm2d）。**当前仅支持 num_dims=2 与 num_dims=4；num_dims=5（BatchNorm3d）未实现。**
+
+**参数：**
+- `x` – 输入张量，形状 (N, C) 或 (N, C, H, W)
+- `gamma`、`beta` – 缩放与平移参数，形状 (C,)
+- `running_mean`、`running_var` – 运行均值/方差，形状 (C,)
+- `training` – 是否为训练模式（训练时用当前 batch 统计量并更新 running，推理时用 running）
+- `eps`、`momentum` – 数值稳定与动量，默认 1e-5、0.1
+- `num_dims` – 输入维度数，仅支持 2 或 4
+
+#### NN 层：BatchNorm1d / BatchNorm2d
+
+```cpp
+nn::BatchNorm1d(int num_features, float eps = 1e-5f, float momentum = 0.1f)  // 输入 (N, C)
+nn::BatchNorm2d(int num_features, float eps = 1e-5f, float momentum = 0.1f)  // 输入 (N, C, H, W)
+```
+
+用法与 PyTorch 的 `nn.BatchNorm1d`、`nn.BatchNorm2d` 一致。训练/评估模式由 `model.train()` / `model.eval()` 控制。
+
+**未支持：** `nn::BatchNorm3d`（输入 (N, C, D, H, W)）当前未实现，如需 3D 批归一化需后续版本支持。
+
 ### upsample（上采样）
 
 `F::upsample` 对 4D 张量在空间维度上做上采样。
@@ -2354,6 +2393,15 @@ auto t = Tensor::ones({2, 2});
 auto s = sin(t);  // 抛出异常: "sin function not implemented yet"
 auto c = cos(t);  // 抛出异常: "cos function not implemented yet"
 ```
+
+### BatchNorm 限制
+
+**限制**: 仅支持 **BatchNorm1d** 和 **BatchNorm2d**，**BatchNorm3d 未实现**。
+
+- **已支持**：`nn::BatchNorm1d`（输入 (N, C)）、`nn::BatchNorm2d`（输入 (N, C, H, W)）；functional `batch_norm(..., num_dims)` 仅支持 `num_dims=2` 与 `num_dims=4`。
+- **未支持**：`nn::BatchNorm3d` 及 `batch_norm(..., num_dims=5)`（输入 (N, C, D, H, W)）。传入 `num_dims=5` 会报错。
+
+**与 PyTorch 的差异**: PyTorch 提供 `torch.nn.BatchNorm3d` 与 `F.batch_norm` 对 5D 输入的支持，OriginDL 暂未实现。
 
 ### 矩阵乘法限制
 
