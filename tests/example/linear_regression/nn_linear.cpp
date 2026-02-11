@@ -128,7 +128,7 @@ int main(int argc, char **argv)
                 b_val = linear_layer.bias()->item<float>();
             }
 
-            logi("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
+            loga("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
         }
     }
 

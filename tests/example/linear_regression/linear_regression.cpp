@@ -118,11 +118,14 @@ int main(int argc, char **argv)
         b = b - lr * b.grad();
 
         // 打印结果
-        float loss_val = loss.item<float>();
-        float w_val    = w.item<float>();
-        float b_val    = b.item<float>();
+        if (i % 10 == 0 || i == iters - 1) 
+        {
+            float loss_val = loss.item<float>();
+            float w_val    = w.item<float>();
+            float b_val    = b.item<float>();
 
-        loga("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
+            loga("iter{}: loss = {}, w = {}, b = {}", i, loss_val, w_val, b_val);
+        }
     }
 
     return 0;
