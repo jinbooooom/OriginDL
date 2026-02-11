@@ -328,12 +328,18 @@ template double Tensor::item<double>() const;
 template int32_t Tensor::item<int32_t>() const;
 template int8_t Tensor::item<int8_t>() const;
 template unsigned long Tensor::item<unsigned long>() const;
+// 新增：支持 uint8_t / int64_t（通常为 unsigned char / long）标量访问
+template unsigned char Tensor::item<unsigned char>() const;
+template long Tensor::item<long>() const;
 
 template float *Tensor::data_ptr<float>();
 template double *Tensor::data_ptr<double>();
 template int32_t *Tensor::data_ptr<int32_t>();
 template int8_t *Tensor::data_ptr<int8_t>();
 template unsigned long *Tensor::data_ptr<unsigned long>();
+// 新增：支持 uint8_t / int64_t（通常为 unsigned char / long）数据指针访问
+template unsigned char *Tensor::data_ptr<unsigned char>();
+template long *Tensor::data_ptr<long>();
 
 // 索引访问方法
 template float Tensor::index<float>(std::initializer_list<size_t>) const;

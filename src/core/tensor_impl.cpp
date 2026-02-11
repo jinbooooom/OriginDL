@@ -478,4 +478,10 @@ template unsigned long TensorImpl::item<unsigned long>() const;
 template unsigned long *TensorImpl::data_ptr<unsigned long>();
 template std::vector<unsigned long> TensorImpl::to_vector<unsigned long>() const;
 
+// 新增：支持 uint8_t / int64_t（通常为 unsigned char / long）在 TensorImpl 层的显式实例化
+template unsigned char TensorImpl::item<unsigned char>() const;
+template unsigned char *TensorImpl::data_ptr<unsigned char>();
+template long TensorImpl::item<long>() const;
+template long *TensorImpl::data_ptr<long>();
+
 }  // namespace origin

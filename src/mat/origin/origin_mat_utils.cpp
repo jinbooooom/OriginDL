@@ -561,6 +561,27 @@ std::vector<float> convert_to_vector(const void *data_ptr, size_t elements, Data
             }
             break;
         }
+        case DataType::kInt64:
+        {
+            // 支持将 int64 数据转换为 float 向量。
+            // 这里统一转换为 float 主要用于打印、调试和通用 to_vector() 接口，
+            // 真正的计算/索引仍然在算子和 data_ptr<int64_t>() 层面保持整型语义。
+            const int64_t *data = static_cast<const int64_t *>(data_ptr);
+            for (size_t i = 0; i < elements; ++i)
+            {
+                result[i] = static_cast<float>(data[i]);
+            }
+            break;
+        }
+        case DataType::kUInt8:
+        {
+            const uint8_t *data = static_cast<const uint8_t *>(data_ptr);
+            for (size_t i = 0; i < elements; ++i)
+            {
+                result[i] = static_cast<float>(data[i]);
+            }
+            break;
+        }
         default:
             THROW_INVALID_ARG("Unsupported data type {} for conversion", dtype_to_string(dtype));
     }

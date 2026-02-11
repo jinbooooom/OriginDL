@@ -597,22 +597,13 @@ int main(int argc, char *argv[])
                     x = x.to(device);
                     t = t.to(device);
 
-                    // 将 targets 从 float 转换为 int32_t 类型（softmax_cross_entropy 需要）
-                    auto t_float_data = t.to(Device(DeviceType::kCPU)).to_vector<float>();
-                    std::vector<int32_t> t_int32_data(t_float_data.size());
-                    for (size_t i = 0; i < t_float_data.size(); ++i)
-                    {
-                        t_int32_data[i] = static_cast<int32_t>(t_float_data[i]);
-                    }
-                    auto t_int32 = Tensor(t_int32_data, t.shape(), dtype(DataType::kInt32).device(device));
-
                     //在 no_grad 作用域内, 无梯度计算, 前向传播
                     auto y         = model(x);
-                    auto loss      = F::softmax_cross_entropy(y, t_int32);
+                    auto loss      = F::softmax_cross_entropy(y, t);
                     float loss_val = loss.item<float>();
 
                     // 使用accuracy函数计算准确率
-                    auto acc               = accuracy(y, t_int32);
+                    auto acc               = accuracy(y, t);
                     float acc_value        = acc.item<float>();
                     int current_batch_size = static_cast<int>(x.shape()[0]);
 
@@ -723,22 +714,13 @@ int main(int argc, char *argv[])
                     x = x.to(device);
                     t = t.to(device);
 
-                    // 将 targets 从 float 转换为 int32_t 类型（softmax_cross_entropy 需要）
-                    auto t_float_data = t.to(Device(DeviceType::kCPU)).to_vector<float>();
-                    std::vector<int32_t> t_int32_data(t_float_data.size());
-                    for (size_t i = 0; i < t_float_data.size(); ++i)
-                    {
-                        t_int32_data[i] = static_cast<int32_t>(t_float_data[i]);
-                    }
-                    auto t_int32 = Tensor(t_int32_data, t.shape(), dtype(DataType::kInt32).device(device));
-
                     // 使用加载的模型进行前向传播
                     auto y         = loaded_model(x);
-                    auto loss      = F::softmax_cross_entropy(y, t_int32);
+                    auto loss      = F::softmax_cross_entropy(y, t);
                     float loss_val = loss.item<float>();
 
                     // 使用accuracy函数计算准确率
-                    auto acc               = accuracy(y, t_int32);
+                    auto acc               = accuracy(y, t);
                     float acc_value        = acc.item<float>();
                     int current_batch_size = static_cast<int>(x.shape()[0]);
 

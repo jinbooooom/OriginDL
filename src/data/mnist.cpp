@@ -174,8 +174,12 @@ std::pair<Tensor, Tensor> MNIST::get_item(size_t index)
     // 创建图像张量 (784,)
     auto image = Tensor(images_[index], Shape{784}, dtype(DataType::kFloat32));
 
-    // 创建标签张量 (标量)
-    auto label = Tensor({static_cast<float>(labels_[index])}, Shape{}, dtype(DataType::kFloat32));
+    // 创建标签张量 (标量, 使用 int64)
+    // 这里使用 int64 是为了与 PyTorch 中 MNIST / CrossEntropyLoss 对 target 的约定保持一致，
+    // 即分类标签使用 LongTensor（int64），后续 loss / accuracy / gather 等算子可以直接消费整型标签。
+    std::vector<int64_t> label_data(1);
+    label_data[0] = static_cast<int64_t>(labels_[index]);
+    auto label    = Tensor(label_data, Shape{}, dtype(DataType::kInt64));
 
     return std::make_pair(image, label);
 }
