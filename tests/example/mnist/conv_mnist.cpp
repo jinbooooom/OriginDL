@@ -286,6 +286,7 @@ struct TrainingConfig
     int checkpoint_interval = 5;
     int random_seed         = 42;
     std::string data_dir   = "./data/mnist";
+    int device_id           = -2;  // -2=auto, -1=CPU, >=0=GPU id
 
     /**
      * @brief 获取 checkpoint 目录（从 model_path 的目录派生）
@@ -321,6 +322,7 @@ struct TrainingConfig
         logi("Checkpoint interval: {} epochs", checkpoint_interval);
         logi("Random seed: {}", random_seed);
         logi("Data dir: {}", data_dir);
+        logi("Device id: {} (-2=auto -1=CPU >=0=GPU)", device_id);
         logi("==============================");
     }
 };
@@ -341,7 +343,8 @@ void usage(const char *program_name)
     loga("  -m, --model-path PATH        Path to save model (default: model/mnist_model.odl)\n");
     loga("  -c, --checkpoint-interval N  Save checkpoint every N epochs (default: 5)\n");
     loga("  -s, --seed SEED              Random seed (default: 42)\n");
-    loga("  -d, --data DIR               MNIST data directory (default: ./data/mnist)\n");
+    loga("  -p, --path DIR               MNIST data directory (default: ./data/mnist)\n");
+    loga("  -d, --device ID              Device: -2=auto, -1=CPU, >=0=GPU id (default: auto)\n");
     loga("  -h, --help                   Show this help message\n");
 }
 
@@ -364,14 +367,15 @@ TrainingConfig parse_args(int argc, char *argv[])
                                            {"model-path", required_argument, 0, 'm'},
                                            {"checkpoint-interval", required_argument, 0, 'c'},
                                            {"seed", required_argument, 0, 's'},
-                                           {"data", required_argument, 0, 'd'},
+                                           {"path", required_argument, 0, 'p'},
+                                           {"device", required_argument, 0, 'd'},
                                            {"help", no_argument, 0, 'h'},
                                            {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;
 
-    while ((c = getopt_long(argc, argv, "e:b:l:w:i:m:c:s:d:h", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "e:b:l:w:i:m:c:s:p:d:h", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -429,8 +433,11 @@ TrainingConfig parse_args(int argc, char *argv[])
             case 's':
                 config.random_seed = std::atoi(optarg);
                 break;
-            case 'd':
+            case 'p':
                 config.data_dir = optarg;
+                break;
+            case 'd':
+                config.device_id = std::atoi(optarg);
                 break;
             case 'h':
                 usage(argv[0]);
@@ -454,21 +461,36 @@ int main(int argc, char *argv[])
 
     std::srand(config.random_seed);
 
-    // 检测并选择设备（GPU优先，如果没有GPU则使用CPU）
-    Device device(DeviceType::kCPU);
-    if (cuda::is_available())
+    // Auto: prefer CUDA if available
+    int device_id = config.device_id;
+    if (device_id == -2)
     {
-        device = Device(DeviceType::kCUDA, 0);
-        logi("CUDA is available. Using GPU for training.");
-        logi("CUDA device count: {}", cuda::device_count());
-    }
-    else
-    {
-        logw("CUDA is not available. Using CPU for training.");
+        device_id = cuda::is_available() ? 0 : -1;
     }
 
+    Device device(DeviceType::kCPU);
+    bool use_gpu = (device_id >= 0);
+    if (use_gpu)
+    {
+        if (!cuda::is_available())
+        {
+            loge("CUDA is not available on this system.");
+            return 1;
+        }
+        int device_count = cuda::device_count();
+        if (device_id >= device_count)
+        {
+            loge("Invalid GPU device ID: {}. Available devices: 0-{}", device_id, device_count - 1);
+            return 1;
+        }
+        device = Device(DeviceType::kCUDA, device_id);
+        cuda::set_device(device_id);
+        cuda::device_info();
+    }
+
+    loga("Use Device: {}", device.to_string());
+
     logi("=== MNIST Handwritten Digit Recognition with CNN ===");
-    logi("Device: {}", device.to_string());
     config.print();
 
     // 加载数据集

@@ -20,7 +20,6 @@ OriginDL 是本人在业余时间实现的深度学习框架。本人并非深�
 使用自动求导功能实现简单的线性回归 y = wx + b，快速收敛到目标参数（w≈2.0, b≈5.0）：
 
 ```shell
-$ export ORIGIN_LOG_LEVEL=trace
 $ ./build/bin/example/example_nn_linear 
 CUDA devices available: 1
 Device 0: NVIDIA GeForce RTX 4060 Ti
@@ -43,6 +42,7 @@ iter199: loss = 0.007956621, w = 1.9881259, b = 4.9913087
 ### YOLOv5 目标检测
 
 ```shell
+# 使用的设备为 Device 0: NVIDIA GeForce RTX 4060 Ti
 $ ./build/bin/example/example_yolov5 -i data/imgs/ -o data/outputs/ -p model/pnnx/yolo/yolov5n_small.pnnx.param -b model/pnnx/yolo/yolov5n_small.pnnx.bin 
 air.jpg: airplane 0.92
 bus.jpg: person 0.85
@@ -56,8 +56,6 @@ Processed 4 images in total, Input resolution: 320x320, Batch size: 4
 Total inference time: 0.1189 seconds, Average FPS: 33.65
 ```
 
-
-
 <table>
 <tr>
 <td width="50%"><img src="./assets/README/output_air.jpg" alt="Airplane Detection" style="width:100%"></td>
@@ -69,6 +67,74 @@ Total inference time: 0.1189 seconds, Average FPS: 33.65
 </tr>
 </table>
 ### MNIST 手写数字识别
+
+```shell
+$ export ORIGIN_LOG_LEVEL=trace
+$ ./build/bin/example/example_mlp_mnist -e 5 -b 512 -l 0.001 -p ./data/mnist -d 0
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:main:206] Device: cuda:0
+CUDA devices available: 1
+Device 0: NVIDIA GeForce RTX 4060 Ti
+  Compute capability: 8.9
+  Memory: 8187 MB
+  Multiprocessors: 34
+  Max threads per block: 1024
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:main:214] === MNIST Handwritten Digit Recognition Demo (MLP) ===
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:36] === Training Configuration ===
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:37] Max epochs: 10
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:38] Batch size: 512
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:39] Hidden size: 1000
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:40] Learning rate: 0.001
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:41] Weight decay: 0.0001
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:42] Log interval: 50
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:43] Model path: model/mnist_mlp_model.odl
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:44] Checkpoint dir: model/checkpoints
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:45] Checkpoint interval: 5 epochs
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:46] Random seed: 42
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:47] Data dir: ./data/mnist
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:48] Device id: 0 (-2=auto -1=CPU >=0=GPU)
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:print:49] ==============================
+JinboBook 2026-02-12 00:18:16.991 I 198450 198450 [mlp_mnist.cpp:main:217] Loading MNIST dataset...
+JinboBook 2026-02-12 00:18:18.259 I 198450 198450 [mlp_mnist.cpp:main:221] Train dataset size: 60000
+JinboBook 2026-02-12 00:18:18.259 I 198450 198450 [mlp_mnist.cpp:main:222] Test dataset size: 10000
+JinboBook 2026-02-12 00:18:18.259 I 198450 198450 [mlp_mnist.cpp:main:227] Creating MLP model...
+JinboBook 2026-02-12 00:18:18.310 I 198450 198450 [mlp_mnist.cpp:main:230] Model created with 6 parameters
+JinboBook 2026-02-12 00:18:18.311 D 198450 198450 [optimizer.cpp:collect_parameters:16]    Optimizer::collect_parameters: collected 6 parameters
+JinboBook 2026-02-12 00:18:18.311 I 198450 198450 [mlp_mnist.cpp:main:236] Starting training...
+JinboBook 2026-02-12 00:18:18.311 I 198450 198450 [mlp_mnist.cpp:main:239] ========== Epoch 1/10 ==========
+JinboBook 2026-02-12 00:18:18.787 I 198450 198450 [mlp_mnist.cpp:main:311] Epoch 1/10 Batch 50 Loss: 0.4744 Acc: 86.87%
+JinboBook 2026-02-12 00:18:19.162 I 198450 198450 [mlp_mnist.cpp:main:311] Epoch 1/10 Batch 100 Loss: 0.3254 Acc: 90.85%
+JinboBook 2026-02-12 00:18:19.302 I 198450 198450 [mlp_mnist.cpp:main:320] Epoch 1/10 Training Complete - Loss: 0.2974 Acc: 91.58%
+JinboBook 2026-02-12 00:18:19.302 I 198450 198450 [mlp_mnist.cpp:main:324] Evaluating on test set...
+JinboBook 2026-02-12 00:18:19.357 I 198450 198450 [mlp_mnist.cpp:main:386] ========== Epoch 1/10 Summary ==========
+JinboBook 2026-02-12 00:18:19.357 I 198450 198450 [mlp_mnist.cpp:main:387]   Train Loss: 0.2974, Train Acc: 91.58%
+JinboBook 2026-02-12 00:18:19.357 I 198450 198450 [mlp_mnist.cpp:main:388]   Test Loss:  0.1224, Test Acc:  96.49%
+JinboBook 2026-02-12 00:18:19.357 I 198450 198450 [mlp_mnist.cpp:main:389] ===========================================
+JinboBook 2026-02-12 00:18:19.357 I 198450 198450 [mlp_mnist.cpp:main:239] ========== Epoch 2/10 ==========
+JinboBook 2026-02-12 00:18:19.719 I 198450 198450 [mlp_mnist.cpp:main:311] Epoch 2/10 Batch 50 Loss: 0.0999 Acc: 97.01%
+JinboBook 2026-02-12 00:18:20.082 I 198450 198450 [mlp_mnist.cpp:main:311] Epoch 2/10 Batch 100 Loss: 0.0981 Acc: 97.05%
+JinboBook 2026-02-12 00:18:20.224 I 198450 198450 [mlp_mnist.cpp:main:320] Epoch 2/10 Training Complete - Loss: 0.0974 Acc: 97.05%
+JinboBook 2026-02-12 00:18:20.224 I 198450 198450 [mlp_mnist.cpp:main:324] Evaluating on test set...
+JinboBook 2026-02-12 00:18:20.276 I 198450 198450 [mlp_mnist.cpp:main:386] ========== Epoch 2/10 Summary ==========
+JinboBook 2026-02-12 00:18:20.277 I 198450 198450 [mlp_mnist.cpp:main:387]   Train Loss: 0.0974, Train Acc: 97.05%
+JinboBook 2026-02-12 00:18:20.277 I 198450 198450 [mlp_mnist.cpp:main:388]   Test Loss:  0.0849, Test Acc:  97.29%
+JinboBook 2026-02-12 00:18:20.277 I 198450 198450 [mlp_mnist.cpp:main:389] ===========================================
+# 省略中间训练的过程
+JinboBook 2026-02-12 00:18:26.842 I 198450 198450 [mlp_mnist.cpp:main:239] ========== Epoch 10/10 ==========
+JinboBook 2026-02-12 00:18:27.211 I 198450 198450 [mlp_mnist.cpp:main:311] Epoch 10/10 Batch 50 Loss: 0.0129 Acc: 99.64%
+JinboBook 2026-02-12 00:18:27.578 I 198450 198450 [mlp_mnist.cpp:main:311] Epoch 10/10 Batch 100 Loss: 0.0122 Acc: 99.68%
+JinboBook 2026-02-12 00:18:27.724 I 198450 198450 [mlp_mnist.cpp:main:320] Epoch 10/10 Training Complete - Loss: 0.0129 Acc: 99.65%
+JinboBook 2026-02-12 00:18:27.724 I 198450 198450 [mlp_mnist.cpp:main:324] Evaluating on test set...
+JinboBook 2026-02-12 00:18:27.781 I 198450 198450 [mlp_mnist.cpp:main:386] ========== Epoch 10/10 Summary ==========
+JinboBook 2026-02-12 00:18:27.781 I 198450 198450 [mlp_mnist.cpp:main:387]   Train Loss: 0.0129, Train Acc: 99.65%
+JinboBook 2026-02-12 00:18:27.781 I 198450 198450 [mlp_mnist.cpp:main:388]   Test Loss:  0.0595, Test Acc:  98.29%
+JinboBook 2026-02-12 00:18:27.781 I 198450 198450 [mlp_mnist.cpp:main:389] ===========================================
+JinboBook 2026-02-12 00:18:27.828 I 198450 198450 [mlp_mnist.cpp:main:412] Checkpoint saved to model/checkpoints/checkpoint_epoch_10.ckpt
+JinboBook 2026-02-12 00:18:27.828 I 198450 198450 [mlp_mnist.cpp:main:421] Training completed!
+JinboBook 2026-02-12 00:18:27.828 I 198450 198450 [mlp_mnist.cpp:main:423] Saving model to model/mnist_mlp_model.odl...
+JinboBook 2026-02-12 00:18:27.863 I 198450 198450 [mlp_mnist.cpp:main:429] Model saved successfully to model/mnist_mlp_model.odl
+```
+
+# OriginDL 项目介绍
 
 ## ✨ 特性
 
@@ -183,7 +249,7 @@ bash ./build.sh origin
 如果希望使用 LibTorch 做矩阵计算后端（本项目本身不依赖 libtorch），需要先下载 LibTorch：
 
 ```bash
-# 下载 LibTorch（CPU 版本）
+# 下载 LibTorch
 cd 3rd
 wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcpu.zip
 unzip libtorch-cxx11-abi-shared-with-deps-2.1.0+cpu.zip

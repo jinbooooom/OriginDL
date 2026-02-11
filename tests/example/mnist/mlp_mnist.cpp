@@ -1,3 +1,4 @@
+#include <getopt.h>
 #include <iomanip>
 #include "origin.h"
 #include "origin/nn/models/mlp.h"
@@ -6,74 +7,236 @@ using namespace origin;
 namespace F  = origin::functional;
 namespace nn = origin::nn;
 
+struct TrainingConfig
+{
+    int max_epoch            = 10;
+    int batch_size           = 256;
+    int hidden_size          = 1000;
+    float learning_rate      = 0.001f;
+    float weight_decay_rate  = 1e-4f;
+    int log_interval         = 50;
+    std::string model_path  = "model/mnist_mlp_model.odl";
+    int checkpoint_interval  = 5;
+    int random_seed          = 42;
+    std::string data_dir    = "./data/mnist";
+    int device_id            = -2;  // -2=auto, -1=CPU, >=0=GPU id
+
+    std::string checkpoint_dir() const
+    {
+        size_t last_slash = model_path.find_last_of('/');
+        if (last_slash != std::string::npos)
+        {
+            return model_path.substr(0, last_slash + 1) + "checkpoints";
+        }
+        return "checkpoints";
+    }
+
+    void print() const
+    {
+        logi("=== Training Configuration ===");
+        logi("Max epochs: {}", max_epoch);
+        logi("Batch size: {}", batch_size);
+        logi("Hidden size: {}", hidden_size);
+        logi("Learning rate: {}", learning_rate);
+        logi("Weight decay: {}", weight_decay_rate);
+        logi("Log interval: {}", log_interval);
+        logi("Model path: {}", model_path);
+        logi("Checkpoint dir: {}", checkpoint_dir());
+        logi("Checkpoint interval: {} epochs", checkpoint_interval);
+        logi("Random seed: {}", random_seed);
+        logi("Data dir: {}", data_dir);
+        logi("Device id: {} (-2=auto -1=CPU >=0=GPU)", device_id);
+        logi("==============================");
+    }
+};
+
+static void usage(const char *program_name)
+{
+    loga("Usage: {} [OPTIONS]\n", program_name);
+    loga("Options:\n");
+    loga("  -e, --epochs EPOCHS          Maximum number of epochs (default: 10)\n");
+    loga("  -b, --batch-size SIZE        Batch size (default: 256)\n");
+    loga("  -H, --hidden-size SIZE       Hidden layer size (default: 1000)\n");
+    loga("  -l, --learning-rate LR       Learning rate (default: 0.001)\n");
+    loga("  -w, --weight-decay RATE      Weight decay rate (default: 1e-4)\n");
+    loga("  -i, --log-interval INTERVAL  Log interval in batches (default: 50)\n");
+    loga("  -m, --model-path PATH        Path to save model (default: model/mnist_mlp_model.odl)\n");
+    loga("  -c, --checkpoint-interval N  Save checkpoint every N epochs (default: 5)\n");
+    loga("  -s, --seed SEED              Random seed (default: 42)\n");
+    loga("  -p, --path DIR               MNIST data directory (default: ./data/mnist)\n");
+    loga("  -d, --device ID              Device: -2=auto, -1=CPU, >=0=GPU id (default: auto)\n");
+    loga("  -h, --help                   Show this help message\n");
+}
+
+static TrainingConfig parse_args(int argc, char *argv[])
+{
+    TrainingConfig config;
+
+    static struct option long_options[] = {
+        {"epochs", required_argument, 0, 'e'},
+        {"batch-size", required_argument, 0, 'b'},
+        {"hidden-size", required_argument, 0, 'H'},
+        {"learning-rate", required_argument, 0, 'l'},
+        {"weight-decay", required_argument, 0, 'w'},
+        {"log-interval", required_argument, 0, 'i'},
+        {"model-path", required_argument, 0, 'm'},
+        {"checkpoint-interval", required_argument, 0, 'c'},
+        {"seed", required_argument, 0, 's'},
+        {"path", required_argument, 0, 'p'},
+        {"device", required_argument, 0, 'd'},
+        {"help", no_argument, 0, 'h'},
+        {0, 0, 0, 0}};
+
+    int option_index = 0;
+    int c;
+    while ((c = getopt_long(argc, argv, "e:b:H:l:w:i:m:c:s:p:d:h", long_options, &option_index)) != -1)
+    {
+        switch (c)
+        {
+            case 'e':
+                config.max_epoch = std::atoi(optarg);
+                if (config.max_epoch <= 0)
+                {
+                    logw("Invalid max_epoch: {}. Using default: 10", optarg);
+                    config.max_epoch = 10;
+                }
+                break;
+            case 'b':
+                config.batch_size = std::atoi(optarg);
+                if (config.batch_size <= 0)
+                {
+                    logw("Invalid batch_size: {}. Using default: 256", optarg);
+                    config.batch_size = 256;
+                }
+                break;
+            case 'H':
+                config.hidden_size = std::atoi(optarg);
+                if (config.hidden_size <= 0)
+                {
+                    logw("Invalid hidden_size: {}. Using default: 1000", optarg);
+                    config.hidden_size = 1000;
+                }
+                break;
+            case 'l':
+                config.learning_rate = std::atof(optarg);
+                if (config.learning_rate <= 0.0f)
+                {
+                    logw("Invalid learning_rate: {}. Using default: 0.001", optarg);
+                    config.learning_rate = 0.001f;
+                }
+                break;
+            case 'w':
+                config.weight_decay_rate = std::atof(optarg);
+                if (config.weight_decay_rate < 0.0f)
+                {
+                    logw("Invalid weight_decay_rate: {}. Using default: 1e-4", optarg);
+                    config.weight_decay_rate = 1e-4f;
+                }
+                break;
+            case 'i':
+                config.log_interval = std::atoi(optarg);
+                if (config.log_interval <= 0)
+                {
+                    logw("Invalid log_interval: {}. Using default: 50", optarg);
+                    config.log_interval = 50;
+                }
+                break;
+            case 'm':
+                config.model_path = optarg;
+                break;
+            case 'c':
+                config.checkpoint_interval = std::atoi(optarg);
+                if (config.checkpoint_interval <= 0)
+                {
+                    logw("Invalid checkpoint_interval: {}. Using default: 5", optarg);
+                    config.checkpoint_interval = 5;
+                }
+                break;
+            case 's':
+                config.random_seed = std::atoi(optarg);
+                break;
+            case 'p':
+                config.data_dir = optarg;
+                break;
+            case 'd':
+                config.device_id = std::atoi(optarg);
+                break;
+            case 'h':
+                usage(argv[0]);
+                std::exit(0);
+            case '?':
+                loga("Use -h or --help for usage information");
+                std::exit(1);
+            default:
+                break;
+        }
+    }
+    return config;
+}
+
 int main(int argc, char *argv[])
 {
-    // 设置随机种子（可选）
-    std::srand(42);
+    TrainingConfig config = parse_args(argc, argv);
 
-    // 超参数
-    const int max_epoch           = 10;
-    const int batch_size          = 256;   // 减小batch size以降低GPU内存使用
-    const int hidden_size         = 1000;  // 减小hidden size以降低GPU内存使用，调大精度更高
-    const float learning_rate     = 0.001f;
-    const float weight_decay_rate = 1e-4f;
+    std::srand(config.random_seed);
 
-    // 日志打印频率控制（设置为1表示每个batch都打印，用于调试）
-    const int log_interval = 1;  // 可以修改为10、50等来减少打印频率
-
-    // 检测并选择设备（GPU优先，如果没有GPU则使用CPU）
-    Device device(DeviceType::kCPU);
-    // if (0 &&cuda::is_available())// 强行使用cpu
-    if (cuda::is_available())
+    int device_id = config.device_id;
+    if (device_id == -2)
     {
-        device = Device(DeviceType::kCUDA, 0);
-        logi("CUDA is available. Using GPU for training.");
-        logi("CUDA device count: {}", cuda::device_count());
+        device_id = cuda::is_available() ? 0 : -1;
+    }
+
+    Device device(DeviceType::kCPU);
+    bool use_gpu = (device_id >= 0);
+    if (use_gpu)
+    {
+        if (!cuda::is_available())
+        {
+            loge("CUDA is not available on this system.");
+            return 1;
+        }
+        int device_count = cuda::device_count();
+        if (device_id >= device_count)
+        {
+            loge("Invalid GPU device ID: {}. Available devices: 0-{}", device_id, device_count - 1);
+            return 1;
+        }
+        device = Device(DeviceType::kCUDA, device_id);
+        cuda::set_device(device_id);
+        logi("Device: {}", device.to_string());
+        cuda::device_info();
     }
     else
     {
-        logw("CUDA is not available. Using CPU for training.");
+        logi("Device: {}", device.to_string());
     }
 
-    logi("=== MNIST Handwritten Digit Recognition Demo ===");
-    logi("Device: {}", device.to_string());
-    logi("Max epochs: {}", max_epoch);
-    logi("Batch size: {}", batch_size);
-    logi("Hidden size: {}", hidden_size);
-    logi("Learning rate: {}", learning_rate);
-    logi("Weight decay: {}", weight_decay_rate);
-    logi("Log interval: {} (every {} batch)", log_interval, log_interval);
+    logi("=== MNIST Handwritten Digit Recognition Demo (MLP) ===");
+    config.print();
 
-    // 加载数据集
     logi("Loading MNIST dataset...");
-    MNIST train_dataset("./data", true);  // 训练集
-    MNIST test_dataset("./data", false);  // 测试集
+    MNIST train_dataset(config.data_dir, true);
+    MNIST test_dataset(config.data_dir, false);
 
     logi("Train dataset size: {}", train_dataset.size());
     logi("Test dataset size: {}", test_dataset.size());
 
-    // 创建数据加载器
-    DataLoader train_loader(train_dataset, batch_size, true);  // 训练时打乱
-    DataLoader test_loader(test_dataset, batch_size, false);   // 测试时不打乱
+    DataLoader train_loader(train_dataset, config.batch_size, true);
+    DataLoader test_loader(test_dataset, config.batch_size, false);
 
-    // 创建模型
     logi("Creating MLP model...");
-    nn::MLP model({784, hidden_size, hidden_size, 10});  // 输入784维，两个隐藏层，输出10维
-    model.to(device);                                    // 将模型移到指定设备
+    nn::MLP model({784, config.hidden_size, config.hidden_size, 10});
+    model.to(device);
     logi("Model created with {} parameters", model.parameters().size());
 
-    // 创建优化器
-    Adam optimizer(model, learning_rate);
-
-    // 注册权重衰减Hook
-    WeightDecay weight_decay(weight_decay_rate);
+    Adam optimizer(model, config.learning_rate);
+    WeightDecay weight_decay(config.weight_decay_rate);
     optimizer.register_hook(weight_decay.hook());
 
-    // 训练循环
     logi("Starting training...");
-    for (int epoch = 0; epoch < max_epoch; ++epoch)
+    for (int epoch = 0; epoch < config.max_epoch; ++epoch)
     {
-        logi("========== Epoch {}/{} ==========", epoch + 1, max_epoch);
+        logi("========== Epoch {}/{} ==========", epoch + 1, config.max_epoch);
 
         // 训练阶段
         model.train(true);
@@ -141,11 +304,11 @@ int main(int argc, char *argv[])
                 train_loss += loss_value;
                 train_batches++;
 
-                if (train_batches % log_interval == 0)
+                if (train_batches % config.log_interval == 0)
                 {
                     float avg_loss = train_loss / train_batches;
                     float avg_acc  = 100.0f * train_correct / train_total;
-                    logi("Epoch {}/{} Batch {} Loss: {:.4f} Acc: {:.2f}%", epoch + 1, max_epoch, train_batches,
+                    logi("Epoch {}/{} Batch {} Loss: {:.4f} Acc: {:.2f}%", epoch + 1, config.max_epoch, train_batches,
                          avg_loss, avg_acc);
                 }
             }  // 作用域结束，自动释放x, t, y, loss, acc等tensor
@@ -154,7 +317,7 @@ int main(int argc, char *argv[])
         float avg_train_loss = train_loss / train_batches;
         float train_acc      = 100.0f * train_correct / train_total;
 
-        logi("Epoch {}/{} Training Complete - Loss: {:.4f} Acc: {:.2f}%", epoch + 1, max_epoch, avg_train_loss,
+        logi("Epoch {}/{} Training Complete - Loss: {:.4f} Acc: {:.2f}%", epoch + 1, config.max_epoch, avg_train_loss,
              train_acc);
 
         // 测试阶段
@@ -206,7 +369,7 @@ int main(int argc, char *argv[])
                     test_loss += loss_val;
                     test_batches++;
 
-                    if (test_batches % log_interval == 0)
+                    if (test_batches % config.log_interval == 0)
                     {
                         float avg_test_loss_so_far = test_loss / test_batches;
                         float avg_test_acc_so_far  = 100.0f * test_correct / test_total;
@@ -220,14 +383,57 @@ int main(int argc, char *argv[])
         float avg_test_loss = test_loss / test_batches;
         float test_acc      = 100.0f * test_correct / test_total;
 
-        // 输出epoch结果
-        logi("========== Epoch {}/{} Summary ==========", epoch + 1, max_epoch);
+        logi("========== Epoch {}/{} Summary ==========", epoch + 1, config.max_epoch);
         logi("  Train Loss: {:.4f}, Train Acc: {:.2f}%", avg_train_loss, train_acc);
         logi("  Test Loss:  {:.4f}, Test Acc:  {:.2f}%", avg_test_loss, test_acc);
         logi("===========================================");
+
+        if ((epoch + 1) % config.checkpoint_interval == 0 || (epoch + 1) == config.max_epoch)
+        {
+            try
+            {
+                std::string ckpt_dir = config.checkpoint_dir();
+                (void)system(("mkdir -p " + ckpt_dir).c_str());
+                std::string checkpoint_path = ckpt_dir + "/checkpoint_epoch_" + std::to_string(epoch + 1) + ".ckpt";
+
+                Checkpoint checkpoint;
+                checkpoint.model_state_dict             = model.state_dict();
+                checkpoint.optimizer_state_dict["adam"] = optimizer.state_dict();
+                checkpoint.epoch                        = epoch + 1;
+                checkpoint.step                         = train_batches;
+                checkpoint.loss                         = avg_test_loss;
+                checkpoint.optimizer_type               = "Adam";
+                checkpoint.optimizer_config["lr"]       = config.learning_rate;
+                checkpoint.optimizer_config["beta1"]    = 0.9f;
+                checkpoint.optimizer_config["beta2"]    = 0.999f;
+                checkpoint.optimizer_config["eps"]      = 1e-8f;
+
+                save(checkpoint, checkpoint_path);
+                logi("Checkpoint saved to {}", checkpoint_path);
+            }
+            catch (const std::exception &e)
+            {
+                logw("Failed to save checkpoint: {}", e.what());
+            }
+        }
     }
 
     logi("Training completed!");
+
+    logi("Saving model to {}...", config.model_path);
+    try
+    {
+        (void)system("mkdir -p model");
+        model.eval();
+        save(model.state_dict(), config.model_path);
+        logi("Model saved successfully to {}", config.model_path);
+    }
+    catch (const std::exception &e)
+    {
+        logw("Failed to save model: {}", e.what());
+        return 1;
+    }
+
     return 0;
 }
 
