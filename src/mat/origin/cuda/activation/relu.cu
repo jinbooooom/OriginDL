@@ -130,8 +130,8 @@ std::unique_ptr<Mat> relu(const OriginMat &mat, OriginMat *out)
         const size_t threads_per_block   = 256;
         const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
         const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
-        relu_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
-            static_cast<const float *>(a_data), static_cast<float *>(c_data), num_elements);
+        relu_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(static_cast<const float *>(a_data),
+                                                                         static_cast<float *>(c_data), num_elements);
     }
     else
     {
@@ -139,8 +139,8 @@ std::unique_ptr<Mat> relu(const OriginMat &mat, OriginMat *out)
         const size_t threads_per_block = 256;
         const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
         device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-            relu_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
-                                                               static_cast<T *>(c_data), num_elements);
+            relu_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data), static_cast<T *>(c_data),
+                                                              num_elements);
         });
     }
 

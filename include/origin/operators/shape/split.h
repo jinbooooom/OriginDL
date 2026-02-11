@@ -1,11 +1,11 @@
 #ifndef __ORIGIN_DL_SPLIT_H__
 #define __ORIGIN_DL_SPLIT_H__
 
-#include "../../core/operator.h"
-#include "../../utils/size_array_ref.h"
-#include <vector>
 #include <initializer_list>
 #include <type_traits>
+#include <vector>
+#include "../../core/operator.h"
+#include "../../utils/size_array_ref.h"
 
 namespace origin
 {
@@ -27,8 +27,7 @@ public:
      * @param split_sizes 每个分割的大小列表（通过 SizeArrayRef 传递）
      * @param dim 分割的维度，默认 0
      */
-    explicit Split(SizeArrayRef split_sizes, int dim = 0) 
-        : dim_(dim), split_sizes_(split_sizes.to_vector()) {}
+    explicit Split(SizeArrayRef split_sizes, int dim = 0) : dim_(dim), split_sizes_(split_sizes.to_vector()) {}
 
     /**
      * @brief 构造函数：按固定大小分割
@@ -55,18 +54,21 @@ public:
 std::vector<Tensor> split(const Tensor &x, SizeArrayRef split_sizes, int dim = 0);
 
 /**
- * @brief Split 函数模板重载：SizeArrayRef 仅支持 initializer_list<size_t> 类型，对于其他类型，如 initializer_list<int> 等，需要进行转换
-            为了支持 split(x, {1, 2, 3}, 0) 这样的调用方式，需要进行转换
+ * @brief Split 函数模板重载：SizeArrayRef 仅支持 initializer_list<size_t> 类型，对于其他类型，如 initializer_list<int>
+ 等，需要进行转换 为了支持 split(x, {1, 2, 3}, 0) 这样的调用方式，需要进行转换
  * @details 将 integral 类型转换为 size_t，然后调用主函数
  */
-template<typename T>
-requires (std::is_integral_v<T> && !std::is_same_v<T, bool> && !std::is_same_v<T, size_t>)
-inline std::vector<Tensor> split(const Tensor &x, std::initializer_list<T> split_sizes, int dim = 0)
+template <typename T>
+requires(std::is_integral_v<T> && !std::is_same_v<T, bool> &&
+         !std::is_same_v<T, size_t>) inline std::vector<Tensor> split(const Tensor &x,
+                                                                      std::initializer_list<T> split_sizes,
+                                                                      int dim = 0)
 {
     // 转换为 size_t vector，然后传递给 SizeArrayRef
     std::vector<size_t> vec;
     vec.reserve(split_sizes.size());
-    for (const auto& val : split_sizes) {
+    for (const auto &val : split_sizes)
+    {
         vec.push_back(static_cast<size_t>(val));
     }
     // 直接传递 vector，SizeArrayRef 零拷贝接收

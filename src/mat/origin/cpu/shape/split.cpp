@@ -80,7 +80,7 @@ std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vecto
         Shape output_shape = input_shape;
         output_shape[dim]  = Ci;
 
-        auto result = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
+        auto result       = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
         void *output_data = result->storage()->data();
 
         size_t output_chunk_elements = Ci * N;

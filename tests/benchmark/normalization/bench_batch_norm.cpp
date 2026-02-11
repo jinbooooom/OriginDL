@@ -21,28 +21,30 @@ public:
             THROW_RUNTIME_ERROR("BatchNorm benchmark requires exactly 5 shapes, got {}", config.shapes.size());
         }
 
-        const Shape &x_shape = config.shapes[0];
-        const Shape &gamma_shape = config.shapes[1];
-        const Shape &beta_shape = config.shapes[2];
+        const Shape &x_shape            = config.shapes[0];
+        const Shape &gamma_shape        = config.shapes[1];
+        const Shape &beta_shape         = config.shapes[2];
         const Shape &running_mean_shape = config.shapes[3];
-        const Shape &running_var_shape = config.shapes[4];
-        
+        const Shape &running_var_shape  = config.shapes[4];
+
         // x: (N, C, H, W), gamma/beta/running_mean/running_var: (C,)
         if (x_shape.ndims() != 4)
         {
             THROW_RUNTIME_ERROR("BatchNorm x must be 4D (N, C, H, W), got {}", x_shape.to_string());
         }
-        if (gamma_shape.ndims() != 1 || beta_shape.ndims() != 1 || 
-            running_mean_shape.ndims() != 1 || running_var_shape.ndims() != 1)
+        if (gamma_shape.ndims() != 1 || beta_shape.ndims() != 1 || running_mean_shape.ndims() != 1 ||
+            running_var_shape.ndims() != 1)
         {
             THROW_RUNTIME_ERROR("BatchNorm gamma/beta/running_mean/running_var must be 1D (C,)");
         }
-        
+
         int C = x_shape[1];
-        if (gamma_shape[0] != C || beta_shape[0] != C || 
-            running_mean_shape[0] != C || running_var_shape[0] != C)
+        if (gamma_shape[0] != C || beta_shape[0] != C || running_mean_shape[0] != C || running_var_shape[0] != C)
         {
-            THROW_RUNTIME_ERROR("BatchNorm channel dimension mismatch: x has C={}, but gamma/beta/running_mean/running_var have different sizes", C);
+            THROW_RUNTIME_ERROR(
+                "BatchNorm channel dimension mismatch: x has C={}, but gamma/beta/running_mean/running_var have "
+                "different sizes",
+                C);
         }
 
         size_t x_numel = x_shape.elements();
@@ -58,16 +60,18 @@ public:
         std::vector<float> running_mean_data(C_size, 0.0f);
         std::vector<float> running_var_data(C_size, 1.0f);
 
-        auto x = Tensor(x_data, x_shape, origin::dtype(config.dtype).device(config.device));
+        auto x     = Tensor(x_data, x_shape, origin::dtype(config.dtype).device(config.device));
         auto gamma = Tensor(gamma_data, gamma_shape, origin::dtype(config.dtype).device(config.device));
-        auto beta = Tensor(beta_data, beta_shape, origin::dtype(config.dtype).device(config.device));
-        auto running_mean = Tensor(running_mean_data, running_mean_shape, origin::dtype(config.dtype).device(config.device));
-        auto running_var = Tensor(running_var_data, running_var_shape, origin::dtype(config.dtype).device(config.device));
+        auto beta  = Tensor(beta_data, beta_shape, origin::dtype(config.dtype).device(config.device));
+        auto running_mean =
+            Tensor(running_mean_data, running_mean_shape, origin::dtype(config.dtype).device(config.device));
+        auto running_var =
+            Tensor(running_var_data, running_var_shape, origin::dtype(config.dtype).device(config.device));
 
-        bool training = false;  // 测试模式
-        float eps = 1e-5f;
+        bool training  = false;  // 测试模式
+        float eps      = 1e-5f;
         float momentum = 0.1f;
-        int num_dims = 4;
+        int num_dims   = 4;
 
         // 预热
         for (int i = 0; i < config.warmup_cnt; ++i)
@@ -98,7 +102,8 @@ public:
     std::vector<std::vector<Shape>> get_default_shapes() const override
     {
         return {
-            {Shape({1, 3, 32, 32}), Shape({3}), Shape({3}), Shape({3}), Shape({3})},  // x, gamma, beta, running_mean, running_var
+            {Shape({1, 3, 32, 32}), Shape({3}), Shape({3}), Shape({3}),
+             Shape({3})},  // x, gamma, beta, running_mean, running_var
             {Shape({4, 64, 64, 64}), Shape({64}), Shape({64}), Shape({64}), Shape({64})},
             {Shape({8, 128, 32, 32}), Shape({128}), Shape({128}), Shape({128}), Shape({128})},
             {Shape({16, 256, 16, 16}), Shape({256}), Shape({256}), Shape({256}), Shape({256})},
@@ -114,27 +119,29 @@ public:
         {
             THROW_RUNTIME_ERROR("BatchNorm requires exactly 5 shapes, got {}", shapes.size());
         }
-        const Shape &x_shape = shapes[0];
-        const Shape &gamma_shape = shapes[1];
-        const Shape &beta_shape = shapes[2];
+        const Shape &x_shape            = shapes[0];
+        const Shape &gamma_shape        = shapes[1];
+        const Shape &beta_shape         = shapes[2];
         const Shape &running_mean_shape = shapes[3];
-        const Shape &running_var_shape = shapes[4];
-        
+        const Shape &running_var_shape  = shapes[4];
+
         if (x_shape.ndims() != 4)
         {
             THROW_RUNTIME_ERROR("BatchNorm x must be 4D (N, C, H, W), got {}", x_shape.to_string());
         }
-        if (gamma_shape.ndims() != 1 || beta_shape.ndims() != 1 || 
-            running_mean_shape.ndims() != 1 || running_var_shape.ndims() != 1)
+        if (gamma_shape.ndims() != 1 || beta_shape.ndims() != 1 || running_mean_shape.ndims() != 1 ||
+            running_var_shape.ndims() != 1)
         {
             THROW_RUNTIME_ERROR("BatchNorm gamma/beta/running_mean/running_var must be 1D (C,)");
         }
-        
+
         int C = x_shape[1];
-        if (gamma_shape[0] != C || beta_shape[0] != C || 
-            running_mean_shape[0] != C || running_var_shape[0] != C)
+        if (gamma_shape[0] != C || beta_shape[0] != C || running_mean_shape[0] != C || running_var_shape[0] != C)
         {
-            THROW_RUNTIME_ERROR("BatchNorm channel dimension mismatch: x has C={}, but gamma/beta/running_mean/running_var have different sizes", C);
+            THROW_RUNTIME_ERROR(
+                "BatchNorm channel dimension mismatch: x has C={}, but gamma/beta/running_mean/running_var have "
+                "different sizes",
+                C);
         }
     }
 

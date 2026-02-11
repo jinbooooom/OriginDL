@@ -309,11 +309,10 @@ TEST_P(ReshapeOperatorTest, ReshapeNonContiguousAfterTranspose)
 
     EXPECT_EQ(result.shape(), target_shape);
     // 转置后的逻辑顺序应该是: [1, 4, 2, 5, 3, 6]
-    auto expected = Tensor({1.0f, 4.0f, 2.0f, 5.0f, 3.0f, 6.0f}, target_shape,
-                          dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1.0f, 4.0f, 2.0f, 5.0f, 3.0f, 6.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
-
 
 TEST_P(ReshapeOperatorTest, ReshapeNonContiguousToMultiD)
 {
@@ -333,8 +332,8 @@ TEST_P(ReshapeOperatorTest, ReshapeNonContiguousToMultiD)
 
     EXPECT_EQ(result.shape(), target_shape);
     // 转置后的逻辑顺序按 (2, 3) 排列: [[1, 4, 2], [5, 3, 6]]
-    auto expected = Tensor({1.0f, 4.0f, 2.0f, 5.0f, 3.0f, 6.0f}, target_shape,
-                          dtype(DataType::kFloat32).device(deviceType()));
+    auto expected =
+        Tensor({1.0f, 4.0f, 2.0f, 5.0f, 3.0f, 6.0f}, target_shape, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 

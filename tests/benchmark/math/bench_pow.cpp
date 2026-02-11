@@ -2,8 +2,8 @@
 #include "benchmark/common/benchmark_framework.h"
 #include "benchmark/common/timer.h"
 #include "origin.h"
-#include "origin/operators/math/pow.h"
 #include "origin/mat/scalar.h"
+#include "origin/operators/math/pow.h"
 
 using namespace origin;
 using namespace origin::benchmark;
@@ -23,7 +23,7 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        size_t numel = shape.elements();
+        size_t numel       = shape.elements();
         std::vector<float> data(numel, 1.0f);
 
         auto x = Tensor(data, shape, origin::dtype(config.dtype).device(config.device));

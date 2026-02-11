@@ -1,13 +1,13 @@
 /**
  * @file cuda_ops.cu
  * @brief CUDA 非计算类算子实现
- * 
+ *
  * ============================================================================
  * 文件功能说明
  * ============================================================================
- * 
+ *
  * 本文件承担非计算类 CUDA 算子的实现，类似于 add.cu 但按功能分类而非按算子分类。
- * 
+ *
  * 架构位置：
  * - origin_mat.cpp (封装层)
  *   ↓ 包含
@@ -17,12 +17,12 @@
  * - add.cu, divide.cu 等 (计算类算子实现)
  *   ↓ 都包含
  * - cuda_kernels.cuh (kernel 定义，只在 .cu 文件中使用)
- * 
+ *
  * ============================================================================
  */
 
-#include "origin/mat/origin/cuda/cuda_ops.cuh"
 #include "origin/mat/origin/cuda/cuda_kernels.cuh"
+#include "origin/mat/origin/cuda/cuda_ops.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
@@ -59,7 +59,7 @@ __global__ void index_put_kernel(T *data, size_t index, T value)
 /**
  * @brief CUDA clone kernel：按逻辑顺序拷贝非连续张量
  * @tparam T 数据类型
- * @param src 源数据指针 
+ * @param src 源数据指针
  * @param dst 目标数据指针（连续存储）
  * @param shape 源张量的形状（与 src_strides 对应）
  * @param src_strides 源张量的 strides（可能非连续）
@@ -171,7 +171,7 @@ __global__ void index_put_kernel(T *data, size_t index, T value)
  *    idx = 6:  coords = [1, 1, 0] -> (1, 1, 0)
  *    idx = 7:  coords = [1, 1, 1] -> (1, 1, 1)
  *
- *    验证：idx = 5 = 1*4 + 0*2 + 1*1 = 4 + 0 + 1 = 5 
+ *    验证：idx = 5 = 1*4 + 0*2 + 1*1 = 4 + 0 + 1 = 5
  *
  * ============================================================================
  * 完整示例：转置后 reshape 的场景
@@ -270,13 +270,13 @@ __host__ void launch_index_put_kernel(T *data, size_t index, T value, cudaStream
  */
 template <typename T>
 __host__ void launch_clone_kernel(const T *src,
-                                   T *dst,
-                                   const size_t *shape,
-                                   const size_t *src_strides,
-                                   const size_t *output_strides,
-                                   size_t ndim,
-                                   size_t total_elements,
-                                   cudaStream_t stream)
+                                  T *dst,
+                                  const size_t *shape,
+                                  const size_t *src_strides,
+                                  const size_t *output_strides,
+                                  size_t ndim,
+                                  size_t total_elements,
+                                  cudaStream_t stream)
 {
     dim3 block = get_optimal_block_size(total_elements);
     dim3 grid  = get_optimal_grid_size(total_elements, block);

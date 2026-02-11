@@ -21,10 +21,10 @@ public:
             THROW_RUNTIME_ERROR("Linear benchmark requires exactly 3 shapes, got {}", config.shapes.size());
         }
 
-        const Shape &x_shape = config.shapes[0];
+        const Shape &x_shape      = config.shapes[0];
         const Shape &weight_shape = config.shapes[1];
-        const Shape &bias_shape = config.shapes[2];
-        
+        const Shape &bias_shape   = config.shapes[2];
+
         // x: (N, in_features), weight: (out_features, in_features), bias: (out_features,)
         if (x_shape.ndims() != 2)
         {
@@ -32,14 +32,15 @@ public:
         }
         if (weight_shape.ndims() != 2)
         {
-            THROW_RUNTIME_ERROR("Linear weight must be 2D (out_features, in_features), got {}", weight_shape.to_string());
+            THROW_RUNTIME_ERROR("Linear weight must be 2D (out_features, in_features), got {}",
+                                weight_shape.to_string());
         }
         if (bias_shape.ndims() != 1)
         {
             THROW_RUNTIME_ERROR("Linear bias must be 1D (out_features,), got {}", bias_shape.to_string());
         }
-        
-        int in_features = x_shape[1];
+
+        int in_features  = x_shape[1];
         int out_features = weight_shape[0];
         if (weight_shape[1] != in_features)
         {
@@ -73,9 +74,9 @@ public:
             bias_data[i] = static_cast<float>(rand()) / RAND_MAX;
         }
 
-        auto x = Tensor(x_data, x_shape, origin::dtype(config.dtype).device(config.device));
+        auto x      = Tensor(x_data, x_shape, origin::dtype(config.dtype).device(config.device));
         auto weight = Tensor(weight_data, weight_shape, origin::dtype(config.dtype).device(config.device));
-        auto bias = Tensor(bias_data, bias_shape, origin::dtype(config.dtype).device(config.device));
+        auto bias   = Tensor(bias_data, bias_shape, origin::dtype(config.dtype).device(config.device));
 
         // 预热
         for (int i = 0; i < config.warmup_cnt; ++i)
@@ -122,24 +123,25 @@ public:
         {
             THROW_RUNTIME_ERROR("Linear requires exactly 3 shapes, got {}", shapes.size());
         }
-        const Shape &x_shape = shapes[0];
+        const Shape &x_shape      = shapes[0];
         const Shape &weight_shape = shapes[1];
-        const Shape &bias_shape = shapes[2];
-        
+        const Shape &bias_shape   = shapes[2];
+
         if (x_shape.ndims() != 2)
         {
             THROW_RUNTIME_ERROR("Linear x must be 2D (N, in_features), got {}", x_shape.to_string());
         }
         if (weight_shape.ndims() != 2)
         {
-            THROW_RUNTIME_ERROR("Linear weight must be 2D (out_features, in_features), got {}", weight_shape.to_string());
+            THROW_RUNTIME_ERROR("Linear weight must be 2D (out_features, in_features), got {}",
+                                weight_shape.to_string());
         }
         if (bias_shape.ndims() != 1)
         {
             THROW_RUNTIME_ERROR("Linear bias must be 1D (out_features,), got {}", bias_shape.to_string());
         }
-        
-        int in_features = x_shape[1];
+
+        int in_features  = x_shape[1];
         int out_features = weight_shape[0];
         if (weight_shape[1] != in_features)
         {

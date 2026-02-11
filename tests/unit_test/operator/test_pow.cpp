@@ -464,9 +464,9 @@ TEST_P(PowOperatorTest, TypePromotion)
 
     // 1. int32 tensor + int32 exponent → 应提升到 float32（pow 的特殊规则）
     {
-        auto x        = Tensor({2, 3, 4}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
-        int32_t exp   = 2;
-        auto result   = F::pow(x, Scalar(exp));
+        auto x      = Tensor({2, 3, 4}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
+        int32_t exp = 2;
+        auto result = F::pow(x, Scalar(exp));
         EXPECT_EQ(result.dtype(), DataType::kFloat32) << "int32 + int32 should promote to float32 (pow special rule)";
         auto expected = Tensor({4.0f, 9.0f, 16.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -474,9 +474,9 @@ TEST_P(PowOperatorTest, TypePromotion)
 
     // 2. int32 tensor + float32 exponent → 应提升到 float32
     {
-        auto x        = Tensor({2, 3, 4}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
-        float exp     = 2.5f;
-        auto result   = F::pow(x, Scalar(exp));
+        auto x      = Tensor({2, 3, 4}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
+        float exp   = 2.5f;
+        auto result = F::pow(x, Scalar(exp));
         EXPECT_EQ(result.dtype(), DataType::kFloat32) << "int32 + float32 should promote to float32";
         // 验证值：2^2.5 ≈ 5.657, 3^2.5 ≈ 15.588, 4^2.5 = 32.0
         auto result_data = result.to_vector<float>();
@@ -487,9 +487,9 @@ TEST_P(PowOperatorTest, TypePromotion)
 
     // 3. float32 tensor + int32 exponent → 应保持 float32
     {
-        auto x        = Tensor({2.0f, 3.0f, 4.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
-        int32_t exp   = 2;
-        auto result   = F::pow(x, Scalar(exp));
+        auto x      = Tensor({2.0f, 3.0f, 4.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+        int32_t exp = 2;
+        auto result = F::pow(x, Scalar(exp));
         EXPECT_EQ(result.dtype(), DataType::kFloat32) << "float32 + int32 should stay float32";
         auto expected = Tensor({4.0f, 9.0f, 16.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -497,9 +497,9 @@ TEST_P(PowOperatorTest, TypePromotion)
 
     // 4. float64 tensor + int32 exponent → 应保持 float64
     {
-        auto x        = Tensor({2.0, 3.0, 4.0}, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
-        int32_t exp   = 2;
-        auto result   = F::pow(x, Scalar(exp));
+        auto x      = Tensor({2.0, 3.0, 4.0}, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
+        int32_t exp = 2;
+        auto result = F::pow(x, Scalar(exp));
         EXPECT_EQ(result.dtype(), DataType::kFloat64) << "float64 + int32 should stay float64";
         auto expected = Tensor({4.0, 9.0, 16.0}, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
@@ -507,9 +507,9 @@ TEST_P(PowOperatorTest, TypePromotion)
 
     // 5. int32 tensor + float64 exponent → 应提升到 float64
     {
-        auto x        = Tensor({2, 3, 4}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
-        double exp    = 2.5;
-        auto result   = F::pow(x, Scalar(exp));
+        auto x      = Tensor({2, 3, 4}, Shape{3}, dtype(DataType::kInt32).device(deviceType()));
+        double exp  = 2.5;
+        auto result = F::pow(x, Scalar(exp));
         EXPECT_EQ(result.dtype(), DataType::kFloat64) << "int32 + float64 should promote to float64";
         // 验证值
         auto result_data = result.to_vector<double>();
@@ -520,9 +520,9 @@ TEST_P(PowOperatorTest, TypePromotion)
 
     // 6. int64 tensor + int64 exponent → 应提升到 float32（pow 的特殊规则）
     {
-        auto x        = Tensor({2L, 3L, 4L}, Shape{3}, dtype(DataType::kInt64).device(deviceType()));
-        int64_t exp   = 2L;
-        auto result   = F::pow(x, Scalar(exp));
+        auto x      = Tensor({2L, 3L, 4L}, Shape{3}, dtype(DataType::kInt64).device(deviceType()));
+        int64_t exp = 2L;
+        auto result = F::pow(x, Scalar(exp));
         EXPECT_EQ(result.dtype(), DataType::kFloat32) << "int64 + int64 should promote to float32 (pow special rule)";
         auto expected = Tensor({4.0f, 9.0f, 16.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);

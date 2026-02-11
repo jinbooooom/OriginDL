@@ -1,13 +1,13 @@
 /**
  * @file cpu_ops.cpp
  * @brief CPU 非计算类算子实现
- * 
+ *
  * ============================================================================
  * 文件功能说明
  * ============================================================================
- * 
+ *
  * 本文件承担非计算类 CPU 算子的实现，类似于 add.cpp 但按功能分类而非按算子分类。
- * 
+ *
  * 架构位置：
  * - origin_mat.cpp (封装层)
  *   ↓ 包含
@@ -17,18 +17,18 @@
  * - add.cpp, divide.cpp 等 (计算类算子实现)
  *   ↓ 都包含
  * - cpu_kernels.h (基础操作定义，只在 .cpp 文件中使用)
- * 
+ *
  * ============================================================================
  */
 
 #include "origin/mat/origin/cpu/cpu_ops.h"
+#include <cstring>
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/mat/scalar.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
-#include <cstring>
 
 namespace origin
 {

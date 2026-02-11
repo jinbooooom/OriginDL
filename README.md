@@ -66,6 +66,7 @@ Total inference time: 0.1189 seconds, Average FPS: 33.65
 <td width="50%"><img src="./assets/README/output_dog.jpg" alt="Dog Detection" style="width:100%"></td>
 </tr>
 </table>
+
 ### MNIST 手写数字识别
 
 ```shell
@@ -162,7 +163,7 @@ OriginDL/
 │   ├── mat/                # 矩阵计算抽象层
 │   ├── operators/          # 算子实现
 │   └── pnnx/               # PNNX 静态图推理
-├── src/                    # 源文件
+├── src/                    # 源文件，结构与头文件相同，不再赘述
 ├── tests/                  # 测试和示例
 │   ├── unit_test/         # 单元测试
 │   ├── benchmark/         # 性能测试

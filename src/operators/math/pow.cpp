@@ -46,9 +46,8 @@ std::vector<Tensor> Pow::backward(const std::vector<Tensor> &gys)
 
     // ∂y/∂x = exponent * x^(exponent-1) * gy
     // 使用 exponent_ 的类型进行指数计算
-    Scalar exponent_minus_1 = (promoted_dtype == DataType::kFloat64)
-                                   ? Scalar(exponent_.to_float64() - 1.0)
-                                   : Scalar(exponent_.to_float32() - 1.0f);
+    Scalar exponent_minus_1 = (promoted_dtype == DataType::kFloat64) ? Scalar(exponent_.to_float64() - 1.0)
+                                                                     : Scalar(exponent_.to_float32() - 1.0f);
     // 优化：最大化利用 tmp 内存，所有操作都在 tmp 上进行
     auto tmp = x.pow(exponent_minus_1);
     tmp->mul_inplace(gy);
@@ -102,8 +101,8 @@ Tensor pow(const std::vector<Tensor> &xs, const Scalar &exponent)
     }
 
     // 将 exponent 提升为 float32 或 float64
-    Scalar promoted_exponent = (promoted_dtype == DataType::kFloat64) ? Scalar(exponent.to_float64())
-                                                                      : Scalar(exponent.to_float32());
+    Scalar promoted_exponent =
+        (promoted_dtype == DataType::kFloat64) ? Scalar(exponent.to_float64()) : Scalar(exponent.to_float32());
 
     auto op = std::make_shared<Pow>(promoted_exponent);
     return (*op)(xs)[0];
@@ -125,8 +124,8 @@ void pow_(Tensor &x, const Scalar &exponent)
         promoted_dtype = DataType::kFloat32;
     }
 
-    Scalar promoted_exponent = (promoted_dtype == DataType::kFloat64) ? Scalar(exponent.to_float64())
-                                                                      : Scalar(exponent.to_float32());
+    Scalar promoted_exponent =
+        (promoted_dtype == DataType::kFloat64) ? Scalar(exponent.to_float64()) : Scalar(exponent.to_float32());
     Pow op(promoted_exponent);
     op.forward_inplace(x, Operator::kNullTensor_);
 }

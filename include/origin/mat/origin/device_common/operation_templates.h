@@ -268,7 +268,7 @@ public:
             // 构建源索引
             // 判断是否是keepdim：如果输出和输入维度数相同，说明是keepdim=true
             bool is_keepdim = (src_shape.size() == dst_shape.size());
-            
+
             for (size_t i = 0; i < src_shape.size(); ++i)
             {
                 if (i == static_cast<size_t>(axis))

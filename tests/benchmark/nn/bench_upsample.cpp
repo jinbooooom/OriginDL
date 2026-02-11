@@ -22,7 +22,7 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        
+
         // Upsample需要4D输入 (N, C, H, W)
         if (shape.ndims() != 4)
         {
@@ -67,11 +67,8 @@ public:
     std::vector<std::vector<Shape>> get_default_shapes() const override
     {
         return {
-            {Shape({1, 1, 3, 3})},
-            {Shape({1, 3, 10, 10})},
-            {Shape({1, 3, 32, 32})},
-            {Shape({1, 64, 64, 64})},
-            {Shape({4, 3, 224, 224})},
+            {Shape({1, 1, 3, 3})},    {Shape({1, 3, 10, 10})},   {Shape({1, 3, 32, 32})},
+            {Shape({1, 64, 64, 64})}, {Shape({4, 3, 224, 224})},
         };
     }
 

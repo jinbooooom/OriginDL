@@ -22,7 +22,7 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        
+
         // MaxPool2d需要4D输入 (N, C, H, W)
         if (shape.ndims() != 4)
         {
@@ -36,8 +36,8 @@ public:
 
         // 使用默认的kernel_size, stride, pad
         int kernel_size = 2;
-        int stride = 2;
-        int pad = 0;
+        int stride      = 2;
+        int pad         = 0;
 
         // 预热
         for (int i = 0; i < config.warmup_cnt; ++i)
@@ -68,11 +68,8 @@ public:
     std::vector<std::vector<Shape>> get_default_shapes() const override
     {
         return {
-            {Shape({1, 1, 3, 3})},
-            {Shape({1, 3, 10, 10})},
-            {Shape({1, 3, 32, 32})},
-            {Shape({1, 64, 64, 64})},
-            {Shape({4, 3, 224, 224})},
+            {Shape({1, 1, 3, 3})},    {Shape({1, 3, 10, 10})},   {Shape({1, 3, 32, 32})},
+            {Shape({1, 64, 64, 64})}, {Shape({4, 3, 224, 224})},
         };
     }
 

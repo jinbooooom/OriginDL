@@ -26,7 +26,6 @@ protected:
     DataType dtype_;
     std::vector<size_t> strides_;
 
-
 public:
     /**
      * @brief 默认构造函数

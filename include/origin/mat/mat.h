@@ -196,8 +196,6 @@ public:
      */
     virtual std::unique_ptr<Mat> operator>=(const Mat &threshold) const = 0;
 
-
-
     /**
      * @brief 一元负号运算符
      * @return 负值结果

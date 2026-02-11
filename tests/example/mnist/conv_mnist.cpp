@@ -285,7 +285,7 @@ struct TrainingConfig
     std::string model_path  = "model/mnist_model.odl";
     int checkpoint_interval = 5;
     int random_seed         = 42;
-    std::string data_dir   = "./data/mnist";
+    std::string data_dir    = "./data/mnist";
     int device_id           = -2;  // -2=auto, -1=CPU, >=0=GPU id
 
     /**
@@ -495,8 +495,8 @@ int main(int argc, char *argv[])
 
     // 加载数据集
     logi("Loading MNIST dataset...");
-    MNIST train_dataset(config.data_dir, true);   // 训练集
-    MNIST test_dataset(config.data_dir, false);   // 测试集
+    MNIST train_dataset(config.data_dir, true);  // 训练集
+    MNIST test_dataset(config.data_dir, false);  // 测试集
 
     logi("Train dataset size: {}", train_dataset.size());
     logi("Test dataset size: {}", test_dataset.size());

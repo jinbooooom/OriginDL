@@ -97,7 +97,7 @@ std::unique_ptr<Mat> dropout(const OriginMat &x, float p, bool training, OriginM
     if (!training)
     {
         // 推理模式：直接返回输入
-        size_t data_size   = x_shape.elements() * element_size(x.dtype());
+        size_t data_size = x_shape.elements() * element_size(x.dtype());
         CUDA_CHECK(cudaMemcpyAsync(y_data, x_data, data_size, cudaMemcpyDeviceToDevice));
         return result;
     }

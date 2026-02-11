@@ -32,11 +32,10 @@ int main(int argc, char **argv)
     // -2 = auto (prefer CUDA if available), -1 = CPU, >= 0 = GPU device id
     int device_id = -2;
 
-    static struct option long_options[] = {
-        {"cpu", no_argument, 0, 'c'},
-        {"device", required_argument, 0, 'd'},
-        {"help", no_argument, 0, 'h'},
-        {0, 0, 0, 0}};
+    static struct option long_options[] = {{"cpu", no_argument, 0, 'c'},
+                                           {"device", required_argument, 0, 'd'},
+                                           {"help", no_argument, 0, 'h'},
+                                           {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;
@@ -131,7 +130,7 @@ int main(int argc, char **argv)
         b = b - lr * b.grad();
 
         // 打印结果
-        if (i % 10 == 0 || i == iters - 1) 
+        if (i % 10 == 0 || i == iters - 1)
         {
             float loss_val = loss.item<float>();
             float w_val    = w.item<float>();

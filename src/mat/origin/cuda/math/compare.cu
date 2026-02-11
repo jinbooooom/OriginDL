@@ -23,7 +23,10 @@ namespace cuda
  * @details A、B和C是长度为N的向量，计算 C[i] = Op(A[i], B[i])
  */
 template <typename T, typename Op>
-__global__ void compare_elementwise_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
+__global__ void compare_elementwise_kernel(const T *__restrict__ A,
+                                           const T *__restrict__ B,
+                                           T *__restrict__ C,
+                                           size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -86,7 +89,10 @@ __global__ void compare_elementwise_vectorized_float4_kernel(const float *__rest
  * @details A和C是长度为N的向量，threshold是标量（长度为1），计算 C[i] = Op(A[i], threshold[0])
  */
 template <typename T, typename Op>
-__global__ void compare_broadcast_kernel(const T *__restrict__ A, const T *__restrict__ threshold, T *__restrict__ C, size_t N)
+__global__ void compare_broadcast_kernel(const T *__restrict__ A,
+                                         const T *__restrict__ threshold,
+                                         T *__restrict__ C,
+                                         size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -179,9 +185,10 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
     }
     else
     {
-        THROW_INVALID_ARG("Compare operator: threshold must be scalar (shape {{}} or {{1}}) or have same shape as input. "
-                          "Got mat shape={}, threshold shape={}",
-                          mat.shape().to_string(), threshold.shape().to_string());
+        THROW_INVALID_ARG(
+            "Compare operator: threshold must be scalar (shape {{}} or {{1}}) or have same shape as input. "
+            "Got mat shape={}, threshold shape={}",
+            mat.shape().to_string(), threshold.shape().to_string());
     }
 
     OriginMat *result_ptr = nullptr;
@@ -194,8 +201,8 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
             THROW_INVALID_ARG(
                 "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
                 "dtype={}, device={}",
-                result_shape.to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(), out->shape().to_string(),
-                dtype_to_string(out->dtype()), out->device().to_string());
+                result_shape.to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
+                out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
         }
         result_ptr = out;
     }
@@ -205,9 +212,9 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
         result_ptr    = result_unique.get();
     }
 
-    const void *mat_data      = mat.storage()->data();
+    const void *mat_data       = mat.storage()->data();
     const void *threshold_data = threshold.storage()->data();
-    void *result_data         = result_ptr->storage()->data();
+    void *result_data          = result_ptr->storage()->data();
 
     // 分支优化 - 参考 add.cu 的实现方式
     if (mat.shape() == threshold.shape())
@@ -230,9 +237,9 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
             const size_t threads_per_block = 256;
             const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
             device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-                compare_elementwise_kernel<T, Op><<<num_blocks, threads_per_block>>>(static_cast<const T *>(mat_data),
-                                                                                      static_cast<const T *>(threshold_data),
-                                                                                      static_cast<T *>(result_data), num_elements);
+                compare_elementwise_kernel<T, Op><<<num_blocks, threads_per_block>>>(
+                    static_cast<const T *>(mat_data), static_cast<const T *>(threshold_data),
+                    static_cast<T *>(result_data), num_elements);
             });
         }
     }
@@ -257,9 +264,9 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
             const size_t threads_per_block = 256;
             const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
             device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-                compare_broadcast_kernel<T, Op><<<num_blocks, threads_per_block>>>(static_cast<const T *>(mat_data),
-                                                                                    static_cast<const T *>(threshold_data),
-                                                                                    static_cast<T *>(result_data), num_elements);
+                compare_broadcast_kernel<T, Op><<<num_blocks, threads_per_block>>>(
+                    static_cast<const T *>(mat_data), static_cast<const T *>(threshold_data),
+                    static_cast<T *>(result_data), num_elements);
             });
         }
     }

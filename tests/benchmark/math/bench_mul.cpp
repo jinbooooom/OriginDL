@@ -22,7 +22,7 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        size_t numel = shape.elements();
+        size_t numel       = shape.elements();
         std::vector<float> data0(numel, 1.0f);
         std::vector<float> data1(numel, 2.0f);
 

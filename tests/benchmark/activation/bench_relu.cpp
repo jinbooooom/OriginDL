@@ -22,7 +22,7 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        size_t numel = shape.elements();
+        size_t numel       = shape.elements();
         // 创建包含正负数的输入
         std::vector<float> data(numel);
         for (size_t i = 0; i < numel; ++i)

@@ -73,8 +73,8 @@ std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vecto
 
     size_t input_chunk_elements = C * N;
 
-    const uint8_t *src_base            = static_cast<const uint8_t *>(input.storage()->data());
-    size_t input_channel_offset        = 0;
+    const uint8_t *src_base     = static_cast<const uint8_t *>(input.storage()->data());
+    size_t input_channel_offset = 0;
 
     for (size_t Ci : split_sizes)
     {
@@ -82,7 +82,7 @@ std::vector<std::unique_ptr<Mat>> split(const OriginMat &input, const std::vecto
         Shape output_shape = input_shape;
         output_shape[dim]  = Ci;
 
-        auto result = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
+        auto result       = std::make_unique<OriginMat>(output_shape, input.dtype(), input.device());
         void *output_data = result->storage()->data();
 
         size_t output_chunk_elements = Ci * N;

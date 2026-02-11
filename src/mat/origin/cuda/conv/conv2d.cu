@@ -448,7 +448,7 @@ std::unique_ptr<Mat> im2col_impl(const OriginMat &img,
         int num_blocks        = (total_elements + kThreadsPerBlock - 1) / kThreadsPerBlock;
 
         im2col_kernel<T><<<num_blocks, kThreadsPerBlock>>>(padded_data, col_data, N, C, H, W, KH, KW, SH, SW, PH, PW,
-                                                            OH, OW, padded_H, padded_W, to_matrix);
+                                                           OH, OW, padded_H, padded_W, to_matrix);
     });
 
     CUDA_CHECK_ASYNC();
@@ -507,11 +507,11 @@ std::unique_ptr<Mat> col2im_impl(const OriginMat &col,
         const T *col_data = col.data_ptr<T>();
         T *padded_data    = padded_img->data_ptr<T>();
 
-        size_t col_elements   = to_matrix ? (N * OH * OW * C * KH * KW) : (N * C * KH * KW * OH * OW);
-        int num_blocks        = (col_elements + kThreadsPerBlock - 1) / kThreadsPerBlock;
+        size_t col_elements = to_matrix ? (N * OH * OW * C * KH * KW) : (N * C * KH * KW * OH * OW);
+        int num_blocks      = (col_elements + kThreadsPerBlock - 1) / kThreadsPerBlock;
 
         col2im_kernel<T><<<num_blocks, kThreadsPerBlock>>>(col_data, padded_data, N, C, H, W, KH, KW, SH, SW, PH, PW,
-                                                            OH, OW, padded_H, padded_W, to_matrix);
+                                                           OH, OW, padded_H, padded_W, to_matrix);
     });
 
     CUDA_CHECK_ASYNC();
@@ -627,8 +627,8 @@ std::unique_ptr<Mat> conv2d(const OriginMat &x,
     const OriginMat &W_reshaped_mat = static_cast<const OriginMat &>(*W_reshaped);
 
     // 提前检查设备类型，避免不必要的转置操作
-    bool use_cuda = (col_mat.device().type() == DeviceType::kCUDA && 
-                     W_reshaped_mat.device().type() == DeviceType::kCUDA);
+    bool use_cuda =
+        (col_mat.device().type() == DeviceType::kCUDA && W_reshaped_mat.device().type() == DeviceType::kCUDA);
 
     // 3. 计算矩阵乘法: col @ W^T -> (N*OH*OW, OC)
     auto W_T                 = W_reshaped_mat.transpose();

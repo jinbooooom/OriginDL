@@ -70,7 +70,7 @@ TEST_P(UpsampleOperatorTest, ForwardNearestMultiChannel)
 {
     // mode=nearest：多通道，形状正确即可
     std::vector<float> x_data = {1.0f, 2.0f};
-    auto x = Tensor(x_data, Shape{1, 2, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                    = Tensor(x_data, Shape{1, 2, 1, 1}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = F::upsample(x, "nearest", {2.0f, 2.0f});
 

@@ -22,13 +22,13 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        size_t numel = shape.elements();
+        size_t numel       = shape.elements();
         std::vector<float> data(numel, 1.0f);
 
         auto x = Tensor(data, shape, origin::dtype(config.dtype).device(config.device));
 
         // 在最后一个维度上求和
-        int dim = static_cast<int>(shape.ndims()) - 1;
+        int dim      = static_cast<int>(shape.ndims()) - 1;
         bool keepdim = false;
 
         // 预热

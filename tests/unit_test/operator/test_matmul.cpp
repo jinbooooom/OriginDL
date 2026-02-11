@@ -371,40 +371,54 @@ TEST_P(MatMulOperatorTest, LargeMatrixBatch)
     };
 
     // 测试多个不同大小的矩阵乘法（包括方阵和非方阵）
-    const std::vector<MatrixDims> test_cases = {
-        // 方阵
-        {16, 16, 16},   {24, 24, 24},   {31, 31, 31},   {32, 32, 32},   {64, 64, 64},
-        {100, 100, 100}, {127, 127, 127}, {128, 128, 128}, {256, 256, 256}, {512, 512, 512},
-        {1024, 1024, 1024}, {2048, 2048, 2048},
-        // 非方阵
-        {16, 32, 48}, {128, 256, 512}, {512, 1024, 2048},
-        // 矩形矩阵
-        {1, 1000, 1}, {1000, 1, 1000}
-    };
+    const std::vector<MatrixDims> test_cases = {// 方阵
+                                                {16, 16, 16},
+                                                {24, 24, 24},
+                                                {31, 31, 31},
+                                                {32, 32, 32},
+                                                {64, 64, 64},
+                                                {100, 100, 100},
+                                                {127, 127, 127},
+                                                {128, 128, 128},
+                                                {256, 256, 256},
+                                                {512, 512, 512},
+                                                {1024, 1024, 1024},
+                                                {2048, 2048, 2048},
+                                                // 非方阵
+                                                {16, 32, 48},
+                                                {128, 256, 512},
+                                                {512, 1024, 2048},
+                                                // 矩形矩阵
+                                                {1, 1000, 1},
+                                                {1000, 1, 1000}};
 
-    for (const auto& dims : test_cases)
+    for (const auto &dims : test_cases)
     {
         const int M = dims.M, K = dims.K, N = dims.N;
         // 使用SCOPED_TRACE标记当前测试的尺寸，失败时会自动打印
-        SCOPED_TRACE("Matrix dimensions: M=" + std::to_string(M) + ", K=" + std::to_string(K) + ", N=" + std::to_string(N));
-        
+        SCOPED_TRACE("Matrix dimensions: M=" + std::to_string(M) + ", K=" + std::to_string(K) +
+                     ", N=" + std::to_string(N));
+
         // 使用全1矩阵，这样可以直接验证结果而不需要CPU对比
         // 全1矩阵A (MxK) × 全1矩阵B (KxN) = 全K矩阵 (MxN)，每个元素都是K
         std::vector<float> data_a(M * K, 1.0f);
         std::vector<float> data_b(K * N, 1.0f);
 
-        auto a = Tensor(data_a, Shape{static_cast<size_t>(M), static_cast<size_t>(K)}, dtype(DataType::kFloat32).device(deviceType()));
-        auto b = Tensor(data_b, Shape{static_cast<size_t>(K), static_cast<size_t>(N)}, dtype(DataType::kFloat32).device(deviceType()));
+        auto a = Tensor(data_a, Shape{static_cast<size_t>(M), static_cast<size_t>(K)},
+                        dtype(DataType::kFloat32).device(deviceType()));
+        auto b = Tensor(data_b, Shape{static_cast<size_t>(K), static_cast<size_t>(N)},
+                        dtype(DataType::kFloat32).device(deviceType()));
 
         auto result = F::mat_mul(a, b);
         EXPECT_EQ(result.shape(), Shape({static_cast<size_t>(M), static_cast<size_t>(N)}));
 
         // 验证结果：全1矩阵相乘，结果应该是全K矩阵（每个元素都是K）
-        auto expected = Tensor(std::vector<float>(M * N, static_cast<float>(K)), Shape{static_cast<size_t>(M), static_cast<size_t>(N)}, dtype(DataType::kFloat32).device(deviceType()));
+        auto expected = Tensor(std::vector<float>(M * N, static_cast<float>(K)),
+                               Shape{static_cast<size_t>(M), static_cast<size_t>(N)},
+                               dtype(DataType::kFloat32).device(deviceType()));
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
     }
 }
-
 
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(MatMulOperatorTest);

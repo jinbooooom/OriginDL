@@ -47,9 +47,10 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
     }
     else
     {
-        THROW_INVALID_ARG("Compare operator: threshold must be scalar (shape {{}} or {{1}}) or have same shape as input. "
-                          "Got mat shape={}, threshold shape={}",
-                          mat.shape().to_string(), threshold.shape().to_string());
+        THROW_INVALID_ARG(
+            "Compare operator: threshold must be scalar (shape {{}} or {{1}}) or have same shape as input. "
+            "Got mat shape={}, threshold shape={}",
+            mat.shape().to_string(), threshold.shape().to_string());
     }
 
     OriginMat *result_ptr = nullptr;
@@ -62,8 +63,8 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
             THROW_INVALID_ARG(
                 "Output tensor mismatch. Expected shape={}, dtype={}, device={}, but got shape={}, "
                 "dtype={}, device={}",
-                result_shape.to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(), out->shape().to_string(),
-                dtype_to_string(out->dtype()), out->device().to_string());
+                result_shape.to_string(), dtype_to_string(mat.dtype()), mat.device().to_string(),
+                out->shape().to_string(), dtype_to_string(out->dtype()), out->device().to_string());
         }
         result_ptr = out;
     }
@@ -73,17 +74,16 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
         result_ptr    = result_unique.get();
     }
 
-    const void *mat_data        = mat.storage()->data();
-    const void *threshold_data   = threshold.storage()->data();
-    void *result_data           = result_ptr->storage()->data();
+    const void *mat_data       = mat.storage()->data();
+    const void *threshold_data = threshold.storage()->data();
+    void *result_data          = result_ptr->storage()->data();
 
     // 分支优化 - 参考 add.cpp 的实现方式
     if (mat.shape() == threshold.shape())
     {
         // 相同形状：直接元素级运算
         device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-            cpu_elementwise_kernel<T, Op>(static_cast<const T *>(mat_data),
-                                          static_cast<const T *>(threshold_data),
+            cpu_elementwise_kernel<T, Op>(static_cast<const T *>(mat_data), static_cast<const T *>(threshold_data),
                                           static_cast<T *>(result_data), mat.elements(), Op{});
         });
     }
@@ -91,8 +91,7 @@ std::unique_ptr<Mat> compare_impl(const OriginMat &mat, const OriginMat &thresho
     {
         // 标量广播：使用简单广播kernel
         device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-            cpu_simple_broadcast_kernel<T, Op>(static_cast<const T *>(mat_data),
-                                               static_cast<const T *>(threshold_data),
+            cpu_simple_broadcast_kernel<T, Op>(static_cast<const T *>(mat_data), static_cast<const T *>(threshold_data),
                                                static_cast<T *>(result_data), mat.elements(), threshold.elements(),
                                                result_ptr->elements(), Op{});
         });

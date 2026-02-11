@@ -22,7 +22,7 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        
+
         // transpose需要至少2维
         if (shape.ndims() < 2)
         {

@@ -37,7 +37,7 @@ std::vector<Tensor> Log::backward(const std::vector<Tensor> &gys)
 
     // ln(x) 的梯度：∂y/∂x = 1/x
     // 所以 gx = gy / x
-    // 
+    //
     // 注意：不需要类型提升
     // log 算子的输出类型与输入类型相同（float32 → float32, float64 → float64），
     // 因此梯度 gy 的类型已经与输入 x 的类型一致，无需进行类型提升。

@@ -22,18 +22,18 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        size_t numel = shape.elements();
+        size_t numel       = shape.elements();
         std::vector<float> data(numel, 1.0f);
 
         auto x = Tensor(data, shape, origin::dtype(config.dtype).device(config.device));
 
-        float p = 0.5f;  // dropout概率
+        float p       = 0.5f;  // dropout概率
         bool training = true;  // 训练模式
 
         // 预热
         for (int i = 0; i < config.warmup_cnt; ++i)
         {
-            auto op = std::make_shared<F::Dropout>(p, training);
+            auto op     = std::make_shared<F::Dropout>(p, training);
             auto result = (*op)(x);
         }
         if (config.device.type() == DeviceType::kCUDA)
@@ -47,7 +47,7 @@ public:
 
         for (int i = 0; i < config.repeat_cnt; ++i)
         {
-            auto op = std::make_shared<F::Dropout>(p, training);
+            auto op     = std::make_shared<F::Dropout>(p, training);
             auto result = (*op)(x);
         }
         if (config.device.type() == DeviceType::kCUDA)

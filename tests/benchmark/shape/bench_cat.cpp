@@ -22,8 +22,8 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        size_t numel = shape.elements();
-        
+        size_t numel       = shape.elements();
+
         // Cat需要至少2个tensor，创建3个相同shape的tensor
         std::vector<float> data0(numel, 1.0f);
         std::vector<float> data1(numel, 2.0f);

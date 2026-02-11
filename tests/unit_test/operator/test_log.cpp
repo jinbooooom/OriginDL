@@ -225,10 +225,10 @@ TEST_P(LogOperatorTest, TypeChecking)
     EXPECT_THROW(F::log_(x_int32_inplace), std::exception);
 
     // 测试float64类型应该正常工作
-    auto x_f64 = Tensor({1.0, std::exp(1.0), std::exp(2.0)}, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
+    auto x_f64  = Tensor({1.0, std::exp(1.0), std::exp(2.0)}, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
     auto result = F::log(x_f64);
     std::vector<double> expected_data = {0.0, 1.0, 2.0};
-    auto expected = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
+    auto expected                     = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat64).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 

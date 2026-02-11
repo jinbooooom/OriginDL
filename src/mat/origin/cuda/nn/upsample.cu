@@ -164,7 +164,7 @@ std::unique_ptr<Mat> upsample(const OriginMat &x,
     int OH       = output_shape[2];
     int OW       = output_shape[3];
 
-    auto result   = std::make_unique<OriginMat>(output_shape, x.dtype(), x.device());
+    auto result        = std::make_unique<OriginMat>(output_shape, x.dtype(), x.device());
     const void *x_data = x.storage()->data();
     void *y_data       = result->storage()->data();
 
@@ -175,7 +175,7 @@ std::unique_ptr<Mat> upsample(const OriginMat &x,
     (void)mode;  // 保留接口，当前仅实现最近邻
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
         upsample_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(x_data), static_cast<T *>(y_data),
-                                                               N, C, H, W, OH, OW, scale_h, scale_w);
+                                                              N, C, H, W, OH, OW, scale_h, scale_w);
     });
 
     return result;
@@ -220,7 +220,7 @@ std::unique_ptr<Mat> upsample_backward(const OriginMat &gy,
     const size_t num_elements      = gy_shape.elements();
     const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
 
-    (void)mode; 
+    (void)mode;
     device_common::TypeDispatcher::dispatch_void(gy.dtype(), [&]<typename T>() {
         upsample_backward_kernel<T><<<num_blocks, threads_per_block>>>(
             static_cast<const T *>(gy_data), static_cast<T *>(gx_data), N, C, H, W, GY_H, GY_W, scale_h, scale_w);

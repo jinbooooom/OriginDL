@@ -390,7 +390,7 @@ TEST_P(SumOperatorTest, ForwardThreeDimensionalWithKeepdim)
     Shape expected_shape{4, 1, 2};
     EXPECT_EQ(result.shape(), expected_shape);
     auto expected = Tensor({9.0f, 12.0f, 27.0f, 30.0f, 45.0f, 48.0f, 63.0f, 66.0f}, Shape{4, 1, 2},
-                            dtype(DataType::kFloat32).device(deviceType()));
+                           dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 

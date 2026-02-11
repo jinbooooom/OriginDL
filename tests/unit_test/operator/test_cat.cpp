@@ -171,7 +171,7 @@ TEST_P(CatOperatorTest, HighDimensional)
     // 输入1: [2, 3, 2, 2, 3, 2] (C=2)
     // 输入2: [2, 3, 2, 2, 3, 2] (C=2)
     // 输出: [2, 3, 4, 2, 3, 2] (C=4)
-    
+
     // 创建输入数据：每个输入有 2*3*2*2*3*2 = 144 个元素
     std::vector<float> data1(144);
     std::vector<float> data2(144);
@@ -180,7 +180,7 @@ TEST_P(CatOperatorTest, HighDimensional)
         data1[i] = static_cast<float>(i);
         data2[i] = static_cast<float>(i + 144);
     }
-    
+
     auto x0 = Tensor(data1, Shape{2, 3, 2, 2, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor(data2, Shape{2, 3, 2, 2, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
@@ -194,29 +194,29 @@ TEST_P(CatOperatorTest, HighDimensional)
     // 由于在 dim=2 上拼接，每个 chunk (对应 M=2*3=6 个 chunk) 应该先包含 x0 的 C=2 个通道，然后是 x1 的 C=2 个通道
     auto result_data = result.to_vector<float>();
     EXPECT_EQ(result_data.size(), 288);  // 2*3*4*2*3*2 = 288
-    
+
     // 完整验证：验证所有元素
     // M=6, C=2, N=12 (2*3*2)
     // 每个 chunk 有 output_C*N = 4*12 = 48 个元素
     // 每个输入 chunk 有 C*N = 2*12 = 24 个元素
-    const size_t M = 6;
-    const size_t C = 2;
-    const size_t N = 12;
+    const size_t M        = 6;
+    const size_t C        = 2;
+    const size_t N        = 12;
     const size_t output_C = 4;
-    
+
     for (size_t m_idx = 0; m_idx < M; ++m_idx)
     {
         size_t chunk_start = m_idx * output_C * N;  // 每个 chunk 有 48 个元素
-        size_t x0_base = m_idx * C * N;             // x0 在这个 chunk 中的起始索引
-        size_t x1_base = m_idx * C * N + 144;       // x1 在这个 chunk 中的起始索引
-        
+        size_t x0_base     = m_idx * C * N;         // x0 在这个 chunk 中的起始索引
+        size_t x1_base     = m_idx * C * N + 144;   // x1 在这个 chunk 中的起始索引
+
         // 验证 x0 的 24 个元素
         for (size_t i = 0; i < C * N; ++i)
         {
             EXPECT_FLOAT_EQ(result_data[chunk_start + i], static_cast<float>(x0_base + i))
                 << "m_idx=" << m_idx << ", chunk_start=" << chunk_start << ", i=" << i;
         }
-        
+
         // 验证 x1 的 24 个元素
         for (size_t i = 0; i < C * N; ++i)
         {
@@ -234,7 +234,7 @@ TEST_P(CatOperatorTest, HighDimensionalDim0)
     // 输入2: [2, 2, 3, 2, 3, 2] (A=2)
     // 输出: [4, 2, 3, 2, 3, 2] (A=4)
     // 转换为3维: [M=1, C=2, N=2*3*2*3*2=72] -> [M=1, C=4, N=72]
-    
+
     // 创建输入数据：每个输入有 2*2*3*2*3*2 = 144 个元素
     std::vector<float> data1(144);
     std::vector<float> data2(144);
@@ -243,7 +243,7 @@ TEST_P(CatOperatorTest, HighDimensionalDim0)
         data1[i] = static_cast<float>(i);
         data2[i] = static_cast<float>(i + 144);
     }
-    
+
     auto x0 = Tensor(data1, Shape{2, 2, 3, 2, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor(data2, Shape{2, 2, 3, 2, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
@@ -258,13 +258,13 @@ TEST_P(CatOperatorTest, HighDimensionalDim0)
     // 输出应该先包含 x0 的所有 144 个元素，然后是 x1 的所有 144 个元素
     auto result_data = result.to_vector<float>();
     EXPECT_EQ(result_data.size(), 288);  // 4*2*3*2*3*2 = 288
-    
+
     // 验证前 144 个元素来自 x0
     for (size_t i = 0; i < 144; ++i)
     {
         EXPECT_FLOAT_EQ(result_data[i], static_cast<float>(i));
     }
-    
+
     // 验证接下来的 144 个元素来自 x1
     for (size_t i = 0; i < 144; ++i)
     {
@@ -280,7 +280,7 @@ TEST_P(CatOperatorTest, HighDimensionalDim5)
     // 输入2: [2, 3, 2, 3, 2, 2] (F=2)
     // 输出: [2, 3, 2, 3, 2, 4] (F=4)
     // 转换为3维: [M=2*3*2*3*2=72, C=2, N=1] -> [M=72, C=4, N=1]
-    
+
     // 创建输入数据：每个输入有 2*3*2*3*2*2 = 144 个元素
     std::vector<float> data1(144);
     std::vector<float> data2(144);
@@ -289,7 +289,7 @@ TEST_P(CatOperatorTest, HighDimensionalDim5)
         data1[i] = static_cast<float>(i);
         data2[i] = static_cast<float>(i + 144);
     }
-    
+
     auto x0 = Tensor(data1, Shape{2, 3, 2, 3, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
     auto x1 = Tensor(data2, Shape{2, 3, 2, 3, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
@@ -305,22 +305,22 @@ TEST_P(CatOperatorTest, HighDimensionalDim5)
     // 每个 chunk 先包含 x0 的 2 个元素，然后是 x1 的 2 个元素
     auto result_data = result.to_vector<float>();
     EXPECT_EQ(result_data.size(), 288);  // 2*3*2*3*2*4 = 288
-    
+
     // 完整验证：验证所有元素
     // 对于每个 chunk (m_idx = 0 到 71)，每个 chunk 有 4 个元素
     // chunk 内布局: [x0[m_idx*2], x0[m_idx*2+1], x1[m_idx*2+144], x1[m_idx*2+145]]
     for (size_t m_idx = 0; m_idx < 72; ++m_idx)
     {
-        size_t chunk_start = m_idx * 4;  // 每个 chunk 有 4 个元素
-        size_t x0_base = m_idx * 2;       // x0 在这个 chunk 中的起始索引
-        size_t x1_base = m_idx * 2 + 144; // x1 在这个 chunk 中的起始索引
-        
+        size_t chunk_start = m_idx * 4;        // 每个 chunk 有 4 个元素
+        size_t x0_base     = m_idx * 2;        // x0 在这个 chunk 中的起始索引
+        size_t x1_base     = m_idx * 2 + 144;  // x1 在这个 chunk 中的起始索引
+
         // 验证 x0 的两个元素
         EXPECT_FLOAT_EQ(result_data[chunk_start], static_cast<float>(x0_base))
             << "m_idx=" << m_idx << ", chunk_start=" << chunk_start;
         EXPECT_FLOAT_EQ(result_data[chunk_start + 1], static_cast<float>(x0_base + 1))
             << "m_idx=" << m_idx << ", chunk_start=" << chunk_start;
-        
+
         // 验证 x1 的两个元素
         EXPECT_FLOAT_EQ(result_data[chunk_start + 2], static_cast<float>(x1_base))
             << "m_idx=" << m_idx << ", chunk_start=" << chunk_start;

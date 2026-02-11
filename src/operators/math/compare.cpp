@@ -19,7 +19,7 @@ std::vector<Tensor> Equal::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("Equal operator requires exactly 2 inputs (tensor, scalar), but got {}", xs.size());
     }
 
-    auto &x      = xs[0];
+    auto &x         = xs[0];
     auto &threshold = xs[1];
 
     // threshold 可以是标量（shape为{}或{1}）或与x相同形状的张量
@@ -53,7 +53,7 @@ std::vector<Tensor> NotEqual::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("NotEqual operator requires exactly 2 inputs (tensor, scalar), but got {}", xs.size());
     }
 
-    auto &x      = xs[0];
+    auto &x         = xs[0];
     auto &threshold = xs[1];
 
     auto result = mat(x) != mat(threshold);
@@ -83,7 +83,7 @@ std::vector<Tensor> Less::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("Less operator requires exactly 2 inputs (tensor, scalar), but got {}", xs.size());
     }
 
-    auto &x      = xs[0];
+    auto &x         = xs[0];
     auto &threshold = xs[1];
 
     auto result = mat(x) < mat(threshold);
@@ -113,7 +113,7 @@ std::vector<Tensor> LessEqual::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("LessEqual operator requires exactly 2 inputs (tensor, scalar), but got {}", xs.size());
     }
 
-    auto &x      = xs[0];
+    auto &x         = xs[0];
     auto &threshold = xs[1];
 
     auto result = mat(x) <= mat(threshold);
@@ -143,7 +143,7 @@ std::vector<Tensor> Greater::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("Greater operator requires exactly 2 inputs (tensor, scalar), but got {}", xs.size());
     }
 
-    auto &x      = xs[0];
+    auto &x         = xs[0];
     auto &threshold = xs[1];
 
     auto result = mat(x) > mat(threshold);
@@ -173,7 +173,7 @@ std::vector<Tensor> GreaterEqual::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("GreaterEqual operator requires exactly 2 inputs (tensor, scalar), but got {}", xs.size());
     }
 
-    auto &x      = xs[0];
+    auto &x         = xs[0];
     auto &threshold = xs[1];
 
     auto result = mat(x) >= mat(threshold);

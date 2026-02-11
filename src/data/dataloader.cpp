@@ -65,8 +65,8 @@ std::pair<Tensor, Tensor> DataLoader::next()
     size_t input_size               = first_image_shape.elements();  // 输入的总元素数（例如 784 或 1）
     auto first_label_dtype          = first_label.dtype();
 
-    bool use_int_labels = (first_label_dtype == DataType::kInt64 || first_label_dtype == DataType::kInt32
-                           || first_label_dtype == DataType::kInt8 || first_label_dtype == DataType::kUInt8);
+    bool use_int_labels = (first_label_dtype == DataType::kInt64 || first_label_dtype == DataType::kInt32 ||
+                           first_label_dtype == DataType::kInt8 || first_label_dtype == DataType::kUInt8);
     if (use_int_labels)
     {
         batch_labels_int.reserve(actual_batch_size);
@@ -135,9 +135,8 @@ std::pair<Tensor, Tensor> DataLoader::next()
     auto inputs = Tensor(inputs_flat, input_shape, dtype(DataType::kFloat32));
 
     // targets: (batch_size,)
-    Tensor targets = use_int_labels
-                         ? Tensor(batch_labels_int, Shape{actual_batch_size}, dtype(DataType::kInt64))
-                         : Tensor(batch_labels_float, Shape{actual_batch_size}, dtype(DataType::kFloat32));
+    Tensor targets = use_int_labels ? Tensor(batch_labels_int, Shape{actual_batch_size}, dtype(DataType::kInt64))
+                                    : Tensor(batch_labels_float, Shape{actual_batch_size}, dtype(DataType::kFloat32));
 
     // 更新当前索引
     current_index_ += actual_batch_size;

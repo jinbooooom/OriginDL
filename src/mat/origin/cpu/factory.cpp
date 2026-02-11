@@ -57,9 +57,8 @@ std::unique_ptr<OriginMat> randn(const Shape &shape, const TensorOptions &option
 
     void *data = result->storage()->data();
 
-    device_common::TypeDispatcher::dispatch_void(options.dtype(), [&]<typename T>() {
-        fill_randn_impl<T>(static_cast<T *>(data), shape.elements(), gen);
-    });
+    device_common::TypeDispatcher::dispatch_void(
+        options.dtype(), [&]<typename T>() { fill_randn_impl<T>(static_cast<T *>(data), shape.elements(), gen); });
 
     return result;
 }

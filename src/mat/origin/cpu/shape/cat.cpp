@@ -80,7 +80,7 @@ std::unique_ptr<Mat> cat(const std::vector<const OriginMat *> &inputs, int dim)
         // 思路：将任意维度的 cat 转换为 3 维来思考
         // 例如 [A, B, C, H, W] 在 dim=2 上 cat，可以看作 [A*B, C, H*W] 在 dim=1 上 cat
         // 这样可以将 dim 之前的所有维度合并为 M，dim 之后的所有维度合并为 N
-        
+
         // M: dim 之前所有维度的乘积（外层维度大小）
         //    在 3 维视图 [M, C, N] 中，M 是第一个维度，表示需要复制的"块"的数量
         size_t M = 1;
@@ -88,11 +88,11 @@ std::unique_ptr<Mat> cat(const std::vector<const OriginMat *> &inputs, int dim)
         {
             M *= input_shape[d];
         }
-        
+
         // C: cat 维度的大小（通道维度）
         //    在 3 维视图 [M, C, N] 中，C 是第二个维度，是当前输入在拼接维度上的大小
         size_t C = input_shape[dim];
-        
+
         // N: dim 之后所有维度的乘积（内层维度大小）
         //    在 3 维视图 [M, C, N] 中，N 是第三个维度，表示每个通道内的元素数量
         size_t N = 1;
@@ -100,14 +100,14 @@ std::unique_ptr<Mat> cat(const std::vector<const OriginMat *> &inputs, int dim)
         {
             N *= output_shape[d];
         }
-        
+
         // 转换为 3 维后：形状为 [M, C, N]，在 dim=1 (C维度) 上 cat
         // 每个 m_idx 对应 M 维度的一个索引，表示一个连续的内存块（chunk）
         // 每个 chunk 包含 C 个通道，每个通道有 N 个元素，总共 C*N 个元素
         size_t input_chunk_elements  = C * N;  // 输入中一个 chunk 的元素数量
         size_t input_chunk_bytes     = input_chunk_elements * element_size_bytes;
         size_t output_chunk_elements = output_shape[dim] * N;  // 输出中一个 chunk 的元素数量
-        
+
         // 转换为字节指针，避免后续多次转换
         const uint8_t *src = static_cast<const uint8_t *>(input->storage()->data());
         uint8_t *dst_base  = static_cast<uint8_t *>(result->storage()->data());
@@ -117,7 +117,7 @@ std::unique_ptr<Mat> cat(const std::vector<const OriginMat *> &inputs, int dim)
         {
             // 输入就是整个矩阵，输出地址 = output_channel_offset * N
             uint8_t *dst_chunk = dst_base + (output_channel_offset * N) * element_size_bytes;
-            
+
             // 一次性拷贝整个输入
             size_t total_input_bytes = input_chunk_bytes;  // M=1 时，只有一个 chunk
             std::memcpy(dst_chunk, src, total_input_bytes);
@@ -130,12 +130,12 @@ std::unique_ptr<Mat> cat(const std::vector<const OriginMat *> &inputs, int dim)
                 // 对于 3 维 [M, C, N]，m_idx 直接对应 M 维度的索引
                 // 输入地址偏移 = m_idx * C * N（每个 chunk 包含 C*N 个元素）
                 const uint8_t *src_chunk = src + m_idx * input_chunk_bytes;
-                
+
                 // 输出地址偏移 = m_idx * output_C * N + output_channel_offset * N
                 // 其中 output_channel_offset 是已经拼接的通道数（在 C 维度上的偏移）
                 uint8_t *dst_chunk =
                     dst_base + (m_idx * output_chunk_elements + output_channel_offset * N) * element_size_bytes;
-                
+
                 std::memcpy(dst_chunk, src_chunk, input_chunk_bytes);
             }
         }

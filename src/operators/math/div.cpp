@@ -51,7 +51,7 @@ std::vector<Tensor> Div::backward(const std::vector<Tensor> &gys)
     auto gx1_result = gy * x0_mat;
     *gx1_result /= *x1_squared;  // 就地操作
     gx1_result->neg_inplace();   // 就地操作
-    auto gx1        = convert_mat_to_tensor(std::move(gx1_result));
+    auto gx1 = convert_mat_to_tensor(std::move(gx1_result));
 
     // 统一处理形状广播：将梯度广播回原始形状
     if (shape0_ != shape1_)

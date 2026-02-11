@@ -152,11 +152,11 @@ std::vector<Tensor> MatMul::backward(const std::vector<Tensor> &gys)
             x_shape.to_string(), w_shape.to_string());
     }
 
-    auto &x  = mat(x_tensor);
-    auto &w  = mat(w_tensor);
-    auto &gy = mat(gy_tensor);
-    auto w_T = w.transpose();
-    auto x_T = x.transpose();
+    auto &x        = mat(x_tensor);
+    auto &w        = mat(w_tensor);
+    auto &gy       = mat(gy_tensor);
+    auto w_T       = w.transpose();
+    auto x_T       = x.transpose();
     auto gx_result = gy.matmul(*w_T);
     auto gw_result = x_T->matmul(gy);
 

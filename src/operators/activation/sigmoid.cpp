@@ -33,10 +33,10 @@ std::vector<Tensor> Sigmoid::forward(const std::vector<Tensor> &xs)
 
     // 计算 1 / (1 + exp(-x))
     auto result = ones / one_plus_exp;
-    
+
     // 保存 sigmoid(x) 用于反向传播
     sigmoid_x_ = result;
-    
+
     return std::vector<Tensor>{std::move(result)};
 }
 
@@ -52,7 +52,7 @@ std::vector<Tensor> Sigmoid::backward(const std::vector<Tensor> &gys)
     auto &gy = gys[0];
 
     // 计算 1 - sigmoid_x_
-    auto ones             = Tensor::ones(sigmoid_x_.shape(), dtype(sigmoid_x_.dtype()).device(sigmoid_x_.device()));
+    auto ones              = Tensor::ones(sigmoid_x_.shape(), dtype(sigmoid_x_.dtype()).device(sigmoid_x_.device()));
     auto one_minus_sigmoid = ones - sigmoid_x_;
 
     // 计算 gx = gy * sigmoid_x_ * (1 - sigmoid_x_)

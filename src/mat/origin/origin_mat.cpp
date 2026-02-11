@@ -1,13 +1,13 @@
 /**
  * @file origin_mat.cpp
  * @brief OriginMat 类实现 - 封装层
- * 
+ *
  * ============================================================================
  * 文件功能说明
  * ============================================================================
- * 
+ *
  * 本文件是 OriginMat 类的实现，作为封装层负责设备分发和调用对应的 CPU/CUDA 实现。
- * 
+ *
  * 架构位置：
  * - origin_mat.cpp (本文件：封装层)
  *   ↓ 包含
@@ -17,12 +17,12 @@
  * - add.cu, divide.cu 等 (计算类算子实现)
  *   ↓ 都包含
  * - cuda_kernels.cuh (kernel 定义，只在 .cu 文件中使用)
- * 
+ *
  * 功能说明：
  * - 本文件只需包含 cuda_ops.cuh，即可使用所有 CUDA 算子
  * - 根据设备类型（CPU/CUDA）分发到对应的实现
  * - 不包含具体的 CUDA kernel 实现细节
- * 
+ *
  * ============================================================================
  */
 
@@ -215,12 +215,12 @@ inline void device_dispatch_unary_inplace_op(DeviceType device_type,
  */
 template <typename OpFunc>
 inline std::unique_ptr<Mat> device_dispatch_scalar_op(DeviceType device_type,
-                                                       const OriginMat &a,
-                                                       const Scalar &scalar,
-                                                       OriginMat *out,
-                                                       OpFunc cpu_op,
-                                                       OpFunc cuda_op,
-                                                       const char *op_name)
+                                                      const OriginMat &a,
+                                                      const Scalar &scalar,
+                                                      OriginMat *out,
+                                                      OpFunc cpu_op,
+                                                      OpFunc cuda_op,
+                                                      const char *op_name)
 {
     if (device_type == DeviceType::kCPU)
     {
@@ -1755,7 +1755,9 @@ std::unique_ptr<Mat> OriginMat::dropout_backward(const Mat &gy, const Mat &mask)
 
 // === Upsample 相关操作实现 ===
 
-std::unique_ptr<Mat> OriginMat::upsample(const Shape &output_shape, int scale_h, int scale_w,
+std::unique_ptr<Mat> OriginMat::upsample(const Shape &output_shape,
+                                         int scale_h,
+                                         int scale_w,
                                          const std::string &mode) const
 {
     // 根据设备类型选择实现
@@ -1777,8 +1779,11 @@ std::unique_ptr<Mat> OriginMat::upsample(const Shape &output_shape, int scale_h,
     }
 }
 
-std::unique_ptr<Mat> OriginMat::upsample_backward(const Mat &gy, const Shape &x_shape, int scale_h, int scale_w,
-                                                   const std::string &mode) const
+std::unique_ptr<Mat> OriginMat::upsample_backward(const Mat &gy,
+                                                  const Shape &x_shape,
+                                                  int scale_h,
+                                                  int scale_w,
+                                                  const std::string &mode) const
 {
     // 类型检查和转换
     const OriginMat *gy_mat = dynamic_cast<const OriginMat *>(&gy);

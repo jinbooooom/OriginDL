@@ -53,7 +53,7 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
     }
 
     // 检查所有输入的形状（除了 dim_ 维度外应该相同）和设备
-    const auto &first_shape = xs[0].shape();
+    const auto &first_shape  = xs[0].shape();
     const auto &first_device = xs[0].device();
 
     for (size_t i = 1; i < xs.size(); ++i)
@@ -61,9 +61,10 @@ std::vector<Tensor> Cat::forward(const std::vector<Tensor> &xs)
         const auto &shape = xs[i].shape();
         if (unlikely(!shapes_match_except_dim(first_shape, shape, dim_)))
         {
-            THROW_RUNTIME_ERROR("Cat forward: dimension mismatch at input {}, expected shape {} (excluding dim {}), "
-                                "got shape {}",
-                                i, first_shape.to_string(), dim_, shape.to_string());
+            THROW_RUNTIME_ERROR(
+                "Cat forward: dimension mismatch at input {}, expected shape {} (excluding dim {}), "
+                "got shape {}",
+                i, first_shape.to_string(), dim_, shape.to_string());
         }
 
         if (unlikely(xs[i].device() != first_device))

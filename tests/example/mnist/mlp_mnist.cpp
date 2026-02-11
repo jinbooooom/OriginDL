@@ -9,17 +9,17 @@ namespace nn = origin::nn;
 
 struct TrainingConfig
 {
-    int max_epoch            = 10;
-    int batch_size           = 256;
-    int hidden_size          = 1000;
-    float learning_rate      = 0.001f;
-    float weight_decay_rate  = 1e-4f;
-    int log_interval         = 50;
+    int max_epoch           = 10;
+    int batch_size          = 256;
+    int hidden_size         = 1000;
+    float learning_rate     = 0.001f;
+    float weight_decay_rate = 1e-4f;
+    int log_interval        = 50;
     std::string model_path  = "model/mnist_mlp_model.odl";
-    int checkpoint_interval  = 5;
-    int random_seed          = 42;
+    int checkpoint_interval = 5;
+    int random_seed         = 42;
     std::string data_dir    = "./data/mnist";
-    int device_id            = -2;  // -2=auto, -1=CPU, >=0=GPU id
+    int device_id           = -2;  // -2=auto, -1=CPU, >=0=GPU id
 
     std::string checkpoint_dir() const
     {
@@ -72,20 +72,19 @@ static TrainingConfig parse_args(int argc, char *argv[])
 {
     TrainingConfig config;
 
-    static struct option long_options[] = {
-        {"epochs", required_argument, 0, 'e'},
-        {"batch-size", required_argument, 0, 'b'},
-        {"hidden-size", required_argument, 0, 'H'},
-        {"learning-rate", required_argument, 0, 'l'},
-        {"weight-decay", required_argument, 0, 'w'},
-        {"log-interval", required_argument, 0, 'i'},
-        {"model-path", required_argument, 0, 'm'},
-        {"checkpoint-interval", required_argument, 0, 'c'},
-        {"seed", required_argument, 0, 's'},
-        {"path", required_argument, 0, 'p'},
-        {"device", required_argument, 0, 'd'},
-        {"help", no_argument, 0, 'h'},
-        {0, 0, 0, 0}};
+    static struct option long_options[] = {{"epochs", required_argument, 0, 'e'},
+                                           {"batch-size", required_argument, 0, 'b'},
+                                           {"hidden-size", required_argument, 0, 'H'},
+                                           {"learning-rate", required_argument, 0, 'l'},
+                                           {"weight-decay", required_argument, 0, 'w'},
+                                           {"log-interval", required_argument, 0, 'i'},
+                                           {"model-path", required_argument, 0, 'm'},
+                                           {"checkpoint-interval", required_argument, 0, 'c'},
+                                           {"seed", required_argument, 0, 's'},
+                                           {"path", required_argument, 0, 'p'},
+                                           {"device", required_argument, 0, 'd'},
+                                           {"help", no_argument, 0, 'h'},
+                                           {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;

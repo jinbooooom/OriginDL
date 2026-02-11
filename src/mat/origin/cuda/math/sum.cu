@@ -97,7 +97,8 @@ void launch_sum_reduce_kernel(const T *input, T *output, size_t n)
 
     // 把 input 分成 grid_size 个 block
     // 每个 block 内部归约，将结果写入 output[blockIdx.x]，
-    // 第一轮归约后，output[0] 存储的是所有 block 的第一个元素的和，output[1] 存储的是所有 block 的第二个元素的和，以此类推
+    // 第一轮归约后，output[0] 存储的是所有 block 的第一个元素的和，output[1] 存储的是所有 block
+    // 的第二个元素的和，以此类推
     sum_reduce_kernel<T><<<grid_size, block_size, block_size * sizeof(T)>>>(input, output, n);
 
     // 如果有多个块，用 log(n) 的算法进行二分规约。

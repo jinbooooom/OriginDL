@@ -18,12 +18,13 @@ public:
     {
         if (config.shapes.size() != 2)
         {
-            THROW_RUNTIME_ERROR("SoftmaxCrossEntropy benchmark requires exactly 2 shapes, got {}", config.shapes.size());
+            THROW_RUNTIME_ERROR("SoftmaxCrossEntropy benchmark requires exactly 2 shapes, got {}",
+                                config.shapes.size());
         }
 
-        const Shape &x_shape = config.shapes[0];
+        const Shape &x_shape      = config.shapes[0];
         const Shape &target_shape = config.shapes[1];
-        
+
         // x: (N, C), target: (N,)
         if (x_shape.ndims() != 2)
         {
@@ -35,8 +36,8 @@ public:
         }
         if (x_shape[0] != target_shape[0])
         {
-            THROW_RUNTIME_ERROR("SoftmaxCrossEntropy x and target must have same batch size, got {} and {}",
-                                x_shape[0], target_shape[0]);
+            THROW_RUNTIME_ERROR("SoftmaxCrossEntropy x and target must have same batch size, got {} and {}", x_shape[0],
+                                target_shape[0]);
         }
 
         size_t x_numel = x_shape.elements();
@@ -54,7 +55,7 @@ public:
             target_data[i] = rand() % num_classes;
         }
 
-        auto x = Tensor(x_data, x_shape, origin::dtype(config.dtype).device(config.device));
+        auto x      = Tensor(x_data, x_shape, origin::dtype(config.dtype).device(config.device));
         auto target = Tensor(target_data, target_shape, origin::dtype(DataType::kInt32).device(config.device));
 
         // 预热
@@ -86,11 +87,9 @@ public:
     std::vector<std::vector<Shape>> get_default_shapes() const override
     {
         return {
-            {Shape({32, 10}), Shape({32})},      // (N, C), (N,)
-            {Shape({64, 100}), Shape({64})},
-            {Shape({128, 1000}), Shape({128})},
-            {Shape({256, 10}), Shape({256})},
-            {Shape({512, 100}), Shape({512})},
+            {Shape({32, 10}), Shape({32})},  // (N, C), (N,)
+            {Shape({64, 100}), Shape({64})},  {Shape({128, 1000}), Shape({128})},
+            {Shape({256, 10}), Shape({256})}, {Shape({512, 100}), Shape({512})},
         };
     }
 

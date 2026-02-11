@@ -22,7 +22,7 @@ public:
         }
 
         const Shape &shape = config.shapes[0];
-        size_t numel = shape.elements();
+        size_t numel       = shape.elements();
         // log需要正数，使用2.0确保输入为正
         std::vector<float> data(numel, 2.0f);
 

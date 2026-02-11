@@ -687,13 +687,13 @@ Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b)
     // 处理标量和单元素张量的广播情况
     // 标量：shape{}（is_scalar() == true）
     // 单元素张量：shape{1}、shape{1,1} 等（elements() == 1 但 is_scalar() == false）
-    // 
+    //
     // 广播规则：
     // - 如果一个是标量（shape{}），另一个是单元素张量，返回另一个的形状
     // - 如果两个都是单元素张量，需要进入复杂广播逻辑计算
     // - 如果一个是单元素张量，另一个不是，返回另一个的形状
-    bool a_is_scalar = shape_a.is_scalar();
-    bool b_is_scalar = shape_b.is_scalar();
+    bool a_is_scalar         = shape_a.is_scalar();
+    bool b_is_scalar         = shape_b.is_scalar();
     bool a_is_single_element = (a.elements() == 1);
     bool b_is_single_element = (b.elements() == 1);
 
@@ -706,7 +706,7 @@ Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b)
     {
         return shape_a;
     }
-    
+
     // 如果一个是单元素张量（但不是标量），另一个不是单元素，返回另一个的形状
     if (a_is_single_element && !b_is_single_element)
     {
@@ -716,7 +716,7 @@ Shape compute_broadcast_shape(const OriginMat &a, const OriginMat &b)
     {
         return shape_a;
     }
-    
+
     // 如果两个都是单元素张量（但不是标量），需要进入复杂广播逻辑
     // 例如：shape{1} + shape{1,1} 需要计算广播结果
 

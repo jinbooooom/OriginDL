@@ -21,10 +21,10 @@ TEST_P(SplitOperatorTest, ForwardSplitSizes)
 {
     // 测试各种按大小列表分割的场景
     auto tolerance = origin::test::TestTolerance::kDefault;
-    
+
     // 1. 1D 张量，dim=0，等分
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {2, 2}, 0);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({2}));
@@ -34,10 +34,10 @@ TEST_P(SplitOperatorTest, ForwardSplitSizes)
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[0], expected0, tolerance);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[1], expected1, tolerance);
     }
-    
+
     // 2. 1D 张量，多个不等分
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f}, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f}, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {1, 2, 2}, 0);
         EXPECT_EQ(results.size(), 3U);
         EXPECT_EQ(results[0].shape(), Shape({1}));
@@ -50,10 +50,11 @@ TEST_P(SplitOperatorTest, ForwardSplitSizes)
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[1], expected1, tolerance);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[2], expected2, tolerance);
     }
-    
+
     // 3. 2D 张量，dim=0
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x =
+            Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {1, 1}, 0);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({1, 3}));
@@ -64,10 +65,10 @@ TEST_P(SplitOperatorTest, ForwardSplitSizes)
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[0], expected0, tolerance);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[1], expected1, tolerance);
     }
-    
+
     // 4. 2D 张量，dim=1
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{1, 4}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{1, 4}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {2, 2}, 1);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({1, 2}));
@@ -77,67 +78,67 @@ TEST_P(SplitOperatorTest, ForwardSplitSizes)
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[0], expected0, tolerance);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[1], expected1, tolerance);
     }
-    
+
     // 5. 3D 张量，dim=0
     {
-        auto x = Tensor::ones(Shape{2, 3, 4}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{2, 3, 4}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {1, 1}, 0);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({1, 3, 4}));
         EXPECT_EQ(results[1].shape(), Shape({1, 3, 4}));
     }
-    
+
     // 6. 3D 张量，dim=1
     {
-        auto x = Tensor::ones(Shape{2, 6, 4}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{2, 6, 4}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {2, 2, 2}, 1);
         EXPECT_EQ(results.size(), 3U);
         EXPECT_EQ(results[0].shape(), Shape({2, 2, 4}));
         EXPECT_EQ(results[1].shape(), Shape({2, 2, 4}));
         EXPECT_EQ(results[2].shape(), Shape({2, 2, 4}));
     }
-    
+
     // 7. 3D 张量，dim=2
     {
-        auto x = Tensor::ones(Shape{2, 3, 6}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{2, 3, 6}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {3, 3}, 2);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({2, 3, 3}));
         EXPECT_EQ(results[1].shape(), Shape({2, 3, 3}));
     }
-    
+
     // 8. 4D 张量，dim=0
     {
-        auto x = Tensor::ones(Shape{4, 2, 3, 4}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{4, 2, 3, 4}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {2, 2}, 0);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({2, 2, 3, 4}));
         EXPECT_EQ(results[1].shape(), Shape({2, 2, 3, 4}));
     }
-    
+
     // 9. 4D 张量，dim=1
     {
-        auto x = Tensor::ones(Shape{2, 4, 3, 4}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{2, 4, 3, 4}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {1, 1, 2}, 1);
         EXPECT_EQ(results.size(), 3U);
         EXPECT_EQ(results[0].shape(), Shape({2, 1, 3, 4}));
         EXPECT_EQ(results[1].shape(), Shape({2, 1, 3, 4}));
         EXPECT_EQ(results[2].shape(), Shape({2, 2, 3, 4}));
     }
-    
+
     // 10. 4D 张量，dim=3
     {
-        auto x = Tensor::ones(Shape{2, 3, 4, 6}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{2, 3, 4, 6}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {2, 2, 2}, 3);
         EXPECT_EQ(results.size(), 3U);
         EXPECT_EQ(results[0].shape(), Shape({2, 3, 4, 2}));
         EXPECT_EQ(results[1].shape(), Shape({2, 3, 4, 2}));
         EXPECT_EQ(results[2].shape(), Shape({2, 3, 4, 2}));
     }
-    
+
     // 11. 单个分割（边界情况）
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {3}, 0);
         EXPECT_EQ(results.size(), 1U);
         EXPECT_EQ(results[0].shape(), Shape({3}));
@@ -151,10 +152,10 @@ TEST_P(SplitOperatorTest, ForwardFixedSize)
 {
     // 测试按固定大小分割的各种场景
     auto tolerance = origin::test::TestTolerance::kDefault;
-    
+
     // 1. 1D 张量，不能整除
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f}, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f}, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, 2, 0);
         EXPECT_EQ(results.size(), 3U);  // 5 / 2 = 2.5，向上取整为 3
         EXPECT_EQ(results[0].shape(), Shape({2}));
@@ -167,39 +168,39 @@ TEST_P(SplitOperatorTest, ForwardFixedSize)
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[1], expected1, tolerance);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[2], expected2, tolerance);
     }
-    
+
     // 2. 1D 张量，正好整除
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, 2, 0);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({2}));
         EXPECT_EQ(results[1].shape(), Shape({2}));
     }
-    
+
     // 3. 2D 张量，dim=1
     {
-        auto x = Tensor::ones(Shape{2, 6}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{2, 6}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, 2, 1);
         EXPECT_EQ(results.size(), 3U);
         EXPECT_EQ(results[0].shape(), Shape({2, 2}));
         EXPECT_EQ(results[1].shape(), Shape({2, 2}));
         EXPECT_EQ(results[2].shape(), Shape({2, 2}));
     }
-    
+
     // 4. 3D 张量，dim=2
     {
-        auto x = Tensor::ones(Shape{2, 3, 8}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{2, 3, 8}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, 3, 2);
         EXPECT_EQ(results.size(), 3U);  // 8 / 3 = 2.67，向上取整为 3
         EXPECT_EQ(results[0].shape(), Shape({2, 3, 3}));
         EXPECT_EQ(results[1].shape(), Shape({2, 3, 3}));
         EXPECT_EQ(results[2].shape(), Shape({2, 3, 2}));
     }
-    
+
     // 5. 4D 张量，dim=3
     {
-        auto x = Tensor::ones(Shape{2, 3, 4, 9}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor::ones(Shape{2, 3, 4, 9}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, 4, 3);
         EXPECT_EQ(results.size(), 3U);  // 9 / 4 = 2.25，向上取整为 3
         EXPECT_EQ(results[0].shape(), Shape({2, 3, 4, 4}));
@@ -214,52 +215,56 @@ TEST_P(SplitOperatorTest, Backward)
 {
     // 测试反向传播的各种场景
     auto tolerance = origin::test::TestTolerance::kDefault;
-    
+
     // 1. 1D 张量，按大小列表分割
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
-        auto results = F::split(x, {2, 2}, 0);
+        auto x            = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4},
+                                   dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+        auto results      = F::split(x, {2, 2}, 0);
         Tensor sum_result = results[0] + results[1];
         sum_result.backward();
         EXPECT_EQ(x.grad().shape(), x.shape());
         auto expected_grad = Tensor::ones(Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, tolerance);
     }
-    
+
     // 2. 2D 张量，dim=1
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{1, 4}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
-        auto results = F::split(x, {2, 2}, 1);
+        auto x            = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{1, 4},
+                                   dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+        auto results      = F::split(x, {2, 2}, 1);
         Tensor sum_result = results[0] + results[1];
         sum_result.backward();
         EXPECT_EQ(x.grad().shape(), x.shape());
     }
-    
+
     // 3. 按固定大小分割
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f}, Shape{5}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
-        auto results = F::split(x, 2, 0);
+        auto x            = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f}, Shape{5},
+                                   dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+        auto results      = F::split(x, 2, 0);
         Tensor sum_result = results[0];
-        for (size_t i = 1; i < results.size(); ++i) {
+        for (size_t i = 1; i < results.size(); ++i)
+        {
             sum_result = sum_result + results[i];
         }
         sum_result.backward();
         EXPECT_EQ(x.grad().shape(), x.shape());
     }
-    
+
     // 4. 3D 张量，dim=1
     {
-        auto x = Tensor::ones(Shape{2, 6, 4}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+        auto x       = Tensor::ones(Shape{2, 6, 4}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
         auto results = F::split(x, {2, 2, 2}, 1);
         Tensor sum_result = results[0] + results[1] + results[2];
         sum_result.backward();
         EXPECT_EQ(x.grad().shape(), x.shape());
     }
-    
+
     // 5. 4D 张量，dim=2
     {
         auto x = Tensor::ones(Shape{2, 3, 6, 4}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
-        auto results = F::split(x, {3, 3}, 2);
+        auto results      = F::split(x, {3, 3}, 2);
         Tensor sum_result = results[0] + results[1];
         sum_result.backward();
         EXPECT_EQ(x.grad().shape(), x.shape());
@@ -272,10 +277,10 @@ TEST_P(SplitOperatorTest, DifferentCallStyles)
 {
     // 测试不同的调用方式：初始化列表、vector、C 数组
     auto tolerance = origin::test::TestTolerance::kDefault;
-    
+
     // 1. 初始化列表调用
     {
-        auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
+        auto x       = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
         auto results = F::split(x, {2, 2}, 0);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({2}));
@@ -285,22 +290,22 @@ TEST_P(SplitOperatorTest, DifferentCallStyles)
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[0], expected0, tolerance);
         origin::test::GTestUtils::EXPECT_TENSORS_EQ(results[1], expected1, tolerance);
     }
-    
+
     // 2. std::vector<size_t> 调用
     {
         auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
         std::vector<size_t> split_sizes = {2, 2};
-        auto results = F::split(x, split_sizes, 0);
+        auto results                    = F::split(x, split_sizes, 0);
         EXPECT_EQ(results.size(), 2U);
         EXPECT_EQ(results[0].shape(), Shape({2}));
         EXPECT_EQ(results[1].shape(), Shape({2}));
     }
-    
+
     // 3. C 数组调用
     {
         auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f}, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
         size_t split_sizes[] = {1, 2, 2};
-        auto results = F::split(x, split_sizes, 0);
+        auto results         = F::split(x, split_sizes, 0);
         EXPECT_EQ(results.size(), 3U);
         EXPECT_EQ(results[0].shape(), Shape({1}));
         EXPECT_EQ(results[1].shape(), Shape({2}));
@@ -324,21 +329,21 @@ TEST_P(SplitOperatorTest, HighDimensional)
     // 输出1: [2, 3, 2, 2, 3, 2] (C=2)
     // 输出2: [2, 3, 2, 2, 3, 2] (C=2)
     // 转换为3维: [M=2*3=6, C=4, N=2*3*2=12] -> [M=6, C=2, N=12] 和 [M=6, C=2, N=12]
-    
+
     // 创建输入数据：输入有 2*3*4*2*3*2 = 288 个元素
     std::vector<float> input_data(288);
     for (size_t i = 0; i < 288; ++i)
     {
         input_data[i] = static_cast<float>(i);
     }
-    
+
     auto x = Tensor(input_data, Shape{2, 3, 4, 2, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto results = F::split(x, {2, 2}, 2);
 
     // 验证输出数量
     EXPECT_EQ(results.size(), 2U);
-    
+
     // 验证输出形状
     Shape expected_shape1{2, 3, 2, 2, 3, 2};
     Shape expected_shape2{2, 3, 2, 2, 3, 2};
@@ -351,27 +356,27 @@ TEST_P(SplitOperatorTest, HighDimensional)
     auto result1_data = results[1].to_vector<float>();
     EXPECT_EQ(result0_data.size(), 144);  // 2*3*2*2*3*2 = 144
     EXPECT_EQ(result1_data.size(), 144);  // 2*3*2*2*3*2 = 144
-    
+
     // 完整验证：验证所有元素
     // M=6, C=2, N=12 (2*3*2)
     // 每个 chunk 有 C*N = 2*12 = 24 个元素
     const size_t M = 6;
     const size_t C = 2;
     const size_t N = 12;
-    
+
     for (size_t m_idx = 0; m_idx < M; ++m_idx)
     {
-        size_t input_chunk_start = m_idx * 4 * N;  // 输入中每个 chunk 有 4*12 = 48 个元素
+        size_t input_chunk_start   = m_idx * 4 * N;  // 输入中每个 chunk 有 4*12 = 48 个元素
         size_t result0_chunk_start = m_idx * C * N;  // result0 中每个 chunk 有 2*12 = 24 个元素
         size_t result1_chunk_start = m_idx * C * N;  // result1 中每个 chunk 有 2*12 = 24 个元素
-        
+
         // 验证 result0 的 24 个元素（输入的前 C=2 个通道）
         for (size_t i = 0; i < C * N; ++i)
         {
             EXPECT_FLOAT_EQ(result0_data[result0_chunk_start + i], static_cast<float>(input_chunk_start + i))
                 << "m_idx=" << m_idx << ", result0_chunk_start=" << result0_chunk_start << ", i=" << i;
         }
-        
+
         // 验证 result1 的 24 个元素（输入的后 C=2 个通道）
         for (size_t i = 0; i < C * N; ++i)
         {
@@ -389,14 +394,14 @@ TEST_P(SplitOperatorTest, HighDimensionalDim0)
     // 输出1: [2, 2, 3, 2, 3, 2] (A=2)
     // 输出2: [2, 2, 3, 2, 3, 2] (A=2)
     // 转换为3维: [M=1, C=4, N=2*3*2*3*2=72] -> [M=1, C=2, N=72] 和 [M=1, C=2, N=72]
-    
+
     // 创建输入数据：输入有 4*2*3*2*3*2 = 288 个元素
     std::vector<float> input_data(288);
     for (size_t i = 0; i < 288; ++i)
     {
         input_data[i] = static_cast<float>(i);
     }
-    
+
     auto x = Tensor(input_data, Shape{4, 2, 3, 2, 3, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto results = F::split(x, {2, 2}, 0);
@@ -413,13 +418,13 @@ TEST_P(SplitOperatorTest, HighDimensionalDim0)
     auto result1_data = results[1].to_vector<float>();
     EXPECT_EQ(result0_data.size(), 144);  // 2*2*3*2*3*2 = 144
     EXPECT_EQ(result1_data.size(), 144);  // 2*2*3*2*3*2 = 144
-    
+
     // 验证前 144 个元素来自输入的前半部分
     for (size_t i = 0; i < 144; ++i)
     {
         EXPECT_FLOAT_EQ(result0_data[i], static_cast<float>(i));
     }
-    
+
     // 验证接下来的 144 个元素来自输入的后半部分
     for (size_t i = 0; i < 144; ++i)
     {
@@ -435,14 +440,14 @@ TEST_P(SplitOperatorTest, HighDimensionalDim5)
     // 输出1: [2, 3, 2, 3, 2, 2] (F=2)
     // 输出2: [2, 3, 2, 3, 2, 2] (F=2)
     // 转换为3维: [M=2*3*2*3*2=72, C=4, N=1] -> [M=72, C=2, N=1] 和 [M=72, C=2, N=1]
-    
+
     // 创建输入数据：输入有 2*3*2*3*2*4 = 288 个元素
     std::vector<float> input_data(288);
     for (size_t i = 0; i < 288; ++i)
     {
         input_data[i] = static_cast<float>(i);
     }
-    
+
     auto x = Tensor(input_data, Shape{2, 3, 2, 3, 2, 4}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto results = F::split(x, {2, 2}, 5);
@@ -460,22 +465,22 @@ TEST_P(SplitOperatorTest, HighDimensionalDim5)
     auto result1_data = results[1].to_vector<float>();
     EXPECT_EQ(result0_data.size(), 144);  // 2*3*2*3*2*2 = 144
     EXPECT_EQ(result1_data.size(), 144);  // 2*3*2*3*2*2 = 144
-    
+
     // 完整验证：验证所有元素
     // 对于每个 chunk (m_idx = 0 到 71)，每个 chunk 有 2 个元素
     // chunk 内布局: [input[m_idx*4], input[m_idx*4+1]] 和 [input[m_idx*4+2], input[m_idx*4+3]]
     for (size_t m_idx = 0; m_idx < 72; ++m_idx)
     {
-        size_t input_chunk_start = m_idx * 4;  // 输入中每个 chunk 有 4 个元素
+        size_t input_chunk_start   = m_idx * 4;  // 输入中每个 chunk 有 4 个元素
         size_t result0_chunk_start = m_idx * 2;  // result0 中每个 chunk 有 2 个元素
         size_t result1_chunk_start = m_idx * 2;  // result1 中每个 chunk 有 2 个元素
-        
+
         // 验证 result0 的两个元素（输入的前 2 个元素）
         EXPECT_FLOAT_EQ(result0_data[result0_chunk_start], static_cast<float>(input_chunk_start))
             << "m_idx=" << m_idx << ", result0_chunk_start=" << result0_chunk_start;
         EXPECT_FLOAT_EQ(result0_data[result0_chunk_start + 1], static_cast<float>(input_chunk_start + 1))
             << "m_idx=" << m_idx << ", result0_chunk_start=" << result0_chunk_start;
-        
+
         // 验证 result1 的两个元素（输入的后 2 个元素）
         EXPECT_FLOAT_EQ(result1_data[result1_chunk_start], static_cast<float>(input_chunk_start + 2))
             << "m_idx=" << m_idx << ", result1_chunk_start=" << result1_chunk_start;

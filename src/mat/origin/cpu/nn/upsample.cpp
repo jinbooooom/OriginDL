@@ -44,7 +44,7 @@ std::unique_ptr<Mat> upsample(const OriginMat &x,
     int OH       = output_shape[2];
     int OW       = output_shape[3];
 
-    auto result   = std::make_unique<OriginMat>(output_shape, x.dtype(), x.device());
+    auto result        = std::make_unique<OriginMat>(output_shape, x.dtype(), x.device());
     const void *x_data = x.storage()->data();
     void *y_data       = result->storage()->data();
 
@@ -59,10 +59,10 @@ std::unique_ptr<Mat> upsample(const OriginMat &x,
                 {
                     for (int ow = 0; ow < OW; ++ow)
                     {
-                        int ih         = oh / scale_h;
-                        int iw         = ow / scale_w;
-                        int input_idx  = ((n * C + c) * H + ih) * W + iw;
-                        int output_idx = ((n * C + c) * OH + oh) * OW + ow;
+                        int ih            = oh / scale_h;
+                        int iw            = ow / scale_w;
+                        int input_idx     = ((n * C + c) * H + ih) * W + iw;
+                        int output_idx    = ((n * C + c) * OH + oh) * OW + ow;
                         y_ptr[output_idx] = x_ptr[input_idx];
                     }
                 }
@@ -102,7 +102,7 @@ std::unique_ptr<Mat> upsample_backward(const OriginMat &gy,
     int GY_H      = gy_shape[2];
     int GY_W      = gy_shape[3];
 
-    auto result   = std::make_unique<OriginMat>(x_shape, gy.dtype(), gy.device());
+    auto result         = std::make_unique<OriginMat>(x_shape, gy.dtype(), gy.device());
     const void *gy_data = gy.storage()->data();
     void *gx_data       = result->storage()->data();
 

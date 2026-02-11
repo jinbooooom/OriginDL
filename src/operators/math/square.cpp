@@ -26,11 +26,11 @@ std::vector<Tensor> Square::backward(const std::vector<Tensor> &gys)
     {
         THROW_RUNTIME_ERROR("Square backward requires exactly 1 gradient, but got {}", gys.size());
     }
-    
+
     auto &x  = mat(this->inputs_[0]);
     auto &gy = mat(gys[0]);
 
-    auto tmp = x * gy;
+    auto tmp      = x * gy;
     auto scalar_2 = Tensor(2, Shape({}), dtype(this->inputs_[0].dtype()).device(this->inputs_[0].device()));
     tmp->mul_inplace(mat(scalar_2));
     auto gx = convert_mat_to_tensor(std::move(tmp));

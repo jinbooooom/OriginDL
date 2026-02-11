@@ -1,13 +1,13 @@
 /**
  * @file cpu_ops.h
  * @brief CPU 算子接口声明头文件
- * 
+ *
  * ============================================================================
  * 文件功能说明
  * ============================================================================
- * 
+ *
  * 本文件是 CPU 算子的统一接口声明层，提供所有 CPU 算子的接口声明。
- * 
+ *
  * 架构层次：
  * - origin_mat.cpp (封装层)
  *   ↓ 包含
@@ -17,21 +17,21 @@
  * - add.cpp, divide.cpp 等 (计算类算子实现)
  *   ↓ 都包含
  * - cpu_kernels.h (基础操作定义，只在 算子具体实现的 .cpp 文件中使用)
- * 
+ *
  * 使用说明：
  * - origin_mat.cpp 只需包含 cpu_ops.h，即可使用所有 CPU 算子
  * - 所有 CPU 算子的实现都在对应的 .cpp 文件中
  * - cpu_kernels.h 只在 算子具体实现的 .cpp 文件中被包含，用于基础操作定义
- * 
+ *
  * ============================================================================
  */
 
 #ifndef __ORIGIN_DL_CPU_OPS_H__
 #define __ORIGIN_DL_CPU_OPS_H__
 
+#include <initializer_list>
 #include <memory>
 #include <string>
-#include <initializer_list>
 #include "origin/mat/origin/../basic_types.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/scalar.h"
@@ -54,7 +54,6 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b, OriginMat 
 std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b, OriginMat *out = nullptr);
 std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *out = nullptr);
 std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b);
-
 
 // ============================================================================
 // 比较运算算子

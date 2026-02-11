@@ -1,13 +1,13 @@
 /**
  * @file cuda_ops.cuh
  * @brief CUDA 算子接口声明头文件
- * 
+ *
  * ============================================================================
  * 文件功能说明
  * ============================================================================
- * 
+ *
  * 本文件是 CUDA 算子的统一接口声明层，提供所有 CUDA 算子的接口声明。
- * 
+ *
  * 架构层次：
  * - origin_mat.cpp (封装层)
  *   ↓ 包含
@@ -17,12 +17,12 @@
  * - add.cu, divide.cu 等 (计算类算子实现)
  *   ↓ 都包含
  * - cuda_kernels.cuh (kernel 定义，只在 .cu 文件中使用)
- * 
+ *
  * 使用说明：
  * - origin_mat.cpp 只需包含 cuda_ops.cuh，即可使用所有 CUDA 算子
  * - 所有 CUDA 算子的实现都在对应的 .cu 文件中
  * - cuda_kernels.cuh 只在 .cu 文件中被包含，用于 kernel 定义
- * 
+ *
  * ============================================================================
  */
 
@@ -94,32 +94,44 @@ std::unique_ptr<Mat> divide(const origin::OriginMat &a, const origin::OriginMat 
  * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
  * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
-std::unique_ptr<Mat> eq(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> eq(const origin::OriginMat &mat,
+                        const origin::OriginMat &threshold,
+                        origin::OriginMat *out = nullptr);
 
 /**
  * @brief CUDA不等于比较算子
  */
-std::unique_ptr<Mat> ne(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> ne(const origin::OriginMat &mat,
+                        const origin::OriginMat &threshold,
+                        origin::OriginMat *out = nullptr);
 
 /**
  * @brief CUDA小于比较算子
  */
-std::unique_ptr<Mat> lt(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> lt(const origin::OriginMat &mat,
+                        const origin::OriginMat &threshold,
+                        origin::OriginMat *out = nullptr);
 
 /**
  * @brief CUDA小于等于比较算子
  */
-std::unique_ptr<Mat> le(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> le(const origin::OriginMat &mat,
+                        const origin::OriginMat &threshold,
+                        origin::OriginMat *out = nullptr);
 
 /**
  * @brief CUDA大于比较算子
  */
-std::unique_ptr<Mat> gt(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> gt(const origin::OriginMat &mat,
+                        const origin::OriginMat &threshold,
+                        origin::OriginMat *out = nullptr);
 
 /**
  * @brief CUDA大于等于比较算子
  */
-std::unique_ptr<Mat> ge(const origin::OriginMat &mat, const origin::OriginMat &threshold, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> ge(const origin::OriginMat &mat,
+                        const origin::OriginMat &threshold,
+                        origin::OriginMat *out = nullptr);
 
 // ============================================================================
 // 一元运算算子
