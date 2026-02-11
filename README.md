@@ -19,38 +19,25 @@ OriginDL 是本人在业余时间实现的深度学习框架。本人并非深�
 
 使用自动求导功能实现简单的线性回归 y = wx + b，快速收敛到目标参数（w≈2.0, b≈5.0）：
 
-```
-jinbo@JinboBook:~/gitme/C_OriginDL$ export ORIGIN_LOG_LEVEL=trace
-jinbo@JinboBook:~/gitme/C_OriginDL$ ./build/bin/example/example_nn_linear -d 0
+```shell
+$ export ORIGIN_LOG_LEVEL=trace
+$ ./build/bin/example/example_nn_linear 
 CUDA devices available: 1
 Device 0: NVIDIA GeForce RTX 4060 Ti
   Compute capability: 8.9
   Memory: 8187 MB
   Multiprocessors: 34
   Max threads per block: 1024
-Using GPU device: 0
-JinboBook 2026-02-08 23:20:00.114 D 24466 24466 [optimizer.cpp:collect_parameters:16]    Optimizer::collect_parameters: collected 2 parameters
-JinboBook 2026-02-08 23:20:00.117 I 24466 24466 [nn_linear.cpp:main:131] iter0: loss = 28.374, w = 0.7082845, b = 1.003354
-JinboBook 2026-02-08 23:20:00.123 I 24466 24466 [nn_linear.cpp:main:131] iter10: loss = 0.31666496, w = 1.905682, b = 4.5844355
-JinboBook 2026-02-08 23:20:00.128 I 24466 24466 [nn_linear.cpp:main:131] iter20: loss = 0.012503343, w = 1.9954802, b = 4.968631
-JinboBook 2026-02-08 23:20:00.136 I 24466 24466 [nn_linear.cpp:main:131] iter30: loss = 0.009107459, w = 2.0021834, b = 5.0098596
-JinboBook 2026-02-08 23:20:00.141 I 24466 24466 [nn_linear.cpp:main:131] iter40: loss = 0.009068941, w = 2.0026805, b = 5.014285
-JinboBook 2026-02-08 23:20:00.146 I 24466 24466 [nn_linear.cpp:main:131] iter50: loss = 0.0090685, w = 2.002717, b = 5.0147595
-JinboBook 2026-02-08 23:20:00.153 I 24466 24466 [nn_linear.cpp:main:131] iter60: loss = 0.009068494, w = 2.0027194, b = 5.01481
-JinboBook 2026-02-08 23:20:00.161 I 24466 24466 [nn_linear.cpp:main:131] iter70: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.167 I 24466 24466 [nn_linear.cpp:main:131] iter80: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.172 I 24466 24466 [nn_linear.cpp:main:131] iter90: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.177 I 24466 24466 [nn_linear.cpp:main:131] iter100: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.182 I 24466 24466 [nn_linear.cpp:main:131] iter110: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.188 I 24466 24466 [nn_linear.cpp:main:131] iter120: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.193 I 24466 24466 [nn_linear.cpp:main:131] iter130: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.199 I 24466 24466 [nn_linear.cpp:main:131] iter140: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.205 I 24466 24466 [nn_linear.cpp:main:131] iter150: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.211 I 24466 24466 [nn_linear.cpp:main:131] iter160: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.217 I 24466 24466 [nn_linear.cpp:main:131] iter170: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.222 I 24466 24466 [nn_linear.cpp:main:131] iter180: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.229 I 24466 24466 [nn_linear.cpp:main:131] iter190: loss = 0.009068492, w = 2.0027194, b = 5.014816
-JinboBook 2026-02-08 23:20:00.234 I 24466 24466 [nn_linear.cpp:main:131] iter199: loss = 0.009068492, w = 2.0027194, b = 5.014816
+Use Device: cuda:0
+iter0: loss = 28.650475, w = 0.14491756, b = 0.9844595
+iter10: loss = 0.41739, w = 1.698714, b = 4.542575
+iter20: loss = 0.014293473, w = 1.9443718, b = 4.9402785
+iter30: loss = 0.008061945, w = 1.9816686, b = 4.985405
+iter40: loss = 0.007958472, w = 1.9871883, b = 4.990613
+......
+iter180: loss = 0.007956621, w = 1.9881259, b = 4.9913087
+iter190: loss = 0.007956621, w = 1.9881259, b = 4.9913087
+iter199: loss = 0.007956621, w = 1.9881259, b = 4.9913087
 ```
 
 ### YOLOv5 目标检测

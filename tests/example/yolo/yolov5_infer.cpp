@@ -695,7 +695,6 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
     logi("  Bin: {}", cfg.bin_path);
 
     // 检测并选择设备（GPU优先，如果没有GPU则使用CPU）
-    // 注意：cuDNN 和 cuBLAS 已在代码中禁用，将使用自定义 GPU kernel（行主序）
     Device device(DeviceType::kCPU);
     if (cuda::is_available() && cfg.gpu_device >= 0)
     {

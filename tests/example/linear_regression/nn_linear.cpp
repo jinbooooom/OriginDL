@@ -7,32 +7,36 @@ namespace nn = origin::nn;
 
 void usage(const char *program_name)
 {
-    loga("Usage: {} [-d device_id] [-h]", program_name);
-    loga("  -d, --device    Device ID: -1 for CPU (default), >= 0 for GPU device id");
+    loga("Usage: {} [--cpu] [-d device_id] [-h]", program_name);
+    loga("  --cpu           Use CPU (overrides auto/CUDA)");
+    loga("  -d, --device    Device: -1 for CPU, >= 0 for GPU id. Omit for auto (CUDA if available)");
     loga("  -h, --help      Show this help message");
 }
 
 /**
  * @brief Neural network linear regression training demo
- * @details Supports both CPU and GPU (CUDA) devices via -d option
- *          -d -1: use CPU (default)
- *          -d 0, 1, 2...: use GPU with specified device id
+ * @details Device: auto (CUDA if available else CPU), or --cpu / -d -1 for CPU, -d N for GPU id
  */
 int main(int argc, char **argv)
 {
-    int device_id = -1;  // 默认使用 CPU
+    // -2 = auto (prefer CUDA if available), -1 = CPU, >= 0 = GPU device id
+    int device_id = -2;
 
-    // 定义命令行选项
     static struct option long_options[] = {
-        {"device", required_argument, 0, 'd'}, {"help", no_argument, 0, 'h'}, {0, 0, 0, 0}};
+        {"cpu", no_argument, 0, 'c'},
+        {"device", required_argument, 0, 'd'},
+        {"help", no_argument, 0, 'h'},
+        {0, 0, 0, 0}};
 
     int option_index = 0;
     int c;
-
-    while ((c = getopt_long(argc, argv, "d:h", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "cd:h", long_options, &option_index)) != -1)
     {
         switch (c)
         {
+            case 'c':
+                device_id = -1;
+                break;
             case 'd':
                 device_id = std::atoi(optarg);
                 break;
@@ -47,7 +51,19 @@ int main(int argc, char **argv)
         }
     }
 
-    // 确定设备类型
+    // Auto: prefer CUDA if available (like yolov5_infer)
+    if (device_id == -2)
+    {
+        if (cuda::is_available())
+        {
+            device_id = 0;
+        }
+        else
+        {
+            device_id = -1;
+        }
+    }
+
     Device device(DeviceType::kCPU);
     DataType data_type = DataType::kFloat32;
     bool use_gpu       = (device_id >= 0);
@@ -59,23 +75,18 @@ int main(int argc, char **argv)
             loge("CUDA is not available on this system!");
             return 1;
         }
-
         int device_count = cuda::device_count();
         if (device_id >= device_count)
         {
             loge("Invalid GPU device ID: {}. Available devices: 0-{}", device_id, device_count - 1);
             return 1;
         }
-
         device = Device(DeviceType::kCUDA, device_id);
         cuda::set_device(device_id);
         cuda::device_info();
-        loga("Using GPU device: {}", device_id);
     }
-    else
-    {
-        loga("Using CPU device");
-    }
+
+    loga("Use Device: {}", device.to_string());
 
     // 1. Creating training data
     size_t input_size = 100;
