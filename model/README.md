@@ -25,5 +25,14 @@ bash scripts/download_data.sh
 
 ```
 model/
-└── pnnx/          # PNNX 格式的模型文件
+├── pnnx          # PNNX 格式的模型文件
+│   ├── resnet
+│   │   ├── resnet18_batch1.pnnx.bin
+│   │   └── resnet18_batch1.pnnx.param
+│   └── yolo
+│       ├── yolov5n_small.pnnx.bin
+│       ├── yolov5n_small.pnnx.param
+│       ├── yolov5s_batch4.pnnx.bin
+│       └── yolov5s_batch4.pnnx.param
+└── README.md
 ```

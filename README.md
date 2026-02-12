@@ -215,10 +215,11 @@ OriginDL/
 运行某些示例程序（如 MNIST、YOLOv5、ResNet）需要下载数据集和模型文件：
 
 ```bash
-# 使用自动下载脚本（推荐）
-bash scripts/download_data.sh
+# 使用脚本下载 MNIST 数据（默认保存到 ./data/mnist）
+bash scripts/download_mnist.sh
 
-# 或手动下载：访问 GitHub Releases 页面下载压缩包并解压
+# 使用脚本下载模型（默认保存到 ./model），或手动从 GitHub Releases 下载压缩包并解压
+bash scripts/download_model.sh
 ```
 
 详细说明请参考：

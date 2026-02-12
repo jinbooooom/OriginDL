@@ -1,17 +1,45 @@
 #!/bin/bash
 
-# OriginDL 数据和模型下载脚本
-# 从 GitHub Releases 下载数据和模型文件
+# OriginDL 模型下载脚本
+# 从 GitHub Releases 下载模型文件
+# 用法: download_model.sh [-d DIR] [--dir DIR]
+# 默认下载到 ./model/
 
 set -e
 
+# 模型存放目录，可通过 -d/--dir 覆盖
+MODEL_DIR="./model"
+
+# 解析选项：-d DIR / --dir DIR 指定模型存放目录
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--dir)
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: -d/--dir requires a directory argument." >&2
+                exit 1
+            fi
+            MODEL_DIR="$2"
+            shift 2
+            ;;
+        -h|--help)
+            echo "Usage: $0 [-d DIR] [--dir DIR]"
+            echo "  -d, --dir DIR   Save model to DIR (default: ./model)"
+            echo "  -h, --help      Show this help"
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown option: $1. Use -h or --help for usage." >&2
+            exit 1
+            ;;
+    esac
+done
+
 # 配置
 REPO_OWNER="jinbooooom"  # GitHub 用户名
-REPO_NAME="OriginDL"        # 仓库名
-VERSION="v1.0.0"            # Release 版本号
+REPO_NAME="OriginDL"     # 仓库名
+VERSION="v1.0.0"         # Release 版本号
 BASE_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}"
 
-DATA_ARCHIVE="origindl-data-${VERSION}.tar.gz"
 MODEL_ARCHIVE="origindl-model-${VERSION}.tar.gz"
 
 # 颜色输出
@@ -42,18 +70,18 @@ download_file() {
     
     if [ "$DOWNLOAD_CMD" = "wget" ]; then
         if wget $WGET_OPTS "$url" -O "$output"; then
-            echo -e "${GREEN}✓ ${name} downloaded successfully${NC}"
+            echo -e "${GREEN} ${name} downloaded successfully${NC}"
             return 0
         else
-            echo -e "${RED}✗ Failed to download ${name}${NC}" >&2
+            echo -e "${RED} Failed to download ${name}${NC}" >&2
             return 1
         fi
     else
         if curl $CURL_OPTS "$url" -o "$output"; then
-            echo -e "${GREEN}✓ ${name} downloaded successfully${NC}"
+            echo -e "${GREEN} ${name} downloaded successfully${NC}"
             return 0
         else
-            echo -e "${RED}✗ Failed to download ${name}${NC}" >&2
+            echo -e "${RED} Failed to download ${name}${NC}" >&2
             return 1
         fi
     fi
@@ -71,11 +99,11 @@ extract_file() {
     
     echo -e "${YELLOW}Extracting ${name}...${NC}"
     if tar -xzf "$archive"; then
-        echo -e "${GREEN}✓ ${name} extracted successfully${NC}"
+        echo -e "${GREEN} ${name} extracted successfully${NC}"
         rm -f "$archive"  # 删除压缩包以节省空间
         return 0
     else
-        echo -e "${RED}✗ Failed to extract ${name}${NC}" >&2
+        echo -e "${RED} Failed to extract ${name}${NC}" >&2
         return 1
     fi
 }
@@ -83,7 +111,7 @@ extract_file() {
 # 主函数
 main() {
     echo "=========================================="
-    echo "OriginDL Data and Model Download Script"
+    echo "OriginDL Model Download Script"
     echo "=========================================="
     echo ""
     
@@ -98,26 +126,20 @@ main() {
     trap "rm -rf $TEMP_DIR" EXIT
     
     cd "$TEMP_DIR"
-    
-    # 下载数据文件
-    if download_file "${BASE_URL}/${DATA_ARCHIVE}" "$DATA_ARCHIVE" "Data archive"; then
-        extract_file "$DATA_ARCHIVE" "Data files"
-        # 移动数据文件到项目目录
-        if [ -d "data" ]; then
-            cp -r data/* "$OLDPWD/data/" 2>/dev/null || true
-            echo -e "${GREEN}Data files copied to ./data/${NC}"
-        fi
-    else
-        echo -e "${YELLOW}Warning: Failed to download data archive. You may need to download it manually.${NC}"
-    fi
-    
+
     # 下载模型文件
+    if [[ "$MODEL_DIR" = /* ]]; then
+        TARGET_DIR="$MODEL_DIR"
+    else
+        TARGET_DIR="$OLDPWD/$MODEL_DIR"
+    fi
+    mkdir -p "$TARGET_DIR"
+
     if download_file "${BASE_URL}/${MODEL_ARCHIVE}" "$MODEL_ARCHIVE" "Model archive"; then
         extract_file "$MODEL_ARCHIVE" "Model files"
-        # 移动模型文件到项目目录
         if [ -d "model" ]; then
-            cp -r model/* "$OLDPWD/model/" 2>/dev/null || true
-            echo -e "${GREEN}Model files copied to ./model/${NC}"
+            cp -r model/* "$TARGET_DIR/" 2>/dev/null || true
+            echo -e "${GREEN}Model files copied to ${MODEL_DIR}/${NC}"
         fi
     else
         echo -e "${YELLOW}Warning: Failed to download model archive. You may need to download it manually.${NC}"
