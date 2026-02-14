@@ -20,6 +20,25 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
 
 
+def get_origindl_version(project_root: Optional[Path] = None) -> str:
+    """读取项目根目录 VERSION 文件内容
+    
+    Args:
+        project_root: 项目根目录，若为 None 则使用本脚本所在目录
+    
+    Returns:
+        版本号字符串，若文件不存在或读取失败返回 "unknown"
+    """
+    root = project_root if project_root is not None else Path(__file__).resolve().parent
+    version_file = root / "VERSION"
+    try:
+        if version_file.exists():
+            return version_file.read_text(encoding="utf-8").strip() or "unknown"
+    except OSError:
+        pass
+    return "unknown"
+
+
 def discover_benchmark_operators(project_root: Path) -> List[str]:
     """自动发现可用的benchmark算子
     
@@ -415,7 +434,8 @@ def get_comparison_data(operator: str,
 def print_comparison_table(operator: str,
                           origindl_results: List[Dict], 
                           pytorch_results: List[Dict],
-                          inplace: bool = False):
+                          inplace: bool = False,
+                          project_root: Optional[Path] = None):
     """打印性能对比表格
     
     Args:
@@ -423,6 +443,7 @@ def print_comparison_table(operator: str,
         origindl_results: OriginDL测试结果列表
         pytorch_results: PyTorch测试结果列表
         inplace: 是否使用就地操作
+        project_root: 项目根目录，用于读取 VERSION；若为 None 则使用脚本所在目录
     """
     rows = get_comparison_data(operator, origindl_results, pytorch_results, inplace)
     
@@ -431,6 +452,8 @@ def print_comparison_table(operator: str,
     
     # 如果使用就地操作，在标题中显示
     mode_suffix = " (Inplace)" if inplace else ""
+    version_str = get_origindl_version(project_root)
+    title_suffix = f" (OriginDL version: {version_str}){mode_suffix}"
     
     # 计算每列的最大宽度
     max_shape_width = max(5, max(len(row['shape']) for row in rows))  # "Shape" 长度
@@ -466,7 +489,7 @@ def print_comparison_table(operator: str,
         max_line_width = max(max_line_width, len(data_line))
     
     print("\n" + "="*max_line_width)
-    print(f"{operator_name} Operator Performance Comparison{mode_suffix}")
+    print(f"{operator_name} Operator Performance Comparison{title_suffix}")
     print("="*max_line_width)
     print(header_line)
     print("-"*max_line_width)
@@ -509,13 +532,15 @@ def get_speedup_color(speedup: Optional[float]) -> Optional[str]:
 
 def write_results_to_excel(all_results: Dict[str, Tuple[List[Dict], List[Dict]]],
                            output_path: Path,
-                           inplace: bool = False):
+                           inplace: bool = False,
+                           version: str = "unknown"):
     """将测试结果写入Excel文件
     
     Args:
         all_results: 所有算子的测试结果字典，key为算子名，value为(origindl_results, pytorch_results)元组
         output_path: 输出文件路径
         inplace: 是否使用就地操作
+        version: OriginDL 版本号，显示在每个 sheet 第一行
     """
     if not OPENPYXL_AVAILABLE:
         print("Warning: openpyxl is not installed. Cannot export to Excel.", file=sys.stderr)
@@ -535,24 +560,31 @@ def write_results_to_excel(all_results: Dict[str, Tuple[List[Dict], List[Dict]]]
         operator_sheets_data[operator] = rows
         all_unified_rows.extend(rows)
     
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", name="Times New Roman")
+    times_font = Font(name="Times New Roman")
+    version_row_text = f"OriginDL version: {version}"
+    
     # 如果有多于一个算子，先创建统一表格Sheet（放在最前面）
     if len(all_results) > 1:
         ws_unified = wb.create_sheet(title="All Results", index=0)
         
-        # 写入表头
+        # 第一行写版本
+        ws_unified.append([version_row_text])
+        for cell in ws_unified[1]:
+            cell.font = times_font
+        
+        # 写入表头（第二行）
         headers_unified = ['Operator', 'Shape', 'Repeat', 'Device', 'Dtype', 'OriginDL(us)', 'PyTorch(us)', 'Speedup']
         ws_unified.append(headers_unified)
         
-        # 设置表头样式
-        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-        header_font = Font(bold=True, color="FFFFFF", name="Times New Roman")
-        times_font = Font(name="Times New Roman")
-        for cell in ws_unified[1]:
+        # 设置表头样式（第二行）
+        for cell in ws_unified[2]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
         
-        # 写入数据
+        # 写入数据（从第三行开始）
         for row_data in all_unified_rows:
             row = [
                 row_data['operator'],
@@ -584,11 +616,11 @@ def write_results_to_excel(all_results: Dict[str, Tuple[List[Dict], List[Dict]]]
         ws_unified.column_dimensions['G'].width = 15
         ws_unified.column_dimensions['H'].width = 12
         
-        # 冻结首行
-        ws_unified.freeze_panes = 'A2'
+        # 冻结前两行（版本 + 表头）
+        ws_unified.freeze_panes = 'A3'
         
-        # 设置数值格式
-        for row in ws_unified.iter_rows(min_row=2, max_row=ws_unified.max_row):
+        # 设置数值格式（数据从第三行开始）
+        for row in ws_unified.iter_rows(min_row=3, max_row=ws_unified.max_row):
             row[5].number_format = '0.0000'  # OriginDL(us)
             row[6].number_format = '0.0000'  # PyTorch(us)
             row[7].number_format = '0.0000'  # Speedup
@@ -598,7 +630,12 @@ def write_results_to_excel(all_results: Dict[str, Tuple[List[Dict], List[Dict]]]
         # 创建算子Sheet
         ws = wb.create_sheet(title=operator)
         
-        # 写入表头
+        # 第一行写版本
+        ws.append([version_row_text])
+        for cell in ws[1]:
+            cell.font = times_font
+        
+        # 写入表头（第二行）
         headers = ['Shape', 'Repeat', 'Device', 'Dtype', 'OriginDL(us)', 'PyTorch(us)', 'Speedup']
         ws.append(headers)
         
@@ -607,12 +644,12 @@ def write_results_to_excel(all_results: Dict[str, Tuple[List[Dict], List[Dict]]]
             header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
             header_font = Font(bold=True, color="FFFFFF", name="Times New Roman")
             times_font = Font(name="Times New Roman")
-        for cell in ws[1]:
+        for cell in ws[2]:
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = Alignment(horizontal='center', vertical='center')
         
-        # 写入数据
+        # 写入数据（从第三行开始）
         for row_data in rows:
             row = [
                 row_data['shape'],
@@ -642,11 +679,11 @@ def write_results_to_excel(all_results: Dict[str, Tuple[List[Dict], List[Dict]]]
         ws.column_dimensions['F'].width = 15
         ws.column_dimensions['G'].width = 12
         
-        # 冻结首行
-        ws.freeze_panes = 'A2'
+        # 冻结前两行（版本 + 表头）
+        ws.freeze_panes = 'A3'
         
-        # 设置数值格式
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+        # 设置数值格式（数据从第三行开始）
+        for row in ws.iter_rows(min_row=3, max_row=ws.max_row):
             row[4].number_format = '0.0000'  # OriginDL(us)
             row[5].number_format = '0.0000'  # PyTorch(us)
             row[6].number_format = '0.0000'  # Speedup
@@ -787,7 +824,7 @@ Examples:
         
         if result is not None:
             origindl_results, pytorch_results = result
-            print_comparison_table(operator, origindl_results, pytorch_results, inplace=args.inplace)
+            print_comparison_table(operator, origindl_results, pytorch_results, inplace=args.inplace, project_root=project_root)
             all_results[operator] = (origindl_results, pytorch_results)
             success_count += 1
         else:
@@ -820,7 +857,7 @@ Examples:
         
         output_path = output_dir / f"benchmark_{operator_name}_{timestamp}.xlsx"
         
-        write_results_to_excel(all_results, output_path, inplace=args.inplace)
+        write_results_to_excel(all_results, output_path, inplace=args.inplace, version=get_origindl_version(project_root))
     
     # 如果所有测试都失败，返回错误码
     if fail_count > 0 and success_count == 0:
