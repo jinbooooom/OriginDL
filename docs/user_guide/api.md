@@ -1,13 +1,21 @@
 # OriginDL API 文档
 
-OriginDL 是一个C++深度学习框架，提供了类似PyTorch的API接口。本文档介绍了主要的API使用方法。
+OriginDL 是一个 C++ 深度学习框架，提供类似 PyTorch 的 API。大多数 API 风格与 PyTorch 一致，详见 [与 PyTorch 对比](compare.md)。
 
 ## 目录
 
 - [张量创建](#张量创建)
 - [张量属性](#张量属性)
 - [张量操作](#张量操作)
-- [数学运算](#数学运算)
+- [算子](#算子)
+  - [一、数学运算算子](#一数学运算算子)
+  - [二、激活函数算子](#二激活函数算子)
+  - [三、卷积运算算子](#三卷积运算算子)
+  - [四、池化运算算子](#四池化运算算子)
+  - [五、形状变换算子](#五形状变换算子)
+  - [六、神经网络层算子](#六神经网络层算子)
+  - [七、归一化算子](#七归一化算子)
+  - [八、损失函数算子](#八损失函数算子)
 - [调试工具](#调试工具)
 - [神经网络模块](#神经网络模块)
 - [CUDA 支持](#cuda-支持)
@@ -41,12 +49,11 @@ auto t1 = Tensor::zeros({2, 3});
 //  OriginMat(shape={2, 3}, dtype=float32, device=cpu)
 
 // 指定数据类型为double
-auto t2 = Tensor::zeros({3, 2}, TensorOptions().dtype(DataType::kFloat64));
+auto t2 = Tensor::zeros({3, 2}, dtype("float64").device("cuda:0"));
 // t2.print() 输出:
 // [[0, 0],
 //  [0, 0],
 //  [0, 0]]
-//  OriginMat(shape={3, 2}, dtype=float64, device=cpu)
 ```
 
 ### Tensor::ones
@@ -72,7 +79,7 @@ auto t1 = Tensor::ones({2, 3});
 //  [1, 1, 1]]
 //  OriginMat(shape={2, 3}, dtype=float32, device=cpu)
 
-// 创建5维向量
+// 创建形状为Shape{5}的张量
 auto t2 = Tensor::ones({5});
 // t2.print() 输出:
 // [1, 1, 1, 1, 1]
@@ -95,13 +102,14 @@ static Tensor randn(const Shape &shape, const TensorOptions &options = TensorOpt
 
 **例子:**
 ```cpp
-// 创建3x3的随机张量
 auto t = Tensor::randn({3, 3});
 // t.print() 输出:
 // [[0.123, -0.456, 0.789],
 //  [-0.234, 0.567, -0.890],
 //  [0.345, -0.678, 0.901]]
 //  OriginMat(shape={3, 3}, dtype=float32, device=cpu)
+
+auto t2 = Tensor::randn({2, 3}, dtype("float32").device("cuda:0"));
 ```
 
 ### Tensor::full
@@ -121,20 +129,20 @@ static Tensor full(const Shape &shape, const Scalar &value, const TensorOptions 
 
 **例子:**
 ```cpp
-// 创建用2.5f填充的2x2张量
 auto t1 = Tensor::full({2, 2}, 2.5f);
 // t1.print() 输出:
 // [[2.5, 2.5],
 //  [2.5, 2.5]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
 
-// 创建用-1.0f填充的3x1张量
 auto t2 = Tensor::full({3, 1}, -1.0f);
 // t2.print() 输出:
 // [[-1],
 //  [-1],
 //  [-1]]
 //  OriginMat(shape={3, 1}, dtype=float32, device=cpu)
+
+auto t3 = Tensor::full({2, 3}, 5.0, dtype("float64").device("cuda:0"));
 ```
 
 ### Tensor::from_blob
@@ -154,13 +162,14 @@ static Tensor from_blob(void *data, const Shape &shape, const TensorOptions &opt
 
 **例子:**
 ```cpp
-// 从数组创建张量
 float data[] = {1.0f, 2.0f, 3.0f, 4.0f};
 auto t = Tensor::from_blob(data, {2, 2});
 // t.print() 输出:
 // [[1, 2],
 //  [3, 4]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
+
+auto t2 = Tensor::from_blob(data, {2, 2}, dtype("float32").device("cuda:0"));
 ```
 
 ### 张量构造函数
@@ -186,7 +195,6 @@ Tensor(const std::vector<T> &data, const Shape &shape, const TensorOptions &opti
 
 **例子:**
 ```cpp
-// 自动推断类型
 std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
 auto t1 = Tensor(data, {2, 2});
 // t1.print() 输出:
@@ -194,11 +202,8 @@ auto t1 = Tensor(data, {2, 2});
 //  [3, 4]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
 
-// 指定数据类型
-auto t2 = Tensor(data, {2, 2}, DataType::kFloat64);
-
-// 使用TensorOptions指定完整选项
-auto t3 = Tensor(data, {2, 2}, dtype(DataType::kFloat64).device(DeviceType::kCUDA));
+auto t2 = Tensor(data, {2, 2}, dtype("float64"));
+auto t3 = Tensor(data, {2, 2}, dtype("float32").device("cuda:0"));
 ```
 
 #### 从初始化列表创建
@@ -222,18 +227,9 @@ Tensor(std::initializer_list<T> data, const Shape &shape, const TensorOptions &o
 
 **例子:**
 ```cpp
-// 自动推断类型
 auto t1 = Tensor({1, 2, 3, 4}, {2, 2});
-// t1.print() 输出:
-// [[1, 2],
-//  [3, 4]]
-//  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
-
-// 指定数据类型
-auto t2 = Tensor({1, 2, 3, 4}, {2, 2}, DataType::kInt32);
-
-// 使用TensorOptions
-auto t3 = Tensor({1, 2, 3, 4}, {2, 2}, TensorOptions().dtype(DataType::kFloat64));
+auto t2 = Tensor({1, 2, 3, 4}, {2, 2}, dtype("int32"));
+auto t3 = Tensor({1, 2, 3, 4}, {2, 2}, dtype("float64").device("cuda:0"));
 ```
 
 #### 标量填充
@@ -257,7 +253,6 @@ Tensor(T scalar, const Shape &shape, const TensorOptions &options)
 
 **例子:**
 ```cpp
-// 自动推断类型
 auto t1 = Tensor(5.0, {3, 3});
 // t1.print() 输出:
 // [[5, 5, 5],
@@ -265,16 +260,13 @@ auto t1 = Tensor(5.0, {3, 3});
 //  [5, 5, 5]]
 //  OriginMat(shape={3, 3}, dtype=float32, device=cpu)
 
-// 指定数据类型
-auto t2 = Tensor(5.0, {3, 3}, DataType::kFloat64);
-
-// 使用TensorOptions
-auto t3 = Tensor(5.0, {3, 3}, TensorOptions().dtype(DataType::kFloat64).device(DeviceType::kCUDA));
+auto t2 = Tensor(5.0, {3, 3}, dtype("float64"));
+auto t3 = Tensor(5.0, {3, 3}, dtype("float64").device("cuda:0"));
 ```
 
 ### TensorOptions 配置
 
-TensorOptions 提供了灵活的配置选项，支持链式调用。
+通过便捷函数 `dtype()`、`device()` 链式配置，写法简洁，与 PyTorch 风格一致（参见 [compare.md](compare.md)）。
 
 #### 数据类型设置
 
@@ -286,14 +278,8 @@ TensorOptions &dtype(const char *dtype_str)
 
 **例子:**
 ```cpp
-// 设置数据类型为double
-auto t = Tensor::zeros({2, 2}, dtype(DataType::kFloat64));
-
-// 使用字符串设置类型
-auto t2 = Tensor::ones({3, 3}, dtype("float64"));
-
-// 使用C字符串设置类型
-auto t3 = Tensor::zeros({2, 2}, dtype("float32"));
+auto t = Tensor::zeros({2, 2}, dtype("float64"));
+auto t2 = Tensor::ones({3, 3}, dtype("float32"));
 ```
 
 #### 设备设置
@@ -307,17 +293,9 @@ TensorOptions &device(const char *device_str)
 
 **例子:**
 ```cpp
-// 设置设备为CUDA
-auto options = TensorOptions().device(DeviceType::kCUDA, 0);
-auto t = Tensor::randn({2, 2}, options);
-
-// 使用字符串设置设备
-auto options2 = TensorOptions().device("cuda:0");
-auto t2 = Tensor::zeros({3, 3}, options2);
-
-// 使用C字符串设置设备
-auto options3 = TensorOptions().device("cpu");
-auto t3 = Tensor::ones({2, 2}, options3);
+auto t = Tensor::randn({2, 2}, device("cuda:0"));
+auto t2 = Tensor::zeros({3, 3}, device("cpu"));
+auto t3 = Tensor::ones({2, 2}, device(DeviceType::kCUDA, 0));  // 指定设备索引
 ```
 
 #### 链式配置
@@ -328,12 +306,7 @@ TensorOptions &requires_grad(bool requires_grad)
 
 **例子:**
 ```cpp
-// 链式配置多个选项
-auto options = TensorOptions()
-    .dtype(DataType::kFloat32)
-    .device(DeviceType::kCPU)
-    .requires_grad(true);
-auto t = Tensor::ones({2, 2}, options);
+auto t = Tensor::ones({2, 2}, dtype("float32").device("cpu").requires_grad(true));
 ```
 
 #### 便捷函数
@@ -351,14 +324,9 @@ TensorOptions requires_grad(bool requires_grad = true)
 
 **例子:**
 ```cpp
-// 快速创建配置
-auto t1 = Tensor::zeros({2, 2}, dtype(DataType::kFloat64));
-auto t2 = Tensor::ones({3, 3}, device(DeviceType::kCUDA));
-auto t3 = Tensor::randn({2, 2}, requires_grad(false));
-
-// 使用字符串便捷函数
-auto t4 = Tensor::zeros({2, 2}, dtype("float64"));
-auto t5 = Tensor::ones({3, 3}, device("cuda:0"));
+auto t1 = Tensor::zeros({2, 2}, dtype("float64"));
+auto t2 = Tensor::ones({3, 3}, device("cuda:0"));
+auto t3 = Tensor::randn({2, 2}, dtype("float32").device("cuda:0"));  // 链式，与 PyTorch 风格一致
 ```
 
 ---
@@ -721,7 +689,7 @@ auto t_cuda = t.to(Device(DeviceType::kCUDA));
 // t 仍然在 CPU 上
 
 // 同时转换类型和设备
-auto options = TensorOptions().dtype(DataType::kFloat64).device(DeviceType::kCUDA);
+auto options = dtype(DataType::kFloat64).device(DeviceType::kCUDA);
 auto t_both = t.to(options);
 ```
 
@@ -914,9 +882,13 @@ view.index_put({2}, 999.0f);  // 修改视图会影响原始张量
 
 ---
 
-## 数学运算
+## 算子
 
-### 基础算术运算
+本节按算子类型组织 API，与 [算子前向与反向传播原理](../design/operators_theory.md) 中的分类一致。所有函数式算子均在命名空间 `origin::functional` 下，通过 `#include "origin/core/operator.h"`（或 `#include "origin.h"`）使用。
+
+### 一、数学运算算子
+
+#### 基础算术运算
 
 #### 加法
 
@@ -937,9 +909,9 @@ Tensor &operator+=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价
 
 **例子:**
 ```cpp
-auto a = Tensor::ones({2, 2});
-auto b = Tensor::full({2, 2}, 2.0);
-auto c = a + b;  // 或者 add(a, b)
+auto a = Tensor::ones({2, 2});           // a.dtype() 为 float32（默认 options）
+auto b = Tensor::full({2, 2}, 2.0);     // b.dtype() 为 float32；2.0 是 double 字面量，但张量 dtype 由 TensorOptions 决定（默认 float32）
+auto c = a + b;  // 或 add(a, b)，语法与 PyTorch 一致
 // c.print() 输出:
 // [[3, 3],
 //  [3, 3]]
@@ -967,7 +939,7 @@ Tensor &operator-=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价
 ```cpp
 auto a = Tensor::full({2, 2}, 5.0);
 auto b = Tensor::ones({2, 2});
-auto c = a - b;  // 或者 sub(a, b)
+auto c = a - b;  // 或 sub(a, b)
 // c.print() 输出:
 // [[4, 4],
 //  [4, 4]]
@@ -995,7 +967,7 @@ Tensor &operator*=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价
 ```cpp
 auto a = Tensor::full({2, 2}, 3.0);
 auto b = Tensor::full({2, 2}, 2.0);
-auto c = a * b;  // 或者 mul(a, b)
+auto c = a * b;  // 或 mul(a, b)
 // c.print() 输出:
 // [[6, 6],
 //  [6, 6]]
@@ -1023,7 +995,7 @@ Tensor &operator/=(Tensor &lhs, const Scalar &rhs)      // 就地操作，等价
 ```cpp
 auto a = Tensor::full({2, 2}, 8.0);
 auto b = Tensor::full({2, 2}, 2.0);
-auto c = a / b;  // 或者 div(a, b)
+auto c = a / b;  // 或 div(a, b)
 // c.print() 输出:
 // [[4, 4],
 //  [4, 4]]
@@ -1043,14 +1015,16 @@ void neg_(Tensor &x)               // 就地操作，直接修改 x
 **例子:**
 ```cpp
 auto a = Tensor::ones({2, 2});
-auto b = -a;  // 或者 neg(a)
+auto b = -a;  // 或 neg(a)
 // b.print() 输出:
 // [[-1, -1],
 //  [-1, -1]]
 //  OriginMat(shape={2, 2}, dtype=float32, device=cpu)
 ```
 
-### 比较运算
+#### 比较运算
+
+**注意**：比较算子声明在 `origin/operators/math/compare.h`，使用张量比较运算符（如 `==`、`<`）前需包含该头文件。
 
 ```cpp
 // 张量与张量比较
@@ -1126,7 +1100,7 @@ auto pos_result = neg > Scalar(0.0f);
 // pos_result: [0, 0, 0, 1, 1]
 ```
 
-### 标量运算
+#### 标量运算
 
 支持张量与标量的运算：
 
@@ -1172,9 +1146,9 @@ auto a4 = Tensor({1, 2, 3, 4}, {2, 2}, DataType::kInt32);
 auto b4 = a4 + 2L;    // 结果类型: int64
 ```
 
-### 数学函数
+#### 数学函数
 
-#### square
+##### square
 
 ```cpp
 Tensor square(const Tensor &x)      // 非就地操作，返回新的张量，不修改输入 x
@@ -1224,7 +1198,7 @@ auto neg = Tensor({-2.0f, -3.0f}, {1, 2});
 auto pos = square(neg);  // 结果: [4.0, 9.0]（负数平方为正数）
 ```
 
-#### pow
+##### pow
 
 ```cpp
 Tensor pow(const Tensor &base, const Scalar &exponent)  // 非就地操作，返回新的张量
@@ -1285,7 +1259,7 @@ auto float64_base_int_exp = pow(Tensor({2.0, 3.0}, {1, 2}, dtype(DataType::kFloa
 // float64_base_int_exp.dtype() == DataType::kFloat64  // true（保持 float64）
 ```
 
-#### exp
+##### exp
 
 ```cpp
 Tensor exp(const Tensor &x)  // 非就地操作，返回新的张量
@@ -1306,7 +1280,7 @@ auto b = exp(a);
 //  OriginMat(shape={1, 3}, dtype=float32, device=cpu)
 ```
 
-#### log
+##### log
 
 ```cpp
 Tensor log(const Tensor &x)  // 非就地操作，返回新的张量
@@ -1357,7 +1331,148 @@ auto int_tensor = Tensor({1, 2, 3}, {1, 3}, dtype(DataType::kInt32));
 // log(int_tensor);  // 抛出异常: "Log operator only supports float32 and float64 types"
 ```
 
-### 形状操作
+#### 求和 (sum)
+
+```cpp
+Tensor sum(const Tensor &x, int axis = -1, bool keepdim = false)
+```
+
+对张量求和。
+
+**参数:**
+- `x` (Tensor) – 输入张量
+- `axis` (int, optional) – 求和的轴，-1表示所有元素
+- `keepdim` (bool, optional) – 是否保持维度，默认为false。如果为true，求和后的维度大小变为1而不是被移除
+
+**例子:**
+```cpp
+auto a = Tensor({1, 2, 3, 4, 5, 6}, {2, 3});
+auto b = sum(a);           // 所有元素求和: 21，形状 (1,)
+auto c = sum(a, 0);        // 按第0轴求和，形状 (3,)
+auto d = sum(a, 1);        // 按第1轴求和，形状 (2,)
+auto e = sum(a, 1, true);  // 按第1轴求和，keepdim=true，形状 (2, 1)
+auto f = sum(a, -1, true); // 全局求和，keepdim=true，形状 (1, 1)
+```
+
+#### 矩阵乘法 (mat_mul)
+
+```cpp
+Tensor mat_mul(const Tensor &x, const Tensor &w)
+```
+
+矩阵乘法（张量乘法）。
+
+**参数:**
+- `x` (Tensor) – 第一个张量，形状应为 `[..., m, n]`
+- `w` (Tensor) – 第二个张量，形状应为 `[..., n, p]`
+
+**返回值:** Tensor – 矩阵乘法结果张量，形状为 `[..., m, p]`
+
+**注意:**
+- 这是真正的矩阵乘法（不是逐元素乘法），对应数学中的矩阵乘法运算
+- **当前实现限制**：OriginDL 当前版本仅支持以下两种形式：
+  - **2D x 2D**: `{m, k} x {k, n}` → `{m, n}`（标准矩阵乘法）
+  - **3D x 2D**: `{batch, m, k} x {k, n}` → `{batch, m, n}`（批量矩阵乘法）
+- 第一个张量的最后一个维度必须与第二个张量的第一个维度相同（`k` 必须匹配）
+- 详见 [矩阵乘法限制](#矩阵乘法限制)。
+
+**例子:**
+```cpp
+auto a = Tensor::ones({2, 3});
+auto b = Tensor::ones({3, 4});
+auto c = mat_mul(a, b);  // 结果: 2x4 张量
+
+auto batch_a = Tensor::ones({10, 2, 3});
+auto batch_c = mat_mul(batch_a, b);  // 结果: {10, 2, 4}
+```
+
+### 二、激活函数算子
+
+#### relu
+
+```cpp
+Tensor relu(const Tensor &x)
+void relu_(Tensor &x)  // 就地操作
+```
+
+ReLU 激活：`relu(x) = max(0, x)`。
+
+**例子:**
+```cpp
+auto x = Tensor({-1.0f, 0.0f, 1.0f, 2.0f}, {2, 2});
+auto y = relu(x);  // [[0, 0], [1, 2]]
+```
+
+#### sigmoid
+
+```cpp
+Tensor sigmoid(const Tensor &x)
+```
+
+Sigmoid 激活：`sigmoid(x) = 1 / (1 + exp(-x))`。
+
+#### softmax
+
+```cpp
+Tensor softmax(const Tensor &x, int axis = -1)
+```
+
+在指定轴上做 softmax 归一化，默认最后一维。
+
+#### silu
+
+```cpp
+Tensor silu(const Tensor &x)
+```
+
+SiLU 激活：`silu(x) = x * sigmoid(x)`。
+
+### 三、卷积运算算子
+
+#### conv2d
+
+```cpp
+Tensor conv2d(const Tensor &x, const Tensor &W, const Tensor *b = nullptr,
+              std::pair<int, int> stride = {1, 1}, std::pair<int, int> pad = {0, 0});
+Tensor conv2d(const Tensor &x, const Tensor &W, const Tensor *b, int stride, int pad);
+```
+
+二维卷积。输入 `x` 形状 `(N, C, H, W)`，卷积核 `W` 形状 `(OC, C, KH, KW)`，输出 `(N, OC, OH, OW)`。`b` 可选，形状 `(OC,)`。
+
+### 四、池化运算算子
+
+#### max_pool2d
+
+```cpp
+Tensor max_pool2d(const Tensor &x, std::pair<int, int> kernel_size,
+                  std::pair<int, int> stride = {0, 0}, std::pair<int, int> pad = {0, 0});
+Tensor max_pool2d(const Tensor &x, int kernel_size, int stride = 0, int pad = 0);
+```
+
+二维最大池化。输入 `(N, C, H, W)`，输出 `(N, C, OH, OW)`。`stride` 为 0 时默认等于 `kernel_size`。
+
+#### avg_pool2d
+
+```cpp
+Tensor avg_pool2d(const Tensor &x, std::pair<int, int> kernel_size,
+                 std::pair<int, int> stride = {0, 0}, std::pair<int, int> pad = {0, 0});
+Tensor avg_pool2d(const Tensor &x, int kernel_size, int stride = 0, int pad = 0);
+```
+
+二维平均池化。形状约定同 `max_pool2d`。
+
+#### adaptive_avg_pool2d
+
+```cpp
+Tensor adaptive_avg_pool2d(const Tensor &x, std::pair<int, int> output_size);
+Tensor adaptive_avg_pool2d(const Tensor &x, int output_size);
+```
+
+二维自适应平均池化，输出空间尺寸为 `output_size`。
+
+**注意:** 池化算子与 PyTorch 类似，多用于浮点特征，不面向整型；详见 [池化算子的类型支持](#池化算子的类型支持)。
+
+### 五、形状变换算子
 
 #### reshape (函数版本)
 
@@ -1527,73 +1642,76 @@ auto results3 = split(x, {1, 2, 1}, 1);
 // results3[2].shape() = Shape{3, 1}, 值: [[3], [7], [11]]  (第4列)
 ```
 
-### 归约操作
-
-#### sum
+#### flatten
 
 ```cpp
-Tensor sum(const Tensor &x, int axis = -1, bool keepdim = false)
+Tensor flatten(const Tensor &x, int start_dim = 1, int end_dim = -1)
 ```
 
-对张量求和。
-
-**参数:**
-- `x` (Tensor) – 输入张量
-- `axis` (int, optional) – 求和的轴，-1表示所有元素
-- `keepdim` (bool, optional) – 是否保持维度，默认为false。如果为true，求和后的维度大小变为1而不是被移除
+将 `start_dim` 到 `end_dim` 的维度展平为一维。默认 `start_dim=1` 保留 batch 维，`end_dim=-1` 表示最后一维。与 PyTorch `torch.flatten` 对齐。
 
 **例子:**
 ```cpp
-auto a = Tensor({1, 2, 3, 4, 5, 6}, {2, 3});
-auto b = sum(a);           // 所有元素求和: 21，形状 (1,)
-auto c = sum(a, 0);        // 按第0轴求和，形状 (3,)
-auto d = sum(a, 1);        // 按第1轴求和，形状 (2,)
-auto e = sum(a, 1, true);  // 按第1轴求和，keepdim=true，形状 (2, 1)
-auto f = sum(a, -1, true); // 全局求和，keepdim=true，形状 (1, 1)
+auto x = Tensor::ones({2, 3, 4});  // (N, C, H*W)
+auto y = flatten(x);               // 形状 (2, 12)，即 start_dim=1, end_dim=-1
 ```
 
-### 矩阵运算
+### 六、神经网络层算子
 
-#### mat_mul
+#### dropout
 
 ```cpp
-Tensor mat_mul(const Tensor &x, const Tensor &w)
+// 通过 Dropout 算子类调用，无独立函数式接口
+// 训练时以概率 p 将元素置零并缩放
 ```
 
-矩阵乘法（张量乘法）。
+Dropout 为算子类，需构造 `functional::Dropout(p, training)` 后通过 `operator()` 使用。NN 模块中可配合 Sequential 使用（若提供对应层封装）。
 
-**参数:**
-- `x` (Tensor) – 第一个张量，形状应为 `[..., m, n]`
-- `w` (Tensor) – 第二个张量，形状应为 `[..., n, p]`
+#### upsample
 
-**返回值:** Tensor – 矩阵乘法结果张量，形状为 `[..., m, p]`
+```cpp
+Tensor upsample(const Tensor &x,
+                const std::string &mode = "nearest",
+                std::pair<float, float> scale_factor = {2.0f, 2.0f});
+```
 
-**注意:**
-- 这是真正的矩阵乘法（不是逐元素乘法），对应数学中的矩阵乘法运算
-- **当前实现限制**：OriginDL 当前版本仅支持以下两种形式：
-  - **2D x 2D**: `{m, k} x {k, n}` → `{m, n}`（标准矩阵乘法）
-  - **3D x 2D**: `{batch, m, k} x {k, n}` → `{batch, m, n}`（批量矩阵乘法）
-- 第一个张量的最后一个维度必须与第二个张量的第一个维度相同（`k` 必须匹配）
-- **与 PyTorch 的差异**：PyTorch 的 `torch.matmul` 支持更广泛的形状组合，包括：
-  - `{batch, m, k} x {batch, k, n}` → `{batch, m, n}`（两个3D张量的批量矩阵乘法）
-  - `{m, k} x {batch, k, n}` → `{batch, m, n}`（2D x 3D，自动广播）
-  - `{batch, m, k} x {k, n}` → `{batch, m, n}`（3D x 2D，已支持）
-  - 更高维度的批量矩阵乘法
-- 当前实现不支持 3D x 3D、2D x 3D 等组合，这些功能可能在未来的版本中添加
+上采样，当前仅支持 4D 输入 `(N, C, H, W)`。`mode` 可为 `"nearest"` 或 `"bilinear"`（实现上当前均为最近邻）。NN 模块中另有 [upsample（上采样）](#upsample上采样) 层用法。
+
+#### identity
+
+```cpp
+Tensor identity(const Tensor &x)
+```
+
+恒等映射，直接返回输入。
+
+### 七、归一化算子
+
+#### batch_norm（函数式）
+
+```cpp
+Tensor batch_norm(const Tensor &x, const Tensor &gamma, const Tensor &beta,
+                  const Tensor &running_mean, const Tensor &running_var,
+                  bool training = false, float eps = 1e-5f, float momentum = 0.1f, int num_dims = 4);
+```
+
+与 PyTorch `F.batch_norm` 对齐。仅支持 `num_dims=2`（(N,C)）与 `num_dims=4`（(N,C,H,W)），不支持 BatchNorm3d。NN 层用法见 [BatchNorm（批归一化）](#batchnorm批归一化)。
+
+### 八、损失函数算子
+
+#### softmax_cross_entropy
+
+```cpp
+Tensor softmax_cross_entropy(const Tensor &x, const Tensor &target);
+```
+
+计算 softmax 交叉熵损失。`x` 形状 `(N, C)`（logits），`target` 形状 `(N,)`（类别索引 0～C-1）。返回标量损失。
 
 **例子:**
 ```cpp
-// 2D张量矩阵乘法
-auto a = Tensor::ones({2, 3});
-auto b = Tensor::ones({3, 4});
-auto c = mat_mul(a, b);
-// 结果: 2x4的张量
-
-// 批量矩阵乘法（3D x 2D）
-// 对3D张量的最后两个维度进行矩阵乘法，第一个维度作为批量维度
-auto batch_a = Tensor::ones({10, 2, 3});  // 形状: {10, 2, 3}，10个2x3的张量
-auto b = Tensor::ones({3, 4});            // 形状: {3, 4}，共享的权重张量
-auto batch_c = mat_mul(batch_a, b);       // 结果: {10, 2, 4}，10个2x4的张量
+auto logits = Tensor::randn({4, 10});   // batch=4, num_classes=10
+auto target = Tensor({2, 5, 1, 9}, {4}, DataType::kInt64);
+auto loss = softmax_cross_entropy(logits, target);
 ```
 
 ---
@@ -1751,8 +1869,8 @@ void to(const TensorOptions &options)
 // 迁移到 CUDA 设备
 model.to(Device(DeviceType::kCUDA, 0));
 
-// 使用 TensorOptions
-model.to(TensorOptions().device(DeviceType::kCUDA).dtype(DataType::kFloat32));
+// 使用链式写法
+model.to(device(DeviceType::kCUDA).dtype(DataType::kFloat32));
 ```
 
 #### zero_grad
@@ -2257,8 +2375,7 @@ bool origin::cuda::is_available()
         std::cout << "CUDA is available!" << std::endl;
         
         // 创建 CUDA 张量
-        auto t = Tensor::ones({2, 2}, 
-                              TensorOptions().device(DeviceType::kCUDA));
+        auto t = Tensor::ones({2, 2}, device(DeviceType::kCUDA));
         t.print("CUDA Tensor");
     } else {
         std::cout << "CUDA is not available on this system." << std::endl;
@@ -2354,8 +2471,7 @@ void origin::cuda::set_device(int device_id)
             origin::cuda::set_device(0);
             
             // 创建 CUDA 张量（会使用当前设置的设备）
-            auto t = Tensor::ones({2, 2}, 
-                                  TensorOptions().device(DeviceType::kCUDA));
+            auto t = Tensor::ones({2, 2}, device(DeviceType::kCUDA));
         }
     }
 #endif
