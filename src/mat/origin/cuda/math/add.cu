@@ -15,11 +15,11 @@ namespace cuda
 {
 
 /**
- * @brief 元素级加法kernel（相同形状）- 基础版本
+ * @brief 元素级加法kernel（相同形状）- 最朴素实现
  * @details 每个线程处理一个元素的加法运算，用于不支持向量化的类型或边界情况
  */
 template <typename T>
-__global__ void add_elementwise_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
+__global__ void add_elementwise_native_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -51,11 +51,7 @@ __global__ void add_elementwise_vectorized_float4_kernel(const float *__restrict
         float4 vec_b = *reinterpret_cast<const float4 *>(&B[vector_idx]);
 
         // 执行向量化加法
-        float4 vec_c;
-        vec_c.x = vec_a.x + vec_b.x;
-        vec_c.y = vec_a.y + vec_b.y;
-        vec_c.z = vec_a.z + vec_b.z;
-        vec_c.w = vec_a.w + vec_b.w;
+        float4 vec_c = make_float4(vec_a.x + vec_b.x, vec_a.y + vec_b.y, vec_a.z + vec_b.z, vec_a.w + vec_b.w);
 
         // 使用float4一次存储4个float
         *reinterpret_cast<float4 *>(&C[vector_idx]) = vec_c;
@@ -64,6 +60,7 @@ __global__ void add_elementwise_vectorized_float4_kernel(const float *__restrict
     {
         // 处理边界情况：逐个处理剩余元素
         size_t base_idx = vector_idx;
+#pragma unroll(VECTOR_SIZE)
         for (size_t i = 0; i < VECTOR_SIZE && base_idx + i < N; ++i)
         {
             C[base_idx + i] = A[base_idx + i] + B[base_idx + i];
@@ -110,11 +107,7 @@ __global__ void add_broadcast_vectorized_float4_kernel(const float *__restrict__
         float4 vec_b   = make_float4(scalar_b, scalar_b, scalar_b, scalar_b);
 
         // 执行向量化加法
-        float4 vec_c;
-        vec_c.x = vec_a.x + vec_b.x;
-        vec_c.y = vec_a.y + vec_b.y;
-        vec_c.z = vec_a.z + vec_b.z;
-        vec_c.w = vec_a.w + vec_b.w;
+        float4 vec_c = make_float4(vec_a.x + vec_b.x, vec_a.y + vec_b.y, vec_a.z + vec_b.z, vec_a.w + vec_b.w);
 
         // 向量化存储
         *reinterpret_cast<float4 *>(&C[vector_idx]) = vec_c;
@@ -123,6 +116,7 @@ __global__ void add_broadcast_vectorized_float4_kernel(const float *__restrict__
     {
         // 处理边界情况：逐个处理剩余元素
         size_t base_idx = vector_idx;
+#pragma unroll(VECTOR_SIZE)
         for (size_t i = 0; i < VECTOR_SIZE && base_idx + i < N; ++i)
         {
             C[base_idx + i] = A[base_idx + i] + B[0];
@@ -189,7 +183,7 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
             const size_t threads_per_block = 256;
             const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
             device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                add_elementwise_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
+                add_elementwise_native_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
                                                                              static_cast<const T *>(b_data),
                                                                              static_cast<T *>(c_data), num_elements);
             });
@@ -197,60 +191,30 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
     }
     else if (a.elements() == 1 || b.elements() == 1)
     {
-        // 简单广播：一个操作数是标量（次常见）
+        // 简单广播：一个操作数是标量（次常见）。统一成向量在左、标量在右再 dispatch。
         const size_t num_elements = result_ptr->elements();
+        const void *vec_data    = (a.elements() == 1) ? b_data : a_data;
+        const void *scalar_data = (a.elements() == 1) ? a_data : b_data;
 
-        // 只支持B是标量的情况，如果A是标量则交换A和B
-        if (a.elements() == 1)
+        if (a.dtype() == DataType::kFloat32)
         {
-            // A是标量，B是向量：交换A和B，调用B是标量的kernel
-            // 仅对float类型使用向量化优化，其他类型使用基础版本
-            if (a.dtype() == DataType::kFloat32)
-            {
-                constexpr size_t VECTOR_SIZE     = 4;
-                const size_t threads_per_block   = 256;
-                const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
-                const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
-                // 交换A和B：B是标量，A是向量
-                add_broadcast_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
-                    static_cast<const float *>(b_data), static_cast<const float *>(a_data),
-                    static_cast<float *>(c_data), num_elements);
-            }
-            else
-            {
-                const size_t threads_per_block = 256;
-                const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
-                device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                    // 交换A和B：B是标量，A是向量
-                    add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(b_data),
-                                                                               static_cast<const T *>(a_data),
-                                                                               static_cast<T *>(c_data), num_elements);
-                });
-            }
+            constexpr size_t VECTOR_SIZE       = 4;
+            const size_t threads_per_block    = 256;
+            const size_t vectorized_elements  = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+            const size_t num_blocks           = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+            add_broadcast_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
+                static_cast<const float *>(vec_data), static_cast<const float *>(scalar_data),
+                static_cast<float *>(c_data), num_elements);
         }
         else
         {
-            // B是标量，A是向量
-            if (a.dtype() == DataType::kFloat32)
-            {
-                constexpr size_t VECTOR_SIZE     = 4;
-                const size_t threads_per_block   = 256;
-                const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
-                const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
-                add_broadcast_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
-                    static_cast<const float *>(a_data), static_cast<const float *>(b_data),
-                    static_cast<float *>(c_data), num_elements);
-            }
-            else
-            {
-                const size_t threads_per_block = 256;
-                const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
-                device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                    add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
-                                                                               static_cast<const T *>(b_data),
-                                                                               static_cast<T *>(c_data), num_elements);
-                });
-            }
+            const size_t threads_per_block = 256;
+            const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+            device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+                add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(
+                    static_cast<const T *>(vec_data), static_cast<const T *>(scalar_data),
+                    static_cast<T *>(c_data), num_elements);
+            });
         }
     }
     else
