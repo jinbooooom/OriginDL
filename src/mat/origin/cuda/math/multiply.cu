@@ -1,26 +1,101 @@
 #include <cuda_runtime.h>
 #include <memory>
 #include "origin/mat/basic_types.h"
-#include "origin/mat/origin/cuda/cuda_kernels.cuh"
 #include "origin/mat/origin/cuda/cuda_utils.cuh"
+#include "origin/mat/origin/device_common/operation_templates.h"
 #include "origin/mat/origin/device_common/type_dispatcher.h"
 #include "origin/mat/origin/origin_mat.h"
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/branch_prediction.h"
 #include "origin/utils/exception.h"
 
+// Mul Operator Performance Comparison
+// ===================================================================================
+// Shape           Repeat   Device   Dtype     OriginDL(us)    PyTorch(us)     Speedup
+// -----------------------------------------------------------------------------------
+// {1,1}           100      cuda:0   float32   6.2800          12.3415         1.9652 
+// {10,10}         100      cuda:0   float32   6.2500          11.9167         1.9067 
+// {100,100}       100      cuda:0   float32   6.2600          12.0649         1.9273 
+// {1000,1000}     100      cuda:0   float32   8.6900          12.2211         1.4063 
+// {10000,10000}   100      cuda:0   float32   858.5400        887.0522        1.0332 
+// ===================================================================================
 namespace origin
 {
 namespace cuda
 {
 
-/**
- * @brief CUDA乘法算子统一实现
- * @param a 输入矩阵A
- * @param b 输入矩阵B
- * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
- * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
- */
+/** @brief 元素级乘法kernel（相同形状）- 最朴素实现 */
+template <typename T>
+__global__ void multiply_elementwise_native_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C,
+                                                  size_t N)
+{
+    size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < N)
+        C[i] = A[i] * B[i];
+}
+
+/** @brief 向量化元素级乘法kernel - float4版本 */
+__global__ void multiply_elementwise_vectorized_float4_kernel(const float *__restrict__ A,
+                                                             const float *__restrict__ B,
+                                                             float *__restrict__ C,
+                                                             size_t N)
+{
+    constexpr size_t VECTOR_SIZE = 4;
+    size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
+    size_t vector_idx            = (blockIdx.x * blockDim.x + threadIdx.x) * VECTOR_SIZE;
+    if (vector_idx + VECTOR_SIZE <= vectorized_N)
+    {
+        float4 vec_a = *reinterpret_cast<const float4 *>(&A[vector_idx]);
+        float4 vec_b = *reinterpret_cast<const float4 *>(&B[vector_idx]);
+        float4 vec_c = make_float4(vec_a.x * vec_b.x, vec_a.y * vec_b.y, vec_a.z * vec_b.z, vec_a.w * vec_b.w);
+        *reinterpret_cast<float4 *>(&C[vector_idx]) = vec_c;
+    }
+    else
+    {
+        size_t base_idx = vector_idx;
+#pragma unroll(VECTOR_SIZE)
+        for (size_t i = 0; i < VECTOR_SIZE && base_idx + i < N; ++i)
+            C[base_idx + i] = A[base_idx + i] * B[base_idx + i];
+    }
+}
+
+/** @brief 广播乘法kernel - B是标量 */
+template <typename T>
+__global__ void multiply_broadcast_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C,
+                                          size_t N)
+{
+    size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < N)
+        C[i] = A[i] * B[0];
+}
+
+/** @brief 向量化广播乘法kernel - float4版本，B是标量 */
+__global__ void multiply_broadcast_vectorized_float4_kernel(const float *__restrict__ A,
+                                                           const float *__restrict__ B,
+                                                           float *__restrict__ C,
+                                                           size_t N)
+{
+    constexpr size_t VECTOR_SIZE = 4;
+    size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
+    size_t vector_idx            = (blockIdx.x * blockDim.x + threadIdx.x) * VECTOR_SIZE;
+    if (vector_idx + VECTOR_SIZE <= vectorized_N)
+    {
+        float4 vec_a   = *reinterpret_cast<const float4 *>(&A[vector_idx]);
+        float scalar_b = B[0];
+        float4 vec_b   = make_float4(scalar_b, scalar_b, scalar_b, scalar_b);
+        float4 vec_c   = make_float4(vec_a.x * vec_b.x, vec_a.y * vec_b.y, vec_a.z * vec_b.z, vec_a.w * vec_b.w);
+        *reinterpret_cast<float4 *>(&C[vector_idx]) = vec_c;
+    }
+    else
+    {
+        size_t base_idx = vector_idx;
+#pragma unroll(VECTOR_SIZE)
+        for (size_t i = 0; i < VECTOR_SIZE && base_idx + i < N; ++i)
+            C[base_idx + i] = A[base_idx + i] * B[0];
+    }
+}
+
+/** @brief CUDA乘法算子统一实现 */
 std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b, OriginMat *out)
 {
     VALIDATE_SAME_DTYPE(a, b);
@@ -55,18 +130,53 @@ std::unique_ptr<Mat> multiply(const OriginMat &a, const OriginMat &b, OriginMat 
 
     if (a.shape() == b.shape())
     {
-        device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            launch_elementwise_kernel<T, MultiplyOp>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                                                     static_cast<T *>(c_data), a.elements(), MultiplyOp{}, 0);
-        });
+        const size_t num_elements = a.elements();
+        if (a.dtype() == DataType::kFloat32)
+        {
+            constexpr size_t VECTOR_SIZE       = 4;
+            const size_t threads_per_block    = 256;
+            const size_t vectorized_elements   = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+            const size_t num_blocks            = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+            multiply_elementwise_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
+                static_cast<const float *>(a_data), static_cast<const float *>(b_data), static_cast<float *>(c_data),
+                num_elements);
+        }
+        else
+        {
+            const size_t threads_per_block = 256;
+            const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+            device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+                multiply_elementwise_native_kernel<T><<<num_blocks, threads_per_block>>>(
+                    static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
+                    num_elements);
+            });
+        }
     }
     else if (a.elements() == 1 || b.elements() == 1)
     {
-        device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-            launch_simple_broadcast_kernel<T, MultiplyOp>(
-                static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data), a.elements(),
-                b.elements(), result_ptr->elements(), MultiplyOp{}, 0);
-        });
+        const size_t num_elements = result_ptr->elements();
+        const void *vec_data      = (a.elements() == 1) ? b_data : a_data;
+        const void *scalar_data    = (a.elements() == 1) ? a_data : b_data;
+        if (a.dtype() == DataType::kFloat32)
+        {
+            constexpr size_t VECTOR_SIZE      = 4;
+            const size_t threads_per_block   = 256;
+            const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+            const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+            multiply_broadcast_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
+                static_cast<const float *>(vec_data), static_cast<const float *>(scalar_data),
+                static_cast<float *>(c_data), num_elements);
+        }
+        else
+        {
+            const size_t threads_per_block = 256;
+            const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
+            device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
+                multiply_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(
+                    static_cast<const T *>(vec_data), static_cast<const T *>(scalar_data),
+                    static_cast<T *>(c_data), num_elements);
+            });
+        }
     }
     else
     {
