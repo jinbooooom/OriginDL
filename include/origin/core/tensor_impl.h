@@ -50,7 +50,6 @@ public:
                                   const TensorOptions &options);
 
     // 静态工厂方法
-    static TensorImpl randn(const Shape &shape);
     static TensorImpl randn(const Shape &shape, const TensorOptions &options);
 
     // 拷贝构造函数 - clone data_ 和 grad_（保证值语义，拷贝后独立）

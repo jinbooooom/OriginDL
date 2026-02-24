@@ -35,13 +35,6 @@ TensorImpl TensorImpl::from_memory(const void *data,
 }
 
 // 静态工厂方法实现
-TensorImpl TensorImpl::randn(const Shape &shape)
-{
-    // 通过后端Mat接口创建随机数矩阵
-    auto mat = Mat_t::randn(shape);
-    return TensorImpl(std::move(mat), false);  // 默认 requires_grad=false
-}
-
 TensorImpl TensorImpl::randn(const Shape &shape, const TensorOptions &options)
 {
     // 通过后端Mat接口创建随机数矩阵
