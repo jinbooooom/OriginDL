@@ -17,12 +17,16 @@ std::vector<Tensor> ReLU::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("ReLU operator requires exactly 1 input, but got {}", xs.size());
     }
 
-    // 保存 mask = (x > 0)，为了反向传播不用重复计算 mask
     const Mat &x_mat = mat(xs[0]);
-    // 创建只含有一个元素的 tensor 用于比较（会被判定为标量）
-    auto zero_tensor = Tensor(0, Shape{}, dtype(xs[0].dtype()).device(xs[0].device()));
-    auto mask_result = x_mat > mat(zero_tensor);
-    mask_            = convert_mat_to_tensor(std::move(mask_result));
+    
+    // 根据 requires_grad 决定是否保存 mask
+    if (xs[0].requires_grad())
+    {
+        // 需要梯度计算：保存 mask = (x > 0) 用于反向传播
+        auto zero_tensor = Tensor(0, Shape{}, dtype(xs[0].dtype()).device(xs[0].device()));
+        auto mask_result = x_mat > mat(zero_tensor);
+        mask_            = convert_mat_to_tensor(std::move(mask_result));
+    }
 
     // 通过 Mat 层调用 relu
     auto result = x_mat.relu();

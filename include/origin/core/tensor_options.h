@@ -89,7 +89,7 @@ public:
 private:
     DataType dtype_ = DataType::kFloat32;
     Device device_  = Device(DeviceType::kCPU);
-    bool requires_grad_ = true;  // TODO：当前的origindl不支持requires_grad=false，所以默认是true，未来支持后，需要修改
+    bool requires_grad_ = false;  // 默认 false，与 PyTorch 一致
 };
 
 inline TensorOptions dtype(DataType dtype)

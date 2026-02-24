@@ -78,7 +78,7 @@ Parameter Conv2d::init_weight()
     auto weight_tensor =
         Tensor::randn(Shape{static_cast<size_t>(out_channels_), static_cast<size_t>(in_channels_),
                             static_cast<size_t>(kernel_size_.first), static_cast<size_t>(kernel_size_.second)},
-                      TensorOptions(DataType::kFloat32));
+                      TensorOptions(DataType::kFloat32).requires_grad(true));
 
     // 应用标准差缩放
     auto scaled_weight = weight_tensor * Scalar(std_dev);
@@ -110,7 +110,7 @@ Parameter Conv2d::init_bias()
     if (use_bias_)
     {
         // 初始化偏置为零，形状 (out_channels,)
-        auto bias_tensor = Tensor::zeros(Shape{static_cast<size_t>(out_channels_)}, TensorOptions(DataType::kFloat32));
+        auto bias_tensor = Tensor::zeros(Shape{static_cast<size_t>(out_channels_)}, TensorOptions(DataType::kFloat32).requires_grad(true));
         return Parameter(bias_tensor);
     }
     // 如果不使用偏置，返回一个默认的Parameter（不会使用）

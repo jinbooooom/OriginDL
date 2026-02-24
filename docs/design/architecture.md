@@ -27,7 +27,7 @@ graph TB
         Autograd["自动求导系统<br/>反向传播、梯度计算"]
     end
     
-    subgraph "抽象接口层 (Abstraction Layer)"
+    subgraph "抽象接口层(Abstraction Layer)"
         MatInterface["Mat<br/>矩阵计算抽象接口<br/>统一多后端接口"]
     end
     

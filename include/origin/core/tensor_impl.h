@@ -29,14 +29,18 @@ public:
     std::shared_ptr<Mat> grad_;  // 使用Mat抽象层，支持共享（与PyTorch行为一致）
     std::shared_ptr<Operator> creator_;
     int generation_;
+    bool requires_grad_;  // 是否需要梯度，与 PyTorch 一致
 
     // 核心构造函数 - 接受 unique_ptr 并转换为 shared_ptr（底层返回 unique_ptr，表示数据所有权转移）
-    TensorImpl(std::unique_ptr<Mat> data)
-        : data_(std::shared_ptr<Mat>(std::move(data))), grad_(nullptr), creator_(nullptr), generation_(0)
+    TensorImpl(std::unique_ptr<Mat> data, bool requires_grad = false)
+        : data_(std::shared_ptr<Mat>(std::move(data))), grad_(nullptr), creator_(nullptr), generation_(0),
+          requires_grad_(requires_grad)
     {}
 
     // 核心构造函数 - 接受 shared_ptr（用于内部共享）
-    TensorImpl(std::shared_ptr<Mat> data) : data_(data), grad_(nullptr), creator_(nullptr), generation_(0) {}
+    TensorImpl(std::shared_ptr<Mat> data, bool requires_grad = false)
+        : data_(data), grad_(nullptr), creator_(nullptr), generation_(0), requires_grad_(requires_grad)
+    {}
 
     // 两个核心工厂方法
     static TensorImpl from_scalar(const Scalar &scalar, const Shape &shape, const TensorOptions &options);
@@ -54,7 +58,8 @@ public:
         : data_(other.data_ ? std::shared_ptr<Mat>(other.data_->clone()) : nullptr),
           grad_(other.grad_ ? std::shared_ptr<Mat>(other.grad_->clone()) : nullptr),
           creator_(other.creator_),
-          generation_(other.generation_)
+          generation_(other.generation_),
+          requires_grad_(other.requires_grad_)
     {}
 
     // 移动构造函数
@@ -62,7 +67,8 @@ public:
         : data_(std::move(other.data_)),
           grad_(std::move(other.grad_)),
           creator_(std::move(other.creator_)),
-          generation_(other.generation_)
+          generation_(other.generation_),
+          requires_grad_(other.requires_grad_)
     {}
 
     // 赋值运算符

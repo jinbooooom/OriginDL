@@ -40,10 +40,12 @@ std::vector<Tensor> BatchNorm::forward(const std::vector<Tensor> &xs)
 
     Tensor y;
 
-    // 检查是否需要梯度计算：使用 tensor.requires_grad() 方法判断
-    // 如果输入 tensor 需要梯度，使用 batch_norm_forward 保存中间结果
-    // 如果输入 tensor 不需要梯度，使用 batch_norm 只返回输出（节省内存）
-    if (x.requires_grad())
+    // 检查是否需要梯度计算：如果任何一个输入需要梯度，都需要保存中间结果
+    // 通常 x（输入数据）不需要梯度，但 gamma 和 beta（参数）需要梯度
+    // 如果任何一个输入需要梯度，使用 batch_norm_forward 保存中间结果
+    // 如果所有输入都不需要梯度，使用 batch_norm 只返回输出（节省内存）
+    bool any_requires_grad = x.requires_grad() || gamma.requires_grad() || beta.requires_grad();
+    if (any_requires_grad)
     {
         // 需要梯度计算：使用 batch_norm_forward 保存中间结果
         auto result = x_mat.batch_norm_forward(gamma_mat, beta_mat, running_mean_mat, running_var_mat, training_, eps_,

@@ -21,7 +21,7 @@ TensorImpl TensorImpl::from_scalar(const Scalar &scalar, const Shape &shape, con
 {
     // 通过后端Mat接口工厂方法（与后端解耦）
     auto mat = Mat_t::from_scalar(scalar, shape, options);
-    return TensorImpl(std::move(mat));
+    return TensorImpl(std::move(mat), options.requires_grad());
 }
 
 TensorImpl TensorImpl::from_memory(const void *data,
@@ -31,7 +31,7 @@ TensorImpl TensorImpl::from_memory(const void *data,
 {
     // 通过后端Mat接口工厂方法（与后端解耦）
     auto mat = Mat_t::from_memory(data, user_dtype, shape, options);
-    return TensorImpl(std::move(mat));
+    return TensorImpl(std::move(mat), options.requires_grad());
 }
 
 // 静态工厂方法实现
@@ -39,14 +39,14 @@ TensorImpl TensorImpl::randn(const Shape &shape)
 {
     // 通过后端Mat接口创建随机数矩阵
     auto mat = Mat_t::randn(shape);
-    return TensorImpl(std::move(mat));
+    return TensorImpl(std::move(mat), false);  // 默认 requires_grad=false
 }
 
 TensorImpl TensorImpl::randn(const Shape &shape, const TensorOptions &options)
 {
     // 通过后端Mat接口创建随机数矩阵
     auto mat = Mat_t::randn(shape, options);
-    return TensorImpl(std::move(mat));
+    return TensorImpl(std::move(mat), options.requires_grad());
 }
 
 // 赋值运算符实现 - clone data_ 和 grad_（保证值语义，赋值后独立）
@@ -54,10 +54,11 @@ TensorImpl &TensorImpl::operator=(const TensorImpl &other)
 {
     if (this != &other)
     {
-        data_       = other.data_ ? std::shared_ptr<Mat>(other.data_->clone()) : nullptr;
-        grad_       = other.grad_ ? std::shared_ptr<Mat>(other.grad_->clone()) : nullptr;
-        creator_    = other.creator_;
-        generation_ = other.generation_;
+        data_          = other.data_ ? std::shared_ptr<Mat>(other.data_->clone()) : nullptr;
+        grad_          = other.grad_ ? std::shared_ptr<Mat>(other.grad_->clone()) : nullptr;
+        creator_       = other.creator_;
+        generation_    = other.generation_;
+        requires_grad_ = other.requires_grad_;
     }
     return *this;
 }
@@ -66,10 +67,11 @@ TensorImpl &TensorImpl::operator=(TensorImpl &&other) noexcept
 {
     if (this != &other)
     {
-        data_       = std::move(other.data_);
-        grad_       = std::move(other.grad_);
-        creator_    = std::move(other.creator_);
-        generation_ = other.generation_;
+        data_          = std::move(other.data_);
+        grad_          = std::move(other.grad_);
+        creator_       = std::move(other.creator_);
+        generation_    = other.generation_;
+        requires_grad_ = other.requires_grad_;
     }
     return *this;
 }
@@ -86,6 +88,12 @@ void TensorImpl::backward()
     if (!Config::enable_backprop)
     {
         return;  // 禁用梯度计算，直接返回
+    }
+
+    // 检查 requires_grad：如果不需要梯度，则报错（与 PyTorch 一致）
+    if (!requires_grad_)
+    {
+        THROW_RUNTIME_ERROR("tensor does not require grad and does not have a grad_fn, can't run backward");
     }
 
     // 如果梯度为空，初始化为全1（输出张量的梯度）
@@ -356,13 +364,13 @@ void TensorImpl::detach()
 TensorImpl TensorImpl::reshape(const Shape &shape) const
 {
     auto new_mat = data_->reshape(shape);
-    return TensorImpl(std::move(new_mat));  // 构造函数会自动将 unique_ptr 转换为 shared_ptr
+    return TensorImpl(std::move(new_mat), requires_grad_);  // 继承原 tensor 的 requires_grad
 }
 
 TensorImpl TensorImpl::transpose() const
 {
     auto new_mat = data_->transpose();
-    return TensorImpl(std::move(new_mat));  // 构造函数会自动将 unique_ptr 转换为 shared_ptr
+    return TensorImpl(std::move(new_mat), requires_grad_);  // 继承原 tensor 的 requires_grad
 }
 
 // 访问器方法实现
@@ -449,13 +457,29 @@ void TensorImpl::print(const std::string &desc) const
 // 类型转换实现
 TensorImpl TensorImpl::to(const TensorOptions &options) const
 {
+    if (!data_)
+    {
+        THROW_RUNTIME_ERROR("TensorImpl::to: data_ is null");
+    }
     auto converted_mat = data_->to(options.dtype());
+    if (!converted_mat)
+    {
+        THROW_RUNTIME_ERROR("TensorImpl::to: converted_mat is null after to(dtype)");
+    }
     // 如果目标设备与当前设备不同，需要进行设备转换
     if (converted_mat->device() != options.device())
     {
         converted_mat = converted_mat->to_device(options.device());
+        if (!converted_mat)
+        {
+            THROW_RUNTIME_ERROR("TensorImpl::to: converted_mat is null after to_device()");
+        }
     }
-    return TensorImpl(std::move(converted_mat));  // 构造函数会自动将 unique_ptr 转换为 shared_ptr
+    // 对于 to() 方法，总是继承原 impl_ 的 requires_grad_（因为 to() 只是转换类型/设备，不应该改变 requires_grad）
+    // 如果用户需要改变 requires_grad，应该显式调用 requires_grad() 方法
+    // 注意：这里我们总是继承原值，因为 TensorOptions 的默认 requires_grad=false，无法区分是否显式设置
+    bool new_requires_grad = requires_grad_;
+    return TensorImpl(std::move(converted_mat), new_requires_grad);
 }
 
 // 移除所有私有辅助方法，直接实现核心逻辑

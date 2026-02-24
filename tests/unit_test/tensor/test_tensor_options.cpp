@@ -29,7 +29,7 @@ TEST_F(TensorOptionsTest, BasicTensorOptions)
     TensorOptions options1;
     EXPECT_EQ(options1.dtype(), DataType::kFloat32);
     EXPECT_EQ(options1.device().type(), DeviceType::kCPU);
-    EXPECT_TRUE(options1.requires_grad());  // 当前origindl默认requires_grad=true
+    EXPECT_FALSE(options1.requires_grad());  // 默认 requires_grad=false，与 PyTorch 一致
 
     // 测试链式调用
     auto options2 = TensorOptions().dtype(DataType::kInt32).device(Device(DeviceType::kCUDA, 0)).requires_grad(true);

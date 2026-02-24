@@ -18,7 +18,14 @@ std::vector<Tensor> Sigmoid::forward(const std::vector<Tensor> &xs)
     const Mat &x_mat = mat(xs[0]);
     auto result     = x_mat.sigmoid();
     auto y          = convert_mat_to_tensor(std::move(result));
-    sigmoid_x_      = y;
+
+    // 根据 requires_grad 决定是否保存中间结果
+    if (xs[0].requires_grad())
+    {
+        // 需要梯度计算：保存 sigmoid(x) 用于反向传播
+        sigmoid_x_ = y;
+    }
+
     return std::vector<Tensor>{std::move(y)};
 }
 

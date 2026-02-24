@@ -539,7 +539,7 @@ int main(int argc, char *argv[])
             {
                 auto [x, t] = train_loader.next();
 
-                // 将数据移到指定设备
+                // 将数据移到指定设备（输入数据不需要梯度，只有模型参数需要梯度）
                 x = x.to(device);
                 t = t.to(device);
 

@@ -2593,23 +2593,6 @@ auto c = a + b;  // 可能抛出异常: "Complex broadcasting not yet implemente
 
 ### 自动求导限制
 
-#### requires_grad
-
-**限制**: 当前不支持 `requires_grad=false`。
-
-**当前状态**: 所有张量默认 `requires_grad=true`，无法禁用梯度计算。
-
-**影响**: 
-- 所有张量都会参与梯度计算，即使不需要梯度
-- 内存占用可能较大
-- 无法优化不需要梯度的计算图
-
-**例子:**
-```cpp
-// 当前行为：requires_grad 参数被忽略，总是为 true
-auto x = Tensor::ones({2, 2}, requires_grad(false));  // 实际上仍然是 true
-```
-
 #### 梯度类型
 
 **限制**: `grad()` 方法总是返回 `float32` 类型的梯度，而不是与输入张量相同的类型。
