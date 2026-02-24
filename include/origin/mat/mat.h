@@ -553,7 +553,7 @@ public:
     virtual std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size,
                                             std::pair<int, int> stride,
                                             std::pair<int, int> pad,
-                                            std::vector<size_t> &indices) const = 0;
+                                            std::vector<size_t> *indices = nullptr) const = 0;
 
     /**
      * @brief max_pool2d_backward：最大池化反向传播
