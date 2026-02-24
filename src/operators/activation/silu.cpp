@@ -16,12 +16,13 @@ std::vector<Tensor> SiLU::forward(const std::vector<Tensor> &xs)
         THROW_RUNTIME_ERROR("SiLU operator requires exactly 1 input, but got {}", xs.size());
     }
 
-    auto &x = xs[0];
+    const Tensor &x = xs[0];
 
     // SiLU(x) = x * sigmoid(x)
-    auto sigmoid_x = sigmoid(x);
-    auto result    = x * sigmoid_x;
-    return std::vector<Tensor>{std::move(result)};
+    const Mat &x_mat = mat(x);
+    auto y_mat       = x_mat.silu();
+    auto y           = convert_mat_to_tensor(std::move(y_mat));
+    return std::vector<Tensor>{std::move(y)};
 }
 
 std::vector<Tensor> SiLU::backward(const std::vector<Tensor> &gys)
@@ -31,16 +32,16 @@ std::vector<Tensor> SiLU::backward(const std::vector<Tensor> &gys)
         THROW_RUNTIME_ERROR("SiLU backward requires exactly 1 gradient, but got {}", gys.size());
     }
 
-    auto &gy = gys[0];
-    auto &x  = this->inputs_[0];
+    const Tensor &gy = gys[0];
+    const Tensor &x  = this->inputs_[0];
 
     // SiLU'(x) = sigmoid(x) + x * sigmoid(x) * (1 - sigmoid(x))
     //          = sigmoid(x) * (1 + x * (1 - sigmoid(x)))
-    auto sigmoid_x         = sigmoid(x);
-    auto one               = Tensor::ones(x.shape(), TensorOptions(x.dtype()).device(x.device()));
-    auto one_minus_sigmoid = one - sigmoid_x;
-    auto gx                = sigmoid_x * (one + x * one_minus_sigmoid);
-    gx                     = gx * gy;
+    // 下沉到 Mat 层：当前 Mat 为 gy，传入前向输入 x
+    const Mat &gy_mat = mat(gy);
+    const Mat &x_mat  = mat(x);
+    auto gx_mat       = gy_mat.silu_backward(x_mat);
+    auto gx           = convert_mat_to_tensor(std::move(gx_mat));
     return std::vector<Tensor>{std::move(gx)};
 }
 

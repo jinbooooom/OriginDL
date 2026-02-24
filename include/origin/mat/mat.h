@@ -392,6 +392,20 @@ public:
     virtual std::unique_ptr<Mat> sigmoid_backward(const Mat &y) const = 0;
 
     /**
+     * @brief SiLU 激活函数：silu(x) = x * sigmoid(x)
+     * @return SiLU 运算结果
+     */
+    virtual std::unique_ptr<Mat> silu() const = 0;
+
+    /**
+     * @brief SiLU 反向传播：当前 Mat 为 gy，x 为前向输入
+     *        gx = gy * (sigmoid(x) + x * sigmoid(x) * (1 - sigmoid(x)))
+     * @param x 前向传播的输入 x
+     * @return 输入梯度 gx
+     */
+    virtual std::unique_ptr<Mat> silu_backward(const Mat &x) const = 0;
+
+    /**
      * @brief 原地取负函数（修改当前矩阵）
      * @note 原地操作，修改当前矩阵的数据，不创建新对象
      */

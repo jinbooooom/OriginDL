@@ -427,6 +427,8 @@ public:
     void relu_inplace() override;
     std::unique_ptr<Mat> sigmoid() const override;
     std::unique_ptr<Mat> sigmoid_backward(const Mat &y) const override;
+    std::unique_ptr<Mat> silu() const override;
+    std::unique_ptr<Mat> silu_backward(const Mat &x) const override;
     std::unique_ptr<Mat> log() const override;
     void log_inplace() override;
     std::unique_ptr<Mat> sin() const override;

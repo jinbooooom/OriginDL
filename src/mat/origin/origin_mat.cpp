@@ -882,6 +882,35 @@ std::unique_ptr<Mat> OriginMat::sigmoid_backward(const Mat &y) const
     THROW_RUNTIME_ERROR("Unsupported device type for sigmoid_backward: {}", static_cast<int>(device_type));
 }
 
+std::unique_ptr<Mat> OriginMat::silu() const
+{
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::silu, cuda::silu, "silu");
+}
+
+std::unique_ptr<Mat> OriginMat::silu_backward(const Mat &x) const
+{
+    const OriginMat *x_origin = dynamic_cast<const OriginMat *>(&x);
+    if (unlikely(x_origin == nullptr))
+    {
+        THROW_INVALID_ARG("silu_backward: x must be OriginMat when gy is OriginMat");
+    }
+
+    DeviceType device_type = storage_->device_type();
+    if (device_type == DeviceType::kCPU)
+    {
+        return cpu::silu_backward(*this, *x_origin);
+    }
+    if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::silu_backward(*this, *x_origin);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    THROW_RUNTIME_ERROR("Unsupported device type for silu_backward: {}", static_cast<int>(device_type));
+}
+
 std::unique_ptr<Mat> OriginMat::log() const
 {
     return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::log, cuda::log, "log");

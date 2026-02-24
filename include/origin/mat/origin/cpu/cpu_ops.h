@@ -105,6 +105,8 @@ void pow_inplace(OriginMat &mat, const Scalar &exponent);
 std::unique_ptr<Mat> relu(const OriginMat &mat, OriginMat *out = nullptr);
 std::unique_ptr<Mat> sigmoid(const OriginMat &mat, OriginMat *out = nullptr);
 std::unique_ptr<Mat> sigmoid_backward(const OriginMat &gy, const OriginMat &y);
+std::unique_ptr<Mat> silu(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> silu_backward(const OriginMat &gy, const OriginMat &x);
 
 // === 统计函数 ===
 std::unique_ptr<Mat> sum(const OriginMat &mat, int axis, bool keepdim = false);

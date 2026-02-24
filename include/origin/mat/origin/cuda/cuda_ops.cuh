@@ -186,6 +186,8 @@ std::unique_ptr<Mat> negate(const origin::OriginMat &mat, origin::OriginMat *out
 std::unique_ptr<Mat> relu(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 std::unique_ptr<Mat> sigmoid(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 std::unique_ptr<Mat> sigmoid_backward(const origin::OriginMat &gy, const origin::OriginMat &y);
+std::unique_ptr<Mat> silu(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> silu_backward(const origin::OriginMat &gy, const origin::OriginMat &x);
 
 // ============================================================================
 // 原地操作算子
