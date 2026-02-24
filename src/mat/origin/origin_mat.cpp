@@ -854,6 +854,34 @@ void OriginMat::relu_inplace()
     device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::relu, cuda::relu, "relu_inplace");
 }
 
+std::unique_ptr<Mat> OriginMat::sigmoid() const
+{
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::sigmoid, cuda::sigmoid, "sigmoid");
+}
+
+std::unique_ptr<Mat> OriginMat::sigmoid_backward(const Mat &y) const
+{
+    const OriginMat *y_origin = dynamic_cast<const OriginMat *>(&y);
+    if (unlikely(y_origin == nullptr))
+    {
+        THROW_INVALID_ARG("sigmoid_backward: y must be OriginMat when gy is OriginMat");
+    }
+    DeviceType device_type = storage_->device_type();
+    if (device_type == DeviceType::kCPU)
+    {
+        return cpu::sigmoid_backward(*this, *y_origin);
+    }
+    if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::sigmoid_backward(*this, *y_origin);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    THROW_RUNTIME_ERROR("Unsupported device type for sigmoid_backward: {}", static_cast<int>(device_type));
+}
+
 std::unique_ptr<Mat> OriginMat::log() const
 {
     return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::log, cuda::log, "log");

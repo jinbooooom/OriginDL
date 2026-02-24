@@ -184,6 +184,8 @@ std::unique_ptr<Mat> negate(const origin::OriginMat &mat, origin::OriginMat *out
  * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
 std::unique_ptr<Mat> relu(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> sigmoid(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> sigmoid_backward(const origin::OriginMat &gy, const origin::OriginMat &y);
 
 // ============================================================================
 // 原地操作算子

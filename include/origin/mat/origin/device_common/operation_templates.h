@@ -151,6 +151,18 @@ struct ReLUOp
 };
 
 /**
+ * @brief Sigmoid 操作：y = 1 / (1 + exp(-x))
+ */
+struct SigmoidOp
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T value) const
+    {
+        return T(1) / (T(1) + std::exp(-value));
+    }
+};
+
+/**
  * @brief 等于操作（用于比较运算，返回mask）
  * @details 将比较结果转换为数值：true -> T(1), false -> T(0)
  */

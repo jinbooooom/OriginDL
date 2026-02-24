@@ -379,6 +379,19 @@ public:
     virtual void relu_inplace() = 0;
 
     /**
+     * @brief Sigmoid 激活函数
+     * @return Sigmoid 运算结果，y = 1 / (1 + exp(-x))
+     */
+    virtual std::unique_ptr<Mat> sigmoid() const = 0;
+
+    /**
+     * @brief Sigmoid 反向传播：gx = gy * y * (1 - y)，当前 Mat 为 gy，y 为前向保存的 sigmoid(x)
+     * @param y 前向传播保存的 sigmoid(x)
+     * @return 输入梯度 gx
+     */
+    virtual std::unique_ptr<Mat> sigmoid_backward(const Mat &y) const = 0;
+
+    /**
      * @brief 原地取负函数（修改当前矩阵）
      * @note 原地操作，修改当前矩阵的数据，不创建新对象
      */

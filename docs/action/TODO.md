@@ -22,4 +22,6 @@
 - [] 考虑是否要把基本算子的backward放到cuda里去做，这样减少了很多的中间临时tensor以及直接进行了算子融合
 - [] cpu部分算子的代码需要整理一下
 - [] API 文档生成 Doxygen
+- [] 循环引用根本解决方案：目前性能测试中 sigmoid 算子里会报错计算的结果用于反向传播，然后吃掉所有的内存。
+- [] 对于 sigmoid 把计算下沉到 mat层，但是性能依然比pytorch慢十倍。关键原因在于benchmark中，pytorch的计算是无图的（创建张量时没有设置requires_grad=True），但是origindl默认有图保存了sigmoid中间结果。因此需要专门为 benchmark 增加“无图 + 直接 Mat 调用”的轻量路径。
          

@@ -103,6 +103,8 @@ std::unique_ptr<Mat> square(const OriginMat &mat, OriginMat *out = nullptr);
 std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
 void pow_inplace(OriginMat &mat, const Scalar &exponent);
 std::unique_ptr<Mat> relu(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> sigmoid(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> sigmoid_backward(const OriginMat &gy, const OriginMat &y);
 
 // === 统计函数 ===
 std::unique_ptr<Mat> sum(const OriginMat &mat, int axis, bool keepdim = false);
