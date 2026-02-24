@@ -88,7 +88,7 @@ TEST_P(SumToOperatorTest, ForwardZeroTensor)
 TEST_P(SumToOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{1};
 
     auto y = F::sum_to(x, target_shape);
@@ -102,7 +102,7 @@ TEST_P(SumToOperatorTest, BackwardBasic)
 TEST_P(SumToOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f}, Shape{3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{1};
 
     auto y = F::sum_to(x, target_shape);
@@ -116,7 +116,7 @@ TEST_P(SumToOperatorTest, BackwardWithGradient)
 TEST_P(SumToOperatorTest, BackwardToSameShape)
 {
     // 测试相同形状的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{2, 2};
 
     auto y = F::sum_to(x, target_shape);

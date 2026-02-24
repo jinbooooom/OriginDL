@@ -107,7 +107,7 @@ TEST_P(ExpOperatorTest, BackwardZeroGradient)
 TEST_P(ExpOperatorTest, BackwardNegativeValues)
 {
     // 测试负值的梯度
-    auto x = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({-1.0f, -2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::exp(x);
     y.backward();

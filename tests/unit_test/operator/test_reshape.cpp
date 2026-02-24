@@ -101,7 +101,7 @@ TEST_P(ReshapeOperatorTest, ForwardZeroTensor)
 TEST_P(ReshapeOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{4, 1};
 
     auto y = F::reshape(x, target_shape);
@@ -115,7 +115,7 @@ TEST_P(ReshapeOperatorTest, BackwardBasic)
 TEST_P(ReshapeOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{4, 1};
 
     auto y = F::reshape(x, target_shape);
@@ -129,7 +129,7 @@ TEST_P(ReshapeOperatorTest, BackwardWithGradient)
 TEST_P(ReshapeOperatorTest, BackwardToSameShape)
 {
     // 测试相同形状的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{2, 2};
 
     auto y = F::reshape(x, target_shape);
@@ -142,7 +142,7 @@ TEST_P(ReshapeOperatorTest, BackwardToSameShape)
 TEST_P(ReshapeOperatorTest, BackwardToDifferentShape)
 {
     // 测试不同形状的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{2, 3}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{3, 2};
 
     auto y = F::reshape(x, target_shape);

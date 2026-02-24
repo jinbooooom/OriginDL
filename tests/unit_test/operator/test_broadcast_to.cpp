@@ -105,7 +105,7 @@ TEST_P(BroadcastToOperatorTest, ForwardZeroTensor)
 TEST_P(BroadcastToOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{2, 2};
 
     auto y = F::broadcast_to(x, target_shape);
@@ -119,7 +119,7 @@ TEST_P(BroadcastToOperatorTest, BackwardBasic)
 TEST_P(BroadcastToOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{2, 2};
 
     auto y = F::broadcast_to(x, target_shape);
@@ -133,7 +133,7 @@ TEST_P(BroadcastToOperatorTest, BackwardWithGradient)
 TEST_P(BroadcastToOperatorTest, BackwardToSameShape)
 {
     // 测试相同形状的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{2, 2};
 
     auto y = F::broadcast_to(x, target_shape);
@@ -146,7 +146,7 @@ TEST_P(BroadcastToOperatorTest, BackwardToSameShape)
 TEST_P(BroadcastToOperatorTest, BackwardToLargerShape)
 {
     // 测试到更大形状的反向传播
-    auto x = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({5.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{3};
 
     auto y = F::broadcast_to(x, target_shape);
