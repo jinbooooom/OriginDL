@@ -859,22 +859,53 @@ Sigmoid 算子的前向传播执行：`y = sigmoid(x) = 1 / (1 + exp(-x))`
 
 #### 2.3.1 前向传播原理
 
-Softmax 算子的前向传播执行：`y = softmax(x, axis=axis)`
+Softmax 算子的前向传播执行：$y = \operatorname{softmax}(x, \mathrm{axis})$
 
-**数学描述：**
-- 输入：张量 `x` 和指定的轴 `axis`
-- 输出：`y[i] = exp(x[i] - max(x)) / sum(exp(x - max(x)), axis=axis)`
-- 数学表达式：`y = softmax(x, axis) = exp(x - max(x)) / sum(exp(x - max(x)), axis)`
-- Softmax 函数将输入映射到概率分布，所有元素的和为 1
-- 数值稳定性：先减去最大值再计算指数，避免数值溢出
+**数学定义（向量形式）：**
+- 对任意实数向量 $\mathbf{z} = (z_1, z_2, \dots, z_n)$，第 $i$ 个输出定义为：
+
+$$
+\operatorname{softmax}(\mathbf{z})_i
+= \frac{e^{z_i}}{\sum_{j=1}^n e^{z_j}}
+$$
+- 对于向量中的每个元素 $z_i$，有 $\operatorname{softmax}(\mathbf{z})_i \in (0, 1)$，且 $\sum_{i=1}^n \operatorname{softmax}(\mathbf{z})_i = 1$
+
+**张量 / axis 形式描述：**
+- 输入：张量 $x$ 和指定的轴 $\mathrm{axis}$，在该轴上的每个切片视作一条向量 $\mathbf{z}$
+- 输出：$y = \operatorname{softmax}(x, \mathrm{axis})$，即对每条向量 $\mathbf{z}$ 按上述定义做 Softmax，使得：
+  - 在 $\mathrm{axis}$ 轴上有：$0 < y[i] < 1$
+  - 在 $\mathrm{axis}$ 轴上有：$\operatorname{sum}(y, \mathrm{axis}=\mathrm{axis}) = 1$
+
+**数学特性：**
+- 归一化：输出在指定轴上的和为 1，适合作为概率分布
+- 非线性：通过指数函数引入非线性变换
+- 单调性：在同一向量内部保持输入元素的相对大小关系
+- 平滑性：函数处处可导，提供平滑梯度，有利于优化
+
+**计算稳定性（数值稳定 Softmax）：**
+- 直接按 $e^{z_i}$ 计算时，当 $z_i$ 绝对值较大时容易出现数值溢出
+- 常用的数值稳定技巧是减去一个常数 $C$（通常取该向量的最大值），不改变结果：
+
+$$
+\operatorname{softmax}(\mathbf{z_i})
+= \frac{e^{z_i - C}}{\sum_{j=1}^n e^{z_j - C}},
+\quad
+C = \max(z_1, z_2, \dots, z_n)
+$$
+
 
 #### 2.3.2 反向传播原理
 
-对于 Softmax 运算 `y = softmax(x, axis)`，其梯度为：
-- `∂y/∂x = y × (gy - sum(gy × y, axis))`
+对于 Softmax 运算 $y = \operatorname{softmax}(x, \mathrm{axis})$，其梯度为：
+$$
+\frac{\partial y}{\partial x}
+= y \times \bigl(g_y - \operatorname{sum}(g_y \times y, \mathrm{axis})\bigr)
+$$
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = y × (gy - sum(gy × y, axis))`
+因此，如果输出梯度为 $g_y$，则：
+$$
+g_x = y \times \bigl(g_y - \operatorname{sum}(g_y \times y, \mathrm{axis})\bigr)
+$$
 
 **数学原理：**
 - Softmax 的梯度计算需要考虑所有输出之间的相关性
