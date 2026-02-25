@@ -992,14 +992,15 @@ sequenceDiagram
 - **中间节点**：`generation_ = 输入的最大 generation_ + 1`
 - **反向传播顺序**：按 `generation_` 从大到小处理（输出端 → 输入端）
 
+
 ```mermaid
 flowchart LR
     subgraph Forward["前向传播：generation_ 递增"]
         direction LR
         X["x<br/>generation_=0"]
-        Add["Add<br/>generation_=1"]
+        Add["Add<br/>generation_=0"]
         Y1["y1<br/>generation_=1"]
-        Mul["Mul<br/>generation_=2"]
+        Mul["Mul<br/>generation_=1"]
         Y2["y2<br/>generation_=2"]
         
         X -->|前向| Add
@@ -1011,9 +1012,9 @@ flowchart LR
     subgraph Backward["反向传播：generation_ 递减"]
         direction RL
         X2["x<br/>generation_=0"]
-        Add2["Add<br/>generation_=1"]
+        Add2["Add<br/>generation_=0"]
         Y1_2["y1<br/>generation_=1"]
-        Mul2["Mul<br/>generation_=2"]
+        Mul2["Mul<br/>generation_=1"]
         Y2_2["y2<br/>generation_=2"]
         
         Y2_2 -->|反向| Mul2
@@ -1422,7 +1423,20 @@ classDiagram
     }
 ```
 
-Module 提供参数/子模块注册、递归收集、train/eval 模式、设备迁移、梯度清零。`forward` 为纯虚，`operator()` 委托调用。
+Module 提供参数/子模块注册、递归收集、train/eval 模式、设备迁移、梯度清零，是所有神经网络模块的统一抽象。
+
+- **前向接口**：
+  - `forward(const Tensor &input)`：纯虚接口，由子类实现具体计算逻辑。
+  - `operator()(const Tensor &input)`：统一入口，内部只调用 `forward`，保持与 PyTorch 一致的使用体验（`y = m(x)`）。
+- **参数注册与收集**：
+  - `register_parameter(name, param)`：仅保存 `Parameter*` 指针，不拥有所有权，所有权由成员变量（如 `Parameter weight_;`）负责。
+  - `parameters()`：默认实现遍历当前模块的 `parameters_`，并递归聚合所有子模块的参数。
+  - `named_parameters(prefix)` / `state_dict()`：提供带名称的参数视图，用于模型保存与加载。
+- **子模块管理**：
+  - `register_module(name, module)`：接管子模块的所有权（`unique_ptr<Module>`），形成模块树。
+  - `to(device)` / `zero_grad()` / `train()` / `eval()`：对当前模块生效后，再递归调用所有子模块的方法。
+
+设计目标是：**上层只关心「把算子组装成模块」与「如何组合模块」，参数生命周期和设备迁移全部交给 Module 框架统一管理**。
 
 ## 6.2 Layer 层设计
 
@@ -1457,7 +1471,20 @@ classDiagram
     Linear --> Parameter : 持有
 ```
 
-Layer 继承 Module，作为带参数层的基类。Parameter 继承 Tensor 标识可训练参数。有参数层（Linear、Conv2d）持有 `weight_`/`bias_` 并 `register_parameter`；无参数层（ReLU、Flatten）仅实现 `forward`。
+Layer 继承 Module，作为「一层网络」的统一抽象，主要约定：
+
+- **Parameter 语义**：`Parameter` 仅比 `Tensor` 多一个「这是可训练参数」的语义，用于：
+  - Optimizer 收集待更新参数；
+  - `state_dict()` 序列化/反序列化。
+- **有参数层**（Linear、Conv2d、BatchNorm 等）：
+  - 以 `Parameter weight_` / `Parameter bias_` 等成员持有参数；
+  - 在构造函数中调用 `register_parameter("weight", weight_);` 等完成注册；
+  - `forward` 内部通常只调用 functional 算子（如 `functional::mat_mul` / `functional::conv2d`）。
+- **无参数层**（ReLU、MaxPool2d、Flatten、Dropout 等）：
+  - 不持有 `Parameter`，也不注册参数；
+  - 仅实现 `forward`，完全是对算子层的轻量封装，方便在 `Sequential` 等容器中组合使用。
+
+这层抽象把「算子级别的张量运算」与「网络结构级别的模块组合」解耦：**算子层关注数学运算，Layer/Module 关注结构和参数管理**。
 
 ## 6.3 Sequential 容器设计
 
@@ -1490,7 +1517,19 @@ classDiagram
     Sequential *-- Module : 顺序持有
 ```
 
-Sequential 用 `vector<unique_ptr<Module>>` 顺序存储子模块，`forward` 依次调用，`parameters`/`to` 递归聚合。
+Sequential 用 `vector<unique_ptr<Module>>` 顺序存储子模块，是最简单的「层堆叠」容器：
+
+- **构造方式**：
+  - 通过 `add(std::unique_ptr<Module>)` 依次插入子模块；
+  - 支持混合插入有参数层（Linear、Conv2d）和无参数层（ReLU、Flatten 等）。
+- **前向传播**：
+  - `forward(input)` 从第 0 个模块开始，依次 `x = modules_[i]->forward(x)`，最后返回输出；
+  - `operator()` 同样委托给 `forward`。
+- **参数聚合与设备管理**：
+  - `parameters()` / `named_parameters()` 递归聚合所有子模块的参数，供 Optimizer 使用；
+  - `to(device)` / `zero_grad()` 统一向下转发到所有子模块。
+
+Sequential 对应「经典的串联网络（MLP、简单 CNN head）」场景，复杂拓扑可以通过自定义 Module 来实现。
 
 ## 6.4 常用层实现
 
@@ -1517,6 +1556,24 @@ flowchart TB
 | ReLU / Flatten / Dropout | 无 | relu / flatten / dropout |
 | MaxPool2d | 无 | max_pool2d |
 | BatchNorm1d/2d | gamma, beta, running_mean/var | batch_norm |
+
+实现约定（与当前代码保持一致）：
+
+- **Linear**：
+  - 权重形状 `{in_features, out_features}`，使用 Xavier 初始化（`std = sqrt(1 / fan_in)`）；
+  - `forward` 中调用 `functional::mat_mul(input, weight_)` 再加上广播后的 bias。
+- **Conv2d**：
+  - 权重形状 `{out_channels, in_channels, kernel_h, kernel_w}`，使用 Kaiming(He) 初始化（`std = sqrt(2 / fan_in)`）；
+  - `forward` 中校验输入为 4D `(N, C, H, W)` 并检查通道数，然后调用 `functional::conv2d`。
+- **BatchNorm1d/2d**：
+  - 持有 `gamma`（weight）、`beta`（bias）、`running_mean`、`running_var`；
+  - `forward` 调用 `functional::BatchNorm` Operator，并在训练模式下用 momentum 更新 running 统计量。
+- **ReLU / MaxPool2d / Flatten / Dropout**：
+  - `forward` 仅简单委托给对应 functional 算子：
+    - `ReLU` → `functional::relu`
+    - `MaxPool2d` → `functional::max_pool2d`
+    - `Flatten` → `functional::flatten`（支持负维度，与算子语义一致）
+    - `Dropout` → `functional::Dropout` Operator，使用 `is_training()` 控制训练/推理行为。
 
 # 7. 优化器架构
 

@@ -93,8 +93,6 @@ public:
     TensorImpl reshape(const Shape &shape) const;
     TensorImpl transpose() const;
 
-    // 运算符重载 - 一元负号运算符已移除，通过算子层实现
-
     // 访问器方法
     Shape shape() const;
     size_t ndim() const;

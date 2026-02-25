@@ -3,7 +3,7 @@
 
 #include <functional>
 #include <vector>
-#include "../core/operator.h"  // 需要包含operator.h以使用operator*和broadcast_to
+#include "../core/operator.h"
 #include "../core/parameter.h"
 #include "../mat/scalar.h"
 

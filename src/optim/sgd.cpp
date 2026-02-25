@@ -20,6 +20,17 @@ void SGD::step_one(Parameter &param)
     // 获取梯度
     auto grad = param.grad();
 
+    // 这里直接在 SGD 内部实现“经典版” SGD 行为（带 weight_decay / momentum / Nesterov），
+    // 而不是完全依赖 Optimizer::hooks_，主要考虑：
+    // 1）和 PyTorch 的 torch.optim.SGD 接口对齐：传入 weight_decay/momentum/nesterov 时，
+    //    期望一个“打包好的”优化算法，而不是还要额外注册 Hook；
+    // 2）动量和 Nesterov 逻辑本身依赖内部状态（momentum_buffers_），天然属于具体优化器实现的一部分；
+    // 3）全局 Hook（如 WeightDecay）仍然可以叠加在所有优化器之上，用于实现更通用的正则/裁剪策略，
+    //    而 SGD 自己的 weight_decay 字段则对应“本优化器内部集成的 L2 正则”。
+    //
+    // 换句话说：Hook 提供的是“额外的、可组合”的修改通道，而 SGD 里这段是为了直接支持
+    // torch 风格的超参数（lr/momentum/weight_decay/nesterov）而内置的标准实现。
+
     // 权重衰减
     if (weight_decay_ > 0.0f)
     {

@@ -34,21 +34,22 @@ public:
             }
         }
 
-        // 设置 requires_grad 和 creator（只有当需要梯度时才设置 creator）
+        // 当需要梯度时，为每个输出设置 requires_grad 和 creator
         for (auto &output : outputs)
         {
             if (output.impl_)
             {
                 output.impl_->requires_grad_ = output_requires_grad;
             }
-            // 只有当需要梯度时才设置 creator，构建计算图
+
             if (output_requires_grad)
             {
+                // 这里 output 的 generation_ 会被设置为当前 Operator 的 generation_ + 1 以及引用当前 Operator 的 shared_ptr
+                // 这样在 backward() 时，可以找到当前 Operator 以及正确的计算图拓扑顺序
                 output.set_creator(shared_from_this());
             }
         }
 
-        // 设置计算图信息（只有当需要梯度时才设置）
         if (output_requires_grad)
         {
             this->setup_computation_graph(inputs, outputs);

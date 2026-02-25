@@ -26,6 +26,7 @@ model/yolo/yolov5n_small.pnnx.bin
 
 using namespace origin;
 using namespace origin::pnnx;
+namespace F = origin::functional;
 
 /**
  * @brief 用户配置结构体
@@ -699,8 +700,7 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
     if (cuda::is_available() && cfg.gpu_device >= 0)
     {
         device = Device(DeviceType::kCUDA, cfg.gpu_device);
-        logi("CUDA is available. Using GPU{} for inference (cuDNN/cuBLAS disabled, using custom kernels).",
-             cfg.gpu_device);
+        logi("CUDA is available. Using GPU{} for inference.", cfg.gpu_device);
     }
     else
     {
@@ -735,13 +735,14 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
         if (!cfg.image_dir.empty())
         {
             image_files = get_image_files_from_directory(cfg.image_dir);
-            if (image_files.empty())
-            {
-                loge("No image files found in directory: {}", cfg.image_dir);
-                return;
-            }
-            logi("Found {} image files in directory", image_files.size());
         }
+
+        if (image_files.empty())
+        {
+            THROW_RUNTIME_ERROR(
+                "No input images: please provide a valid --image_dir with at least one image file for YOLOv5 inference");
+        }
+        logi("Found {} image files in directory", image_files.size());
 
         // 创建输出目录
         std::string output_dir = cfg.output_dir.empty() ? "./tmp" : cfg.output_dir;
@@ -751,171 +752,126 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
         // 使用COCO类别名称（从class_labels.h）
         const std::vector<std::string> &class_names = COCO_CLASSES;
 
-        // 如果没有图像文件，使用测试输入
-        if (image_files.empty())
-        {
-            logi("No image directory provided, using test input...");
-            Tensor input = create_test_input(device, batch_size, 3, cfg.input_h, cfg.input_w);
-            logi("Input shape: {}", input.shape().to_string());
-            logi("Batch size: {}", batch_size);
+        // 用于累积推理时间（不包括预处理和后处理）
+        std::chrono::microseconds total_inference_time(0);
 
+        // 按 batch_size 分批处理
+        for (size_t batch_start = 0; batch_start < image_files.size(); batch_start += batch_size)
+        {
+            size_t batch_end         = std::min(batch_start + batch_size, image_files.size());
+            size_t actual_batch_size = batch_end - batch_start;
+
+            logi("Processing batch: images {} to {} ({} images)", batch_start + 1, batch_end, actual_batch_size);
+
+            // 加载当前批次的图像
+            std::vector<cv::Mat> batch_images;
+            std::vector<std::string> batch_image_paths;
+            for (size_t i = batch_start; i < batch_end; ++i)
+            {
+                cv::Mat image = cv::imread(image_files[i]);
+                if (image.empty())
+                {
+                    logw("Cannot load image: {}, skipping", image_files[i]);
+                    continue;
+                }
+                batch_images.push_back(image);
+                batch_image_paths.push_back(image_files[i]);
+            }
+
+            // 如果当前批次没有有效图像，跳过
+            if (batch_images.empty())
+            {
+                logw("No valid images in current batch, skipping");
+                continue;
+            }
+
+            // 如果实际图像数量小于 batch_size，用最后一张图像填充
+            size_t current_batch_size = batch_images.size();
+            if (current_batch_size < static_cast<size_t>(batch_size))
+            {
+                logi("Padding batch from {} to {} images (using last image)", current_batch_size, batch_size);
+                cv::Mat last_image    = batch_images.back();
+                std::string last_path = batch_image_paths.back();
+                for (size_t i = current_batch_size; i < static_cast<size_t>(batch_size); ++i)
+                {
+                    batch_images.push_back(last_image.clone());
+                    batch_image_paths.push_back(last_path);  // 用于填充，但不会保存输出
+                }
+            }
+
+            // 预处理所有图像并合并为 batch
+            std::vector<Tensor> preprocessed_images;
+            for (const auto &image : batch_images)
+            {
+                Tensor preprocessed = preprocess_image(image, device, cfg.input_h, cfg.input_w);
+                preprocessed_images.push_back(preprocessed);
+            }
+
+            // 合并为 batch tensor
+            if (preprocessed_images.empty())
+            {
+                continue;
+            }
+
+            // preprocessed_images[i] 形状相同，如 {1, C, H, W}，cat 后得到 {batch_size, C, H, W}
+            Tensor input = F::cat(preprocessed_images, 0);
+
+            logi("Input shape: {}", input.shape().to_string());
+
+            // 设置输入并执行推理
             graph.set_inputs("pnnx_input_0", {input});
             logi("Running inference...");
 
-            // 记录推理时间
+            // 记录推理开始时间
             auto inference_start_time = std::chrono::high_resolution_clock::now();
             graph.forward(cfg.debug);
+            // 记录推理结束时间
             auto inference_end_time = std::chrono::high_resolution_clock::now();
             auto inference_duration =
                 std::chrono::duration_cast<std::chrono::microseconds>(inference_end_time - inference_start_time);
-            double total_seconds = inference_duration.count() / 1000000.0;
-            double fps           = batch_size / total_seconds;
+            total_inference_time += inference_duration;
 
+            // 获取输出
             auto outputs = graph.get_outputs("pnnx_output_0");
             if (outputs.empty())
             {
-                logw("No outputs received!");
-                return;
+                logw("No outputs received for batch!");
+                continue;
             }
+
             logi("Inference successful! Output count: {}", outputs.size());
-            loga("Input resolution: {}x{}", cfg.input_w, cfg.input_h);
-            loga("Inference time: {:.4f} seconds ({:.0f} us)", total_seconds,
-                 static_cast<double>(inference_duration.count()));
-            loga("FPS: {:.2f}", fps);
-        }
-        else
-        {
-            // 用于累积推理时间（不包括预处理和后处理）
-            std::chrono::microseconds total_inference_time(0);
 
-            // 按 batch_size 分批处理
-            for (size_t batch_start = 0; batch_start < image_files.size(); batch_start += batch_size)
+            // 处理每个 batch 中的每张图像
+            auto output       = outputs[0];
+            auto output_shape = output.shape();
+            auto output_data  = output.to_vector<float>();
+
+            // 只处理实际图像（不包括填充的图像）
+            for (size_t i = 0; i < current_batch_size; ++i)
             {
-                size_t batch_end         = std::min(batch_start + batch_size, image_files.size());
-                size_t actual_batch_size = batch_end - batch_start;
+                size_t image_idx       = batch_start + i;
+                std::string image_path = image_files[image_idx];
+                cv::Mat image          = batch_images[i];
 
-                logi("Processing batch: images {} to {} ({} images)", batch_start + 1, batch_end, actual_batch_size);
+                // 生成输出文件名：output_ + 原始文件名
+                std::filesystem::path input_path(image_path);
+                std::string output_filename = "output_" + input_path.filename().string();
+                std::string output_path     = (std::filesystem::path(output_dir) / output_filename).string();
 
-                // 加载当前批次的图像
-                std::vector<cv::Mat> batch_images;
-                std::vector<std::string> batch_image_paths;
-                for (size_t i = batch_start; i < batch_end; ++i)
-                {
-                    cv::Mat image = cv::imread(image_files[i]);
-                    if (image.empty())
-                    {
-                        logw("Cannot load image: {}, skipping", image_files[i]);
-                        continue;
-                    }
-                    batch_images.push_back(image);
-                    batch_image_paths.push_back(image_files[i]);
-                }
-
-                // 如果当前批次没有有效图像，跳过
-                if (batch_images.empty())
-                {
-                    logw("No valid images in current batch, skipping");
-                    continue;
-                }
-
-                // 如果实际图像数量小于 batch_size，用最后一张图像填充
-                size_t current_batch_size = batch_images.size();
-                if (current_batch_size < static_cast<size_t>(batch_size))
-                {
-                    logi("Padding batch from {} to {} images (using last image)", current_batch_size, batch_size);
-                    cv::Mat last_image    = batch_images.back();
-                    std::string last_path = batch_image_paths.back();
-                    for (size_t i = current_batch_size; i < static_cast<size_t>(batch_size); ++i)
-                    {
-                        batch_images.push_back(last_image.clone());
-                        batch_image_paths.push_back(last_path);  // 用于填充，但不会保存输出
-                    }
-                }
-
-                // 预处理所有图像并合并为 batch
-                std::vector<Tensor> preprocessed_images;
-                for (const auto &image : batch_images)
-                {
-                    Tensor preprocessed = preprocess_image(image, device, cfg.input_h, cfg.input_w);
-                    preprocessed_images.push_back(preprocessed);
-                }
-
-                // 合并为 batch tensor
-                if (preprocessed_images.empty())
-                {
-                    continue;
-                }
-
-                Shape single_shape = preprocessed_images[0].shape();
-                size_t single_size = single_shape.elements();
-                std::vector<float> batch_data(static_cast<size_t>(batch_size) * single_size);
-
-                for (size_t i = 0; i < static_cast<size_t>(batch_size); ++i)
-                {
-                    auto single_data = preprocessed_images[i].to_vector<float>();
-                    std::copy(single_data.begin(), single_data.end(), batch_data.begin() + i * single_size);
-                }
-
-                std::vector<size_t> batch_dims = single_shape.dims();
-                batch_dims[0]                  = static_cast<size_t>(batch_size);
-                Tensor input = Tensor(batch_data, Shape(batch_dims), dtype(DataType::kFloat32).device(device));
-
-                logi("Input shape: {}", input.shape().to_string());
-
-                // 设置输入并执行推理
-                graph.set_inputs("pnnx_input_0", {input});
-                logi("Running inference...");
-
-                // 记录推理开始时间
-                auto inference_start_time = std::chrono::high_resolution_clock::now();
-                graph.forward(cfg.debug);
-                // 记录推理结束时间
-                auto inference_end_time = std::chrono::high_resolution_clock::now();
-                auto inference_duration =
-                    std::chrono::duration_cast<std::chrono::microseconds>(inference_end_time - inference_start_time);
-                total_inference_time += inference_duration;
-
-                // 获取输出
-                auto outputs = graph.get_outputs("pnnx_output_0");
-                if (outputs.empty())
-                {
-                    logw("No outputs received for batch!");
-                    continue;
-                }
-
-                logi("Inference successful! Output count: {}", outputs.size());
-
-                // 处理每个 batch 中的每张图像
-                auto output       = outputs[0];
-                auto output_shape = output.shape();
-                auto output_data  = output.to_vector<float>();
-
-                // 只处理实际图像（不包括填充的图像）
-                for (size_t i = 0; i < current_batch_size; ++i)
-                {
-                    size_t image_idx       = batch_start + i;
-                    std::string image_path = image_files[image_idx];
-                    cv::Mat image          = batch_images[i];
-
-                    // 生成输出文件名：output_ + 原始文件名
-                    std::filesystem::path input_path(image_path);
-                    std::string output_filename = "output_" + input_path.filename().string();
-                    std::string output_path     = (std::filesystem::path(output_dir) / output_filename).string();
-
-                    // 处理并保存检测结果
-                    process_and_save_detection(output_data, output_shape, i, image, image_path, output_path, cfg,
-                                               class_names);
-                }
+                // 处理并保存检测结果
+                process_and_save_detection(output_data, output_shape, i, image, image_path, output_path, cfg,
+                                            class_names);
             }
-
-            // 计算帧率（仅基于推理时间，不包括预处理和后处理）
-            double total_seconds = total_inference_time.count() / 1000000.0;
-            double fps           = image_files.size() / total_seconds;
-
-            loga("Processed {} images in total, Input resolution: {}x{}, Batch size: {}", image_files.size(),
-                 cfg.input_w, cfg.input_h, batch_size);
-            loga("Total inference time: {:.4f} seconds, Average FPS: {:.2f}", total_seconds, fps);
         }
+
+        // 计算帧率（仅基于推理时间，不包括预处理和后处理）
+        double total_seconds = total_inference_time.count() / 1000000.0;
+        double fps           = image_files.size() / total_seconds;
+
+        loga("Processed {} images in total, Input resolution: {}x{}, Batch size: {}", image_files.size(),
+                cfg.input_w, cfg.input_h, batch_size);
+        loga("Total inference time: {:.4f} seconds, Average FPS: {:.2f}", total_seconds, fps);
+        
     }
     catch (const std::exception &e)
     {

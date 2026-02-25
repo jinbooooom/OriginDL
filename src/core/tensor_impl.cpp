@@ -84,7 +84,7 @@ void TensorImpl::backward()
     }
 
     // 检查 requires_grad：如果不需要梯度，则报错（与 PyTorch 一致）
-    if (!requires_grad_)
+    if (unlikely(!requires_grad_))
     {
         THROW_RUNTIME_ERROR("tensor does not require grad and does not have a grad_fn, can't run backward");
     }
@@ -474,8 +474,6 @@ TensorImpl TensorImpl::to(const TensorOptions &options) const
     bool new_requires_grad = requires_grad_;
     return TensorImpl(std::move(converted_mat), new_requires_grad);
 }
-
-// 移除所有私有辅助方法，直接实现核心逻辑
 
 // === 泛型方法实例化 ===
 // 数据访问方法

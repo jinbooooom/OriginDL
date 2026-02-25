@@ -31,30 +31,24 @@ Linear::Linear(int in_features, int out_features, bool bias)
 
 Parameter Linear::init_weight()
 {
-    // 初始化权重（Xavier初始化：scale * randn）
-    float scale        = std::sqrt(1.0f / static_cast<float>(in_features_));
+    // Xavier 初始化的缩放系数：
+    // fan_in = in_features_（每个神经元的输入数）
+    // 对应 Xavier normal: W ~ N(0, 1/fan_in)，所以标准差 std = sqrt(1/fan_in)
+    // 作用：让前向传播时各层输出的方差大致相当，减轻梯度爆炸/消失问题。
+    // 所以 scale = sqrt(1/fan_in)，具体细节我暂时不去深究了。
+    float scale = std::sqrt(1.0f / static_cast<float>(in_features_));
+
+    // 初始化权重：
+    // input 的形状是 {batch_size, in_features_}
+    // output 的形状是 {batch_size, out_features_}
+    // 所以 weight 的形状必须是 {in_features_, out_features_}，这样才能进行矩阵乘法：
     auto weight_tensor = Tensor::randn(Shape{static_cast<size_t>(in_features_), static_cast<size_t>(out_features_)},
                                        TensorOptions(DataType::kFloat32).requires_grad(true));
     // 应用scale
     auto scaled_weight = weight_tensor * Scalar(scale);
 
-    // 确保scaled_weight有正确的shape
-    auto scaled_shape = scaled_weight.shape();
-    if (unlikely(scaled_shape.elements() == 0))
-    {
-        THROW_RUNTIME_ERROR("init_weight: scaled_weight has empty shape!");
-    }
-
     // 直接使用Parameter构造函数（显式创建Parameter对象）
     Parameter w(scaled_weight);
-
-    // 验证Parameter的shape
-    auto w_shape = w.shape();
-    if (unlikely(w_shape.elements() == 0))
-    {
-        THROW_RUNTIME_ERROR("init_weight: Parameter w has empty shape after construction! scaled_weight.shape() = {}",
-                            scaled_shape.to_string());
-    }
 
     return w;
 }
@@ -99,7 +93,8 @@ Tensor Linear::forward(const Tensor &input)
     auto output = functional::mat_mul(input, static_cast<const Tensor &>(weight_));
 
     // 添加偏置
-    // 由于加法操作只支持相同形状或标量广播，需要先使用broadcast_to
+    // 由于加法操作只支持相同形状或标量广播，需要先使用broadcast_to。
+    // TODO：这是目前的局限，未来改进。
     if (use_bias_)
     {
         // bias_ 的形状是 {1, out_features}，需要广播到 {batch_size, out_features}
