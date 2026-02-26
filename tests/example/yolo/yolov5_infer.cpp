@@ -740,7 +740,8 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
         if (image_files.empty())
         {
             THROW_RUNTIME_ERROR(
-                "No input images: please provide a valid --image_dir with at least one image file for YOLOv5 inference");
+                "No input images: please provide a valid --image_dir with at least one image file for YOLOv5 "
+                "inference");
         }
         logi("Found {} image files in directory", image_files.size());
 
@@ -860,7 +861,7 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
 
                 // 处理并保存检测结果
                 process_and_save_detection(output_data, output_shape, i, image, image_path, output_path, cfg,
-                                            class_names);
+                                           class_names);
             }
         }
 
@@ -868,10 +869,9 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
         double total_seconds = total_inference_time.count() / 1000000.0;
         double fps           = image_files.size() / total_seconds;
 
-        loga("Processed {} images in total, Input resolution: {}x{}, Batch size: {}", image_files.size(),
-                cfg.input_w, cfg.input_h, batch_size);
+        loga("Processed {} images in total, Input resolution: {}x{}, Batch size: {}", image_files.size(), cfg.input_w,
+             cfg.input_h, batch_size);
         loga("Total inference time: {:.4f} seconds, Average FPS: {:.2f}", total_seconds, fps);
-        
     }
     catch (const std::exception &e)
     {

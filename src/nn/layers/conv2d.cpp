@@ -97,7 +97,8 @@ Parameter Conv2d::init_bias()
     if (use_bias_)
     {
         // 初始化偏置为零，形状 (out_channels,)
-        auto bias_tensor = Tensor::zeros(Shape{static_cast<size_t>(out_channels_)}, TensorOptions(DataType::kFloat32).requires_grad(true));
+        auto bias_tensor = Tensor::zeros(Shape{static_cast<size_t>(out_channels_)},
+                                         TensorOptions(DataType::kFloat32).requires_grad(true));
         return Parameter(bias_tensor);
     }
     // 如果不使用偏置，返回一个默认的Parameter（不会使用）

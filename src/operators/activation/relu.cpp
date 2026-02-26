@@ -18,7 +18,7 @@ std::vector<Tensor> ReLU::forward(const std::vector<Tensor> &xs)
     }
 
     const Mat &x_mat = mat(xs[0]);
-    
+
     // 根据 requires_grad 决定是否保存 mask
     if (xs[0].requires_grad())
     {

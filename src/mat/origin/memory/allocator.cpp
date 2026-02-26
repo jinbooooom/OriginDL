@@ -64,7 +64,8 @@ void CUDAAllocator::deallocate(void *ptr)
         cudaError_t err = cudaSetDevice(device_index_);
         if (err != cudaSuccess)
         {
-            THROW_RUNTIME_ERROR("CUDA set device failed: {} (device index: {})", cudaGetErrorString(err), device_index_);
+            THROW_RUNTIME_ERROR("CUDA set device failed: {} (device index: {})", cudaGetErrorString(err),
+                                device_index_);
         }
         err = cudaFree(ptr);
         if (err != cudaSuccess)

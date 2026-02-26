@@ -281,7 +281,8 @@ Tensor OperatorMapper::load_weight_tensor(const Attribute &attr)
     return Tensor(attr.data, weight_shape, dtype(DataType::kFloat32).device(device));
 }
 
-// YOLOv5 检测头：从 node->attributes 读 pnnx_5(strides) 等，输出为 get_outputs("pnnx_output_0") 取到的那个 tensor，yolov5_infer 中再做阈值与 NMS
+// YOLOv5 检测头：从 node->attributes 读 pnnx_5(strides) 等，输出为 get_outputs("pnnx_output_0") 取到的那个
+// tensor，yolov5_infer 中再做阈值与 NMS
 std::shared_ptr<Operator> OperatorMapper::create_yolo_detect(std::shared_ptr<PNNXNode> node)
 {
     auto &attrs = node->attributes;

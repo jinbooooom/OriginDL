@@ -1,8 +1,9 @@
 /**
  * @file pnnx_graph.h
  * @brief PNNX 计算图对外接口
- * @details 本头文件定义 PNNXGraph，是使用 PNNX 模型推理的主入口。用户通过构造(param, bin)、build()、set_inputs()、forward()、get_outputs() 完成加载与推理；
- * 内部依赖 PNNXParser 解析、PNNXNode 表示节点、OperatorMapper 创建算子。实现见 src/pnnx/pnnx_graph.cpp。
+ * @details 本头文件定义 PNNXGraph，是使用 PNNX 模型推理的主入口。用户通过构造(param,
+ * bin)、build()、set_inputs()、forward()、get_outputs() 完成加载与推理； 内部依赖 PNNXParser 解析、PNNXNode
+ * 表示节点、OperatorMapper 创建算子。实现见 src/pnnx/pnnx_graph.cpp。
  */
 #ifndef __ORIGIN_DL_PNNX_GRAPH_H__
 #define __ORIGIN_DL_PNNX_GRAPH_H__
@@ -62,9 +63,9 @@ public:
 
     /**
      * @brief 执行前向推理
-     * @details 按 execution_order 排序后依次执行各节点：收集 input_tensors（含从上游 output 或 output_name_map_ 查找），
-     * 对 Conv2d/Linear 等从 node->attributes 注入 weight/bias，执行 (*node->op)(input_tensors) 得到 output_tensors，
-     * 再 propagate_outputs 写入下游的 input_tensors。输出节点的“输入”即为模型最终输出。
+     * @details 按 execution_order 排序后依次执行各节点：收集 input_tensors（含从上游 output 或 output_name_map_
+     * 查找）， 对 Conv2d/Linear 等从 node->attributes 注入 weight/bias，执行 (*node->op)(input_tensors) 得到
+     * output_tensors， 再 propagate_outputs 写入下游的 input_tensors。输出节点的“输入”即为模型最终输出。
      */
     void forward();
 
@@ -72,14 +73,15 @@ public:
      * @brief 获取输出
      * @param output_name 输出节点名称（如 "pnnx_output_0"）
      * @return 输出 Tensor 列表（输出节点的每个 input_name 对应一个上游 tensor）
-     * @details 输出节点类型为 pnnx.Output，其 input_names 指向上游输出；从该节点的 input_tensors 或上游的 output_tensors 收集返回
+     * @details 输出节点类型为 pnnx.Output，其 input_names 指向上游输出；从该节点的 input_tensors 或上游的
+     * output_tensors 收集返回
      */
     std::vector<Tensor> get_outputs(const std::string &output_name) const;
 
 private:
-    std::string param_path_;   ///< .param 文件路径
-    std::string bin_path_;    ///< .bin 文件路径
-    std::vector<std::shared_ptr<PNNXNode>> nodes_;  ///< 解析得到的全部节点（含 Input/Output）
+    std::string param_path_;                                     ///< .param 文件路径
+    std::string bin_path_;                                       ///< .bin 文件路径
+    std::vector<std::shared_ptr<PNNXNode>> nodes_;               ///< 解析得到的全部节点（含 Input/Output）
     std::map<std::string, std::shared_ptr<PNNXNode>> node_map_;  ///< 节点名 -> 节点，用于按名查找输入/输出节点
     std::map<std::string, std::pair<std::shared_ptr<PNNXNode>, size_t>>
         output_name_map_;  ///< 中间张量名 -> (产生该输出的节点, 输出索引)，forward 时加速上游查找
@@ -129,7 +131,8 @@ private:
     void propagate_outputs(std::shared_ptr<PNNXNode> node);
 
     /**
-     * @brief 构建 output_name_map_：每个非 Input/Output 节点的每个 output_names[i] -> (node, i)，用于 forward 时快速查上游
+     * @brief 构建 output_name_map_：每个非 Input/Output 节点的每个 output_names[i] -> (node, i)，用于 forward
+     * 时快速查上游
      */
     void build_output_name_map();
 };

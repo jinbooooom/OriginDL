@@ -116,7 +116,8 @@ TEST_P(SumToOperatorTest, BackwardWithGradient)
 TEST_P(SumToOperatorTest, BackwardToSameShape)
 {
     // 测试相同形状的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
     Shape target_shape{2, 2};
 
     auto y = F::sum_to(x, target_shape);

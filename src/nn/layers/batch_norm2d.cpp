@@ -18,12 +18,14 @@ BatchNorm2d::BatchNorm2d(int num_features, float eps, float momentum)
     }
 
     // 初始化 gamma 为全 1
-    auto gamma_tensor = Tensor::ones(Shape{static_cast<size_t>(num_features)}, TensorOptions(DataType::kFloat32).requires_grad(true));
-    gamma_            = Parameter(gamma_tensor);
+    auto gamma_tensor =
+        Tensor::ones(Shape{static_cast<size_t>(num_features)}, TensorOptions(DataType::kFloat32).requires_grad(true));
+    gamma_ = Parameter(gamma_tensor);
 
     // 初始化 beta 为全 0
-    auto beta_tensor = Tensor::zeros(Shape{static_cast<size_t>(num_features)}, TensorOptions(DataType::kFloat32).requires_grad(true));
-    beta_            = Parameter(beta_tensor);
+    auto beta_tensor =
+        Tensor::zeros(Shape{static_cast<size_t>(num_features)}, TensorOptions(DataType::kFloat32).requires_grad(true));
+    beta_ = Parameter(beta_tensor);
 
     // 初始化 running_mean 为全 0
     running_mean_ = Tensor::zeros(Shape{static_cast<size_t>(num_features)}, TensorOptions(DataType::kFloat32));
@@ -97,12 +99,14 @@ Tensor BatchNorm2d::forward(const Tensor &input)
 void BatchNorm2d::reset_parameters()
 {
     // 重置 gamma 为全 1
-    auto gamma_tensor = Tensor::ones(Shape{static_cast<size_t>(num_features_)}, TensorOptions(DataType::kFloat32).requires_grad(true));
-    gamma_            = Parameter(gamma_tensor);
+    auto gamma_tensor =
+        Tensor::ones(Shape{static_cast<size_t>(num_features_)}, TensorOptions(DataType::kFloat32).requires_grad(true));
+    gamma_ = Parameter(gamma_tensor);
 
     // 重置 beta 为全 0
-    auto beta_tensor = Tensor::zeros(Shape{static_cast<size_t>(num_features_)}, TensorOptions(DataType::kFloat32).requires_grad(true));
-    beta_            = Parameter(beta_tensor);
+    auto beta_tensor =
+        Tensor::zeros(Shape{static_cast<size_t>(num_features_)}, TensorOptions(DataType::kFloat32).requires_grad(true));
+    beta_ = Parameter(beta_tensor);
 
     // 重置 running_mean 为全 0
     running_mean_ = Tensor::zeros(Shape{static_cast<size_t>(num_features_)}, TensorOptions(DataType::kFloat32));

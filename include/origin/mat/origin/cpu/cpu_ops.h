@@ -258,7 +258,7 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
                                 std::pair<int, int> kernel_size,
                                 std::pair<int, int> stride,
                                 std::pair<int, int> pad,
-                                 std::vector<size_t> *indices = nullptr);
+                                std::vector<size_t> *indices = nullptr);
 
 /**
  * @brief 最大池化反向传播

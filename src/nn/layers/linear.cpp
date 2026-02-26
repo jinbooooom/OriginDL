@@ -59,8 +59,8 @@ Parameter Linear::init_bias()
     {
         // 初始化偏置为零
         // 注意：偏置形状设为 {1, out_features} 以方便与 {batch_size, out_features} 相加
-        auto bias_tensor =
-            Tensor::zeros(Shape{1, static_cast<size_t>(out_features_)}, TensorOptions(DataType::kFloat32).requires_grad(true));
+        auto bias_tensor = Tensor::zeros(Shape{1, static_cast<size_t>(out_features_)},
+                                         TensorOptions(DataType::kFloat32).requires_grad(true));
         return Parameter(bias_tensor);
     }
     // 如果不使用偏置，返回一个默认的Parameter（不会使用）

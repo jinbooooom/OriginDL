@@ -105,7 +105,8 @@ TEST_P(NegOperatorTest, BackwardWithGradient)
 TEST_P(NegOperatorTest, BackwardDifferentShapes)
 {
     // 测试不同形状的张量
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::neg(x);
     y.backward();

@@ -72,7 +72,8 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
     // 这种情况不应该发生（因为 requires_grad=true 时应该保存 mask）
     if (unlikely(mask_.elements() == 0))
     {
-        THROW_RUNTIME_ERROR("Dropout backward: mask_ is not initialized. This should not happen when requires_grad=true");
+        THROW_RUNTIME_ERROR(
+            "Dropout backward: mask_ is not initialized. This should not happen when requires_grad=true");
     }
 
     // 获取 Mat 引用

@@ -16,8 +16,8 @@ std::vector<Tensor> Sigmoid::forward(const std::vector<Tensor> &xs)
     }
 
     const Mat &x_mat = mat(xs[0]);
-    auto result     = x_mat.sigmoid();
-    auto y          = convert_mat_to_tensor(std::move(result));
+    auto result      = x_mat.sigmoid();
+    auto y           = convert_mat_to_tensor(std::move(result));
 
     // 根据 requires_grad 决定是否保存中间结果
     if (xs[0].requires_grad())

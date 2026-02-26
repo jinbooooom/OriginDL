@@ -65,7 +65,7 @@ void PNNXParser::parse_param_file(const std::string &param_path, std::vector<std
         THROW_RUNTIME_ERROR("Failed to parse magic number: '{}', error: {}", line, e.what());
     }
 
-    if (magic != 7767517) // PNNX 的 magic number
+    if (magic != 7767517)  // PNNX 的 magic number
     {
         THROW_RUNTIME_ERROR("Invalid PNNX param file, magic number: {}", magic);
     }

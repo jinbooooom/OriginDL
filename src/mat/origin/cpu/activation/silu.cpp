@@ -72,11 +72,11 @@ std::unique_ptr<Mat> silu_backward(const OriginMat &gy, const OriginMat &x)
         THROW_INVALID_ARG("silu_backward: gy and x must have same shape and dtype");
     }
 
-    auto result   = std::make_unique<OriginMat>(gy.shape(), gy.dtype(), gy.device());
+    auto result         = std::make_unique<OriginMat>(gy.shape(), gy.dtype(), gy.device());
     const void *gy_data = gy.storage()->data();
     const void *x_data  = x.storage()->data();
-    void *gx_data      = result->storage()->data();
-    const size_t n     = gy.elements();
+    void *gx_data       = result->storage()->data();
+    const size_t n      = gy.elements();
 
     device_common::TypeDispatcher::dispatch_void(gy.dtype(), [&]<typename T>() {
         const T *gy_ptr = static_cast<const T *>(gy_data);
@@ -84,8 +84,8 @@ std::unique_ptr<Mat> silu_backward(const OriginMat &gy, const OriginMat &x)
         T *gx_ptr       = static_cast<T *>(gx_data);
         for (size_t i = 0; i < n; ++i)
         {
-            const T v = x_ptr[i];
-            const T s = T(1) / (T(1) + std::exp(-v));
+            const T v         = x_ptr[i];
+            const T s         = T(1) / (T(1) + std::exp(-v));
             const T grad_silu = s + v * s * (T(1) - s);
             gx_ptr[i]         = gy_ptr[i] * grad_silu;
         }
@@ -96,4 +96,3 @@ std::unique_ptr<Mat> silu_backward(const OriginMat &gy, const OriginMat &x)
 
 }  // namespace cpu
 }  // namespace origin
-

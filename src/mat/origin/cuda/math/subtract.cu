@@ -13,11 +13,11 @@
 // ===================================================================================
 // Shape           Repeat   Device   Dtype     OriginDL(us)    PyTorch(us)     Speedup
 // -----------------------------------------------------------------------------------
-// {1,1}           100      cuda:0   float32   6.2200          12.4452         2.0008 
-// {10,10}         100      cuda:0   float32   6.2400          12.3164         1.9738 
-// {100,100}       100      cuda:0   float32   6.6400          12.0431         1.8137 
-// {1000,1000}     100      cuda:0   float32   7.1600          12.3902         1.7305 
-// {10000,10000}   100      cuda:0   float32   859.9000        858.9751        0.9989 
+// {1,1}           100      cuda:0   float32   6.2200          12.4452         2.0008
+// {10,10}         100      cuda:0   float32   6.2400          12.3164         1.9738
+// {100,100}       100      cuda:0   float32   6.6400          12.0431         1.8137
+// {1000,1000}     100      cuda:0   float32   7.1600          12.3902         1.7305
+// {10000,10000}   100      cuda:0   float32   859.9000        858.9751        0.9989
 // ===================================================================================
 namespace origin
 {
@@ -26,8 +26,10 @@ namespace cuda
 
 /** @brief 元素级减法kernel（相同形状）- 最朴素实现 */
 template <typename T>
-__global__ void subtract_elementwise_native_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C,
-                                                  size_t N)
+__global__ void subtract_elementwise_native_kernel(const T *__restrict__ A,
+                                                   const T *__restrict__ B,
+                                                   T *__restrict__ C,
+                                                   size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < N)
@@ -36,9 +38,9 @@ __global__ void subtract_elementwise_native_kernel(const T *__restrict__ A, cons
 
 /** @brief 向量化元素级减法kernel - float4版本 */
 __global__ void subtract_elementwise_vectorized_float4_kernel(const float *__restrict__ A,
-                                                             const float *__restrict__ B,
-                                                             float *__restrict__ C,
-                                                             size_t N)
+                                                              const float *__restrict__ B,
+                                                              float *__restrict__ C,
+                                                              size_t N)
 {
     constexpr size_t VECTOR_SIZE = 4;
     size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
@@ -61,8 +63,7 @@ __global__ void subtract_elementwise_vectorized_float4_kernel(const float *__res
 
 /** @brief 广播减法kernel - B是标量 */
 template <typename T>
-__global__ void subtract_broadcast_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C,
-                                          size_t N)
+__global__ void subtract_broadcast_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < N)
@@ -71,9 +72,9 @@ __global__ void subtract_broadcast_kernel(const T *__restrict__ A, const T *__re
 
 /** @brief 向量化广播减法kernel - float4版本，B是标量，C[i]=A[i]-B[0] */
 __global__ void subtract_broadcast_vectorized_float4_kernel(const float *__restrict__ A,
-                                                           const float *__restrict__ B,
-                                                           float *__restrict__ C,
-                                                           size_t N)
+                                                            const float *__restrict__ B,
+                                                            float *__restrict__ C,
+                                                            size_t N)
 {
     constexpr size_t VECTOR_SIZE = 4;
     size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
@@ -97,7 +98,9 @@ __global__ void subtract_broadcast_vectorized_float4_kernel(const float *__restr
 
 /** @brief 标量减向量kernel - A是标量，C[i]=A[0]-B[i] */
 template <typename T>
-__global__ void subtract_scalar_minus_vector_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C,
+__global__ void subtract_scalar_minus_vector_kernel(const T *__restrict__ A,
+                                                    const T *__restrict__ B,
+                                                    T *__restrict__ C,
                                                     size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -107,9 +110,9 @@ __global__ void subtract_scalar_minus_vector_kernel(const T *__restrict__ A, con
 
 /** @brief 向量化标量减向量kernel - float4版本，A是标量，C[i]=A[0]-B[i] */
 __global__ void subtract_scalar_minus_vector_vectorized_float4_kernel(const float *__restrict__ A,
-                                                                     const float *__restrict__ B,
-                                                                     float *__restrict__ C,
-                                                                     size_t N)
+                                                                      const float *__restrict__ B,
+                                                                      float *__restrict__ C,
+                                                                      size_t N)
 {
     constexpr size_t VECTOR_SIZE = 4;
     size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
@@ -168,10 +171,10 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b, OriginMat 
         const size_t num_elements = a.elements();
         if (a.dtype() == DataType::kFloat32)
         {
-            constexpr size_t VECTOR_SIZE       = 4;
-            const size_t threads_per_block    = 256;
-            const size_t vectorized_elements   = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
-            const size_t num_blocks            = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+            constexpr size_t VECTOR_SIZE     = 4;
+            const size_t threads_per_block   = 256;
+            const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+            const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
             subtract_elementwise_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
                 static_cast<const float *>(a_data), static_cast<const float *>(b_data), static_cast<float *>(c_data),
                 num_elements);
@@ -181,9 +184,9 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b, OriginMat 
             const size_t threads_per_block = 256;
             const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
             device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                subtract_elementwise_native_kernel<T><<<num_blocks, threads_per_block>>>(
-                    static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
-                    num_elements);
+                subtract_elementwise_native_kernel<T>
+                    <<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                                        static_cast<T *>(c_data), num_elements);
             });
         }
     }
@@ -195,7 +198,7 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b, OriginMat 
             // 标量 - 向量：C[i] = A[0] - B[i]
             if (a.dtype() == DataType::kFloat32)
             {
-                constexpr size_t VECTOR_SIZE      = 4;
+                constexpr size_t VECTOR_SIZE     = 4;
                 const size_t threads_per_block   = 256;
                 const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
                 const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
@@ -209,8 +212,8 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b, OriginMat 
                 const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
                 device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
                     subtract_scalar_minus_vector_kernel<T><<<num_blocks, threads_per_block>>>(
-                        static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                        static_cast<T *>(c_data), num_elements);
+                        static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
+                        num_elements);
                 });
             }
         }
@@ -221,7 +224,7 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b, OriginMat 
             const void *scalar_data = b_data;
             if (a.dtype() == DataType::kFloat32)
             {
-                constexpr size_t VECTOR_SIZE      = 4;
+                constexpr size_t VECTOR_SIZE     = 4;
                 const size_t threads_per_block   = 256;
                 const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
                 const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
@@ -235,8 +238,8 @@ std::unique_ptr<Mat> subtract(const OriginMat &a, const OriginMat &b, OriginMat 
                 const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
                 device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
                     subtract_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(
-                        static_cast<const T *>(vec_data), static_cast<const T *>(scalar_data),
-                        static_cast<T *>(c_data), num_elements);
+                        static_cast<const T *>(vec_data), static_cast<const T *>(scalar_data), static_cast<T *>(c_data),
+                        num_elements);
                 });
             }
         }

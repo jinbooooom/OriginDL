@@ -91,7 +91,8 @@ TEST_P(TransposeOperatorTest, ForwardZeroTensor)
 TEST_P(TransposeOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::transpose(x);
     y.backward();
@@ -105,7 +106,8 @@ TEST_P(TransposeOperatorTest, BackwardBasic)
 TEST_P(TransposeOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::transpose(x);
     y.backward();
@@ -118,7 +120,8 @@ TEST_P(TransposeOperatorTest, BackwardWithGradient)
 TEST_P(TransposeOperatorTest, Backward3x2Matrix)
 {
     // 测试3x2矩阵的反向传播
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{3, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Shape{3, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::transpose(x);
     y.backward();

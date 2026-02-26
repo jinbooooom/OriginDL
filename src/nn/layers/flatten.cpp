@@ -6,9 +6,7 @@ namespace origin
 namespace nn
 {
 
-Flatten::Flatten(int start_dim, int end_dim) : start_dim_(start_dim), end_dim_(end_dim)
-{
-}
+Flatten::Flatten(int start_dim, int end_dim) : start_dim_(start_dim), end_dim_(end_dim) {}
 
 Tensor Flatten::forward(const Tensor &input)
 {

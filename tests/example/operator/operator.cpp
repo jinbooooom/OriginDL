@@ -79,7 +79,8 @@ int main()
     x0.grad().print("dx0 ");
 
     // 测试Reshape算子
-    auto x = Tensor({1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}, Shape{2, 4}, dtype(DataType::kFloat32).requires_grad(true));
+    auto x =
+        Tensor({1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}, Shape{2, 4}, dtype(DataType::kFloat32).requires_grad(true));
     x.print("x ");
     logi("Reshape: y = reshape(x, {4, 2})");
     x.clear_grad();
@@ -108,7 +109,8 @@ int main()
     // 注意：LibTorch的广播规则要求从右到左比较维度，每个维度要么大小相同，要么其中一个为1，要么其中一个不存在
     // 错误的广播示例：[2,4] -> [2,4,4] 或 [2,4] -> [2,4,1] 会失败，因为第2个维度不存在于源tensor中
     // 正确的广播示例：[2,4] -> [2,4] 或 [1,4] -> [2,4] 或 [2,1] -> [2,4]
-    auto x_1_2_4 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{1, 2, 4}, dtype(DataType::kFloat32).requires_grad(true));
+    auto x_1_2_4 = Tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Shape{1, 2, 4},
+                          dtype(DataType::kFloat32).requires_grad(true));
     x_1_2_4.print("x_1_2_4:");
     logi("BroadcastTo: y = broadcast_to(x_1_2_4, {2, 2, 4})");
     x.clear_grad();

@@ -48,7 +48,8 @@ private:
 
     /**
      * @brief 解析一行算子定义
-     * @details 解析 type name input_count output_count、input_names、output_names，以及行内 key=value（交给 parse_parameter/parse_attribute/parse_shape）
+     * @details 解析 type name input_count output_count、input_names、output_names，以及行内 key=value（交给
+     * parse_parameter/parse_attribute/parse_shape）
      */
     static void parse_operator_line(const std::string &line, std::shared_ptr<PNNXNode> &node);
 

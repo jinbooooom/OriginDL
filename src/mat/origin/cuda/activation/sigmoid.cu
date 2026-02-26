@@ -53,10 +53,10 @@ __global__ void sigmoid_vectorized_float4_kernel(const float *__restrict__ A, fl
     {
         float4 vec_a = *reinterpret_cast<const float4 *>(&A[vector_idx]);
         float4 vec_c;
-        vec_c.x = 1.0f / (1.0f + expf(-vec_a.x));
-        vec_c.y = 1.0f / (1.0f + expf(-vec_a.y));
-        vec_c.z = 1.0f / (1.0f + expf(-vec_a.z));
-        vec_c.w = 1.0f / (1.0f + expf(-vec_a.w));
+        vec_c.x                                     = 1.0f / (1.0f + expf(-vec_a.x));
+        vec_c.y                                     = 1.0f / (1.0f + expf(-vec_a.y));
+        vec_c.z                                     = 1.0f / (1.0f + expf(-vec_a.z));
+        vec_c.w                                     = 1.0f / (1.0f + expf(-vec_a.w));
         *reinterpret_cast<float4 *>(&C[vector_idx]) = vec_c;
     }
     else
@@ -73,10 +73,7 @@ __global__ void sigmoid_vectorized_float4_kernel(const float *__restrict__ A, fl
  * @brief Sigmoid 反向传播 kernel：gx = gy * y * (1 - y)
  */
 template <typename T>
-__global__ void sigmoid_backward_kernel(const T *__restrict__ gy,
-                                        const T *__restrict__ y,
-                                        T *__restrict__ gx,
-                                        size_t N)
+__global__ void sigmoid_backward_kernel(const T *__restrict__ gy, const T *__restrict__ y, T *__restrict__ gx, size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < N)
@@ -99,10 +96,10 @@ __global__ void sigmoid_backward_vectorized_float4_kernel(const float *__restric
         float4 v_gy = *reinterpret_cast<const float4 *>(&gy[vector_idx]);
         float4 v_y  = *reinterpret_cast<const float4 *>(&y[vector_idx]);
         float4 v_gx;
-        v_gx.x = v_gy.x * v_y.x * (1.0f - v_y.x);
-        v_gx.y = v_gy.y * v_y.y * (1.0f - v_y.y);
-        v_gx.z = v_gy.z * v_y.z * (1.0f - v_y.z);
-        v_gx.w = v_gy.w * v_y.w * (1.0f - v_y.w);
+        v_gx.x                                       = v_gy.x * v_y.x * (1.0f - v_y.x);
+        v_gx.y                                       = v_gy.y * v_y.y * (1.0f - v_y.y);
+        v_gx.z                                       = v_gy.z * v_y.z * (1.0f - v_y.z);
+        v_gx.w                                       = v_gy.w * v_y.w * (1.0f - v_y.w);
         *reinterpret_cast<float4 *>(&gx[vector_idx]) = v_gx;
     }
     else
@@ -142,11 +139,11 @@ std::unique_ptr<Mat> sigmoid(const OriginMat &mat, OriginMat *out)
     else
     {
         result_unique = std::make_unique<OriginMat>(mat.shape(), mat.dtype(), mat.device());
-        result_ptr   = result_unique.get();
+        result_ptr    = result_unique.get();
     }
 
-    const void *a_data       = mat.storage()->data();
-    void *c_data             = result_ptr->storage()->data();
+    const void *a_data        = mat.storage()->data();
+    void *c_data              = result_ptr->storage()->data();
     const size_t num_elements = mat.elements();
 
     if (mat.dtype() == DataType::kFloat32)
@@ -155,8 +152,8 @@ std::unique_ptr<Mat> sigmoid(const OriginMat &mat, OriginMat *out)
         const size_t threads_per_block   = 256;
         const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
         const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
-        sigmoid_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
-            static_cast<const float *>(a_data), static_cast<float *>(c_data), num_elements);
+        sigmoid_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(static_cast<const float *>(a_data),
+                                                                            static_cast<float *>(c_data), num_elements);
     }
     else
     {
@@ -164,7 +161,7 @@ std::unique_ptr<Mat> sigmoid(const OriginMat &mat, OriginMat *out)
         const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
         device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
             sigmoid_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
-                                                                  static_cast<T *>(c_data), num_elements);
+                                                                 static_cast<T *>(c_data), num_elements);
         });
     }
 
@@ -184,11 +181,11 @@ std::unique_ptr<Mat> sigmoid_backward(const OriginMat &gy, const OriginMat &y)
         THROW_INVALID_ARG("sigmoid_backward: gy and y must have same shape and dtype");
     }
 
-    auto result   = std::make_unique<OriginMat>(gy.shape(), gy.dtype(), gy.device());
+    auto result         = std::make_unique<OriginMat>(gy.shape(), gy.dtype(), gy.device());
     const void *gy_data = gy.storage()->data();
     const void *y_data  = y.storage()->data();
-    void *gx_data      = result->storage()->data();
-    const size_t n     = gy.elements();
+    void *gx_data       = result->storage()->data();
+    const size_t n      = gy.elements();
 
     if (gy.dtype() == DataType::kFloat32)
     {
@@ -197,8 +194,7 @@ std::unique_ptr<Mat> sigmoid_backward(const OriginMat &gy, const OriginMat &y)
         const size_t vectorized_elements = (n + VECTOR_SIZE - 1) / VECTOR_SIZE;
         const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
         sigmoid_backward_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
-            static_cast<const float *>(gy_data), static_cast<const float *>(y_data),
-            static_cast<float *>(gx_data), n);
+            static_cast<const float *>(gy_data), static_cast<const float *>(y_data), static_cast<float *>(gx_data), n);
     }
     else
     {

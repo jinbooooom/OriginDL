@@ -37,7 +37,8 @@ std::vector<Tensor> BroadcastTo::backward(const std::vector<Tensor> &gys)
     // 检查 x_shape_ 是否为空（通过检查 size() 是否为 0）
     if (unlikely(x_shape_.size() == 0))
     {
-        THROW_RUNTIME_ERROR("BroadcastTo backward: x_shape_ is not initialized. This should not happen when requires_grad=true");
+        THROW_RUNTIME_ERROR(
+            "BroadcastTo backward: x_shape_ is not initialized. This should not happen when requires_grad=true");
     }
     auto result = mat(gys[0]).sum_to(this->x_shape_);
     auto gx     = convert_mat_to_tensor(std::move(result));

@@ -1,8 +1,9 @@
 /**
  * @file operator_mapper.h
  * @brief PNNX 算子类型到 origin Operator 的映射器声明
- * @details 声明 OperatorMapper，根据 PNNXNode::type（如 nn.Conv2d、nn.SiLU、models.yolo.Detect）创建对应的 origin Operator 实例。
- * 在 PNNXGraph::build() 中为每个计算节点调用 create_operator(node)；实现见 src/pnnx/operator_mapper.cpp。
+ * @details 声明 OperatorMapper，根据 PNNXNode::type（如 nn.Conv2d、nn.SiLU、models.yolo.Detect）创建对应的 origin
+ * Operator 实例。 在 PNNXGraph::build() 中为每个计算节点调用 create_operator(node)；实现见
+ * src/pnnx/operator_mapper.cpp。
  */
 #ifndef __ORIGIN_DL_PNNX_OPERATOR_MAPPER_H__
 #define __ORIGIN_DL_PNNX_OPERATOR_MAPPER_H__

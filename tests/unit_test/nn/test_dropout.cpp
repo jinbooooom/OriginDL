@@ -75,7 +75,7 @@ TEST_P(DropoutTest, Backward)
     dropout.train(true);
 
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
-    auto x                    = Tensor(x_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x = Tensor(x_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = dropout.forward(x);
 

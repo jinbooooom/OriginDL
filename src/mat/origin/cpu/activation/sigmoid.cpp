@@ -49,7 +49,7 @@ std::unique_ptr<Mat> sigmoid(const OriginMat &mat, OriginMat *out)
     }
 
     const void *a_data = mat.storage()->data();
-    void *c_data      = result_ptr->storage()->data();
+    void *c_data       = result_ptr->storage()->data();
 
     device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
         cpu_unary_kernel<T, SigmoidOp>(static_cast<const T *>(a_data), static_cast<T *>(c_data), mat.elements(),
@@ -78,11 +78,11 @@ std::unique_ptr<Mat> sigmoid_backward(const OriginMat &gy, const OriginMat &y)
         THROW_INVALID_ARG("sigmoid_backward: gy and y must have same shape and dtype");
     }
 
-    auto result = std::make_unique<OriginMat>(gy.shape(), gy.dtype(), gy.device());
+    auto result         = std::make_unique<OriginMat>(gy.shape(), gy.dtype(), gy.device());
     const void *gy_data = gy.storage()->data();
     const void *y_data  = y.storage()->data();
-    void *gx_data      = result->storage()->data();
-    const size_t n     = gy.elements();
+    void *gx_data       = result->storage()->data();
+    const size_t n      = gy.elements();
 
     device_common::TypeDispatcher::dispatch_void(gy.dtype(), [&]<typename T>() {
         const T *gy_ptr = static_cast<const T *>(gy_data);

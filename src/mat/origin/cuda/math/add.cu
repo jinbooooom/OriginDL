@@ -16,11 +16,11 @@
 // ===================================================================================
 // Shape           Repeat   Device   Dtype     OriginDL(us)    PyTorch(us)     Speedup
 // -----------------------------------------------------------------------------------
-// {1,1}           100      cuda:0   float32   6.5100          12.5775         1.9320 
-// {10,10}         100      cuda:0   float32   6.2600          12.2546         1.9576 
-// {100,100}       100      cuda:0   float32   6.2900          12.7134         2.0212 
-// {1000,1000}     100      cuda:0   float32   7.5300          12.5128         1.6617 
-// {10000,10000}   100      cuda:0   float32   857.7500        858.8290        1.0013 
+// {1,1}           100      cuda:0   float32   6.5100          12.5775         1.9320
+// {10,10}         100      cuda:0   float32   6.2600          12.2546         1.9576
+// {100,100}       100      cuda:0   float32   6.2900          12.7134         2.0212
+// {1000,1000}     100      cuda:0   float32   7.5300          12.5128         1.6617
+// {10000,10000}   100      cuda:0   float32   857.7500        858.8290        1.0013
 // ===================================================================================
 namespace origin
 {
@@ -32,7 +32,10 @@ namespace cuda
  * @details 每个线程处理一个元素的加法运算，用于不支持向量化的类型或边界情况
  */
 template <typename T>
-__global__ void add_elementwise_native_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
+__global__ void add_elementwise_native_kernel(const T *__restrict__ A,
+                                              const T *__restrict__ B,
+                                              T *__restrict__ C,
+                                              size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -196,9 +199,9 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
             const size_t threads_per_block = 256;
             const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
             device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                add_elementwise_native_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data),
-                                                                             static_cast<const T *>(b_data),
-                                                                             static_cast<T *>(c_data), num_elements);
+                add_elementwise_native_kernel<T>
+                    <<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                                        static_cast<T *>(c_data), num_elements);
             });
         }
     }
@@ -206,15 +209,15 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
     {
         // 简单广播：一个操作数是标量（次常见）。统一成向量在左、标量在右再 dispatch。
         const size_t num_elements = result_ptr->elements();
-        const void *vec_data    = (a.elements() == 1) ? b_data : a_data;
-        const void *scalar_data = (a.elements() == 1) ? a_data : b_data;
+        const void *vec_data      = (a.elements() == 1) ? b_data : a_data;
+        const void *scalar_data   = (a.elements() == 1) ? a_data : b_data;
 
         if (a.dtype() == DataType::kFloat32)
         {
-            constexpr size_t VECTOR_SIZE       = 4;
-            const size_t threads_per_block    = 256;
-            const size_t vectorized_elements  = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
-            const size_t num_blocks           = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+            constexpr size_t VECTOR_SIZE     = 4;
+            const size_t threads_per_block   = 256;
+            const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+            const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
             add_broadcast_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
                 static_cast<const float *>(vec_data), static_cast<const float *>(scalar_data),
                 static_cast<float *>(c_data), num_elements);
@@ -224,9 +227,9 @@ std::unique_ptr<Mat> add(const OriginMat &a, const OriginMat &b, OriginMat *out)
             const size_t threads_per_block = 256;
             const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
             device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(
-                    static_cast<const T *>(vec_data), static_cast<const T *>(scalar_data),
-                    static_cast<T *>(c_data), num_elements);
+                add_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(vec_data),
+                                                                           static_cast<const T *>(scalar_data),
+                                                                           static_cast<T *>(c_data), num_elements);
             });
         }
     }

@@ -33,7 +33,10 @@ public:
 
     // 核心构造函数 - 接受 unique_ptr 并转换为 shared_ptr（底层返回 unique_ptr，表示数据所有权转移）
     TensorImpl(std::unique_ptr<Mat> data, bool requires_grad = false)
-        : data_(std::shared_ptr<Mat>(std::move(data))), grad_(nullptr), creator_(nullptr), generation_(0),
+        : data_(std::shared_ptr<Mat>(std::move(data))),
+          grad_(nullptr),
+          creator_(nullptr),
+          generation_(0),
           requires_grad_(requires_grad)
     {}
 

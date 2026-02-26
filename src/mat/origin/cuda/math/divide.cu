@@ -13,11 +13,11 @@
 // ===================================================================================
 // Shape           Repeat   Device   Dtype     OriginDL(us)    PyTorch(us)     Speedup
 // -----------------------------------------------------------------------------------
-// {1,1}           100      cuda:0   float32   7.4600          11.9916         1.6075 
-// {10,10}         100      cuda:0   float32   7.3600          11.6907         1.5884 
-// {100,100}       100      cuda:0   float32   7.3100          11.5103         1.5746 
-// {1000,1000}     100      cuda:0   float32   7.2600          11.9496         1.6460 
-// {10000,10000}   100      cuda:0   float32   884.2900        887.0096        1.0031 
+// {1,1}           100      cuda:0   float32   7.4600          11.9916         1.6075
+// {10,10}         100      cuda:0   float32   7.3600          11.6907         1.5884
+// {100,100}       100      cuda:0   float32   7.3100          11.5103         1.5746
+// {1000,1000}     100      cuda:0   float32   7.2600          11.9496         1.6460
+// {10000,10000}   100      cuda:0   float32   884.2900        887.0096        1.0031
 // ===================================================================================
 
 namespace origin
@@ -29,8 +29,10 @@ namespace cuda
  * @brief 元素级除法kernel（相同形状）- 最朴素实现
  */
 template <typename T>
-__global__ void divide_elementwise_native_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C,
-                                                size_t N)
+__global__ void divide_elementwise_native_kernel(const T *__restrict__ A,
+                                                 const T *__restrict__ B,
+                                                 T *__restrict__ C,
+                                                 size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < N)
@@ -43,9 +45,9 @@ __global__ void divide_elementwise_native_kernel(const T *__restrict__ A, const 
  * @brief 向量化元素级除法kernel - float4版本
  */
 __global__ void divide_elementwise_vectorized_float4_kernel(const float *__restrict__ A,
-                                                           const float *__restrict__ B,
-                                                           float *__restrict__ C,
-                                                           size_t N)
+                                                            const float *__restrict__ B,
+                                                            float *__restrict__ C,
+                                                            size_t N)
 {
     constexpr size_t VECTOR_SIZE = 4;
     size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
@@ -73,8 +75,7 @@ __global__ void divide_elementwise_vectorized_float4_kernel(const float *__restr
  * @brief 广播除法kernel - B是标量
  */
 template <typename T>
-__global__ void divide_broadcast_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C,
-                                        size_t N)
+__global__ void divide_broadcast_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C, size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < N)
@@ -87,9 +88,9 @@ __global__ void divide_broadcast_kernel(const T *__restrict__ A, const T *__rest
  * @brief 向量化广播除法kernel - float4版本，B是标量
  */
 __global__ void divide_broadcast_vectorized_float4_kernel(const float *__restrict__ A,
-                                                         const float *__restrict__ B,
-                                                         float *__restrict__ C,
-                                                         size_t N)
+                                                          const float *__restrict__ B,
+                                                          float *__restrict__ C,
+                                                          size_t N)
 {
     constexpr size_t VECTOR_SIZE = 4;
     size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
@@ -116,7 +117,9 @@ __global__ void divide_broadcast_vectorized_float4_kernel(const float *__restric
 
 /** @brief 标量除向量kernel - A是标量，C[i]=A[0]/B[i] */
 template <typename T>
-__global__ void divide_scalar_div_vector_kernel(const T *__restrict__ A, const T *__restrict__ B, T *__restrict__ C,
+__global__ void divide_scalar_div_vector_kernel(const T *__restrict__ A,
+                                                const T *__restrict__ B,
+                                                T *__restrict__ C,
                                                 size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -131,8 +134,8 @@ __global__ void divide_scalar_div_vector_vectorized_float4_kernel(const float *_
                                                                   size_t N)
 {
     constexpr size_t VECTOR_SIZE = 4;
-    size_t vectorized_N         = (N / VECTOR_SIZE) * VECTOR_SIZE;
-    size_t vector_idx           = (blockIdx.x * blockDim.x + threadIdx.x) * VECTOR_SIZE;
+    size_t vectorized_N          = (N / VECTOR_SIZE) * VECTOR_SIZE;
+    size_t vector_idx            = (blockIdx.x * blockDim.x + threadIdx.x) * VECTOR_SIZE;
     if (vector_idx + VECTOR_SIZE <= vectorized_N)
     {
         float scalar_a = A[0];
@@ -189,10 +192,10 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *o
         const size_t num_elements = a.elements();
         if (a.dtype() == DataType::kFloat32)
         {
-            constexpr size_t VECTOR_SIZE       = 4;
-            const size_t threads_per_block    = 256;
-            const size_t vectorized_elements  = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
-            const size_t num_blocks           = (vectorized_elements + threads_per_block - 1) / threads_per_block;
+            constexpr size_t VECTOR_SIZE     = 4;
+            const size_t threads_per_block   = 256;
+            const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
+            const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
             divide_elementwise_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
                 static_cast<const float *>(a_data), static_cast<const float *>(b_data), static_cast<float *>(c_data),
                 num_elements);
@@ -202,9 +205,9 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *o
             const size_t threads_per_block = 256;
             const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
             device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
-                divide_elementwise_native_kernel<T><<<num_blocks, threads_per_block>>>(
-                    static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
-                    num_elements);
+                divide_elementwise_native_kernel<T>
+                    <<<num_blocks, threads_per_block>>>(static_cast<const T *>(a_data), static_cast<const T *>(b_data),
+                                                        static_cast<T *>(c_data), num_elements);
             });
         }
     }
@@ -216,7 +219,7 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *o
             // 标量 / 向量：C[i] = A[0] / B[i]
             if (a.dtype() == DataType::kFloat32)
             {
-                constexpr size_t VECTOR_SIZE      = 4;
+                constexpr size_t VECTOR_SIZE     = 4;
                 const size_t threads_per_block   = 256;
                 const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
                 const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
@@ -230,8 +233,8 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *o
                 const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
                 device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
                     divide_scalar_div_vector_kernel<T><<<num_blocks, threads_per_block>>>(
-                        static_cast<const T *>(a_data), static_cast<const T *>(b_data),
-                        static_cast<T *>(c_data), num_elements);
+                        static_cast<const T *>(a_data), static_cast<const T *>(b_data), static_cast<T *>(c_data),
+                        num_elements);
                 });
             }
         }
@@ -242,7 +245,7 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *o
             const void *scalar_data = b_data;
             if (a.dtype() == DataType::kFloat32)
             {
-                constexpr size_t VECTOR_SIZE      = 4;
+                constexpr size_t VECTOR_SIZE     = 4;
                 const size_t threads_per_block   = 256;
                 const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
                 const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
@@ -256,8 +259,8 @@ std::unique_ptr<Mat> divide(const OriginMat &a, const OriginMat &b, OriginMat *o
                 const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
                 device_common::TypeDispatcher::dispatch_void(a.dtype(), [&]<typename T>() {
                     divide_broadcast_kernel<T><<<num_blocks, threads_per_block>>>(
-                        static_cast<const T *>(vec_data), static_cast<const T *>(scalar_data),
-                        static_cast<T *>(c_data), num_elements);
+                        static_cast<const T *>(vec_data), static_cast<const T *>(scalar_data), static_cast<T *>(c_data),
+                        num_elements);
                 });
             }
         }

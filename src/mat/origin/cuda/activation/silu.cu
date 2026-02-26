@@ -52,10 +52,10 @@ __global__ void silu_vectorized_float4_kernel(const float *__restrict__ x, float
     {
         float4 vec_x = *reinterpret_cast<const float4 *>(&x[vector_idx]);
         float4 vec_y;
-        vec_y.x = vec_x.x / (1.0f + expf(-vec_x.x));
-        vec_y.y = vec_x.y / (1.0f + expf(-vec_x.y));
-        vec_y.z = vec_x.z / (1.0f + expf(-vec_x.z));
-        vec_y.w = vec_x.w / (1.0f + expf(-vec_x.w));
+        vec_y.x                                     = vec_x.x / (1.0f + expf(-vec_x.x));
+        vec_y.y                                     = vec_x.y / (1.0f + expf(-vec_x.y));
+        vec_y.z                                     = vec_x.z / (1.0f + expf(-vec_x.z));
+        vec_y.w                                     = vec_x.w / (1.0f + expf(-vec_x.w));
         *reinterpret_cast<float4 *>(&y[vector_idx]) = vec_y;
     }
     else
@@ -75,9 +75,9 @@ __global__ void silu_vectorized_float4_kernel(const float *__restrict__ x, float
  */
 template <typename T>
 __global__ void silu_backward_native_kernel(const T *__restrict__ gy,
-                                     const T *__restrict__ x,
-                                     T *__restrict__ gx,
-                                     size_t N)
+                                            const T *__restrict__ x,
+                                            T *__restrict__ gx,
+                                            size_t N)
 {
     size_t i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < N)
@@ -130,8 +130,8 @@ std::unique_ptr<Mat> silu(const OriginMat &mat, OriginMat *out)
         result_ptr    = result_unique.get();
     }
 
-    const void *x_data       = mat.storage()->data();
-    void *y_data             = result_ptr->storage()->data();
+    const void *x_data        = mat.storage()->data();
+    void *y_data              = result_ptr->storage()->data();
     const size_t num_elements = mat.elements();
 
     if (mat.dtype() == DataType::kFloat32)
@@ -140,16 +140,16 @@ std::unique_ptr<Mat> silu(const OriginMat &mat, OriginMat *out)
         const size_t threads_per_block   = 256;
         const size_t vectorized_elements = (num_elements + VECTOR_SIZE - 1) / VECTOR_SIZE;
         const size_t num_blocks          = (vectorized_elements + threads_per_block - 1) / threads_per_block;
-        silu_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(
-            static_cast<const float *>(x_data), static_cast<float *>(y_data), num_elements);
+        silu_vectorized_float4_kernel<<<num_blocks, threads_per_block>>>(static_cast<const float *>(x_data),
+                                                                         static_cast<float *>(y_data), num_elements);
     }
     else
     {
         const size_t threads_per_block = 256;
         const size_t num_blocks        = (num_elements + threads_per_block - 1) / threads_per_block;
         device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-            silu_native_kernel<T><<<num_blocks, threads_per_block>>>(
-                static_cast<const T *>(x_data), static_cast<T *>(y_data), num_elements);
+            silu_native_kernel<T><<<num_blocks, threads_per_block>>>(static_cast<const T *>(x_data),
+                                                                     static_cast<T *>(y_data), num_elements);
         });
     }
 
@@ -169,11 +169,11 @@ std::unique_ptr<Mat> silu_backward(const OriginMat &gy, const OriginMat &x)
         THROW_INVALID_ARG("silu_backward: gy and x must have same shape and dtype");
     }
 
-    auto result   = std::make_unique<OriginMat>(gy.shape(), gy.dtype(), gy.device());
+    auto result         = std::make_unique<OriginMat>(gy.shape(), gy.dtype(), gy.device());
     const void *gy_data = gy.storage()->data();
     const void *x_data  = x.storage()->data();
-    void *gx_data      = result->storage()->data();
-    const size_t n     = gy.elements();
+    void *gx_data       = result->storage()->data();
+    const size_t n      = gy.elements();
 
     const size_t threads_per_block = 256;
     const size_t num_blocks        = (n + threads_per_block - 1) / threads_per_block;
@@ -187,4 +187,3 @@ std::unique_ptr<Mat> silu_backward(const OriginMat &gy, const OriginMat &x)
 
 }  // namespace cuda
 }  // namespace origin
-

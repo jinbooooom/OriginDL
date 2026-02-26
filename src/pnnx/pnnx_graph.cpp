@@ -62,7 +62,8 @@ bool PNNXGraph::init()
 
 // build：完整构建计算图。顺序为 init -> topological_sort -> 为每节点创建 Operator。
 // topological_sort 会建立节点间的连接关系（通过构建邻接表）并确定执行顺序。
-// 调用后 graph_state_ 为 Complete，方可 set_inputs/forward/get_outputs（yolov5_infer 中在 build 后即设置输入并 forward）。
+// 调用后 graph_state_ 为 Complete，方可 set_inputs/forward/get_outputs（yolov5_infer 中在 build 后即设置输入并
+// forward）。
 void PNNXGraph::build()
 {
     if (graph_state_ == GraphState::Complete)
@@ -195,8 +196,8 @@ void PNNXGraph::topological_sort()
     // 不更新 nodes_，保持原始顺序，只在执行时使用 sorted_nodes
 }
 
-// 用户调用 set_inputs("pnnx_input_0", {input}) 时进入。将 inputs 写入输入节点的 output_tensors，并传播到所有下游的 input_tensors。
-// yolov5_infer 中 input 为预处理后的 batch tensor，形状如 [N,C,H,W]。
+// 用户调用 set_inputs("pnnx_input_0", {input}) 时进入。将 inputs 写入输入节点的 output_tensors，并传播到所有下游的
+// input_tensors。 yolov5_infer 中 input 为预处理后的 batch tensor，形状如 [N,C,H,W]。
 // 注意：输入节点（pnnx.Input）是特殊节点：input_count=0（input_names 为空）
 // 不参与拓扑排序和执行，其 output_tensors 由用户通过本函数直接设置。
 void PNNXGraph::set_inputs(const std::string &input_name, const std::vector<Tensor> &inputs)
@@ -315,7 +316,8 @@ void PNNXGraph::forward()
             }
             else
             {
-                // 从上游节点获取输出（output_name_map_ 需在 build 后调用 build_output_name_map 填充才生效，否则下面会查不到而依赖后续遍历）
+                // 从上游节点获取输出（output_name_map_ 需在 build 后调用 build_output_name_map
+                // 填充才生效，否则下面会查不到而依赖后续遍历）
                 auto output_it = output_name_map_.find(input_name);
                 if (output_it != output_name_map_.end())
                 {
@@ -331,7 +333,8 @@ void PNNXGraph::forward()
             }
         }
 
-        // 带权重的算子：从 node->attributes 取 weight/bias（由 PNNXParser::load_weights 从 .bin 加载），转为 Tensor 并拼到 input_tensors
+        // 带权重的算子：从 node->attributes 取 weight/bias（由 PNNXParser::load_weights 从 .bin 加载），转为 Tensor
+        // 并拼到 input_tensors
         if (node->type == "nn.Conv2d" || node->type == "nn.Linear")
         {
             // Conv2d/Linear 的 op 接口需要 (x, weight, [bias])，这里把 attributes 里的权重注入
@@ -474,7 +477,8 @@ void PNNXGraph::forward()
 
                 logi("Layer name: {}\tlayer type: {}\ttime cost: {}us", node->name, node->type, duration.count());
 
-                // 将本节点 output_tensors 按 output_names 写入所有下游的 input_tensors（含 pnnx.Output，即最终模型输出）
+                // 将本节点 output_tensors 按 output_names 写入所有下游的 input_tensors（含
+                // pnnx.Output，即最终模型输出）
                 auto propagate_start = std::chrono::high_resolution_clock::now();
                 propagate_outputs(node);
                 auto propagate_end = std::chrono::high_resolution_clock::now();
@@ -523,8 +527,8 @@ void PNNXGraph::forward()
 // 用户调用 get_outputs("pnnx_output_0") 时进入。输出节点类型为 pnnx.Output，其 input_names 指向上游；
 // 返回的即这些上游的 output_tensors（forward 中已通过 propagate_outputs 写入 output_node->input_tensors）。
 // yolov5_infer 中 outputs[0] 为检测头结果，形状如 [N, num_boxes, 5+num_classes]，后续做阈值与 NMS。
-// 注意：输出节点（pnnx.Output）是特殊节点：input_count>=1（有 input_names，指向上游输出），output_count=0（output_names 为空），
-// 不参与拓扑排序和执行，没有对应的 Operator（op 为空），其 input_tensors 由上游节点的 propagate_outputs 填充。
+// 注意：输出节点（pnnx.Output）是特殊节点：input_count>=1（有 input_names，指向上游输出），output_count=0（output_names
+// 为空）， 不参与拓扑排序和执行，没有对应的 Operator（op 为空），其 input_tensors 由上游节点的 propagate_outputs 填充。
 std::vector<Tensor> PNNXGraph::get_outputs(const std::string &output_name) const
 {
     logi("Getting outputs for: {}", output_name);
@@ -585,7 +589,7 @@ std::vector<Tensor> PNNXGraph::get_outputs(const std::string &output_name) const
                     }
                 }
             }
-            if (found) 
+            if (found)
             {
                 break;
             }
@@ -683,7 +687,8 @@ void PNNXGraph::propagate_outputs(std::shared_ptr<PNNXNode> node)
     }
 }
 
-// 建立 输出张量名 -> (产生该输出的节点, 输出索引)，forward 收集输入时可据此快速查上游，避免全图遍历（若未调用则 forward 内会退化为遍历 nodes_ 查找）
+// 建立 输出张量名 -> (产生该输出的节点, 输出索引)，forward 收集输入时可据此快速查上游，避免全图遍历（若未调用则 forward
+// 内会退化为遍历 nodes_ 查找）
 void PNNXGraph::build_output_name_map()
 {
     output_name_map_.clear();

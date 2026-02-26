@@ -44,8 +44,8 @@ public:
 
             if (output_requires_grad)
             {
-                // 这里 output 的 generation_ 会被设置为当前 Operator 的 generation_ + 1 以及引用当前 Operator 的 shared_ptr
-                // 这样在 backward() 时，可以找到当前 Operator 以及正确的计算图拓扑顺序
+                // 这里 output 的 generation_ 会被设置为当前 Operator 的 generation_ + 1 以及引用当前 Operator 的
+                // shared_ptr 这样在 backward() 时，可以找到当前 Operator 以及正确的计算图拓扑顺序
                 output.set_creator(shared_from_this());
             }
         }

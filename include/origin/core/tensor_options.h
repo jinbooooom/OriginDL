@@ -87,8 +87,8 @@ public:
     }
 
 private:
-    DataType dtype_ = DataType::kFloat32;
-    Device device_  = Device(DeviceType::kCPU);
+    DataType dtype_     = DataType::kFloat32;
+    Device device_      = Device(DeviceType::kCPU);
     bool requires_grad_ = false;  // 默认 false，与 PyTorch 一致
 };
 
