@@ -2388,8 +2388,7 @@ classDiagram
         +forward(debug) void
         +get_outputs(name) vector~Tensor~
         -init() bool
-        -create_node_relations() void
-        -topological_sort() void
+        -topological_sort() void<br/>(建立连接关系并确定执行顺序)
     }
     
     class PNNXNode {
@@ -2432,129 +2431,244 @@ classDiagram
 - **映射关系**：`OperatorMapper` 将 PNNX 算子类型映射到 OriginDL `Operator`
 - **执行关系**：`PNNXNode` 持有 `Operator` 引用，执行推理时调用 `Operator::forward()`
 
-## 10.2 PNNX 格式与静态图架构
+## 10.2 PNNX 模型文件结构（.param / .bin）
 
-PNNX 是 PyTorch 的模型导出格式，采用静态图设计，将模型结构（`.param`）和权重数据（`.bin`）分离存储。这种设计实现了**模型结构序列化**与**权重数据分离**的架构优势。
+PNNX 将模型拆分为两个文件：
 
-**静态图与动态图的架构对比：**
+- `.param`：描述**静态计算图结构**和元信息（算子类型、节点名、输入输出 blob 名、参数 `key=value`、属性 `@key=`、形状 `#key=`）。
+- `.bin`：以 zip 形式存储所有 `Attribute` 数据（权重、常量张量等），按 `node_name.attr_name` 命名。
 
-| 特性 | 动态图（OriginDL 训练） | 静态图（PNNX 推理） |
-|------|----------------------|-------------------|
-| **图构建时机** | 运行时动态构建 | 导出时预构建 |
-| **图结构** | 每次前向传播重新构建 | 固定结构，一次构建 |
-| **拓扑排序** | 每次反向传播都需要 | 构建时完成，推理时直接使用 |
-| **内存开销** | 需要维护计算图元数据 | 仅维护节点连接关系 |
-| **适用场景** | 训练（灵活、易调试） | 推理（高效、易部署） |
+```mermaid
+flowchart LR
+    subgraph Files["PNNX 模型文件"]
+        Param[".param<br/>图结构 + 参数/属性元信息"]
+        Bin[".bin<br/>权重/常量张量数据 (zip)"]
+    end
 
-**设计优势：**
-- **性能优势**：推理时无需构建计算图，拓扑排序一次完成，执行效率高
-- **部署优势**：模型结构序列化，支持跨平台推理，无需 Python 环境
-- **内存优势**：静态图结构固定，内存占用可预测，适合资源受限场景
+    subgraph Parser["PNNXParser 解析流程"]
+        ParseParam["parse_param_file()<br/>逐行解析算子行"]
+        ParseLine["parse_operator_line()<br/>type/name/in,out<br/>input_names/output_names<br/>params/@attrs/#shapes"]
+        LoadWeights["load_weights()<br/>StoreZipReader<br/>node.name + '.' + attr_name"]
+    end
 
-## 10.3 PNNXGraph 的架构设计
+    subgraph Nodes["PNNXNode 列表"]
+        Node["PNNXNode<br/>type/name/input_names/output_names<br/>params/attributes/shapes"]
+    end
 
-PNNXGraph 是 PNNX 推理的核心类，采用**解析-构建-推理分离**的架构设计。图状态管理确保推理流程的正确性：`NeedInit` → `NeedBuild` → `Complete`。
+    Param --> ParseParam --> ParseLine --> Node
+    Bin --> LoadWeights --> Node
+```
 
-**设计理念：**
-- **状态管理**：通过 `GraphState` 枚举管理图的生命周期，确保操作顺序正确
-- **延迟构建**：`build()` 方法延迟到首次推理前执行，支持多次推理复用
-- **拓扑排序**：构建时完成拓扑排序，确定节点执行顺序，推理时直接按序执行
+### 10.2.1 `.param` 中一行算子的通用结构
 
-**推理流程架构：**
+一行算子大致形如：
+
+```text
+[type] [name] [input_count] [output_count] [input_blobs...] [output_blobs...] [key=value...]
+```
+
+- `type`：算子类型（如 `pnnx.Input`, `nn.Conv2d`, `pnnx.Expression`, `nn.MaxPool2d`）。
+- `name`：节点名，对应 `PNNXNode::name`，在 `node_map_` 和 .bin 中使用。
+- `input_count` / `output_count`：输入 / 输出 blob 数量。
+- `input_blobs` / `output_blobs`：以**张量名（边名）**标识的连接关系；下游节点在 `input_names` 中引用这些名字。
+- 普通 `key=value`：解析到 `node->params`，如 `stride=(2,2)`、`bias=True`。
+- `@key=...f32`：解析到 `node->attributes[key]`，仅写入 `shape` 与 `type`，数据在 `.bin` 中。
+- `#idx=(...)f32`：解析到 `node->shapes[idx]`，记录形状信息。
+
+### 10.2.2 常见算子行解析
+
+以 YOLOv5 的开头几行为例：
+
+```text
+7767517
+142 141
+pnnx.Input               pnnx_input_0             0 1 0 #0=(4,3,320,320)f32
+nn.Conv2d                model.0.conv             1 1 0 1 bias=True dilation=(1,1) groups=1 in_channels=3 kernel_size=(6,6) out_channels=16 padding=(2,2) padding_mode=zeros stride=(2,2) @bias=(16)f32 @weight=(16,3,6,6)f32 #0=(4,3,320,320)f32 #1=(4,16,160,160)f32
+nn.SiLU                  model.0.act              1 1 1 2 #1=(4,16,160,160)f32 #2=(4,16,160,160)f32
+```
+
+- `7767517`：PNNX/NCNN 的 magic number，用来校验 `.param` 文件格式是否正确，`PNNXParser::parse_param_file` 会先验证这一行。
+- `142 141`：第一列 142 是算子（layer/operator）数量，也就是后续要读取的算子行数；第二列 141 是 blob/operand 总数（整个图中张量的数量），当前实现只读出不使用，保持与 PNNX 格式兼容。
+
+- `pnnx.Input`：图入口节点，`name=pnnx_input_0`，无输入，1 个输出 blob 名为 `0`，`#0` 给出输入 batch 的 shape。示例代码中 `set_inputs("pnnx_input_0", {input})` 即把用户 Tensor 绑定到这里。
+- `nn.Conv2d model.0.conv`：1 个输入 blob `0`，1 个输出 blob `1`；卷积参数（stride、padding 等）进 `params`；`@weight/@bias` 的形状进 `attributes`，数据在 `.bin`。
+- `nn.SiLU model.0.act`：1 输入 1 输出，输入 blob 为 `1`，输出 blob 为 `2`；只携带形状信息，无权重。
+
+再看两类在 YOLOv5 中常见的行（简化自 `yolov5n_small.pnnx.param`）：
+
+```text
+pnnx.Expression          pnnx_expr_24             2 1 6 10 11 expr=add(@0,@1) #6=(4,16,80,80)f32 #10=(4,16,80,80)f32 #11=(4,16,80,80)f32
+
+nn.MaxPool2d             model.9.m                1 1 75 76 ceil_mode=False dilation=(1,1) kernel_size=(5,5) padding=(2,2) return_indices=False stride=(1,1) #75=(4,128,10,10)f32 #76=(4,128,10,10)f32
+```
+
+- **`pnnx.Expression`**  
+  - `input_count=2, output_count=1`，输入 blob 名为 `6` 和 `10`，输出 blob 名为 `11`。  
+  - `expr=add(@0,@1)` 存在于 `params["expr"]`，表示输出是两个输入逐元素相加；`OperatorMapper` 看到这个表达式会选择 `Add` 等对应算子。  
+  - `#6/#10/#11` 只是为输入、输出张量记录 shape（推理时可以不依赖这些 shape 做执行）。
+
+- **`nn.MaxPool2d`**  
+  - `1 1 75 76`：1 个输入 blob `75`，1 个输出 blob `76`，二者 shape 相同（池化核为 5×5 且 stride=1 时，只改变局部值、不改变空间尺寸）。  
+  - `kernel_size/stride/padding/...` 进入 `params`，由 `OperatorMapper::create_max_pool2d` 读取构造 MaxPool 算子。  
+  - 无 `@weight` 属性，因为 MaxPool2d 无可学习权重。
+
+这些 `.param` 行在解析后都会变成一个个 `PNNXNode`，其 `type/name/input_names/output_names/params/attributes/shapes` 与上面字段一一对应。
+
+关于 PNNX param 的格式，更多细节参考：
+- https://github.com/Tencent/ncnn/wiki/param-and-model-file-structure
+- https://github.com/Tencent/ncnn/wiki/operation-param-weight-table
+
+## 10.3 PNNXGraph 的构建与推理流程
+
+PNNXGraph 负责把上面解析出的 `PNNXNode` 列表组织成可执行的静态图，生命周期通过 `GraphState` 管理：
+
+```mermaid
+flowchart LR
+    New["构造 PNNXGraph(param, bin)"]
+    NeedInit["GraphState::NeedInit"]
+    NeedBuild["GraphState::NeedBuild"]
+    Complete["GraphState::Complete"]
+
+    New --> NeedInit
+    NeedInit --> NeedBuild
+    NeedBuild --> Complete
+    Complete --> Complete
+```
+
+完整推理时序如下（与 YOLOv5 示例代码对应）：
 
 ```mermaid
 sequenceDiagram
-    participant User as 用户代码
+    participant User as 用户代码<br/>(example_yolov5)
     participant Graph as PNNXGraph
     participant Parser as PNNXParser
     participant Mapper as OperatorMapper
     participant Node as PNNXNode
     participant Op as Operator
     
-    User->>Graph: new PNNXGraph(param, bin)
+    User->>Graph: PNNXGraph(param_path, bin_path)
     User->>Graph: build()
     Graph->>Parser: parse(param, bin)
-    Parser-->>Graph: nodes_
-    Graph->>Graph: create_node_relations()
-    Graph->>Graph: topological_sort()
-    Graph->>Mapper: create_operator(node)
-    Mapper-->>Graph: op
-    Graph->>Node: node->op = op
-    
-    User->>Graph: set_inputs(name, inputs)
-    Graph->>Node: 设置 input_tensors
-    
-    User->>Graph: forward()
-    loop 按 execution_order 执行
-        Graph->>Node: 收集 input_tensors
-        Node->>Op: forward(inputs)
-        Op-->>Node: outputs
-        Node->>Graph: 设置 output_tensors
-        Graph->>Graph: propagate_outputs()
+    Parser-->>Graph: nodes_ (vector<PNNXNode>)
+    Graph->>Graph: topological_sort()<br/>(建立连接关系并设置 execution_order)
+    loop 对每个非 Input/Output 节点
+        Graph->>Mapper: create_operator(node)
+        Mapper-->>Graph: shared_ptr<Operator>
+        Graph->>Node: node->op = Operator
     end
     
-    User->>Graph: get_outputs(name)
+    User->>Graph: set_inputs("pnnx_input_0", {input})
+    Graph->>Node: input_node->output_tensors = inputs
+    Graph->>Graph: propagate_outputs(input_node)
+    
+    User->>Graph: forward(debug)
+    loop 按 execution_order 遍历节点
+        Graph->>Node: 收集 input_tensors<br/>(含权重注入)
+        Node->>Op: (*op)(input_tensors)
+        Op-->>Node: output_tensors
+        Graph->>Graph: propagate_outputs(node)
+    end
+    
+    User->>Graph: get_outputs("pnnx_output_0")
     Graph-->>User: output_tensors
 ```
 
-## 10.4 PNNXNode 的架构设计
+## 10.4 PNNXNode 的运行时数据流
 
-PNNXNode 是静态图的基本单元，封装了算子信息、连接关系、参数权重和运行时数据。这种设计实现了**结构信息**与**运行时数据**的分离。
-
-**节点职责：**
-- **算子封装**：通过 `type` 标识算子类型，通过 `op` 持有 OriginDL Operator
-- **连接管理**：通过 `input_names` 和 `output_names` 描述节点间的连接关系
-- **参数管理**：通过 `params` 存储算子参数（如 stride、padding），通过 `attributes` 存储权重数据
-- **运行时数据**：通过 `input_tensors` 和 `output_tensors` 存储推理时的 Tensor
-
-**节点与 Operator 的关系：** PNNXNode 持有 `Operator` 的 `shared_ptr` 引用，在推理时调用 `Operator::forward()` 执行计算。这种设计实现了 PNNX 格式与 OriginDL 算子的解耦：PNNXNode 负责结构管理，Operator 负责计算逻辑。
+PNNXNode 将 `.param` / `.bin` 中的静态信息与推理时的 Tensor 关联起来：
 
 ```mermaid
 flowchart TB
-    subgraph PNNXNode["PNNXNode"]
-        Type["type: 算子类型<br/>nn.Conv2d, nn.Linear"]
-        Params["params: 算子参数<br/>stride, padding"]
-        Attrs["attributes: 权重数据<br/>weight, bias"]
-        Op["op: Operator 引用"]
+    subgraph Static["静态信息（来自 .param/.bin）"]
+        Name["name/type"]
+        IO["input_names / output_names"]
+        Params["params<br/>stride, padding, expr 等"]
+        Attrs["attributes<br/>weight/bias/strides 等<br/>shape + data"]
+        Shapes["shapes[#idx]<br/>形状信息"]
     end
-    
-    subgraph Operator["Operator"]
-        Forward["forward(inputs)"]
+
+    subgraph Runtime["运行时（forward 期间）"]
+        Inputs["input_tensors<br/>key = input_name"]
+        Outputs["output_tensors<br/>vector<Tensor>"]
+        Order["execution_order<br/>拓扑排序结果"]
+        OpNode["op: shared_ptr<Operator>"]
     end
-    
-    Type --> Mapper["OperatorMapper"]
-    Params --> Mapper
-    Attrs --> Mapper
-    Mapper --> Op
-    Op --> Forward
+
+    Name --> OpNode
+    IO --> Inputs
+    IO --> Outputs
+    Params --> OpNode
+    Attrs --> OpNode
+    Shapes --> OpNode
 ```
 
-## 10.5 算子映射架构
+在 `forward()` 中，每个节点的执行大致如下：
 
-OperatorMapper 将 PNNX 算子类型映射到 OriginDL Operator，实现了**格式转换**与**参数适配**的统一。映射机制采用工厂模式，根据算子类型创建对应的 Operator。
+```mermaid
+flowchart LR
+    Collect["收集输入<br/>根据 input_names 在 input_tensors / 上游 output_tensors 中查找"]
+    Inject["注入权重/常量<br/>从 attributes 取 weight/bias/anchors 等<br/>构造成 Tensor 拼到输入列表"]
+    CallOp["调用 Operator<br/>node->output_tensors = (*op)(inputs)"]
+    Prop["传播输出<br/>propagate_outputs()<br/>写入下游 input_tensors"]
 
-**映射机制：**
+    Collect --> Inject --> CallOp --> Prop
+```
 
-| PNNX 算子 | OriginDL Operator | 参数转换 |
-|-----------|-------------------|----------|
-| nn.Conv2d | Conv2d | stride, padding → Conv2dOp |
-| nn.SiLU | SiLU | 无参数 |
-| nn.ReLU | ReLU | 无参数 |
-| nn.AdaptiveAvgPool2d | AdaptiveAvgPool2d | output_size → AdaptiveAvgPool2dOp |
-| torch.flatten | Flatten | start_dim, end_dim → FlattenOp |
-| nn.Linear | Linear (custom) | weight, bias → LinearOp |
-| nn.Upsample | Upsample | scale_factor, mode → UpsampleOp |
-| nn.MaxPool2d | MaxPool2d | kernel_size, stride → MaxPool2dOp |
-| pnnx.Expression | Add, Mul 等 | expression → 对应 Operator |
-| torch.cat | Cat | dim → CatOp |
-| models.yolo.Detect | YOLO Detect | 自定义参数 → YOLO DetectOp |
+## 10.5 算子映射与权重加载
 
-**权重加载机制：** OperatorMapper 从 `Attribute` 中读取权重数据（shape 和 data），构造 OriginDL Tensor，并注册到 Operator。这种设计实现了权重数据的格式转换：PNNX 的 float 数组 → OriginDL Tensor。
+OperatorMapper 独立承担“PNNX 算子类型 → OriginDL Operator”的映射，并负责将 `Attribute` 中的张量数据转换为 OriginDL 的 `Tensor`：
 
-**设计优势：**
-- **类型安全**：通过类型映射确保算子类型正确
-- **参数适配**：自动转换 PNNX 参数格式到 OriginDL Operator 参数
-- **扩展性**：新增算子只需添加映射函数，无需修改核心逻辑
+```mermaid
+flowchart TB
+    subgraph PNNXNodeSide[PNNXNode 侧]
+        TypeN[type: nn.Conv2d / pnnx.Expression / ...]
+        ParamsN[params: stride, padding, ...]
+        AttrsN[attributes: weight, bias, pnnx_5, ...]
+    end
+
+    subgraph Mapper[OperatorMapper]
+        Decide[根据 type 选择 create_xxx]
+        CreateConv[create_conv2d<br/>读取 stride/padding]
+        CreateExpr[create_expression<br/>解析 expr=add]
+        CreatePool[create_max_pool2d<br/>读取 kernel_size/stride]
+        LoadW[load_weight_tensor<br/>shape+data 转 Tensor]
+    end
+
+    subgraph OperatorSide[OriginDL Operator 侧]
+        OpConv[Conv2dOp]
+        OpExpr[Add / 其他表达式算子]
+        OpPool[MaxPool2dOp]
+    end
+
+    TypeN --> Decide
+    ParamsN --> Decide
+    AttrsN --> LoadW
+    LoadW --> CreateConv
+    LoadW --> CreateExpr
+    LoadW --> CreatePool
+
+    CreateConv --> OpConv
+    CreateExpr --> OpExpr
+    CreatePool --> OpPool
+```
+
+**常见映射一览（节选）：**
+
+| PNNX 算子 | OriginDL Operator | 主要参数来源 |
+|-----------|-------------------|--------------|
+| `nn.Conv2d` | `Conv2d` | `params["stride"]`, `params["padding"]`；`attributes["weight"]`, `attributes["bias"]` |
+| `nn.SiLU` | `SiLU` | 无额外参数 |
+| `nn.ReLU` | `ReLU` | 无额外参数 |
+| `nn.AdaptiveAvgPool2d` | `AdaptiveAvgPool2d` | `params["output_size"]` |
+| `torch.flatten` | `Flatten` | `params["start_dim"]`, `params["end_dim"]` |
+| `nn.Linear` | 自定义 `LinearOp` | `params["in_features"]`, `params["out_features"]`；权重来自 `attributes` |
+| `nn.Upsample` | `Upsample` | `params["scale_factor"]` 或 `params["size"]`, `params["mode"]` |
+| `nn.MaxPool2d` | `MaxPool2d` | `params["kernel_size"]`, `params["stride"]`, `params["padding"]` |
+| `pnnx.Expression` | `Add` / 其他表达式算子 | `params["expr"]`（如 `add(@0,@1)`） |
+| `torch.cat` | `Cat` | `params["dim"]` |
+| `models.yolo.Detect` | 自定义 YOLO Detect 算子 | anchors、strides 等来自多个 `Attribute`（如 `pnnx_5`） |
+
+权重加载部分由 `PNNXParser::load_weights()` 完成：对每个 `node->attributes[key]`，根据 `shape` 计算大小，从 `.bin` zip 中读取对应 `node.name + "." + key` 文件，把 float 数据填入 `attr.data`；在 `forward()` 或 `OperatorMapper::load_weight_tensor()` 中再转换为 OriginDL 的 `Tensor`。
 
 # 11. 应用示例
 

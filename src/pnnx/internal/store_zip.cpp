@@ -1,4 +1,3 @@
-// StoreZipReader 实现
 #include "origin/pnnx/internal/store_zip.hpp"
 #include <cstdint>
 #include <cstdio>

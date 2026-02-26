@@ -824,7 +824,7 @@ void yolo_demo(const UserCfg &cfg, int batch_size)
 
             // 记录推理开始时间
             auto inference_start_time = std::chrono::high_resolution_clock::now();
-            graph.forward(cfg.debug);
+            graph.forward();
             // 记录推理结束时间
             auto inference_end_time = std::chrono::high_resolution_clock::now();
             auto inference_duration =

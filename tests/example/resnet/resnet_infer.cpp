@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
     // 推理
     logi("Running inference...");
     auto start_time = std::chrono::high_resolution_clock::now();
-    graph.forward(false);
+    graph.forward();
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
     logi("Forward time: {:.3f}s", duration.count() / 1000.0);

@@ -1,4 +1,3 @@
-// 简化的 PNNX 解析器实现
 #include "origin/pnnx/pnnx_parser.h"
 #include <algorithm>
 #include <cstring>
@@ -18,14 +17,14 @@ namespace origin
 namespace pnnx
 {
 
+// PNNX 模型文件解析：.param 描述图结构/形状/属性元信息，.bin 存权重。由 PNNXGraph::init() 调用 parse()。
+// 入口：先解析 param 得到节点列表（含 pnnx.Input、pnnx.Output 及所有算子），再按节点 attributes 从 bin 加载权重到 data
 std::vector<std::shared_ptr<PNNXNode>> PNNXParser::parse(const std::string &param_path, const std::string &bin_path)
 {
     std::vector<std::shared_ptr<PNNXNode>> nodes;
 
-    // 解析 .param 文件
     parse_param_file(param_path, nodes);
 
-    // 解析 .bin 文件加载权重
     if (!bin_path.empty())
     {
         load_weights(bin_path, nodes);
@@ -34,6 +33,9 @@ std::vector<std::shared_ptr<PNNXNode>> PNNXParser::parse(const std::string &para
     return nodes;
 }
 
+// param 格式：首行 magic 7767517；第二行 operator_count operand_count；之后每行一个算子（见 parse_operator_line）
+// 更多格式参考 https://github.com/Tencent/ncnn/wiki/param-and-model-file-structure
+// https://github.com/Tencent/ncnn/wiki/operation-param-weight-table
 void PNNXParser::parse_param_file(const std::string &param_path, std::vector<std::shared_ptr<PNNXNode>> &nodes)
 {
     std::ifstream file(param_path);
@@ -42,7 +44,6 @@ void PNNXParser::parse_param_file(const std::string &param_path, std::vector<std
         THROW_RUNTIME_ERROR("Failed to open param file: {}", param_path);
     }
 
-    // 读取 magic number
     std::string line;
     std::getline(file, line);
     // 去除前后空白字符
@@ -64,18 +65,16 @@ void PNNXParser::parse_param_file(const std::string &param_path, std::vector<std
         THROW_RUNTIME_ERROR("Failed to parse magic number: '{}', error: {}", line, e.what());
     }
 
-    if (magic != 7767517)
+    if (magic != 7767517) // PNNX 的 magic number
     {
         THROW_RUNTIME_ERROR("Invalid PNNX param file, magic number: {}", magic);
     }
 
-    // 读取算子数量和操作数数量
     std::getline(file, line);
     std::istringstream iss(line);
     int operator_count, operand_count;
     iss >> operator_count >> operand_count;
 
-    // 解析每个算子
     for (int i = 0; i < operator_count; ++i)
     {
         std::getline(file, line);
@@ -88,11 +87,12 @@ void PNNXParser::parse_param_file(const std::string &param_path, std::vector<std
     }
 }
 
+// 每行格式：type name input_count output_count [input_names...] [output_names...] [@attr=...] [#shape=...] [param=...]
+// 例如 pnnx.Input 的 #0=(4,3,640,640)f32 即输入形状，yolov5_infer 中解析输入尺寸即用同一格式
 void PNNXParser::parse_operator_line(const std::string &line, std::shared_ptr<PNNXNode> &node)
 {
     std::istringstream iss(line);
 
-    // 读取基本字段：type name input_count output_count
     std::string type, name;
     int input_count, output_count;
     iss >> type >> name >> input_count >> output_count;
@@ -116,14 +116,13 @@ void PNNXParser::parse_operator_line(const std::string &line, std::shared_ptr<PN
         node->output_names.push_back(output_name);
     }
 
-    // 解析参数和属性
+    // 行内 key=value：@ 为属性（权重，shape 在此解析，data 在 load_weights 从 bin 读）；# 为形状；其余为参数
     std::string token;
     while (iss >> token)
     {
         if (token.empty())
             continue;
 
-        // 解析 key=value 格式
         size_t eq_pos = token.find('=');
         if (eq_pos == std::string::npos)
             continue;
@@ -133,18 +132,15 @@ void PNNXParser::parse_operator_line(const std::string &line, std::shared_ptr<PN
 
         if (key[0] == '@')
         {
-            // 属性（权重）：@weight=(32,3,6,6)f32
-            parse_attribute(key.substr(1), value, node);
+            parse_attribute(key.substr(1), value, node);  // @weight=(32,3,6,6)f32 -> attributes["weight"].shape
         }
         else if (key[0] == '#')
         {
-            // 形状信息：#0=(8,3,640,640)f32
-            parse_shape(key, value, node);
+            parse_shape(key, value, node);  // #0=(8,3,640,640)f32 -> shapes[0]
         }
         else
         {
-            // 参数：bias=True, stride=(2,2) 等
-            parse_parameter(key, value, node);
+            parse_parameter(key, value, node);  // stride=(2,2), bias=True 等 -> params
         }
     }
 }
@@ -236,11 +232,11 @@ void PNNXParser::parse_parameter(const std::string &key, const std::string &valu
     node->params[key] = param;
 }
 
+// 解析 @key=value：得到 attr.shape 与 type，data 留空，由 load_weights 从 .bin 按 node+attr 顺序读入
 void PNNXParser::parse_attribute(const std::string &key, const std::string &value, std::shared_ptr<PNNXNode> &node)
 {
     Attribute attr;
 
-    // 解析形状：@weight=(32,3,6,6)f32
     size_t shape_end = value.find(')');
     if (shape_end != std::string::npos)
     {
@@ -248,20 +244,18 @@ void PNNXParser::parse_attribute(const std::string &key, const std::string &valu
         attr.shape            = parse_shape_string(shape_str);
     }
 
-    // 类型：f32
     if (value.find("f32") != std::string::npos)
     {
         attr.type = 1;
     }
 
-    // 权重数据将在 load_weights 中加载
-
     node->attributes[key] = attr;
 }
 
+// #key=value 解析为 node->shapes[索引]，如 #0=(8,3,640,640)f32 -> shapes[0]=[8,3,640,640]
+// yolov5_infer 里 get_input_shape_from_param_file 解析的 #0=(...) 格式与本函数一致
 void PNNXParser::parse_shape(const std::string &key, const std::string &value, std::shared_ptr<PNNXNode> &node)
 {
-    // #0=(8,3,640,640)f32
     size_t shape_start = value.find('(');
     size_t shape_end   = value.find(')');
 
@@ -315,6 +309,11 @@ std::vector<int> PNNXParser::parse_shape_string(const std::string &shape_str)
     return shape;
 }
 
+// .bin 为 store-only zip：每个 Attribute 对应 zip 里的一个独立文件，文件名为 "node_name.attr_key"。
+// 这里不按 .param 中出现的顺序顺读，而是：
+// 1) 先在 open() 时由 StoreZipReader 扫描 zip 目录，记录每个文件的 offset/size；
+// 2) load_weights 按节点和 attributes 遍历，按 node->name + "." + key 构造文件名；
+// 3) 通过 get_file_size()/read_file() 在内部根据 offset 精确定位并一次性读出该 Attribute 的连续数据到 attr.data。
 void PNNXParser::load_weights(const std::string &bin_path, std::vector<std::shared_ptr<PNNXNode>> &nodes)
 {
     using namespace origin::pnnx::internal;
@@ -326,7 +325,6 @@ void PNNXParser::load_weights(const std::string &bin_path, std::vector<std::shar
         return;
     }
 
-    // 遍历所有节点，加载权重数据
     for (auto &node : nodes)
     {
         // 遍历节点的所有属性（权重）
