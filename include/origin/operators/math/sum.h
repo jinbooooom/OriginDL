@@ -14,7 +14,7 @@ public:
     int axis_;      // 对那个轴求和
     bool keepdim_;  // 是否保持维度
 
-    Shape x_shape_;  // 输入的形状
+    // Shape x_shape_;  // 输入的形状
     Sum() : axis_(-1), keepdim_(false){};
     Sum(const int axis, bool keepdim = false) : axis_(axis), keepdim_(keepdim){};
 

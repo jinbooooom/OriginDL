@@ -461,7 +461,7 @@ Tensor input = create_test_input(device, 1, 3, input_h, input_w);
 Tensor input = preprocess_image(cv_image, device, input_h, input_w);
 
 graph.set_inputs("pnnx_input_0", {input});
-graph.forward(false);
+graph.forward();
 auto outputs = graph.get_outputs("pnnx_output_0");
 // 后处理：解析检测框、NMS、绘制等，见源码 process_and_save_detection
 ```

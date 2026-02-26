@@ -214,7 +214,7 @@ public:
     std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size,
                                     std::pair<int, int> stride,
                                     std::pair<int, int> pad,
-                                    std::vector<size_t> &indices) const override;
+                                    std::vector<size_t> *indices = nullptr) const override;
 
     /**
      * @brief max_pool2d_backward：最大池化反向传播
@@ -425,6 +425,10 @@ public:
     void exp_inplace() override;
     std::unique_ptr<Mat> relu() const override;
     void relu_inplace() override;
+    std::unique_ptr<Mat> sigmoid() const override;
+    std::unique_ptr<Mat> sigmoid_backward(const Mat &y) const override;
+    std::unique_ptr<Mat> silu() const override;
+    std::unique_ptr<Mat> silu_backward(const Mat &x) const override;
     std::unique_ptr<Mat> log() const override;
     void log_inplace() override;
     std::unique_ptr<Mat> sin() const override;

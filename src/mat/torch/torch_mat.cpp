@@ -706,6 +706,26 @@ void TorchMat::relu_inplace()
     THROW_RUNTIME_ERROR("TorchMat::relu_inplace is not implemented yet.");
 }
 
+std::unique_ptr<Mat> TorchMat::sigmoid() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::sigmoid is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::sigmoid_backward(const Mat &y) const
+{
+    THROW_RUNTIME_ERROR("TorchMat sigmoid_backward is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::silu() const
+{
+    THROW_RUNTIME_ERROR("TorchMat::silu is not implemented yet.");
+}
+
+std::unique_ptr<Mat> TorchMat::silu_backward(const Mat &x) const
+{
+    THROW_RUNTIME_ERROR("TorchMat silu_backward is not implemented yet.");
+}
+
 void TorchMat::neg_inplace()
 {
     tensor_.neg_();

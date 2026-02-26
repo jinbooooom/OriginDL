@@ -157,13 +157,27 @@ Device Tensor::device() const
 Tensor Tensor::to(DataType target_type) const
 {
     auto converted_mat = impl_->data_->to(target_type);
-    return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
+    // 保留原 tensor 的 requires_grad 属性
+    return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat), impl_->requires_grad_));
 }
 
 Tensor Tensor::to(Device device) const
 {
+    if (!impl_)
+    {
+        THROW_RUNTIME_ERROR("Tensor::to(Device): impl_ is null");
+    }
+    if (!impl_->data_)
+    {
+        THROW_RUNTIME_ERROR("Tensor::to(Device): impl_->data_ is null");
+    }
     auto converted_mat = impl_->data_->to_device(device);
-    return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat)));
+    if (!converted_mat)
+    {
+        THROW_RUNTIME_ERROR("Tensor::to(Device): converted_mat is null after to_device()");
+    }
+    // 保留原 tensor 的 requires_grad 属性
+    return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat), impl_->requires_grad_));
 }
 
 Tensor Tensor::to(const TensorOptions &options) const
@@ -203,17 +217,21 @@ void Tensor::clear_grad()
 
 bool Tensor::requires_grad() const
 {
-    // TODO: jinbo 当前的origindl不支持requires_grad=false，所以默认是true，未来支持后，需要修改
-    return true;  // Config::enable_backprop && impl_ && impl_->creator_ != nullptr;
+    // 与 PyTorch 一致：只返回 tensor 的 requires_grad 属性
+    // 不考虑 Config::enable_backprop（全局开关）和 creator_（计算图状态）
+    if (!impl_)
+    {
+        return false;
+    }
+    return impl_->requires_grad_;
 }
 
 Tensor Tensor::detach() const
 {
     // 创建一个新的TensorImpl，只复制data_，不复制creator_和grad_
-    // 这样新tensor就不会参与计算图，可以安全释放
+    // 继承原 tensor 的 requires_grad_，但不参与计算图（creator_=nullptr）
     // 注意：原始tensor保持不变（因为detach是const方法）
-    // 对于clone().detach()，clone()返回的中间tensor会在超出作用域时自动释放
-    auto new_impl = std::make_shared<TensorImpl>(impl_->data_);
+    auto new_impl = std::make_shared<TensorImpl>(impl_->data_, impl_->requires_grad_);
     return Tensor(new_impl);
 }
 
@@ -221,9 +239,9 @@ Tensor Tensor::clone() const
 {
     // 1. 深拷贝data_（创建独立的数据副本）
     // 2. 不复制grad_（初始化为nullptr，需要重新计算梯度）
-    // 3. 复制creator_和generation_（保留计算图连接，仍可参与梯度计算）
+    // 3. 复制creator_、generation_和requires_grad_（保留计算图连接和属性）
     auto cloned_data = impl_->data_ ? impl_->data_->clone() : nullptr;
-    auto new_impl    = std::make_shared<TensorImpl>(std::move(cloned_data));
+    auto new_impl    = std::make_shared<TensorImpl>(std::move(cloned_data), impl_->requires_grad_);
     // 复制计算图信息
     new_impl->creator_    = impl_->creator_;
     new_impl->generation_ = impl_->generation_;
@@ -262,9 +280,9 @@ Tensor Tensor::transpose() const
 
 Tensor Tensor::contiguous() const
 {
-    // 通过 Mat 接口的 contiguous() 创建连续张量
+    // 通过 Mat 接口的 contiguous() 创建连续张量，继承原 tensor 的 requires_grad
     auto new_mat = impl_->data_->contiguous();
-    return Tensor(std::move(new_mat));
+    return Tensor(std::make_shared<TensorImpl>(std::move(new_mat), impl_->requires_grad_));
 }
 
 // === 调试实现 ===

@@ -90,8 +90,8 @@ TEST_P(DivOperatorTest, ForwardNegativeValues)
 TEST_P(DivOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x0 = Tensor({6.0f, 8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    auto x1 = Tensor({2.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x0 = Tensor({6.0f, 8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x1 = Tensor({2.0f, 4.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::div(x0, x1);
     y.backward();
@@ -110,8 +110,8 @@ TEST_P(DivOperatorTest, BackwardBasic)
 TEST_P(DivOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x0 = Tensor({4.0f, 6.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    auto x1 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x0 = Tensor({4.0f, 6.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x1 = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::div(x0, x1);
     y.backward();
@@ -130,8 +130,8 @@ TEST_P(DivOperatorTest, BackwardWithGradient)
 TEST_P(DivOperatorTest, BackwardDifferentShapes)
 {
     // 测试不同形状的张量除法反向传播
-    auto x0 = Tensor({6.0f, 8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
-    auto x1 = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x0 = Tensor({6.0f, 8.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
+    auto x1 = Tensor({2.0f}, Shape{1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::div(x0, x1);
     y.backward();

@@ -243,8 +243,8 @@ public:
 
     /**
      * @brief 检查 tensor 是否需要梯度计算
-     * @return 如果 tensor 在计算图中（有 creator_）且全局反向传播启用，返回 true
-     * @details 类似 PyTorch 的 tensor.requires_grad 属性
+     * @return tensor 的 requires_grad 属性值
+     * @details 与 PyTorch 一致：只返回 tensor 的属性，不考虑 Config::enable_backprop 和 creator_
      */
     bool requires_grad() const;
 

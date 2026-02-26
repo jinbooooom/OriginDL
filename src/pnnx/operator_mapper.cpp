@@ -1,4 +1,3 @@
-// 简化的算子映射器实现
 #include "origin/pnnx/operator_mapper.h"
 #include <memory>
 #include <string>
@@ -22,6 +21,8 @@ namespace origin
 namespace pnnx
 {
 
+// 将 PNNX 节点类型映射到 origin Operator。PNNXGraph::build() 中对每个计算节点调用 create_operator(node)。
+// 根据 node->type 分发到对应 create_xxx；node->params / node->attributes 已由 PNNXParser 填充
 std::shared_ptr<Operator> OperatorMapper::create_operator(std::shared_ptr<PNNXNode> node)
 {
     const std::string &type = node->type;
@@ -66,7 +67,7 @@ std::shared_ptr<Operator> OperatorMapper::create_operator(std::shared_ptr<PNNXNo
     {
         return create_linear(node);
     }
-    else if (type == "models.yolo.Detect")
+    else if (type == "models.yolo.Detect")  // YOLOv5 检测头，yolov5_infer 最终输出即该节点上游的输出
     {
         return create_yolo_detect(node);
     }
@@ -77,16 +78,14 @@ std::shared_ptr<Operator> OperatorMapper::create_operator(std::shared_ptr<PNNXNo
     }
 }
 
+// 从 node->params 取 stride/padding；weight/bias 在 forward 时从 node->attributes 注入，不在此创建
 std::shared_ptr<Operator> OperatorMapper::create_conv2d(std::shared_ptr<PNNXNode> node)
 {
-    // 从参数中提取 Conv2d 的参数
     auto &params = node->params;
 
-    // 获取参数值
     std::pair<int, int> stride = get_int_pair_param(params, "stride", {1, 1});
     std::pair<int, int> pad    = get_int_pair_param(params, "padding", {0, 0});
 
-    // 创建 Conv2dOp
     return std::make_shared<functional::Conv2dOp>(stride, pad);
 }
 
@@ -282,6 +281,8 @@ Tensor OperatorMapper::load_weight_tensor(const Attribute &attr)
     return Tensor(attr.data, weight_shape, dtype(DataType::kFloat32).device(device));
 }
 
+// YOLOv5 检测头：从 node->attributes 读 pnnx_5(strides) 等，输出为 get_outputs("pnnx_output_0") 取到的那个
+// tensor，yolov5_infer 中再做阈值与 NMS
 std::shared_ptr<Operator> OperatorMapper::create_yolo_detect(std::shared_ptr<PNNXNode> node)
 {
     auto &attrs = node->attributes;

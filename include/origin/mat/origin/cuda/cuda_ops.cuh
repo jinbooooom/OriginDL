@@ -184,6 +184,10 @@ std::unique_ptr<Mat> negate(const origin::OriginMat &mat, origin::OriginMat *out
  * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
 std::unique_ptr<Mat> relu(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> sigmoid(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> sigmoid_backward(const origin::OriginMat &gy, const origin::OriginMat &y);
+std::unique_ptr<Mat> silu(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
+std::unique_ptr<Mat> silu_backward(const origin::OriginMat &gy, const origin::OriginMat &x);
 
 // ============================================================================
 // 原地操作算子
@@ -431,7 +435,7 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
                                 std::pair<int, int> kernel_size,
                                 std::pair<int, int> stride,
                                 std::pair<int, int> pad,
-                                std::vector<size_t> &indices);
+                                std::vector<size_t> *indices = nullptr);
 
 /**
  * @brief CUDA max_pool2d_backward：最大池化反向传播

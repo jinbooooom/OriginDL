@@ -30,12 +30,21 @@ std::vector<Tensor> MaxPool2d::forward(const std::vector<Tensor> &xs)
     // 获取 Mat 引用并调用底层 max_pool2d
     const Mat &x_mat = mat(x);
 
-    // 清空之前的索引
-    indices_.clear();
-    auto result = x_mat.max_pool2d(kernel_size_, stride_, pad_, indices_);
-
-    // 保存索引形状
-    indices_shape_ = x_shape;  // 保存输入形状，用于验证
+    // 根据 requires_grad 决定是否保存索引
+    std::unique_ptr<Mat> result;
+    if (x.requires_grad())
+    {
+        // 需要梯度计算：清空之前的索引并保存新索引用于反向传播
+        indices_.clear();
+        result = x_mat.max_pool2d(kernel_size_, stride_, pad_, &indices_);
+        // 保存索引形状
+        indices_shape_ = x_shape;  // 保存输入形状，用于验证
+    }
+    else
+    {
+        // 不需要梯度计算：不保存索引，节省内存（传入 nullptr）
+        result = x_mat.max_pool2d(kernel_size_, stride_, pad_, nullptr);
+    }
 
     auto y = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
@@ -51,10 +60,10 @@ std::vector<Tensor> MaxPool2d::backward(const std::vector<Tensor> &gys)
     auto &gy = gys[0];
     auto &x  = this->inputs_[0];
 
-    // 验证索引是否存在
+    // 验证索引是否存在（如果 requires_grad=false，indices_ 应该为空，这种情况不应该发生）
     if (unlikely(indices_.empty()))
     {
-        THROW_RUNTIME_ERROR("MaxPool2d backward: indices not found. forward() must be called before backward()");
+        THROW_RUNTIME_ERROR("MaxPool2d backward: indices not found. This should not happen when requires_grad=true");
     }
 
     // 最大池化反向传播原理：

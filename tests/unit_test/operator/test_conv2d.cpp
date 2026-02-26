@@ -145,10 +145,10 @@ TEST_P(Conv2dOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto x                    = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     std::vector<float> W_data = {1.0f, 1.0f, 1.0f, 1.0f};
-    auto W                    = Tensor(W_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto W = Tensor(W_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::conv2d(x, W, nullptr, 1, 0);
     y.backward();
@@ -188,13 +188,13 @@ TEST_P(Conv2dOperatorTest, BackwardWithBias)
 {
     // 测试带偏置的反向传播
     std::vector<float> x_data = {1.0f, 2.0f, 3.0f, 4.0f};
-    auto x                    = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor(x_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     std::vector<float> W_data = {1.0f, 1.0f, 1.0f, 1.0f};
-    auto W                    = Tensor(W_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto W = Tensor(W_data, Shape{1, 1, 2, 2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     std::vector<float> b_data = {1.0f};
-    auto b                    = Tensor(b_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()));
+    auto b = Tensor(b_data, Shape{1}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::conv2d(x, W, &b, 1, 0);
     y.backward();

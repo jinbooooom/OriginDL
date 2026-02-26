@@ -854,6 +854,63 @@ void OriginMat::relu_inplace()
     device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::relu, cuda::relu, "relu_inplace");
 }
 
+std::unique_ptr<Mat> OriginMat::sigmoid() const
+{
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::sigmoid, cuda::sigmoid, "sigmoid");
+}
+
+std::unique_ptr<Mat> OriginMat::sigmoid_backward(const Mat &y) const
+{
+    const OriginMat *y_origin = dynamic_cast<const OriginMat *>(&y);
+    if (unlikely(y_origin == nullptr))
+    {
+        THROW_INVALID_ARG("sigmoid_backward: y must be OriginMat when gy is OriginMat");
+    }
+    DeviceType device_type = storage_->device_type();
+    if (device_type == DeviceType::kCPU)
+    {
+        return cpu::sigmoid_backward(*this, *y_origin);
+    }
+    if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::sigmoid_backward(*this, *y_origin);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    THROW_RUNTIME_ERROR("Unsupported device type for sigmoid_backward: {}", static_cast<int>(device_type));
+}
+
+std::unique_ptr<Mat> OriginMat::silu() const
+{
+    return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::silu, cuda::silu, "silu");
+}
+
+std::unique_ptr<Mat> OriginMat::silu_backward(const Mat &x) const
+{
+    const OriginMat *x_origin = dynamic_cast<const OriginMat *>(&x);
+    if (unlikely(x_origin == nullptr))
+    {
+        THROW_INVALID_ARG("silu_backward: x must be OriginMat when gy is OriginMat");
+    }
+
+    DeviceType device_type = storage_->device_type();
+    if (device_type == DeviceType::kCPU)
+    {
+        return cpu::silu_backward(*this, *x_origin);
+    }
+    if (device_type == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::silu_backward(*this, *x_origin);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    THROW_RUNTIME_ERROR("Unsupported device type for silu_backward: {}", static_cast<int>(device_type));
+}
+
 std::unique_ptr<Mat> OriginMat::log() const
 {
     return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::log, cuda::log, "log");
@@ -1446,7 +1503,7 @@ std::unique_ptr<Mat> OriginMat::adaptive_avg_pool2d_backward(const Mat &gy, std:
 std::unique_ptr<Mat> OriginMat::max_pool2d(std::pair<int, int> kernel_size,
                                            std::pair<int, int> stride,
                                            std::pair<int, int> pad,
-                                           std::vector<size_t> &indices) const
+                                           std::vector<size_t> *indices) const
 {
     // 根据设备类型选择实现
     if (storage_->device_type() == DeviceType::kCPU)

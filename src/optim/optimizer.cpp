@@ -39,13 +39,13 @@ void Optimizer::step()
         }
     }
 
-    // 执行Hook
+    // 执行Hook，如 WeightDecay、梯度裁剪等。在真正更新参数前先对 params_with_grad 做统一修改。
     for (auto &hook : hooks_)
     {
         hook(params_with_grad);
     }
 
-    // 更新每个参数
+    // 调用子类的 step_one 方法，如 SGD、Adam 等，执行具体的参数更新逻辑。
     for (auto *param : params_with_grad)
     {
         step_one(*param);

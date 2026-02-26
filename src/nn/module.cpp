@@ -71,7 +71,8 @@ void Module::eval()
 
 void Module::to(Device device)
 {
-    // 迁移所有参数到指定设备
+    // 迁移所有参数到指定设备，保留 requires_grad 属性
+    // 注意：直接使用 to(device) 即可，因为 Tensor::to(Device) 已经保留了 requires_grad
     for (auto &[name, param] : parameters_)
     {
         *param = Parameter(param->to(device));

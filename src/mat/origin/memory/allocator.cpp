@@ -32,12 +32,23 @@ void CPUAllocator::deallocate(void *ptr)
 void *CUDAAllocator::allocate(size_t size)
 {
 #ifdef WITH_CUDA
-    void *ptr       = nullptr;
-    cudaError_t err = cudaMalloc(&ptr, size);
+    cudaError_t err = cudaSetDevice(device_index_);
     if (err != cudaSuccess)
     {
-        THROW_RUNTIME_ERROR("CUDA memory allocation failed: {} (requested size: {} bytes)", cudaGetErrorString(err),
-                            size);
+        THROW_RUNTIME_ERROR("CUDA set device failed: {} (device index: {})", cudaGetErrorString(err), device_index_);
+    }
+    void *ptr = nullptr;
+    err       = cudaMalloc(&ptr, size);
+    if (err != cudaSuccess)
+    {
+        cudaDeviceProp prop = {};
+        cudaGetDeviceProperties(&prop, device_index_);
+        size_t free_mem = 0, total_mem = 0;
+        cudaMemGetInfo(&free_mem, &total_mem);
+        THROW_RUNTIME_ERROR(
+            "CUDA memory allocation failed: {} (requested size: {} bytes). Device[{}] {}: totalGlobalMem={} bytes, "
+            "cudaMemGetInfo free={} bytes total={} bytes",
+            cudaGetErrorString(err), size, device_index_, prop.name, prop.totalGlobalMem, free_mem, total_mem);
     }
     return ptr;
 #else
@@ -50,7 +61,13 @@ void CUDAAllocator::deallocate(void *ptr)
 #ifdef WITH_CUDA
     if (ptr != nullptr)
     {
-        cudaError_t err = cudaFree(ptr);
+        cudaError_t err = cudaSetDevice(device_index_);
+        if (err != cudaSuccess)
+        {
+            THROW_RUNTIME_ERROR("CUDA set device failed: {} (device index: {})", cudaGetErrorString(err),
+                                device_index_);
+        }
+        err = cudaFree(ptr);
         if (err != cudaSuccess)
         {
             THROW_RUNTIME_ERROR("CUDA memory deallocation failed: {}", cudaGetErrorString(err));

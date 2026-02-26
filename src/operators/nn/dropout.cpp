@@ -31,16 +31,22 @@ std::vector<Tensor> Dropout::forward(const std::vector<Tensor> &xs)
     // 获取 Mat 引用
     const Mat &x_mat = mat(x);
 
-    // 创建 mask Mat 用于保存 dropout mask
-    // dropout 实现会填充 mask，所以不需要预先初始化
-    auto mask_mat_unique = x_mat.clone();
-    Mat *mask_mat        = mask_mat_unique.get();
-
-    // 使用 Mat 接口的 dropout 方法
-    std::unique_ptr<Mat> result = x_mat.dropout(p_, training_, mask_mat);
-
-    // 保存 mask 用于反向传播
-    mask_ = convert_mat_to_tensor(std::move(mask_mat_unique));
+    // 根据 requires_grad 决定是否保存 mask
+    std::unique_ptr<Mat> result;
+    if (x.requires_grad() && training_)
+    {
+        // 需要梯度计算且训练模式：创建并保存 mask 用于反向传播
+        auto mask_mat_unique = x_mat.clone();
+        Mat *mask_mat        = mask_mat_unique.get();
+        result               = x_mat.dropout(p_, training_, mask_mat);
+        mask_                = convert_mat_to_tensor(std::move(mask_mat_unique));
+    }
+    else
+    {
+        // 不需要梯度计算或推理模式：不保存 mask，节省内存
+        // 在推理模式下，mask_mat 可以为 nullptr
+        result = x_mat.dropout(p_, training_, nullptr);
+    }
 
     auto y = convert_mat_to_tensor(std::move(result));
     return std::vector<Tensor>{std::move(y)};
@@ -62,6 +68,14 @@ std::vector<Tensor> Dropout::backward(const std::vector<Tensor> &gys)
     }
 
     // 训练模式：根据 mask 计算梯度
+    // 如果 mask_ 未初始化（elements() == 0），说明 forward 时没有保存 mask
+    // 这种情况不应该发生（因为 requires_grad=true 时应该保存 mask）
+    if (unlikely(mask_.elements() == 0))
+    {
+        THROW_RUNTIME_ERROR(
+            "Dropout backward: mask_ is not initialized. This should not happen when requires_grad=true");
+    }
+
     // 获取 Mat 引用
     const Mat &gy_mat   = mat(gy);
     const Mat &mask_mat = mat(mask_);

@@ -79,7 +79,7 @@ TEST_P(NegOperatorTest, ForwardNegativeValues)
 TEST_P(NegOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::neg(x);
     y.backward();
@@ -92,7 +92,7 @@ TEST_P(NegOperatorTest, BackwardBasic)
 TEST_P(NegOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::neg(x);
     y.backward();
@@ -105,7 +105,8 @@ TEST_P(NegOperatorTest, BackwardWithGradient)
 TEST_P(NegOperatorTest, BackwardDifferentShapes)
 {
     // 测试不同形状的张量
-    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({1.0f, 2.0f, 3.0f, 4.0f}, Shape{2, 2},
+                    dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::neg(x);
     y.backward();

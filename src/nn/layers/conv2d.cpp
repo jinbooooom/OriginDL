@@ -69,8 +69,12 @@ Conv2d::Conv2d(int in_channels, int out_channels, int kernel_size, int stride, i
 
 Parameter Conv2d::init_weight()
 {
-    // Kaiming初始化（He初始化）：更适合ReLU激活函数
-    // 对于卷积层，fan_in = in_channels * kernel_h * kernel_w
+    // Kaiming 初始化（He 初始化）：更适合 ReLU 激活函数。
+    // 对于卷积层，fan_in 定义为每个输出通道看到的输入元素个数：
+    //   fan_in = in_channels_ * kernel_h * kernel_w
+    // 为了让各层输出的方差保持大致稳定，He 初始化推荐：
+    //   W ~ N(0, 2 / fan_in)，所以标准差 std_dev = sqrt(2 / fan_in)。
+    // 具体细节我暂时不去深究了。拿来用就行了。
     int fan_in    = in_channels_ * kernel_size_.first * kernel_size_.second;
     float std_dev = std::sqrt(2.0f / static_cast<float>(fan_in));
 
@@ -78,29 +82,12 @@ Parameter Conv2d::init_weight()
     auto weight_tensor =
         Tensor::randn(Shape{static_cast<size_t>(out_channels_), static_cast<size_t>(in_channels_),
                             static_cast<size_t>(kernel_size_.first), static_cast<size_t>(kernel_size_.second)},
-                      TensorOptions(DataType::kFloat32));
+                      TensorOptions(DataType::kFloat32).requires_grad(true));
 
-    // 应用标准差缩放
+    // 应用标准差缩放。
     auto scaled_weight = weight_tensor * Scalar(std_dev);
 
-    // 确保scaled_weight有正确的shape
-    auto scaled_shape = scaled_weight.shape();
-    if (unlikely(scaled_shape.elements() == 0))
-    {
-        THROW_RUNTIME_ERROR("Conv2d init_weight: scaled_weight has empty shape!");
-    }
-
-    // 直接使用Parameter构造函数
     Parameter w(scaled_weight);
-
-    // 验证Parameter的shape
-    auto w_shape = w.shape();
-    if (unlikely(w_shape.elements() == 0))
-    {
-        THROW_RUNTIME_ERROR(
-            "Conv2d init_weight: Parameter w has empty shape after construction! scaled_weight.shape() = {}",
-            scaled_shape.to_string());
-    }
 
     return w;
 }
@@ -110,7 +97,8 @@ Parameter Conv2d::init_bias()
     if (use_bias_)
     {
         // 初始化偏置为零，形状 (out_channels,)
-        auto bias_tensor = Tensor::zeros(Shape{static_cast<size_t>(out_channels_)}, TensorOptions(DataType::kFloat32));
+        auto bias_tensor = Tensor::zeros(Shape{static_cast<size_t>(out_channels_)},
+                                         TensorOptions(DataType::kFloat32).requires_grad(true));
         return Parameter(bias_tensor);
     }
     // 如果不使用偏置，返回一个默认的Parameter（不会使用）

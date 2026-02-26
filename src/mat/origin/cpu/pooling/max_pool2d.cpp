@@ -41,7 +41,7 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
                                 std::pair<int, int> kernel_size,
                                 std::pair<int, int> stride,
                                 std::pair<int, int> pad,
-                                std::vector<size_t> &indices)
+                                std::vector<size_t> *indices)
 {
     // 输入验证：确保输入是4D张量 (N, C, H, W)
     if (x.shape().size() != 4)
@@ -77,14 +77,17 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
     auto col                 = im2col(x, kernel_size, stride, pad, false);
     const OriginMat &col_mat = static_cast<const OriginMat &>(*col);
 
-    // 2. 在 (KH, KW) 维度上求最大值，并保存索引
+    // 2. 在 (KH, KW) 维度上求最大值，并保存索引（如果需要）
     // col_shape 是 (N, C, KH, KW, OH, OW)
     Shape output_shape{N, C, static_cast<size_t>(OH), static_cast<size_t>(OW)};
     auto result = std::make_unique<OriginMat>(output_shape, x.dtype(), x.device());
 
-    // 清空并准备索引向量
-    indices.clear();
-    indices.resize(N * C * OH * OW);
+    // 如果需要保存索引，清空并准备索引向量
+    if (indices != nullptr)
+    {
+        indices->clear();
+        indices->resize(N * C * OH * OW);
+    }
 
     // 使用类型分发器计算最大值和索引
     device_common::TypeDispatcher::dispatch_void(x.dtype(), [&]<typename T>() {
@@ -129,7 +132,11 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
                         // 保存结果
                         size_t result_idx       = n * C * OH * OW + c * OH * OW + oh * OW + ow;
                         result_data[result_idx] = max_val;
-                        indices[result_idx]     = max_idx;
+                        // 如果需要保存索引，则保存
+                        if (indices != nullptr)
+                        {
+                            (*indices)[result_idx] = max_idx;
+                        }
                     }
                 }
             }

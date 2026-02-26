@@ -23,14 +23,37 @@ public:
         // 直接调用 forward
         auto outputs = this->forward(inputs);
 
-        // 设置 creator
-        for (auto &output : outputs)
+        // 设置输出 tensor 的 requires_grad：如果任何一个输入需要梯度，输出也需要梯度
+        bool output_requires_grad = false;
+        for (const auto &input : inputs)
         {
-            output.set_creator(shared_from_this());
+            if (input.requires_grad())
+            {
+                output_requires_grad = true;
+                break;
+            }
         }
 
-        // 设置计算图信息
-        this->setup_computation_graph(inputs, outputs);
+        // 当需要梯度时，为每个输出设置 requires_grad 和 creator
+        for (auto &output : outputs)
+        {
+            if (output.impl_)
+            {
+                output.impl_->requires_grad_ = output_requires_grad;
+            }
+
+            if (output_requires_grad)
+            {
+                // 这里 output 的 generation_ 会被设置为当前 Operator 的 generation_ + 1 以及引用当前 Operator 的
+                // shared_ptr 这样在 backward() 时，可以找到当前 Operator 以及正确的计算图拓扑顺序
+                output.set_creator(shared_from_this());
+            }
+        }
+
+        if (output_requires_grad)
+        {
+            this->setup_computation_graph(inputs, outputs);
+        }
 
         return outputs;
     }

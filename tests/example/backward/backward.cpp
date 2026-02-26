@@ -7,12 +7,12 @@ namespace F = origin::functional;
 
 int main(int argc, char **argv)
 {
-    origin::Shape shape = {2, 2};
+    Shape shape = {2, 2};
 
     logi("Test Add: y = (x0^2) + (x1^2)");
-    auto x0 = origin::Tensor(2, shape);
-    auto x1 = origin::Tensor(3, shape);
-    // y       = origin::add({origin::square(x0), origin::square(x1)});
+    auto x0 = Tensor(2, shape, requires_grad(true));
+    auto x1 = Tensor(3, shape, requires_grad(true));
+    // y       = add({square(x0), square(x1)});
     // y = (x0) ^ 2 + (x1) ^ 2; 被解释成 y = ((x0) ^ (2 + (x1))) ^ 2; 与预期不符
     // 原本的 ^ 指的是异或，运算符优先级比 + 要低，所以要用括号。
     auto y = ((x0) ^ 2) + ((x1) ^ 2);
@@ -32,9 +32,9 @@ int main(int argc, char **argv)
 
     logi("Test Complex computation graph: y = ((x^2)^2) + ((x^2)^2) = 2 * (x^4)");
     y.clear_grad();
-    x = origin::Tensor(2, shape);
-    // auto s = origin::square(x);
-    // y      = origin::add({origin::square(s), origin::square(s)});
+    x = Tensor(2, shape, requires_grad(true));
+    // auto s = square(x);
+    // y      = add({square(s), square(s)});
     y = ((x ^ 2) ^ 2) + ((x ^ 2) ^ 2);
     y.print("y: ");  // 32
     y.backward();
@@ -43,10 +43,10 @@ int main(int argc, char **argv)
     // reshape
     logi("Test Reshape:");
     y.clear_grad();
-    // auto x3_4 = origin::Tensor::randn(origin::Shape{3, 4});  // 3 行 4 列随机值
-    auto x3_4 = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, origin::Shape{3, 4});
+    // auto x3_4 = Tensor::randn(Shape{3, 4});  // 3 行 4 列随机值
+    auto x3_4 = Tensor({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, Shape{3, 4}, requires_grad(true));
     x3_4.print("before reshape, x: ");
-    const origin::Shape shape_3{4, 3};
+    const Shape shape_3{4, 3};
     y = F::reshape(x3_4, shape_3);
     y.backward();
     y.print("after reshape, y: ");
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     logi("Test Transpose:");
     y.clear_grad();
     x3_4.clear_grad();
-    x3_4 = origin::Tensor::randn(origin::Shape{3, 4}, origin::dtype(origin::DataType::kFloat32));  // 3 行 4 列随机值
+    x3_4 = Tensor::randn(Shape{3, 4}, dtype(DataType::kFloat32).requires_grad(true));  // 3 行 4 列随机值
     x3_4.print("before reshape, x: ");
     y = F::transpose(x3_4);
     y.backward();
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     // sum
     logi("Test Sum:");
     y.clear_grad();
-    auto x2_4 = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{2, 4}, origin::Float32);
+    auto x2_4 = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{2, 4}, dtype(Float32).requires_grad(true));
     x2_4.print("before sum, x: ");
     y = F::sum(x2_4);
     y.backward();
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     y.clear_grad();
     x2_4.clear_grad();
     x2_4.print("before sumTo, x: ");
-    y = F::sum_to(x2_4, origin::Shape{1, 4});
+    y = F::sum_to(x2_4, Shape{1, 4});
     y.backward();
     y.print("after sumTo, y: ");
     x2_4.grad().print("gx: ");
@@ -86,10 +86,10 @@ int main(int argc, char **argv)
     // broadcastTo
     logi("Test BroadcastTo:");
     y.clear_grad();
-    auto x1_4 = origin::Tensor({0, 1, 2, 3}, origin::Shape{1, 4}, origin::Float32);
+    auto x1_4 = Tensor({0, 1, 2, 3}, Shape{1, 4}, dtype(Float32).requires_grad(true));
     x1_4.clear_grad();
     x1_4.print("before broadcastTo, x: ");
-    y = F::broadcast_to(x1_4, origin::Shape{2, 4});
+    y = F::broadcast_to(x1_4, Shape{2, 4});
     y.backward();
     y.print("after broadcastTo, y: ");
     x1_4.grad().print("gx: ");
@@ -99,10 +99,10 @@ int main(int argc, char **argv)
     {
         // auto vx = std::vector<float>{0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f};
         // auto vw = std::vector<float>{0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f};
-        // auto x = origin::Tensor(vx, origin::Shape{2, 4}, origin::Float32);
-        // auto w = origin::Tensor(vw, origin::Shape{4, 2}, origin::Float32);
-        auto x = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{2, 4}, origin::Float32);
-        auto w = origin::Tensor({0, 1, 2, 3, 4, 5, 6, 7}, origin::Shape{4, 2}, origin::Float32);
+        // auto x = Tensor(vx, Shape{2, 4}, Float32);
+        // auto w = Tensor(vw, Shape{4, 2}, Float32);
+        auto x = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{2, 4}, dtype(Float32).requires_grad(true));
+        auto w = Tensor({0, 1, 2, 3, 4, 5, 6, 7}, Shape{4, 2}, dtype(Float32).requires_grad(true));
         x.print("before matMul, X: ");
         w.print("before matMul, W: ");
         auto y = F::mat_mul(x, w);

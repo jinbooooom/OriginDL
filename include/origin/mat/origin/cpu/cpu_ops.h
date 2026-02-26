@@ -103,6 +103,10 @@ std::unique_ptr<Mat> square(const OriginMat &mat, OriginMat *out = nullptr);
 std::unique_ptr<Mat> pow(const OriginMat &mat, const Scalar &exponent);
 void pow_inplace(OriginMat &mat, const Scalar &exponent);
 std::unique_ptr<Mat> relu(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> sigmoid(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> sigmoid_backward(const OriginMat &gy, const OriginMat &y);
+std::unique_ptr<Mat> silu(const OriginMat &mat, OriginMat *out = nullptr);
+std::unique_ptr<Mat> silu_backward(const OriginMat &gy, const OriginMat &x);
 
 // === 统计函数 ===
 std::unique_ptr<Mat> sum(const OriginMat &mat, int axis, bool keepdim = false);
@@ -254,7 +258,7 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
                                 std::pair<int, int> kernel_size,
                                 std::pair<int, int> stride,
                                 std::pair<int, int> pad,
-                                std::vector<size_t> &indices);
+                                std::vector<size_t> *indices = nullptr);
 
 /**
  * @brief 最大池化反向传播

@@ -22,4 +22,7 @@
 - [] 考虑是否要把基本算子的backward放到cuda里去做，这样减少了很多的中间临时tensor以及直接进行了算子融合
 - [] cpu部分算子的代码需要整理一下
 - [] API 文档生成 Doxygen
+- [] 循环引用根本解决方案：目前性能测试中 sigmoid 算子里会报错计算的结果用于反向传播，然后吃掉所有的内存。
+- [] PNNXGraph 建图优化：当前 `create_node_relations()` 为空实现，`topological_sort()` 和 `propagate_outputs()` 通过 O(N^2) 遍历 `nodes_` 动态按 `output_names`/`input_names` 匹配前后继。后续可利用静态图特性，在 build 阶段一次性构建邻接关系（如 output_name→下游节点映射或 per-node 前驱/后继列表），减少每次 forward 的动态查找开销。
+- [x] 对于 sigmoid 把计算下沉到 mat层，但是性能依然比pytorch慢十倍。关键原因在于benchmark中，pytorch的计算是无图的（创建张量时没有设置requires_grad=True），但是origindl默认有图保存了sigmoid中间结果。因此需要专门为 benchmark 增加“无图 + 直接 Mat 调用”的轻量路径。
          

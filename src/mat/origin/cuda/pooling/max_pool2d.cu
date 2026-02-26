@@ -66,7 +66,11 @@ __global__ void max_pool2d_forward_kernel(const T *__restrict__ col_data,
         }
 
         result_data[idx] = max_val;
-        indices[idx]     = max_idx;
+        // 如果需要保存索引，则保存
+        if (indices != nullptr)
+        {
+            indices[idx] = max_idx;
+        }
     }
 }
 
@@ -118,7 +122,7 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
                                 std::pair<int, int> kernel_size,
                                 std::pair<int, int> stride,
                                 std::pair<int, int> pad,
-                                std::vector<size_t> &indices)
+                                std::vector<size_t> *indices)
 {
     // 输入验证：确保输入是4D张量 (N, C, H, W)
     if (x.shape().size() != 4)
@@ -154,21 +158,23 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
     auto col                 = im2col(x, kernel_size, stride, pad, false);
     const OriginMat &col_mat = static_cast<const OriginMat &>(*col);
 
-    // 2. 在 (KH, KW) 维度上求最大值，并保存索引
+    // 2. 在 (KH, KW) 维度上求最大值，并保存索引（如果需要）
     Shape output_shape{N, C, static_cast<size_t>(OH), static_cast<size_t>(OW)};
     auto result = std::make_unique<OriginMat>(output_shape, x.dtype(), x.device());
 
-    // 清空并准备索引向量
-    indices.clear();
-    indices.resize(N * C * OH * OW);
-
-    // 在GPU上分配索引内存
-    size_t indices_size = N * C * OH * OW * sizeof(size_t);
-    size_t *d_indices   = nullptr;
-    cudaError_t err     = cudaMalloc(&d_indices, indices_size);
-    if (err != cudaSuccess)
+    // 如果需要保存索引，分配GPU内存并准备索引向量
+    size_t *d_indices = nullptr;
+    if (indices != nullptr)
     {
-        THROW_RUNTIME_ERROR("CUDA memory allocation failed for indices: {}", cudaGetErrorString(err));
+        indices->clear();
+        indices->resize(N * C * OH * OW);
+
+        size_t indices_size = N * C * OH * OW * sizeof(size_t);
+        cudaError_t err     = cudaMalloc(&d_indices, indices_size);
+        if (err != cudaSuccess)
+        {
+            THROW_RUNTIME_ERROR("CUDA memory allocation failed for indices: {}", cudaGetErrorString(err));
+        }
     }
 
     // 使用类型分发器计算最大值和索引
@@ -186,20 +192,27 @@ std::unique_ptr<Mat> max_pool2d(const OriginMat &x,
     }
     else
     {
-        cudaFree(d_indices);
+        if (d_indices != nullptr)
+        {
+            cudaFree(d_indices);
+        }
         THROW_INVALID_ARG("max_pool2d: only float32 is supported, got {}", dtype_to_string(x.dtype()));
     }
 
     CUDA_CHECK_ASYNC();
 
-    // 将索引从GPU拷贝到CPU
-    err = cudaMemcpy(indices.data(), d_indices, indices_size, cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess)
+    // 如果需要保存索引，将索引从GPU拷贝到CPU并释放GPU内存
+    if (indices != nullptr)
     {
+        size_t indices_size = N * C * OH * OW * sizeof(size_t);
+        cudaError_t err     = cudaMemcpy(indices->data(), d_indices, indices_size, cudaMemcpyDeviceToHost);
+        if (err != cudaSuccess)
+        {
+            cudaFree(d_indices);
+            THROW_RUNTIME_ERROR("CUDA memory copy failed for indices: {}", cudaGetErrorString(err));
+        }
         cudaFree(d_indices);
-        THROW_RUNTIME_ERROR("CUDA memory copy failed for indices: {}", cudaGetErrorString(err));
     }
-
     cudaFree(d_indices);
 
     return result;

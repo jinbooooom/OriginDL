@@ -81,6 +81,10 @@ public:
     void pow_inplace(const Scalar &exponent) override;
     std::unique_ptr<Mat> relu() const override;
     void relu_inplace() override;
+    std::unique_ptr<Mat> sigmoid() const override;
+    std::unique_ptr<Mat> sigmoid_backward(const Mat &y) const override;
+    std::unique_ptr<Mat> silu() const override;
+    std::unique_ptr<Mat> silu_backward(const Mat &x) const override;
     void neg_inplace() override;
 
     // 形状和属性

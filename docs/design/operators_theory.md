@@ -282,8 +282,14 @@
 - 支持批量矩阵乘法：`x0` 形状 `(batch, m, k)` 和 `x1` 形状 `(k, n)`，输出形状 `(batch, m, n)`
 
 **数学表示：**
-- `y = x0 @ x1`（矩阵乘法）
-- `y[i, j] = Σ(k) x0[i, k] × x1[k, j]`
+
+$$
+y = x_0 \times x_1
+$$
+
+$$
+y_{i j} = \sum_{k} x_{0, i k}\, x_{1, k j}
+$$
 
 #### 1.5.2 反向传播原理
 
@@ -319,27 +325,40 @@
 
 #### 1.6.1 前向传播原理
 
-幂运算算子的前向传播执行：`y = x^exponent`
+幂运算算子的前向传播执行：$y = x^{\text{exponent}}$
 
 **数学描述：**
-- 输入：张量 `x` 和标量指数 `exponent`
-- 输出：`y[i] = x[i]^exponent`
-- 数学表达式：`y = pow(x, exponent) = x^exponent`
+- 输入：张量 $x$ 和标量指数 $\text{exponent}$
+- 输出：$y_i = x_i^{\text{exponent}}$
+- 数学表达式：
+
+  $$
+  y = \operatorname{pow}(x, \text{exponent}) = x^{\text{exponent}}
+  $$
+
 - 支持任意实数指数，包括分数指数（开方）
 
 #### 1.6.2 反向传播原理
 
-对于幂运算 `y = x^exponent`，根据链式法则和偏导数：
-- `∂y/∂x = exponent × x^(exponent-1)`
+对于幂运算 $y = x^{\text{exponent}}$，根据链式法则和偏导数：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy × ∂y/∂x = gy × exponent × x^(exponent-1)`
+$$
+\frac{\partial y}{\partial x}
+= \text{exponent} \cdot x^{\text{exponent}-1}
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y \times \frac{\partial y}{\partial x}
+= g_y \times \text{exponent} \cdot x^{\text{exponent}-1}
+$$
 
 **数学原理：**
-- 幂函数的导数是 `exponent × x^(exponent-1)`
-- 当 `exponent = 0` 时，`y = 1`，梯度为 0
-- 当 `exponent = 1` 时，`y = x`，梯度为 `gy`
-- 当 `exponent = 2` 时，`y = x²`，梯度为 `gy × 2x`
+- 幂函数的导数是 $\text{exponent} \cdot x^{\text{exponent}-1}$
+- 当 $\text{exponent} = 0$ 时，$y = 1$，梯度为 0
+- 当 $\text{exponent} = 1$ 时，$y = x$，梯度为 $g_y$
+- 当 $\text{exponent} = 2$ 时，$y = x^2$，梯度为 $g_y \times 2x$
 
 #### 1.6.3 计算示例
 
@@ -360,24 +379,38 @@
 
 在 OriginDL 中，**指数函数特指以自然常数 `e` 为底的指数函数**，即 `exp(x) = e^x`，而不是一般形式的 `a^x`（其中 `a` 为任意底数）。
 
-指数算子的前向传播执行：`y = exp(x)`
+指数算子的前向传播执行：$y = \exp(x)$
 
 **数学描述：**
-- 输入：张量 `x`（可以是任意实数）
-- 输出：`y[i] = exp(x[i]) = e^(x[i])`
-- 数学表达式：`y = exp(x)`
-- 指数函数的输出范围是 `(0, +∞)`，无论输入是正数、负数还是零，输出总是大于 0
+- 输入：张量 $x$（可以是任意实数）
+- 输出：$y_i = \exp(x_i) = e^{x_i}$
+- 数学表达式：
+
+  $$
+  y = \exp(x)
+  $$
+
+- 指数函数的输出范围是 $(0, +\infty)$，无论输入是正数、负数还是零，输出总是大于 0
 
 #### 1.7.2 反向传播原理
 
-对于指数运算 `y = exp(x)`，根据链式法则和偏导数：
-- `∂y/∂x = exp(x) = y`
+对于指数运算 $y = \exp(x)$，根据链式法则和偏导数：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy × ∂y/∂x = gy × exp(x) = gy × y`
+$$
+\frac{\partial y}{\partial x}
+= \exp(x) = y
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y \times \frac{\partial y}{\partial x}
+= g_y \times \exp(x)
+= g_y \times y
+$$
 
 **数学原理：**
-- 指数函数的导数等于其自身：`d(exp(x))/dx = exp(x)`
+- 指数函数的导数等于其自身：$\frac{\mathrm{d}}{\mathrm{d}x}\exp(x) = \exp(x)$
 - 反向传播时，梯度等于输出梯度乘以输出值本身
 - 这使得指数函数的梯度计算非常高效
 
@@ -399,26 +432,39 @@
 
 在 OriginDL 中，**对数函数特指以自然常数 `e` 为底的对数函数**，即 `log(x) = ln(x)`，等于数学上的自然对数。
 
-对数算子的前向传播执行：`y = log(x)`
+对数算子的前向传播执行：$y = \log(x)$
 
 **数学描述：**
-- 输入：张量 `x`（要求 `x > 0`）
-- 输出：`y[i] = log(x[i]) = ln(x[i])`
-- 数学表达式：`y = log(x)`（自然对数，以 e 为底）
+- 输入：张量 $x$（要求 $x > 0$）
+- 输出：$y_i = \log(x_i) = \ln(x_i)$
+- 数学表达式（自然对数，以 $e$ 为底）：
+
+  $$
+  y = \log(x)
+  $$
+
 - 对数函数将正数映射到实数范围
 
 #### 1.8.2 反向传播原理
 
-对于对数运算 `y = log(x)`，根据链式法则和偏导数：
-- `∂y/∂x = 1 / x`
+对于对数运算 $y = \log(x)$，根据链式法则和偏导数：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy × ∂y/∂x = gy / x`
+$$
+\frac{\partial y}{\partial x}
+= \frac{1}{x}
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y \times \frac{\partial y}{\partial x}
+= \frac{g_y}{x}
+$$
 
 **数学原理：**
-- 对数函数的导数是 `1/x`：`d(log(x))/dx = 1/x`
+- 对数函数的导数是 $1/x$：$\frac{\mathrm{d}}{\mathrm{d}x}\log(x) = 1/x$
 - 反向传播时，梯度等于输出梯度除以输入值
-- 注意：当 `x ≤ 0` 时，对数未定义，通常会产生错误或特殊值
+- 注意：当 $x \le 0$ 时，对数未定义，通常会产生错误或特殊值
 
 #### 1.8.3 计算示例
 
@@ -436,24 +482,35 @@
 
 #### 1.9.1 前向传播原理
 
-取负算子的前向传播执行：`y = -x`
+取负算子的前向传播执行：$y = -x$
 
 **数学描述：**
-- 输入：张量 `x`
-- 输出：`y[i] = -x[i]`
-- 数学表达式：`y = neg(x) = -x`
+- 输入：张量 $x$
+- 输出：$y_i = -x_i$
+- 数学表达式：
+
+  $$
+  y = \operatorname{neg}(x) = -x
+  $$
+
 - 取负操作将每个元素的值取相反数
 
 #### 1.9.2 反向传播原理
 
-对于取负运算 `y = -x`，根据链式法则和偏导数：
-- `∂y/∂x = -1`
+对于取负运算 $y = -x$，根据链式法则和偏导数：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy × ∂y/∂x = gy × (-1) = -gy`
+$$
+\frac{\partial y}{\partial x} = -1
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y \times \frac{\partial y}{\partial x} = -g_y
+$$
 
 **数学原理：**
-- 取负函数的导数是 -1
+- 取负函数的导数是 $-1$
 - 反向传播时，梯度等于输出梯度的相反数
 - 这是最简单的线性变换之一
 
@@ -473,26 +530,37 @@
 
 #### 1.10.1 前向传播原理
 
-平方算子的前向传播执行：`y = x²`
+平方算子的前向传播执行：$y = x^2$
 
 **数学描述：**
-- 输入：张量 `x`
-- 输出：`y[i] = x[i]² = x[i] × x[i]`
-- 数学表达式：`y = square(x) = x²`
-- 平方操作是幂运算的特例（exponent = 2）
+- 输入：张量 $x$
+- 输出：$y_i = x_i^2 = x_i \cdot x_i$
+- 数学表达式：
+
+  $$
+  y = \operatorname{square}(x) = x^2
+  $$
+
+- 平方操作是幂运算的特例（$\text{exponent} = 2$）
 
 #### 1.10.2 反向传播原理
 
-对于平方运算 `y = x²`，根据链式法则和偏导数：
-- `∂y/∂x = 2x`
+对于平方运算 $y = x^2$，根据链式法则和偏导数：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy × ∂y/∂x = gy × 2x`
+$$
+\frac{\partial y}{\partial x} = 2x
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y \times \frac{\partial y}{\partial x} = g_y \times 2x
+$$
 
 **数学原理：**
-- 平方函数的导数是 `2x`
-- 反向传播时，梯度等于输出梯度乘以 `2x`
-- 这是幂运算在 `exponent = 2` 时的特例
+- 平方函数的导数是 $2x$
+- 反向传播时，梯度等于输出梯度乘以 $2x$
+- 这是幂运算在 $\text{exponent} = 2$ 时的特例
 
 #### 1.10.3 计算示例
 
@@ -522,10 +590,28 @@
   - `keepdim=true`：输出维度保持不变，但求和轴的大小变为 1
 
 **数学表示：**
-- `y = sum(x, axis=k, keepdim=false)`：沿第 `k` 维求和，移除该维度
-  - `y[i0, ..., ik-1, ik+1, ...] = Σ(ik) x[i0, ..., ik, ..., in]`
-- `y = sum(x, axis=k, keepdim=true)`：沿第 `k` 维求和，保持维度
-  - `y[i0, ..., ik-1, 1, ik+1, ...] = Σ(ik) x[i0, ..., ik, ..., in]`
+
+- 沿第 $k$ 维求和，移除该维度（$\text{keepdim} = \mathrm{false}$）：
+
+  $$
+  y = \operatorname{sum}(x, \mathrm{axis}=k, \mathrm{keepdim}=\mathrm{false})
+  $$
+
+  $$
+  y_{i_0, \dots, i_{k-1}, i_{k+1}, \dots, i_n}
+  = \sum_{i_k} x_{i_0, \dots, i_k, \dots, i_n}
+  $$
+
+- 沿第 $k$ 维求和，保持维度（$\text{keepdim} = \mathrm{true}$）：
+
+  $$
+  y = \operatorname{sum}(x, \mathrm{axis}=k, \mathrm{keepdim}=\mathrm{true})
+  $$
+
+  $$
+  y_{i_0, \dots, i_{k-1}, 1, i_{k+1}, \dots, i_n}
+  = \sum_{i_k} x_{i_0, \dots, i_k, \dots, i_n}
+  $$
 
 #### 1.11.2 反向传播原理
 
@@ -598,14 +684,18 @@
 广播算子的前向传播执行：`y = broadcast_to(x, shape)`
 
 **数学描述：**
-- 输入：张量 `x` 和目标形状 `shape`
-- 输出：将 `x` 广播到目标形状 `shape`
+- 输入：张量 $x$ 和目标形状 $\mathrm{shape}$
+- 输出：将 $x$ 广播到目标形状 $\mathrm{shape}$
 - 广播规则：从最右边的维度开始，如果维度大小相同或其中一个为 1，则可以广播
 - 广播时，大小为 1 的维度会被复制到目标大小
 
 **数学表示：**
-- `y = broadcast_to(x, shape)`
-- 输出 `y` 的形状为 `shape`，但数据来自 `x`（在广播维度上重复）
+
+$$
+y = \operatorname{broadcast\_to}(x, \mathrm{shape})
+$$
+
+输出 $y$ 的形状为 $\mathrm{shape}$，但数据来自 $x$（在广播维度上重复）
 
 #### 1.12.2 反向传播原理
 
@@ -699,8 +789,24 @@
 2. **标量广播比较**：当 `threshold` 是标量（元素数量为 1）时，将标量广播到 `x` 的形状，然后执行逐元素比较
 
 **数学表达式：**
-- `y[i] = (x[i] > threshold[i]) ? 1 : 0`
-- 当 `threshold` 是标量时：`y[i] = (x[i] > threshold) ? 1 : 0`
+
+$$
+y_i =
+\begin{cases}
+1, & x_i > \mathrm{threshold}_i \\
+0, & x_i \le \mathrm{threshold}_i
+\end{cases}
+$$
+
+当 $\mathrm{threshold}$ 是标量时：
+
+$$
+y_i =
+\begin{cases}
+1, & x_i > \mathrm{threshold} \\
+0, & x_i \le \mathrm{threshold}
+\end{cases}
+$$
 
 #### 1.14.2 反向传播原理
 
@@ -768,21 +874,38 @@
 
 #### 2.1.1 前向传播原理
 
-ReLU（Rectified Linear Unit）算子的前向传播执行：`y = max(0, x)`
+ReLU（Rectified Linear Unit）算子的前向传播执行：$y = \max(0, x)$
 
 **数学描述：**
-- 对于输入 `x` 的每个元素，如果 `x[i] > 0`，则 `y[i] = x[i]`；否则 `y[i] = 0`
-- 数学表达式：`y = relu(x) = max(0, x)`
+- 对于输入 $x$ 的每个元素，如果 $x_i > 0$，则 $y_i = x_i$；否则 $y_i = 0$
+- 数学表达式：
+
+  $$
+  y = \operatorname{ReLU}(x) = \max(0, x)
+  $$
+
 - ReLU 是一个非线性激活函数，用于引入非线性特性
 
 #### 2.1.2 反向传播原理
 
-对于 ReLU 运算 `y = relu(x)`，其导数（梯度）为：
-- 当 `x > 0` 时，`∂y/∂x = 1`
-- 当 `x ≤ 0` 时，`∂y/∂x = 0`
+对于 ReLU 运算 $y = \operatorname{ReLU}(x)$，其导数（梯度）为：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy × ∂y/∂x = gy × mask`，其中 `mask = (x > 0 ? 1 : 0)`
+$$
+\frac{\partial y}{\partial x}
+=
+\begin{cases}
+1, & x > 0 \\
+0, & x \le 0
+\end{cases}
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y \times \frac{\partial y}{\partial x}
+$$
+
+或者写成“掩码”形式：$g_x = g_y \times \mathbf{1}_{x > 0}$
 
 **数学原理：**
 - ReLU 的梯度是分段函数：正数位置梯度为 1，非正数位置梯度为 0
@@ -820,26 +943,40 @@ ReLU（Rectified Linear Unit）算子的前向传播执行：`y = max(0, x)`
 
 #### 2.2.1 前向传播原理
 
-Sigmoid 算子的前向传播执行：`y = sigmoid(x) = 1 / (1 + exp(-x))`
+Sigmoid 算子的前向传播执行：$y = \sigma(x) = \frac{1}{1 + e^{-x}}$
 
 **数学描述：**
-- 输入：张量 `x`
-- 输出：`y[i] = 1 / (1 + exp(-x[i]))`
-- 数学表达式：`y = sigmoid(x) = 1 / (1 + exp(-x))`
-- Sigmoid 函数将输入映射到 (0, 1) 区间，常用于二分类问题的输出层
+- 输入：张量 $x$
+- 对于每个元素，有 $y_i = \sigma(x_i) = \frac{1}{1 + e^{-x_i}}$
+- 数学表达式：
+
+  $$
+  y = \sigma(x) = \frac{1}{1 + e^{-x}}
+  $$
+
+- Sigmoid 函数将输入映射到 $(0, 1)$ 区间，常用于二分类问题的输出层
 
 #### 2.2.2 反向传播原理
 
-对于 Sigmoid 运算 `y = sigmoid(x)`，其导数（梯度）为：
-- `∂y/∂x = sigmoid(x) × (1 - sigmoid(x)) = y × (1 - y)`
+对于 Sigmoid 运算 $y = \sigma(x)$，其导数（梯度）为：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy × ∂y/∂x = gy × y × (1 - y)`
+$$
+\frac{\partial y}{\partial x}
+= \sigma(x)\bigl(1 - \sigma(x)\bigr)
+= y(1 - y)
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y \times \frac{\partial y}{\partial x}
+= g_y \times y \times (1 - y)
+$$
 
 **数学原理：**
-- Sigmoid 函数的导数可以用其自身表示：`sigmoid'(x) = sigmoid(x) × (1 - sigmoid(x))`
-- 反向传播时，梯度等于输出梯度乘以 `y × (1 - y)`
-- 当 `y` 接近 0 或 1 时，梯度接近 0，可能导致梯度消失问题
+- Sigmoid 函数的导数可以用其自身表示：$\sigma'(x) = \sigma(x)\bigl(1 - \sigma(x)\bigr)$
+- 反向传播时，梯度等于输出梯度乘以 $y \times (1 - y)$
+- 当 $y$ 接近 0 或 1 时，梯度接近 0，可能导致梯度消失问题
 
 #### 2.2.3 计算示例
 
@@ -859,22 +996,53 @@ Sigmoid 算子的前向传播执行：`y = sigmoid(x) = 1 / (1 + exp(-x))`
 
 #### 2.3.1 前向传播原理
 
-Softmax 算子的前向传播执行：`y = softmax(x, axis=axis)`
+Softmax 算子的前向传播执行：$y = \operatorname{softmax}(x, \mathrm{axis})$
 
-**数学描述：**
-- 输入：张量 `x` 和指定的轴 `axis`
-- 输出：`y[i] = exp(x[i] - max(x)) / sum(exp(x - max(x)), axis=axis)`
-- 数学表达式：`y = softmax(x, axis) = exp(x - max(x)) / sum(exp(x - max(x)), axis)`
-- Softmax 函数将输入映射到概率分布，所有元素的和为 1
-- 数值稳定性：先减去最大值再计算指数，避免数值溢出
+**数学定义（向量形式）：**
+- 对任意实数向量 $z = (z_1, z_2, \dots, z_n)$，第 $i$ 个输出定义为：
+
+$$
+\operatorname{softmax}(z)_i
+= \frac{e^{z_i}}{\sum_{j=1}^n e^{z_j}}
+$$
+- 对于向量中的每个元素 $z_i$，有 $\operatorname{softmax}(z)_i \in (0, 1)$，且 $\sum_{i=1}^n \operatorname{softmax}(z)_i = 1$
+
+**张量 / axis 形式描述：**
+- 输入：张量 $x$ 和指定的轴 $\mathrm{axis}$，在该轴上的每个切片视作一条向量 $\mathbf{z}$
+- 输出：$y = \operatorname{softmax}(x, \mathrm{axis})$，即对每条向量 $\mathbf{z}$ 按上述定义做 Softmax，使得：
+  - 在 $\mathrm{axis}$ 轴上有：$0 < y[i] < 1$
+  - 在 $\mathrm{axis}$ 轴上有：$\operatorname{sum}(y, \mathrm{axis}=\mathrm{axis}) = 1$
+
+**数学特性：**
+- 归一化：输出在指定轴上的和为 1，适合作为概率分布
+- 非线性：通过指数函数引入非线性变换
+- 单调性：在同一向量内部保持输入元素的相对大小关系
+- 平滑性：函数处处可导，提供平滑梯度，有利于优化
+
+**计算稳定性（数值稳定 Softmax）：**
+- 直接按 $e^{z_i}$ 计算时，当 $z_i$ 绝对值较大时容易出现数值溢出
+- 常用的数值稳定技巧是减去一个常数 $C$（通常取该向量的最大值），不改变结果：
+
+$$
+\operatorname{softmax}(z)_i
+= \frac{e^{z_i - C}}{\sum_{j=1}^n e^{z_j - C}},
+\quad
+C = \max(z_1, z_2, \dots, z_n)
+$$
+
 
 #### 2.3.2 反向传播原理
 
-对于 Softmax 运算 `y = softmax(x, axis)`，其梯度为：
-- `∂y/∂x = y × (gy - sum(gy × y, axis))`
+对于 Softmax 运算 $y = \operatorname{softmax}(x, \mathrm{axis})$，其梯度为：
+$$
+\frac{\partial y}{\partial x}
+= y \times \bigl(g_y - \operatorname{sum}(g_y \times y, \mathrm{axis})\bigr)
+$$
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = y × (gy - sum(gy × y, axis))`
+因此，如果输出梯度为 $g_y$，则：
+$$
+g_x = y \times \bigl(g_y - \operatorname{sum}(g_y \times y, \mathrm{axis})\bigr)
+$$
 
 **数学原理：**
 - Softmax 的梯度计算需要考虑所有输出之间的相关性
@@ -899,25 +1067,38 @@ Softmax 算子的前向传播执行：`y = softmax(x, axis=axis)`
 
 #### 2.4.1 前向传播原理
 
-SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × sigmoid(x)`
+SiLU（Sigmoid Linear Unit）算子的前向传播执行：$y = \operatorname{SiLU}(x) = x \cdot \sigma(x)$
 
 **数学描述：**
-- 输入：张量 `x`
-- 输出：`y[i] = x[i] × sigmoid(x[i])`
-- 数学表达式：`y = silu(x) = x × sigmoid(x)`
+- 输入：张量 $x$
+- 输出：$y_i = x_i \cdot \sigma(x_i)$
+- 数学表达式：
+
+  $$
+  y = \operatorname{SiLU}(x) = x \cdot \sigma(x)
+  $$
+
 - SiLU 是 Swish 激活函数的变体，结合了线性和非线性特性
 
 #### 2.4.2 反向传播原理
 
-对于 SiLU 运算 `y = silu(x) = x × sigmoid(x)`，其梯度为：
-- `∂y/∂x = sigmoid(x) + x × sigmoid(x) × (1 - sigmoid(x)) = sigmoid(x) × (1 + x × (1 - sigmoid(x)))`
+对于 SiLU 运算 $y = \operatorname{SiLU}(x) = x \cdot \sigma(x)$，其梯度为：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy × sigmoid(x) × (1 + x × (1 - sigmoid(x)))`
+$$
+\frac{\partial y}{\partial x}
+= \sigma(x) + x \cdot \sigma(x)\bigl(1 - \sigma(x)\bigr)
+= \sigma(x)\bigl(1 + x(1 - \sigma(x))\bigr)
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y \times \sigma(x)\bigl(1 + x(1 - \sigma(x))\bigr)
+$$
 
 **数学原理：**
 - SiLU 的导数可以用 sigmoid 函数表示
-- 反向传播时，需要计算 sigmoid 和其相关项
+- 反向传播时，需要计算 $\sigma(x)$ 及其导数相关项
 
 #### 2.4.3 计算示例
 
@@ -953,8 +1134,17 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
   - `W_out = (W + 2×pad_w - KW) / stride_w + 1`
 
 **数学表示：**
-- `y[n, oc, h, w] = Σ(c) Σ(kh) Σ(kw) x[n, c, h×stride_h+kh-pad_h, w×stride_w+kw-pad_w] × W[oc, c, kh, kw] + b[oc]`
-- 卷积操作通过滑动窗口在输入特征图上提取特征
+
+$$
+y_{n,\,\mathrm{oc},\,h,\,w}
+= \sum_{c} \sum_{k_h} \sum_{k_w}
+    x_{n,\,c,\,h \cdot \mathrm{stride}_h + k_h - \mathrm{pad}_h,\,
+         w \cdot \mathrm{stride}_w + k_w - \mathrm{pad}_w}
+    \; W_{\mathrm{oc},\,c,\,k_h,\,k_w}
+    + b_{\mathrm{oc}}
+$$
+
+卷积操作通过滑动窗口在输入特征图上提取特征
 
 #### 3.1.2 反向传播原理
 
@@ -1004,7 +1194,15 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
 - 保存索引：前向传播时保存最大值的位置索引，用于反向传播
 
 **数学表示：**
-- `y[i, c, h, w] = max(x[i, c, h×stride_h:h×stride_h+kernel_h, w×stride_w:w×stride_w+kernel_w])`
+
+$$
+y_{i, c, h, w}
+= \max\bigl(
+  x_{i, c,\,
+    h \cdot \mathrm{stride}_h : h \cdot \mathrm{stride}_h + \mathrm{kernel}_h,\,
+    w \cdot \mathrm{stride}_w : w \cdot \mathrm{stride}_w + \mathrm{kernel}_w}
+\bigr)
+$$
 
 #### 4.1.2 反向传播原理
 
@@ -1069,7 +1267,15 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
 - 操作：在每个 `kernel_size × kernel_size` 的窗口内计算平均值
 
 **数学表示：**
-- `y[i, c, h, w] = mean(x[i, c, h×stride_h:h×stride_h+kernel_h, w×stride_w:w×stride_w+kernel_w])`
+
+$$
+y_{i, c, h, w}
+= \operatorname{mean}\bigl(
+  x_{i, c,\,
+    h \cdot \mathrm{stride}_h : h \cdot \mathrm{stride}_h + \mathrm{kernel}_h,\,
+    w \cdot \mathrm{stride}_w : w \cdot \mathrm{stride}_w + \mathrm{kernel}_w}
+\bigr)
+$$
 
 #### 4.2.2 反向传播原理
 
@@ -1132,8 +1338,25 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
 - 计算：自适应地计算每个输出位置对应的输入窗口大小，然后进行平均池化
 
 **数学表示：**
-- 窗口大小：`kernel_h = ceil(H / H_out)`，`kernel_w = ceil(W / W_out)`
-- `y[i, c, h, w] = mean(x[i, c, h×kernel_h:(h+1)×kernel_h, w×kernel_w:(w+1)×kernel_w])`
+
+- 窗口大小：
+
+  $$
+  \mathrm{kernel}_h = \left\lceil \frac{H}{H_{\text{out}}} \right\rceil,
+  \quad
+  \mathrm{kernel}_w = \left\lceil \frac{W}{W_{\text{out}}} \right\rceil
+  $$
+
+- 对每个输出位置进行平均池化：
+
+  $$
+  y_{i, c, h, w}
+  = \operatorname{mean}\bigl(
+    x_{i, c,\,
+      h \cdot \mathrm{kernel}_h : (h+1) \cdot \mathrm{kernel}_h,\,
+      w \cdot \mathrm{kernel}_w : (w+1) \cdot \mathrm{kernel}_w}
+  \bigr)
+  $$
 
 #### 4.3.2 反向传播原理
 
@@ -1187,8 +1410,12 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
 - 输出形状：`(d0, d1, ..., sum(dk_i), ..., dm)`，其中 `sum(dk_i)` 是所有输入在第 `k` 维大小的总和
 
 **数学表示：**
-- `y = cat([x0, x1, ..., xn], dim=k)`
-- 输出 `y` 在第 `k` 维上包含了所有输入在该维度的数据，按顺序排列
+
+$$
+y = \operatorname{cat}([x_0, x_1, \dots, x_n], \mathrm{dim}=k)
+$$
+
+输出 $y$ 在第 $k$ 维上包含了所有输入在该维度的数据，按顺序排列
 
 #### 5.1.2 反向传播原理
 
@@ -1265,8 +1492,12 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
 - 输出：`n` 个张量 `[y0, y1, ..., yn]`，每个 `yi` 的形状为 `(d0, d1, ..., si, ..., dm)`
 
 **数学表示：**
-- `[y0, y1, ..., yn] = split(x, sizes, dim=k)`
-- 每个输出 `yi` 对应输入 `x` 在第 `k` 维上的一个连续区间
+
+$$
+[y_0, y_1, \dots, y_n] = \operatorname{split}(x, \mathrm{sizes}, \mathrm{dim}=k)
+$$
+
+每个输出 $y_i$ 对应输入 $x$ 在第 $k$ 维上的一个连续区间
 
 #### 5.2.2 反向传播原理
 
@@ -1327,17 +1558,21 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
 
 #### 5.3.1 前向传播原理
 
-重塑算子的前向传播执行：`y = reshape(x, shape)`
+重塑算子的前向传播执行：$y = \operatorname{reshape}(x, \mathrm{shape})$
 
 **数学描述：**
-- 输入：张量 `x` 和目标形状 `shape`
-- 输出：将 `x` 重塑为目标形状 `shape`
+- 输入：张量 $x$ 和目标形状 $\mathrm{shape}$
+- 输出：将 $x$ 重塑为目标形状 $\mathrm{shape}$
 - 要求：`x` 的元素总数必须等于 `shape` 的元素总数
 - 重塑操作不改变数据，只改变张量的维度排列
 
 **数学表示：**
-- `y = reshape(x, shape)`
-- `y` 的形状为 `shape`，但数据与 `x` 相同（按行优先顺序重新排列）
+
+$$
+y = \operatorname{reshape}(x, \mathrm{shape})
+$$
+
+输出 $y$ 的形状为 $\mathrm{shape}$，但数据与 $x$ 相同（按行优先顺序重新排列）
 
 #### 5.3.2 反向传播原理
 
@@ -1366,17 +1601,21 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
 
 #### 5.4.1 前向传播原理
 
-转置算子的前向传播执行：`y = transpose(x)`
+转置算子的前向传播执行：$y = \operatorname{transpose}(x)$
 
 **数学描述：**
-- 输入：张量 `x`
-- 输出：将 `x` 转置，交换最后两个维度
-- 对于 2D 矩阵：`y[i, j] = x[j, i]`
+- 输入：张量 $x$
+- 输出：将 $x$ 转置，交换最后两个维度
+- 对于 2D 矩阵：$y_{i j} = x_{j i}$
 - 对于更高维张量：只交换最后两个维度
 
 **数学表示：**
-- `y = transpose(x)`
-- `y` 的形状是 `x` 的形状交换最后两个维度
+
+$$
+y = \operatorname{transpose}(x)
+$$
+
+输出 $y$ 的形状是 $x$ 的形状在最后两个维度上交换后的结果
 
 #### 5.4.2 反向传播原理
 
@@ -1404,17 +1643,21 @@ SiLU（Sigmoid Linear Unit）算子的前向传播执行：`y = silu(x) = x × s
 
 #### 5.5.1 前向传播原理
 
-展平算子的前向传播执行：`y = flatten(x, start_dim, end_dim)`
+展平算子的前向传播执行：$y = \operatorname{flatten}(x, \mathrm{start\_dim}, \mathrm{end\_dim})$
 
 **数学描述：**
-- 输入：张量 `x` 和维度范围 `[start_dim, end_dim]`
+- 输入：张量 $x$ 和维度范围 $[\mathrm{start\_dim}, \mathrm{end\_dim}]$
 - 输出：将 `x` 在指定维度范围内展平
 - 展平操作将多个连续维度合并为一个维度
 - 例如：`(2, 3, 4)` 在 `[1, 2]` 展平后变为 `(2, 12)`
 
 **数学表示：**
-- `y = flatten(x, start_dim, end_dim)`
-- 输出 `y` 的形状是 `x` 的形状在 `[start_dim, end_dim]` 范围内展平
+
+$$
+y = \operatorname{flatten}(x, \mathrm{start\_dim}, \mathrm{end\_dim})
+$$
+
+输出 $y$ 的形状是 $x$ 的形状在 $[\mathrm{start\_dim}, \mathrm{end\_dim}]$ 范围内展平
 
 #### 5.5.2 反向传播原理
 
@@ -1456,8 +1699,24 @@ Dropout 算子的前向传播执行：`y = dropout(x, p, training)`
 - 目的：防止过拟合，通过随机丢弃部分神经元来增强模型泛化能力
 
 **数学表示：**
-- 训练模式：`y[i] = (mask[i] == 1) ? x[i] / (1 - p) : 0`，其中 `mask[i]` 是随机生成的掩码
-- 推理模式：`y = x`
+
+- 训练模式：
+
+  $$
+  y_i =
+  \begin{cases}
+  \dfrac{x_i}{1 - p}, & \text{如果 } \mathrm{mask}_i = 1 \\
+  0, & \text{如果 } \mathrm{mask}_i = 0
+  \end{cases}
+  $$
+
+  其中 $\mathrm{mask}_i$ 是随机生成的掩码。
+
+- 推理模式：
+
+  $$
+  y = x
+  $$
 
 #### 6.1.2 反向传播原理
 
@@ -1509,8 +1768,18 @@ Dropout 算子的前向传播执行：`y = dropout(x, p, training)`
 - 插值方法：通常使用最近邻插值或双线性插值
 
 **数学表示：**
-- `y = upsample(x, size=(H_out, W_out))` 或 `y = upsample(x, scale_factor=(scale_h, scale_w))`
-- 输出 `y` 的空间维度被放大，通道数和批次大小保持不变
+
+$$
+y = \operatorname{upsample}\bigl(x, \mathrm{size}=(H_{\text{out}}, W_{\text{out}})\bigr)
+$$
+
+或
+
+$$
+y = \operatorname{upsample}\bigl(x, \mathrm{scale\_factor}=(\mathrm{scale}_h, \mathrm{scale}_w)\bigr)
+$$
+
+输出 $y$ 的空间维度被放大，通道数和批次大小保持不变
 
 #### 6.2.2 反向传播原理
 
@@ -1523,8 +1792,19 @@ Dropout 算子的前向传播执行：`y = dropout(x, p, training)`
 - 梯度累加：对于输入位置 `(i, j)`，其梯度等于所有对应输出位置的梯度之和
 
 **数学表示：**
-- 如果 `y[h_out, w_out]` 对应 `x[h, w]`，其中 `h = h_out / scale_h`，`w = w_out / scale_w`
-- 则 `gx[h, w] = sum(gy[h_out, w_out])`，对所有满足 `h_out / scale_h = h` 和 `w_out / scale_w = w` 的位置求和
+
+- 如果 $y[h_{\text{out}}, w_{\text{out}}]$ 对应 $x[h, w]$，其中
+  $$
+  h = \frac{h_{\text{out}}}{\mathrm{scale}_h}, \quad
+  w = \frac{w_{\text{out}}}{\mathrm{scale}_w},
+  $$
+  则
+
+  $$
+  g_x[h, w]
+  = \sum_{\substack{h_{\text{out}}, w_{\text{out}} \\ h_{\text{out}} / \mathrm{scale}_h = h \\ w_{\text{out}} / \mathrm{scale}_w = w}}
+    g_y[h_{\text{out}}, w_{\text{out}}]
+  $$
 
 #### 6.2.3 计算示例
 
@@ -1574,24 +1854,35 @@ Dropout 算子的前向传播执行：`y = dropout(x, p, training)`
 
 #### 6.3.1 前向传播原理
 
-恒等算子的前向传播执行：`y = identity(x) = x`
+恒等算子的前向传播执行：$y = \operatorname{identity}(x) = x$
 
 **数学描述：**
-- 输入：张量 `x`
-- 输出：直接返回输入 `x`，不做任何变换
-- 数学表达式：`y = identity(x) = x`
+- 输入：张量 $x$
+- 输出：直接返回输入 $x$，不做任何变换
+- 数学表达式：
+
+  $$
+  y = \operatorname{identity}(x) = x
+  $$
+
 - 恒等算子主要用于控制计算图结构，不改变数据
 
 #### 6.3.2 反向传播原理
 
-对于恒等运算 `y = identity(x)`，根据链式法则：
-- `∂y/∂x = 1`
+对于恒等运算 $y = \operatorname{identity}(x)$，根据链式法则：
 
-因此，如果输出梯度为 `gy`，则：
-- `gx = gy`
+$$
+\frac{\partial y}{\partial x} = 1
+$$
+
+因此，如果输出梯度为 $g_y$，则：
+
+$$
+g_x = g_y
+$$
 
 **数学原理：**
-- 恒等函数的导数是 1
+- 恒等函数的导数是 $1$
 - 反向传播时，梯度直接传递，不做任何变换
 - 这是最简单的算子之一
 
@@ -1637,8 +1928,18 @@ Dropout 算子的前向传播执行：`y = dropout(x, p, training)`
 - 推理模式：使用 `running_mean` 和 `running_var` 进行归一化
 
 **数学表示：**
-- 训练模式：`y = gamma × (x - mean) / sqrt(var + ε) + beta`
-- 推理模式：`y = gamma × (x - running_mean) / sqrt(running_var + ε) + beta`
+
+- 训练模式：
+
+  $$
+  y = \gamma \cdot \frac{x - \mathrm{mean}}{\sqrt{\mathrm{var} + \varepsilon}} + \beta
+  $$
+
+- 推理模式：
+
+  $$
+  y = \gamma \cdot \frac{x - \mathrm{running\_mean}}{\sqrt{\mathrm{running\_var} + \varepsilon}} + \beta
+  $$
 
 #### 7.1.2 反向传播原理
 
@@ -1693,7 +1994,12 @@ Softmax 交叉熵损失算子的前向传播执行：`loss = softmax_cross_entro
   1. 计算 softmax：`p = softmax(x, axis=-1)`，形状 `(N, C)`
   2. 提取目标类别的概率：`p_selected = p[i, target[i]]`，形状 `(N,)`
   3. 计算交叉熵：`loss = -mean(log(p_selected + ε))`
-- 数学表达式：`loss = -1/N × Σ(i) log(p[i, target[i]] + ε)`
+- 数学表达式：
+
+  $$
+  \mathrm{loss}
+  = -\frac{1}{N} \sum_{i=1}^N \log\bigl(p_{i,\,\mathrm{target}_i} + \varepsilon\bigr)
+  $$
 
 **各步含义（便于普通人理解）：**
 
@@ -1712,8 +2018,19 @@ Softmax 交叉熵损失算子的前向传播执行：`loss = softmax_cross_entro
    - 多样本：对所有样本的 `-log(p_selected + ε)` 取平均，得到 `loss`。
 
 **数学表示（小结）：**
-- `p = softmax(x)`：将 logits 转换为概率分布（每行和为 1）
-- `loss = -mean(log(p[target]))`：交叉熵损失，衡量预测分布与“真实类别”的一致性；越小表示预测越准
+
+$$
+p = \operatorname{softmax}(x)
+$$
+
+将 logits 转换为概率分布（每行和为 1）。
+
+$$
+\mathrm{loss}
+= -\operatorname{mean}\bigl(\log(p_{\mathrm{target}})\bigr)
+$$
+
+交叉熵损失衡量预测分布与“真实类别”的一致性，越小表示预测越准。
 
 #### 8.1.2 反向传播原理
 

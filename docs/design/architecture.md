@@ -27,7 +27,7 @@ graph TB
         Autograd["自动求导系统<br/>反向传播、梯度计算"]
     end
     
-    subgraph "抽象接口层 (Abstraction Layer)"
+    subgraph "抽象接口层(Abstraction Layer)"
         MatInterface["Mat<br/>矩阵计算抽象接口<br/>统一多后端接口"]
     end
     
@@ -857,51 +857,62 @@ LibTorch风格的访问顺序：
 
 # 3. 动态计算图构建
 
-## 3.1 动态计算图架构
+## 3.1 计算图的基本概念
 
-动态计算图是 OriginDL 自动求导系统的核心数据结构，用于记录计算过程和依赖关系。计算图由**节点（Tensor）**和**边（Operator）**组成，在前向传播时自动构建。
+计算图是 OriginDL 自动求导系统的核心数据结构，由**节点（Tensor）**和**边（Operator）**组成，在前向传播时自动构建。
 
-### 3.1.1 计算图整体架构
+**计算图的核心作用：** 记录计算过程和依赖关系，支持反向传播时自动计算梯度。
 
-```mermaid
-flowchart TD
-    subgraph NodeLayer["计算图节点层 (Tensor)"]
-        direction TB
-        Node1["Tensor 节点<br/>· data\_: 节点数据<br/>· grad\_: 节点梯度<br/>· creator\_: 创建者 Operator<br/>· generation\_: 拓扑排序代数"]
-    end
-    
-    subgraph EdgeLayer["计算图边层 (Operator)"]
-        direction TB
-        Edge1["Operator 边<br/>· inputs\_: 输入节点<br/>· outputs\_: 输出节点 (weak_ptr)<br/>· generation\_: 拓扑排序代数<br/>· forward(): 前向传播<br/>· backward(): 反向传播"]
-    end
-    
-    subgraph BuildProcess["前向传播构建过程"]
-        direction TB
-        Step1["用户代码<br/>auto y = x * 2;"]
-        Step2["Operator::operator()<br/>· 调用 forward() 计算输出<br/>· 设置 creator\_ 建立连接<br/>· setup_computation_graph()"]
-        Step3["步骤3: 计算图连接建立<br/>x ──[Mul]──> y"]
-    end
-    
-    subgraph GraphStructures["计算图结构类型"]
-        direction LR
-        Single["单输入单输出<br/>x → [Op] → y"]
-        MultiInput["多输入单输出<br/>x0 ──┐<br/>     ├→ [Op] → y<br/>x1 ──┘"]
-        Branch["分支与合并<br/>     ┌→ [Op1] → y1<br/>x ───┤<br/>     └→ [Op2] → y2"]
-        Chain["循环结构<br/>x → [Op1] → y1 → [Op2] → y2"]
-    end
-    
-    NodeLayer -.->|通过 creator_ 连接| EdgeLayer
-    BuildProcess -->|自动构建| NodeLayer
-    BuildProcess -->|自动构建| EdgeLayer
-    EdgeLayer -->|支持多种结构| GraphStructures
-    
-    style NodeLayer fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
-    style EdgeLayer fill:#fff4e1,stroke:#ff9900,stroke-width:2px
-    style BuildProcess fill:#ffe1f5,stroke:#cc0066,stroke-width:2px
-    style GraphStructures fill:#e1ffe1,stroke:#00cc66,stroke-width:2px
-```
+OriginDL 采用**动态计算图**设计，计算图在前向传播时动态构建。与静态图相比，动态图在灵活性和易用性方面具有明显优势。
 
-## 3.2 计算图节点与边的连接关系
+**动态图 vs 静态图对比：**
+
+| 特性 | 动态图（OriginDL） | 静态图（TensorFlow 1.x, PNNX） |
+|------|------------------|-------------------------------|
+| **构建时机** | 运行时动态构建 | 编译时或加载时构建 |
+| **图结构** | 每次前向传播可能不同 | 图结构固定不变 |
+| **控制流** | 原生支持 if/for/while | 需要特殊算子（tf.cond, tf.while_loop） |
+| **易用性** | 代码直观，Python 风格 | 需要显式构建图，代码复杂 |
+| **调试** | 可以打印中间结果，易于调试 | 需要特殊工具（TensorBoard） |
+| **性能** | 运行时开销，性能略低 | 编译优化，性能更高 |
+| **适用场景** | 训练、研究、快速原型 | 推理、生产部署 |
+
+**PNNX 的静态图特性：** OriginDL 的 PNNX 模块用于模型推理，采用静态图设计。PNNX 模型从 `.param` 和 `.bin` 文件加载后，通过 `build()` 构建固定的计算图结构，之后只执行 `forward()` 推理，图结构不再变化。这种设计适合推理场景，可以获得更好的性能。
+
+**为什么 OriginDL 选择动态图：**
+
+1. **开发效率优先**：动态图让用户代码更直观，无需显式构建图，降低学习成本，适合研究和快速原型开发
+2. **灵活性需求**：支持条件分支、循环等控制流，适合复杂的模型结构。
+3. **调试友好**：可以随时打印中间结果，检查计算过程，便于问题定位
+4. **PyTorch 兼容**：与 PyTorch 的设计理念一致，便于从 PyTorch 迁移代码
+
+**设计权衡：** 动态图牺牲了一定的性能（运行时构建），但换来了更好的灵活性和用户体验。对于需要极致性能的推理场景，OriginDL 通过 PNNX 模块支持静态图推理，以兼顾训练时的灵活性和推理时的性能。
+
+## 3.2 计算图的数据结构设计
+
+### 3.2.1 节点（TensorImpl）与边（Operator）的设计
+
+计算图采用**节点-边模型**，节点表示数据（Tensor），边表示计算（Operator）。这种设计实现了**职责分离**：节点负责数据存储和梯度管理，边负责计算逻辑。
+
+**节点（TensorImpl）的核心数据成员：**
+
+| 成员 | 类型 | 作用 |
+|------|------|------|
+| `data_` | `shared_ptr<Mat>` | 存储节点数据 |
+| `grad_` | `shared_ptr<Mat>` | 存储节点梯度（反向传播时使用） |
+| `creator_` | `shared_ptr<Operator>` | 指向创建该节点的 Operator（建立节点到边的连接） |
+| `generation_` | `int` | 拓扑排序代数，用于反向传播时确定计算顺序 |
+| `requires_grad_` | `bool` | 是否需要梯度计算 |
+
+**边（Operator）的核心数据成员：**
+
+| 成员 | 类型 | 作用 |
+|------|------|------|
+| `inputs_` | `vector<Tensor>` | 输入节点列表（值语义的 Tensor，保存输入引用） |
+| `outputs_` | `vector<weak_ptr<TensorImpl>>` | 输出节点列表（使用 `weak_ptr` 避免循环引用） |
+| `generation_` | `int` | 拓扑排序代数，等于输入的最大 `generation_` |
+
+### 3.2.2 连接关系的架构（类图）
 
 ```mermaid
 classDiagram
@@ -942,20 +953,18 @@ classDiagram
     note for Operator "边属性：<br/>· inputs\_: 输入节点列表<br/>· outputs\_: 输出节点列表（weak_ptr避免循环引用）<br/>· generation\_: 用于拓扑排序<br/>· forward/backward: 前向/反向传播"
 ```
 
-## 3.3 前向传播时自动构建计算图
+**连接关系设计：** Tensor 通过 `creator_` 单向连接到 Operator（用于反向传播时回溯），Operator 通过 `inputs_` 和 `outputs_` 双向观察 Tensor（用于前向和反向传播时访问数据），其中 `outputs_` 使用 `weak_ptr` 避免循环引用，详见 [3.5 `weak_ptr` 设计](#35-weak_ptr-设计避免循环引用)。
 
-在前向传播过程中，计算图会自动构建。当用户执行 `auto y = x * 2;` 时，系统会：
+## 3.3 前向传播时的自动构建机制
 
-1. **创建算子**：运算符重载创建 `Mul` 算子
-2. **执行前向传播**：调用 `Mul::forward()` 计算输出
-3. **建立连接**：设置 `y.creator_ = Mul`，建立节点到边的连接
-4. **保存信息**：在 `Mul` 中保存 `inputs_` 和 `outputs_`
-5. **设置代数**：`y.generation_ = x.generation_ + 1`
+### 3.3.1 构建流程（时序图）
+
+计算图在前向传播时自动构建，用户无需显式创建。当用户执行 `auto y = x * 2;` 时，系统自动完成以下步骤：
 
 ```mermaid
 sequenceDiagram
     participant User as 用户代码
-    participant Op as Operator::operator()
+    participant Op as Operator::operator()()
     participant Forward as Operator::forward()
     participant Tensor as TensorImpl
     participant Setup as setup_computation_graph()
@@ -974,46 +983,73 @@ sequenceDiagram
     Op-->>User: 返回 y
 ```
 
-## 3.4 计算图连接机制
+**构建流程说明：**
 
-#### `creator_` 字段的作用
+1. **运算符重载**：用户代码 `x * 2` 触发运算符重载，创建 `Mul` 算子
+2. **前向计算**：调用 `Mul::forward()` 计算输出 `y`
+3. **检查梯度需求**：检查输入是否需要梯度，决定是否建立计算图
+4. **建立连接**：调用 `set_creator()` 设置 `y.creator_ = Mul`
+5. **保存图结构**：调用 `setup_computation_graph()` 保存 `inputs_` 和 `outputs_`
 
-`creator_` 字段建立了从节点（Tensor）到边（Operator）的连接，使得反向传播时可以从输出节点回溯到创建它的算子。
+### 3.3.2 `requires_grad` 的传播机制
 
-- **记录创建者**：每个 Tensor 记录创建它的 Operator
-- **建立连接**：通过 `creator_` 建立节点到边的连接
-- **反向回溯**：反向传播时从 `creator_` 开始回溯整个计算图
+**设计原则：** 如果任何一个输入需要梯度，输出也需要梯度。这简化了用户使用，系统自动管理梯度计算。
 
-#### `generation_` 的作用（拓扑排序）
+**传播规则：**
 
-`generation_` 用于拓扑排序，确保梯度计算的正确顺序：
+```mermaid
+flowchart TD
+    Check["检查输入 requires_grad"]
+    AnyTrue{"任一输入<br/>requires_grad = true?"}
+    SetTrue["输出 requires_grad = true<br/>建立计算图"]
+    SetFalse["输出 requires_grad = false<br/>不建立计算图"]
+    
+    Check --> AnyTrue
+    AnyTrue -->|是| SetTrue
+    AnyTrue -->|否| SetFalse
+```
 
-- **输入节点**：`generation_ = 0`
-- **中间节点**：`generation_ = 输入的最大 generation_ + 1`
-- **反向传播顺序**：按 `generation_` 从大到小处理（输出端 → 输入端）
+**设计原因：** 这种设计让用户只需在输入 Tensor 上设置 `requires_grad`，系统自动传播到所有相关输出，无需手动管理每个中间 Tensor 的梯度需求。PyTorch 也采用相同的设计。
+
+### 3.3.3 计算图连接的建立
+
+**`set_creator()` 的作用：** 建立从节点（Tensor）到边（Operator）的单向连接，使得反向传播时可以从输出节点回溯到创建它的算子。
+
+- **记录创建者**：每个 Tensor 通过 `creator_` 记录创建它的 Operator
+- **设置代数**：同时设置 `generation_ = creator_->generation_ + 1`
+- **使用 `enable_shared_from_this`**：Operator 继承 `enable_shared_from_this`，通过 `shared_from_this()` 获取自身的 `shared_ptr`，避免循环引用
+
+**`setup_computation_graph()` 的作用：** 在 Operator 中保存计算图结构信息。
+
+- **保存输入**：`inputs_ = inputs`（值语义的 Tensor，保存输入引用）
+- **保存输出**：`outputs_ = [output.impl_, ...]`（`weak_ptr<TensorImpl>`，避免循环引用）
+- **设置代数**：`generation_ = max(inputs.generation_)`
+
+## 3.4 `generation_` 的设计：拓扑排序代数
+
+**拓扑排序简介：** 拓扑排序是对有向无环图（DAG）节点的一种排序方法，使得对于任意边 `u → v`，节点 `u` 在排序中出现在节点 `v` 之前。在计算图的反向传播中，拓扑排序确保梯度计算的正确顺序：必须先计算输出节点的梯度，再计算输入节点的梯度（从输出端到输入端）。
+
+### 3.4.1 `generation_` 的计算规则
+
+`generation_` 是拓扑排序的代数表示，用于确保反向传播时梯度计算的正确顺序。
+
+**计算规则：**
+
+- **输入节点**：`generation_ = 0`（用户创建的 Tensor）
+- **Operator**：`generation_ = max(inputs.generation_)`（等于输入的最大代数）
+- **输出节点**：`generation_ = creator_->generation_ + 1`（比创建它的 Operator 大 1）
+
+**设计优势：** 这种简单的代数计算避免了复杂的全局拓扑排序，在前向传播时即可确定反向传播的顺序。
+
 
 ```mermaid
 flowchart LR
-    subgraph Forward["前向传播：generation_ 递增"]
-        direction LR
-        X["x<br/>generation_=0"]
-        Add["Add<br/>generation_=1"]
-        Y1["y1<br/>generation_=1"]
-        Mul["Mul<br/>generation_=2"]
-        Y2["y2<br/>generation_=2"]
-        
-        X -->|前向| Add
-        Add -->|前向| Y1
-        Y1 -->|前向| Mul
-        Mul -->|前向| Y2
-    end
-    
     subgraph Backward["反向传播：generation_ 递减"]
         direction RL
         X2["x<br/>generation_=0"]
-        Add2["Add<br/>generation_=1"]
+        Add2["Add<br/>generation_=0"]
         Y1_2["y1<br/>generation_=1"]
-        Mul2["Mul<br/>generation_=2"]
+        Mul2["Mul<br/>generation_=1"]
         Y2_2["y2<br/>generation_=2"]
         
         Y2_2 -->|反向| Mul2
@@ -1021,34 +1057,114 @@ flowchart LR
         Y1_2 -->|反向| Add2
         Add2 -->|反向| X2
     end
-    
-    style Forward fill:#e1f5ff
+
+    subgraph Forward["前向传播：generation_ 递增"]
+        direction LR
+        X["x<br/>generation_=0"]
+        Add["Add<br/>generation_=0"]
+        Y1["y1<br/>generation_=1"]
+        Mul["Mul<br/>generation_=1"]
+        Y2["y2<br/>generation_=2"]
+        
+        X -->|前向| Add
+        Add -->|前向| Y1
+        Y1 -->|前向| Mul
+        Mul -->|前向| Y2
+    end
+
     style Backward fill:#ffe1f5
+    style Forward fill:#e1f5ff
 ```
 
-## 3.5 计算图结构类型
+### 3.4.2 在不同计算图结构中的应用
 
-OriginDL 支持多种计算图结构：
+`generation_` 的设计能够正确处理各种计算图结构：
 
-1. **单输入单输出**：最简单的结构，如 `x → [ReLU] → y`
-2. **多输入单输出**：多个输入合并，如 `x0, x1 → [Add] → y`
-3. **分支与合并**：一个输入产生多个输出，需要梯度累积
-4. **循环结构**：链式结构，多个算子串联
+**链式结构示例：**
 
-### 3.5.1 动态图的优势
+```mermaid
+flowchart LR
+    X["x<br/>gen=0"] --> Add["Add<br/>gen=0"]
+    Add --> Y1["y1<br/>gen=1"]
+    Y1 --> Mul["Mul<br/>gen=1"]
+    Mul --> Y2["y2<br/>gen=2"]
+    
+    style X fill:#e1f5ff
+    style Add fill:#fff4e1
+    style Y1 fill:#ffe1f5
+    style Mul fill:#fff4e1
+    style Y2 fill:#ffe1f5
+```
 
-- **灵活性**：计算图结构可以动态变化，支持条件分支、循环等控制流
-- **易用性**：用户代码直观，不需要显式构建图
-- **易调试**：可以打印中间结果，检查计算图结构
+反向传播顺序：y2 → Mul → y1 → Add → x（按 `generation_` 从大到小）
 
+**分支结构示例：**
+
+```mermaid
+flowchart LR
+    X["x<br/>gen=0"] --> Add1["Add1<br/>gen=0"]
+    X --> Add2["Add2<br/>gen=0"]
+    Add1 --> Y1["y1<br/>gen=1"]
+    Add2 --> Y2["y2<br/>gen=1"]
+    
+    style X fill:#e1f5ff
+    style Add1 fill:#fff4e1
+    style Add2 fill:#fff4e1
+    style Y1 fill:#ffe1f5
+    style Y2 fill:#ffe1f5
+```
+
+两个分支的 `generation_` 相同，反向传播时按加入队列的顺序处理。
+
+**合并结构示例：**
+
+```mermaid
+flowchart LR
+    X1["x1<br/>gen=0"] --> Add["Add<br/>gen=0"]
+    X2["x2<br/>gen=0"] --> Mul1["Mul1<br/>gen=0"]
+    Add --> Y1["y1<br/>gen=1"]
+    Mul1 --> Y2["y2<br/>gen=1"]
+    Y2 --> ReLU["ReLU<br/>gen=1"]
+    ReLU --> Y3["y3<br/>gen=2"]
+    Y1 --> Mul2["Mul2<br/>gen=max(1,2)=2"]
+    Y3 --> Mul2
+    Mul2 --> Y["y<br/>gen=2+1=3"]
+    
+    style X1 fill:#e1f5ff
+    style X2 fill:#e1f5ff
+    style Add fill:#fff4e1
+    style Mul1 fill:#fff4e1
+    style Y1 fill:#ffe1f5
+    style Y2 fill:#ffe1f5
+    style ReLU fill:#fff4e1
+    style Y3 fill:#ffe1f5
+    style Mul2 fill:#fff4e1
+    style Y fill:#ffe1f5
+```
+
+合并节点的 `generation_` 计算流程：Mul2 的 `generation_ = max(y1.generation_, y3.generation_) = max(1, 2) = 2`，输出 y 的 `generation_ = Mul2.generation_ + 1 = 3`，确保反向传播时先处理合并节点。
+
+## 3.5 `weak_ptr` 设计：避免循环引用
+
+**循环引用问题：** 如果 `outputs_` 使用 `shared_ptr`，会导致循环引用路径 `Operator → outputs_ → TensorImpl → creator_ → Operator`，造成内存泄漏。Operator 持有 outputs_ 的 `shared_ptr`，TensorImpl 持有 creator_ 的 `shared_ptr`，形成循环，引用计数永远不为 0，无法释放。
+
+**解决方案：** `outputs_` 使用 `weak_ptr<TensorImpl>`，Operator 不拥有输出 Tensor，只持有弱引用。Operator 通过弱引用访问输出 Tensor，不控制其生命周期。
+
+**生命周期管理：** 前向传播时，`outputs_` 存储 `weak_ptr<TensorImpl>`，不增加引用计数，避免循环引用。反向传播时，通过 `weak_ptr.lock()` 转换为 `shared_ptr`（如果有效），确保在计算期间 Tensor 不会被释放。如果 `weak_ptr` 失效（用户代码中的 Tensor 已超出作用域），跳过该输出，这是正常的行为，不影响其他路径的梯度计算。
+
+**设计权衡：** 使用 `weak_ptr` 牺牲了少量性能（`lock()` 的开销），但换来了内存安全和自动管理，避免了复杂的手动生命周期管理。
 
 # 4. 反向传播实现
 
-## 4.1 反向传播架构
+## 4.1 反向传播的架构设计
 
-反向传播是自动求导系统的核心，通过遍历计算图从输出端向输入端传播梯度。OriginDL 采用拓扑排序算法确保梯度计算的正确顺序，并通过梯度累积机制处理多路径梯度传播。
+反向传播是自动求导系统的核心，通过遍历计算图从输出端向输入端传播梯度。OriginDL 的反向传播设计遵循以下理念：
 
-### 4.1.1 反向传播整体流程
+**自动化设计：** 用户只需调用 `backward()`，系统自动处理所有细节，包括梯度计算顺序、多路径梯度累积、内存管理等。
+
+**正确性保证：** 通过拓扑排序确保梯度计算顺序正确，支持各种计算图结构（链式、分支、合并等）。
+
+**反向传播的整体流程：**
 
 ```mermaid
 flowchart TD
@@ -1083,12 +1199,6 @@ flowchart TD
         Continue["继续处理下一个 Operator"]
     end
     
-    subgraph Cleanup["清理阶段"]
-        ClearInputs["清理 inputs_"]
-        ClearCreator["清理 creator_"]
-        ClearGrad["清理中间 grad_"]
-    end
-    
     Start --> Check
     Check -->|启用| InitGrad
     Check -->|禁用| End1["直接返回"]
@@ -1106,10 +1216,7 @@ flowchart TD
     InplaceAdd --> AddInputCreator
     AddInputCreator --> Continue
     Continue -->|队列非空| Process
-    Continue -->|队列为空| ClearInputs
-    ClearInputs --> ClearCreator
-    ClearCreator --> ClearGrad
-    ClearGrad --> End2["完成"]
+    Continue -->|队列为空| End2["完成"]
     
     style Start fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
     style Init fill:#fff4e1,stroke:#ff9900,stroke-width:2px
@@ -1117,13 +1224,43 @@ flowchart TD
     style GradCalc fill:#e1ffe1,stroke:#00cc66,stroke-width:2px
     style Accumulate fill:#f5e1ff,stroke:#9900cc,stroke-width:2px
     style Recursive fill:#ffffe1,stroke:#999900,stroke-width:2px
-    style Cleanup fill:#e1e1ff,stroke:#0000cc,stroke-width:2px
 ```
 
-## 4.2 拓扑排序与梯度计算
+**流程说明：**
+
+1. **初始化阶段**：检查 `enable_backprop` 和 `requires_grad_`，初始化输出梯度为全 1，初始化拓扑排序队列
+2. **拓扑排序阶段**：按 `generation_` 从大到小排序，从队列尾部取出 Operator
+3. **梯度计算阶段**：收集输出梯度（`weak_ptr` → `shared_ptr`），调用 `Operator::backward()` 计算输入梯度
+4. **梯度累积阶段**：根据 `grad_` 是否为空，选择直接共享或原地累加策略
+5. **递归处理阶段**：添加输入的 `creator_` 到队列，继续处理下一个 Operator
+
+## 4.2 拓扑排序算法设计
+
+反向传播需要按照正确的顺序计算梯度：必须先计算输出节点的梯度，再计算输入节点的梯度。拓扑排序算法确保了这个顺序的正确性。OriginDL 使用 `generation_` 作为拓扑排序的代数表示，在前向传播时即可确定反向传播的顺序，避免了复杂的全局拓扑排序算法。
+
+拓扑排序的核心是递归处理：从输出 Tensor 的 `creator_` 开始，递归添加所有输入的 `creator_` 到队列，按 `generation_` 排序后处理。
+
+**数据结构选择：**
+
+- **`list<shared_ptr<Operator>> funcs`**：用于存储待处理的 Operator，支持排序和从尾部取出
+- **`set<shared_ptr<Operator>> func_set`**：用于去重，避免重复处理同一个 Operator
+
+**设计原因：** `list` 支持高效的排序和尾部操作，`set` 提供 O(log n) 的查找和去重。
+
+**排序策略：**
+
+- **排序依据**：按 `generation_` 从小到大排序（`generation_` 小的在前）
+- **处理顺序**：从队列尾部取出（`generation_` 最大的先处理）
+- **排序时机**：每次添加新 Operator 后重新排序，确保队列始终有序
+
+**去重机制：** 使用 `func_set` 检查 Operator 是否已加入队列，避免重复处理。
+
+**终止条件：** 队列为空时，所有相关 Operator 都已处理完毕。
+
+**设计优势：** 这种设计确保了反向传播时从输出端到输入端的正确顺序，同时避免了复杂的全局拓扑排序。
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph Queue["待处理队列 (按 generation_ 排序)"]
         direction TB
         Op3["Operator (gen=3)<br/>输出端"]
@@ -1148,7 +1285,41 @@ flowchart LR
     style Process fill:#fff4e1,stroke:#ff9900,stroke-width:2px
 ```
 
-## 4.3 梯度累积机制
+## 4.3 `weak_ptr` 转换机制
+
+**转换时机：** 在反向传播的梯度计算阶段，需要访问输出 Tensor 的梯度时，将 `weak_ptr` 转换为 `shared_ptr`。
+
+**转换机制：** `weak_ptr.lock()` 尝试将 `weak_ptr` 转换为 `shared_ptr`，如果有效则返回 `shared_ptr`，否则返回 `nullptr`。将转换后的 `shared_ptr` 临时保存在 `valid_outputs` 中，确保在 `backward()` 调用期间 Tensor 不会被释放。
+
+**设计原因：** 这种设计确保了在梯度计算期间 Tensor 的生命周期，同时避免了循环引用。
+
+**失效处理：** 如果 `weak_ptr` 失效（用户代码中的 Tensor 已超出作用域），跳过该输出，这是正常的行为，不影响其他路径的梯度计算。
+
+**边界情况：** 如果所有 `weak_ptr` 都失效，跳过该 Operator，继续处理下一个。
+
+## 4.4 梯度计算与累积
+
+### 4.4.1 梯度计算流程（时序图）
+
+**梯度计算步骤：**
+
+1. **收集输出梯度**：从 `outputs_` 中收集所有输出 Tensor 的梯度（`weak_ptr` → `shared_ptr`）
+2. **调用 `backward()`**：调用 `Operator::backward(gys)`，子类实现具体的梯度计算逻辑
+3. **获取输入梯度**：`backward()` 返回输入梯度 `gxs`
+4. **错误检查**：检查 `gxs.size() == inputs_.size()`，确保梯度数量匹配
+
+### 4.4.2 梯度累积的两种策略
+
+梯度累积处理多路径梯度传播的情况。当一个 Tensor 被多个 Operator 使用时，需要将所有路径的梯度累加。
+
+**策略选择：**
+
+| 条件 | 策略 | 实现 | 优势 |
+|------|------|------|------|
+| `grad_` 为空 | 直接共享 | `grad_ = gx.data_` | 避免内存分配和拷贝 |
+| `grad_` 不为空 | 原地累加 | `grad_->add_inplace(gx.data_)` | 避免创建新对象，减少内存分配 |
+
+**设计原因：** 两种策略针对不同场景优化内存使用，直接共享避免首次分配，原地累加避免重复分配。
 
 梯度累积处理多路径梯度传播的情况。当一个 Tensor 被多个 Operator 使用时，需要将所有路径的梯度累加。
 
@@ -1188,12 +1359,32 @@ flowchart TD
     style Accumulate fill:#ffe1f5,stroke:#cc0066,stroke-width:2px
 ```
 
-## 4.4 梯度累积策略
+### 4.4.3 多路径梯度传播
 
-OriginDL 采用两种梯度累积策略，优化内存使用和性能：
+多路径梯度传播是计算图中的常见场景，需要将所有路径的梯度累加。梯度累积策略能够正确处理这种情况。
 
-1. **直接共享**：当 `grad_` 为空时，直接共享梯度数据，避免内存分配和拷贝
-2. **原地累加**：当 `grad_` 不为空时，使用 `add_inplace()` 原地累加，避免创建新对象
+**示例：** 一个 Tensor `x` 通过两条路径到达输出 `y`：
+- 路径1：`x → Mul → y1 → Add → y`
+- 路径2：`x → Add → y2 → Add → y`
+
+反向传播时，`x` 会收到两条路径的梯度，需要累加：`x.grad_ = gx1 + gx2`
+
+## 4.5 递归处理与终止
+
+反向传播采用递归处理机制：处理完一个 Operator 后，将其输入的 `creator_` 添加到队列，继续处理下一个 Operator。
+
+**递归流程：**
+
+1. 从队列中取出 Operator（`generation_` 最大）
+2. 计算梯度并累积到输入 Tensor
+3. 将输入的 `creator_` 添加到队列（如果存在）
+4. 继续处理下一个 Operator
+
+**设计优势：** 这种递归设计自然地处理了复杂的计算图结构，无需显式的递归调用栈。
+
+**终止条件：** 队列为空时，所有相关 Operator 都已处理完毕，反向传播完成。
+
+**终止保证：** 由于 `generation_` 的设计，从输出端到输入端的路径是有限的，队列最终会为空。
 
 ```mermaid
 flowchart TD
@@ -1221,51 +1412,41 @@ flowchart TD
     style InplaceAdd fill:#fff4e1,stroke:#ff9900,stroke-width:2px
 ```
 
-## 4.5 计算图清理机制
+## 4.6 边界情况处理
 
-反向传播完成后，系统会自动清理计算图，释放内存并断开循环引用：
+### 4.6.1 主要边界情况与处理策略
 
-```mermaid
-flowchart TD
-    AfterBackward["backward() 完成"]
-    
-    subgraph Cleanup["清理阶段"]
-        direction TB
-        ClearInputs["清理 inputs_<br/>Operator.inputs_.clear()"]
-        ClearCreator["清理 creator_<br/>TensorImpl.creator_ = nullptr"]
-        ClearMidGrad["清理中间 grad_<br/>中间 Tensor 的 grad_ = nullptr"]
-        KeepUserGrad["保留用户梯度<br/>输入/输出 Tensor 的 grad_ 保留"]
-    end
-    
-    subgraph Result["清理结果"]
-        direction TB
-        MemoryFree["内存释放<br/>减少内存占用"]
-        BreakCycle["断开循环引用<br/>避免内存泄漏"]
-        UserAccess["用户仍可访问<br/>输入/输出梯度"]
-    end
-    
-    AfterBackward --> ClearInputs
-    ClearInputs --> ClearCreator
-    ClearCreator --> ClearMidGrad
-    ClearMidGrad --> KeepUserGrad
-    KeepUserGrad --> MemoryFree
-    MemoryFree --> BreakCycle
-    BreakCycle --> UserAccess
-    
-    style AfterBackward fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
-    style Cleanup fill:#ffe1f5,stroke:#cc0066,stroke-width:2px
-    style Result fill:#e1ffe1,stroke:#00cc66,stroke-width:2px
-```
+反向传播需要处理多种边界情况，确保系统的健壮性：
 
-### 4.5.1 关键设计要点
+| 边界情况 | 处理策略 | 设计原因 |
+|---------|---------|---------|
+| `outputs_` 为空 | 跳过该 Operator | 可能是不需要梯度的中间节点 |
+| 所有 `weak_ptr` 失效 | 跳过该 Operator | 用户代码中的 Tensor 已超出作用域，这是正常行为 |
+| `gxs.size() != inputs_.size()` | 抛出错误 | 确保梯度数量与输入数量匹配 |
+| `enable_backprop` 为 false | 直接返回 | 禁用梯度计算时跳过反向传播 |
+| `requires_grad_` 为 false | 抛出错误 | 与 PyTorch 一致，明确提示用户错误 |
 
-1. **拓扑排序**：使用 `generation_` 确保梯度计算顺序正确，从输出端到输入端
-2. **去重机制**：使用 `set` 避免重复处理同一个 Operator
-3. **weak_ptr 管理**：`outputs_` 使用 `weak_ptr` 避免循环引用，在 `backward()` 时转换为 `shared_ptr`
-4. **梯度累积优化**：直接共享和原地累加两种策略，优化内存使用和性能
-5. **自动清理**：`backward()` 完成后自动清理计算图，释放内存并断开循环引用
+**设计原则：** 提前检查、优雅降级、清晰的错误信息，确保系统在各种情况下都能正确运行。
 
-### 4.5.2 反向传播示例
+## 4.7 性能优化设计
+
+### 4.7.1 内存优化（原地操作、延迟分配）
+
+**原地操作：** 使用 `add_inplace()` 原地累加梯度，避免创建新对象，减少内存分配。
+
+**延迟分配：** `grad_` 初始为 `nullptr`，仅在需要时分配，避免不必要的内存占用。
+
+**直接共享：** 首次梯度累积时直接共享梯度数据，避免拷贝。
+
+### 4.7.2 计算优化
+
+**拓扑排序效率：** 使用 `generation_` 的简单代数计算，避免复杂的全局拓扑排序。
+
+**去重机制：** 使用 `set` 提供 O(log n) 的查找，避免重复处理。
+
+## 4.8 反向传播示例
+
+### 4.8.1 链式结构的反向传播
 
 ```mermaid
 sequenceDiagram
@@ -1287,11 +1468,15 @@ sequenceDiagram
         Op->>X: 梯度累积到 x.grad_
         Op->>Queue: 添加 x.creator_ 到队列
     end
-    Backward->>Backward: 清理计算图
     Backward-->>User: 完成
 ```
 
+**链式结构示例：** `x → Add → y1 → Mul → y2`
 
+反向传播流程：
+1. 初始化：`y2.grad_ = ones(shape)`
+2. 处理 Mul：计算 `y1.grad_`，添加到队列
+3. 处理 Add：计算 `x.grad_`，完成
 
 # 5. 算子系统架构
 
@@ -1321,7 +1506,7 @@ Operator 是计算图的边，连接输入/输出 Tensor，子类实现 `forward
 ```mermaid
 sequenceDiagram
     participant User as 用户代码
-    participant Op as Operator::operator()
+    participant Op as Operator::operator()()
     participant Fwd as forward()
     participant Impl as TensorImpl
 
@@ -1399,128 +1584,498 @@ flowchart LR
 
 # 6. 神经网络模块架构
 
-## 6.1 Module 基类设计
+OriginDL 的神经网络模块架构采用分层设计，核心类之间的关系如下：
 
 ```mermaid
 classDiagram
     class Module {
-        <<abstract>>
+        <<抽象基类>>
         #parameters_ map~string,Parameter*~
         #modules_ map~string,unique_ptr~Module~~
-        #training_ bool
         +forward(input)* Tensor
-        +operator()(input) Tensor
         +parameters() vector~Parameter*~
         +register_parameter(name, param) void
         +register_module(name, module) void
-        +state_dict() StateDict
-        +load_state_dict(state_dict) void
-        +train(mode) void
-        +eval() void
         +to(device) void
         +zero_grad() void
+        +state_dict() StateDict
     }
-```
-
-Module 提供参数/子模块注册、递归收集、train/eval 模式、设备迁移、梯度清零。`forward` 为纯虚，`operator()` 委托调用。
-
-## 6.2 Layer 层设计
-
-```mermaid
-classDiagram
-    class Tensor {
-        +shape() Shape
-        +dtype() DataType
-    }
-    class Parameter {
-        <<extends Tensor>>
-    }
-    class Module {
-        <<abstract>>
-    }
+    
     class Layer {
-        <<extends Module>>
+        <<继承自Module>>
+        +层的统一抽象
     }
+    
+    class Sequential {
+        <<继承自Module>>
+        -modules_ vector~unique_ptr~Module~~
+        +forward(input) Tensor
+        +add(module) void
+    }
+    
     class Linear {
+        <<nn::Linear>>
+        <<继承自Layer>>
         -weight_ Parameter
         -bias_ Parameter
         +forward(input) Tensor
     }
-    class ReLU {
+    
+    class Conv2d {
+        <<nn::Conv2d>>
+        <<继承自Layer>>
+        -weight_ Parameter
+        -bias_ Parameter
         +forward(input) Tensor
     }
-
-    Tensor <|-- Parameter
-    Module <|-- Layer
-    Layer <|-- Linear
-    Layer <|-- ReLU
-    Linear --> Parameter : 持有
+    
+    class BatchNorm {
+        <<nn::BatchNorm1d/2d>>
+        <<继承自Layer>>
+        -gamma_ Parameter
+        -beta_ Parameter
+        +forward(input) Tensor
+    }
+    
+    class ReLU {
+        <<nn::ReLU>>
+        <<继承自Layer>>
+        +forward(input) Tensor
+    }
+    
+    class Parameter {
+        <<继承自Tensor>>
+        +标识可训练参数
+    }
+    
+    class Optimizer {
+        <<抽象基类>>
+        #target_ Module*
+        #parameters_ vector~Parameter*~
+        #hooks_ vector~function~
+        +step() void
+        +zero_grad() void
+        +register_hook(hook) void
+        #step_one(param)* void
+    }
+    
+    class SGD {
+        <<继承自Optimizer>>
+        -lr_ float
+        -momentum_ float
+        -momentum_buffers_ map
+        #step_one(param) void
+    }
+    
+    class Adam {
+        <<继承自Optimizer>>
+        -lr_ float
+        -beta1_ float
+        -beta2_ float
+        -m_buffers_ map
+        -v_buffers_ map
+        #step_one(param) void
+    }
+    
+    Module <|-- Layer : 继承
+    Module <|-- Sequential : 继承
+    Layer <|-- Linear : 继承
+    Layer <|-- Conv2d : 继承
+    Layer <|-- BatchNorm : 继承
+    Layer <|-- ReLU : 继承
+    Optimizer <|-- SGD : 继承
+    Optimizer <|-- Adam : 继承
+    
+    Module "1" --> "*" Parameter : 管理(parameters_)
+    Module "1" --> "*" Module : 管理(modules_)
+    Sequential "1" --> "*" Module : 包含(modules_)
+    Linear --> Parameter : 持有(weight_, bias_)
+    Conv2d --> Parameter : 持有(weight_, bias_)
+    BatchNorm --> Parameter : 持有(gamma_, beta_)
+    Optimizer --> Module : 持有引用(target_)
+    Optimizer --> Parameter : 收集(parameters_)
 ```
 
-Layer 继承 Module，作为带参数层的基类。Parameter 继承 Tensor 标识可训练参数。有参数层（Linear、Conv2d）持有 `weight_`/`bias_` 并 `register_parameter`；无参数层（ReLU、Flatten）仅实现 `forward`。
+**核心关系说明：**
 
-## 6.3 Sequential 容器设计
+- **继承关系**：
+  - `Layer` 继承自 `Module`，作为层的统一抽象
+  - `nn::Linear`、`nn::Conv2d`、`nn::BatchNorm`、`nn::ReLU` 等具体层继承自 `Layer`
+  - `Sequential` 继承自 `Module`，作为容器模块
+  - `SGD`、`Adam` 继承自 `Optimizer`，实现不同的优化算法
+
+- **组合关系**：
+  - `Module` 通过 `parameters_` 管理 `Parameter*` 指针（不拥有所有权）
+  - `Module` 通过 `modules_` 管理子模块（拥有所有权，`unique_ptr`）
+  - `Sequential` 通过 `modules_` 顺序存储子模块
+  - `Linear`、`Conv2d`、`BatchNorm` 等有参数层持有 `Parameter` 成员（如 `weight_`、`bias_`）
+
+- **使用关系**：
+  - `Optimizer` 持有 `Module*` 引用，通过 `Module::parameters()` 收集参数
+  - `Optimizer` 通过 `Parameter*` 直接修改参数值，实现零拷贝更新
+  - `Module` 的递归设计使得所有操作（参数收集、设备迁移、梯度清零）自动处理子模块
+
+## 6.1 Module 基类的架构设计
+
+### 6.1.1 设计理念与职责分离
+
+Module 是 OriginDL 神经网络模块的统一抽象基类，提供参数管理、子模块管理、状态管理、设备管理等核心功能。设计目标是：**上层只关心「把算子组装成模块」与「如何组合模块」，参数生命周期和设备迁移全部交给 Module 框架统一管理**。
+
+**核心设计理念：**
+
+- **职责分离**：Module 负责参数和子模块的管理，Layer 负责具体计算逻辑
+- **递归设计**：所有操作（参数收集、设备迁移、梯度清零）都递归处理子模块
+- **统一接口**：提供与 PyTorch 一致的 API，降低学习成本
+
+### 6.1.2 参数管理架构
+
+Module 的参数管理采用**注册-收集**架构：参数通过 `register_parameter()` 注册到模块，通过 `parameters()` 递归收集。这种设计实现了参数所有权的分离：参数对象由 Layer 成员变量拥有，Module 仅保存指针用于管理。
+
+**架构特点：**
+
+- **所有权分离**：参数对象由 Layer 拥有（如 `Parameter weight_;`），Module 仅保存指针
+- **递归收集**：`parameters()` 递归收集当前模块和所有子模块的参数
+- **命名参数**：`named_parameters()` 提供带模块路径的参数视图，支持模型序列化
 
 ```mermaid
-flowchart LR
-    subgraph Sequential
-        M0["modules_[0]"]
-        M1["modules_[1]"]
-        M2["modules_[2]"]
-        Mn["..."]
+flowchart TB
+    subgraph Layer["Layer (如 Linear)"]
+        W["weight_ Parameter<br/>所有权"]
+        B["bias_ Parameter<br/>所有权"]
     end
-
-    Input["input"] --> M0 --> M1 --> M2 --> Mn --> Output["output"]
+    
+    subgraph Module["Module"]
+        PM["parameters_<br/>map~string, Parameter*~<br/>仅保存指针"]
+    end
+    
+    subgraph Collect["参数收集"]
+        P1["parameters()<br/>递归收集"]
+        P2["named_parameters()<br/>带路径名称"]
+    end
+    
+    W -->|注册| PM
+    B -->|注册| PM
+    PM -->|收集| P1
+    PM -->|收集| P2
 ```
+
+### 6.1.3 子模块管理架构
+
+Module 通过 `register_module()` 管理子模块，形成**模块树结构**。所有操作（参数收集、设备迁移、梯度清零、状态管理）都递归处理子模块，实现统一的模块管理。
+
+**架构特点：**
+
+- **树形结构**：Module 通过 `modules_` 管理子模块，形成树形结构
+- **递归操作**：所有操作自动递归处理子模块，无需手动管理
+- **所有权管理**：Module 通过 `unique_ptr` 拥有子模块的所有权
+
+```mermaid
+flowchart TB
+    subgraph Model["Model (Module)"]
+        M1["Module 1"]
+        M2["Module 2"]
+        M3["Module 3"]
+    end
+    
+    subgraph Sub1["Module 1"]
+        L1["Layer 1"]
+        L2["Layer 2"]
+    end
+    
+    Model -->|拥有| M1
+    Model -->|拥有| M2
+    Model -->|拥有| M3
+    M1 -->|拥有| L1
+    M1 -->|拥有| L2
+    
+    style Model fill:#e1f5ff
+    style M1 fill:#fff4e1
+    style M2 fill:#fff4e1
+    style M3 fill:#fff4e1
+```
+
+### 6.1.4 状态管理架构
+
+Module 通过 `training_` 标志管理训练/评估模式，并通过递归传播确保整个模型处于一致的状态。这种设计使得某些层（如 Dropout、BatchNorm）可以根据模式切换行为。
+
+**架构特点：**
+
+- **统一标志**：所有模块共享 `training_` 标志
+- **递归传播**：`train()` / `eval()` 递归设置所有子模块的模式
+- **行为切换**：某些层根据模式切换行为（如 Dropout 在训练时随机丢弃，评估时不变）
+
+### 6.1.5 设备管理架构
+
+Module 的设备管理采用递归迁移架构：`to(device)` 递归迁移所有参数和子模块到指定设备。这种设计使得用户只需调用一次 `model.to(device)`，整个模型都会迁移到指定设备。
+
+**架构特点：**
+
+- **递归迁移**：`to(device)` 递归迁移所有参数和子模块
+- **统一接口**：支持 `to(Device)` 和 `to(TensorOptions)` 两种接口
+- **零拷贝更新**：参数迁移通过直接修改 `data_` 实现，避免不必要的拷贝
+
+### 6.1.6 StateDict 架构
+
+StateDict 机制提供模型参数的序列化接口，支持模型保存与加载。参数名称包含模块路径（如 `"0.weight"`、`"1.bias"`），实现参数的唯一标识。
+
+**架构特点：**
+
+- **路径命名**：参数名称包含模块路径，实现唯一标识
+- **严格模式**：`load_state_dict()` 支持严格模式检查，确保参数匹配
+- **断点续训**：StateDict 机制支持模型检查点的保存与加载
+
+## 6.2 Layer 层的架构设计
+
+### 6.2.1 Layer 的定位与设计理念
+
+Layer 继承自 Module，作为「一层网络」的统一抽象。Layer 本身是空实现，主要作用是提供类型标识，区分「层」和「容器模块」（如 Sequential）。
+
+**设计理念：** 这种设计将「算子级别的张量运算」与「网络结构级别的模块组合」解耦：算子层关注数学运算，Layer/Module 关注结构和参数管理。
+
+### 6.2.2 有参数层与无参数层的架构区别
+
+Layer 分为两类：**有参数层**和**无参数层**。有参数层持有 `Parameter` 成员并注册到 Module，无参数层仅实现 `forward` 方法，是对算子的轻量封装。
+
+**架构对比：**
+
+| 类型 | 参数管理 | forward 实现 | 典型示例 |
+|------|----------|--------------|----------|
+| 有参数层 | 持有 `Parameter` 成员，注册到 Module | 调用 functional 算子 | Linear, Conv2d, BatchNorm |
+| 无参数层 | 无参数 | 直接委托给算子 | ReLU, MaxPool2d, Flatten, Dropout |
+
+```mermaid
+flowchart TB
+    subgraph ParamLayer["有参数层 (Linear)"]
+        W["weight_ Parameter"]
+        B["bias_ Parameter"]
+        Reg["register_parameter()"]
+        Fwd["forward()<br/>调用 functional::mat_mul"]
+    end
+    
+    subgraph NoParamLayer["无参数层 (ReLU)"]
+        Fwd2["forward()<br/>调用 functional::relu"]
+    end
+    
+    W --> Reg
+    B --> Reg
+    Reg --> Fwd
+    
+    style ParamLayer fill:#e1f5ff
+    style NoParamLayer fill:#fff4e1
+```
+
+## 6.3 Sequential 容器的架构设计
+
+### 6.3.1 Sequential 的职责与设计理念
+
+Sequential 是顺序容器，用 `vector<unique_ptr<Module>>` 顺序存储子模块，是最简单的「层堆叠」容器。Sequential 对应「经典的串联网络（MLP、简单 CNN head）」场景，复杂拓扑可以通过自定义 Module 来实现。
+
+**核心职责：**
+- **顺序执行**：按顺序执行所有子模块的前向传播
+- **参数聚合**：递归收集所有子模块的参数，供 Optimizer 使用
+- **统一管理**：统一管理所有子模块的设备迁移、梯度清零等操作
+
+### 6.3.2 前向传播架构
+
+Sequential 的前向传播采用**顺序执行**架构：从第 0 个模块开始，依次执行 `x = modules_[i]->forward(x)`，最后返回输出。这种设计实现了最简单的模块组合方式。
+
+```mermaid
+sequenceDiagram
+    participant User as 用户代码
+    participant Seq as Sequential
+    participant M0 as Module[0]
+    participant M1 as Module[1]
+    participant M2 as Module[2]
+    
+    User->>Seq: y = model(x)
+    Seq->>M0: forward(x)
+    M0-->>Seq: x1
+    Seq->>M1: forward(x1)
+    M1-->>Seq: x2
+    Seq->>M2: forward(x2)
+    M2-->>Seq: y
+    Seq-->>User: y
+```
+
+## 6.4 Parameter 的架构设计
+
+### 6.4.1 Parameter 的定位与设计理念
+
+Parameter 继承自 Tensor，仅比 Tensor 多一个「这是可训练参数」的语义标识。这种设计实现了**类型标识**与**功能复用**的统一：Parameter 可以像 Tensor 一样参与计算、建立计算图、计算梯度，同时提供了类型标识，便于 Optimizer 识别和管理可训练参数。
+
+**设计优势：**
+- **功能复用**：Parameter 完全继承 Tensor 的所有功能，无需重复实现
+- **类型标识**：通过类型系统区分可训练参数和普通 Tensor
+- **零开销抽象**：Parameter 仅增加语义标识，不增加运行时开销
+
+### 6.4.2 Parameter 与 Tensor 的关系
+
+Parameter 与 Tensor 的关系是**继承关系**：Parameter 是 Tensor 的特化，用于标识可训练参数。这种设计使得 Parameter 可以无缝参与计算图的构建，同时为 Optimizer 提供了类型安全的参数收集机制。
+
+```mermaid
+classDiagram
+    class Tensor {
+        <<核心类>>
+        +data_ TensorImpl*
+        +grad_ TensorImpl*
+        +shape() Shape
+        +dtype() DataType
+        +参与计算图构建
+        +计算梯度
+    }
+    
+    class Parameter {
+        <<继承自Tensor>>
+        +标识可训练参数
+        +继承Tensor所有功能
+        +用于Optimizer收集
+        +用于state_dict序列化
+    }
+    
+    Tensor <|-- Parameter : 继承
+    
+    note for Parameter "Parameter是Tensor的特化\n仅增加语义标识\n零开销抽象"
+```
+
+**关系说明：**
+
+- **继承关系**：Parameter 继承自 Tensor，是 Tensor 的特化类型
+- **功能复用**：Parameter 完全继承 Tensor 的所有功能（计算图构建、梯度计算等）
+- **语义标识**：Parameter 通过类型系统标识可训练参数，便于 Optimizer 识别
+- **零开销**：Parameter 仅增加编译期的类型标识，不增加运行时开销
+
+## 6.5 Module-Optimizer 协作架构
+
+### 6.5.1 职责分离设计
+
+Module 和 Optimizer 采用**职责分离**的架构设计：Module 负责参数管理和前向计算，Optimizer 负责参数更新策略。这种设计实现了关注点分离，使得两者可以独立演进。
+
+**架构特点：**
+- **Module 管理参数**：参数的所有权由 Module 管理，Optimizer 仅保存指针
+- **Optimizer 更新参数**：Optimizer 通过指针直接修改参数值，实现零拷贝更新
+- **统一接口**：所有优化器（SGD、Adam）都通过相同的接口与 Module 协作
 
 ```mermaid
 classDiagram
     class Module {
-        <<abstract>>
-    }
-    class Sequential {
-        -modules_ vector~unique_ptr~Module~~
-        +add(module) void
-        +forward(input) Tensor
-        +operator[](index) Module
         +parameters() vector~Parameter*~
-        +to(device) void
+        +zero_grad() void
     }
-    Module <|-- Sequential
-    Sequential *-- Module : 顺序持有
+    
+    class Optimizer {
+        #target_ Module*
+        #parameters_ vector~Parameter*~
+        +step() void
+        +zero_grad() void
+    }
+    
+    class SGD {
+        #step_one(param) void
+    }
+    
+    class Adam {
+        #step_one(param) void
+    }
+    
+    Optimizer -->|持有引用| Module
+    Optimizer -->|收集| Parameter
+    Optimizer <|-- SGD
+    Optimizer <|-- Adam
 ```
 
-Sequential 用 `vector<unique_ptr<Module>>` 顺序存储子模块，`forward` 依次调用，`parameters`/`to` 递归聚合。
+### 6.5.2 参数收集机制
 
-## 6.4 常用层实现
+Optimizer 通过 `Module::parameters()` 递归收集所有参数指针，保存到 `parameters_` 列表中。这种设计实现了**零拷贝参数访问**：Optimizer 仅保存指针，不拥有参数所有权，通过指针直接修改参数值。
+
+**架构特点：**
+- **递归收集**：通过 `Module::parameters()` 递归收集所有参数
+- **指针管理**：Optimizer 仅保存 `Parameter*` 指针，不拥有所有权
+- **零拷贝更新**：通过指针直接修改参数值，避免不必要的拷贝
+
+### 6.5.3 梯度管理协作
+
+Optimizer 的 `zero_grad()` 委托给 `Module::zero_grad()`，由 Module 递归清零所有参数的梯度。这种设计保持了职责分离：Module 负责梯度管理，Optimizer 负责参数更新。
+
+**架构特点：**
+- **委托机制**：Optimizer 的 `zero_grad()` 委托给 Module
+- **统一管理**：梯度管理由 Module 统一负责，确保一致性
+- **职责清晰**：Module 管理梯度，Optimizer 管理更新策略
+
+## 6.6 递归设计的架构优势
+
+Module 的递归设计实现了**统一的模块管理**：所有操作（参数收集、设备迁移、梯度清零、状态管理）都递归处理子模块，使得复杂的模块结构可以自动处理，无需手动管理。
+
+**架构优势：**
+
+- **统一性**：所有操作采用相同的递归模式，降低复杂度
+- **扩展性**：支持任意复杂的模块结构（Sequential、自定义 Module）
+- **易用性**：用户只需调用顶层接口，无需关心子模块细节
 
 ```mermaid
 flowchart TB
-    subgraph 有参数层
-        Linear["Linear<br/>y = xW + b"]
-        Conv2d["Conv2d<br/>y = conv2d(x,W) + b"]
-        BN["BatchNorm1d/2d"]
+    subgraph User["用户接口"]
+        P["model.parameters()"]
+        T["model.to(device)"]
+        Z["model.zero_grad()"]
+        S["model.state_dict()"]
     end
-
-    subgraph 无参数层
-        ReLU["ReLU"]
-        MaxPool2d["MaxPool2d"]
-        Flatten["Flatten"]
-        Dropout["Dropout"]
+    
+    subgraph Recursive["递归处理"]
+        R1["递归收集参数"]
+        R2["递归迁移设备"]
+        R3["递归清零梯度"]
+        R4["递归序列化"]
     end
+    
+    subgraph Module["模块树"]
+        M1["Module 1"]
+        M2["Module 2"]
+        M3["Module 3"]
+        L1["Layer 1"]
+        L2["Layer 2"]
+    end
+    
+    P --> R1
+    T --> R2
+    Z --> R3
+    S --> R4
+    
+    R1 --> Module
+    R2 --> Module
+    R3 --> Module
+    R4 --> Module
+    
+    style User fill:#e1f5ff
+    style Recursive fill:#fff4e1
+    style Module fill:#ffe1f5
 ```
-
-| 层 | 参数 | 对应算子 |
-|----|------|----------|
-| Linear | weight, bias | matmul, add |
-| Conv2d | weight, bias | conv2d |
-| ReLU / Flatten / Dropout | 无 | relu / flatten / dropout |
-| MaxPool2d | 无 | max_pool2d |
-| BatchNorm1d/2d | gamma, beta, running_mean/var | batch_norm |
 
 # 7. 优化器架构
 
 ## 7.1 Optimizer 基类设计
+
+Optimizer 是优化器的统一抽象基类，持有 Module 引用，负责参数收集和更新。设计理念是：**Optimizer 专注于参数更新策略，Module 专注于参数管理和前向计算**。
+
+**核心设计：**
+- **持有 Module 引用**：Optimizer 持有 `Module* target_`，不拥有所有权
+- **参数收集**：构造时通过 `collect_parameters()` 递归收集所有参数指针，保存到 `parameters_` 列表中
+- **统一接口**：所有优化器（SGD、Adam）都通过相同的接口与 Module 协作
+
+**参数收集机制：** Optimizer 构造时调用 `collect_parameters()`，通过 `target_->parameters()` 递归收集所有参数指针。Optimizer 仅保存参数指针，不拥有参数所有权。参数的所有权由 Module 管理，Optimizer 通过指针直接修改参数值，实现零拷贝更新。
+
+**step() 流程：** `step()` 方法的流程包括：1) 过滤有梯度的参数；2) 执行 hooks（如 WeightDecay）；3) 对每个有梯度的参数调用 `step_one()`，子类实现具体的更新逻辑。
+
+**zero_grad() 委托机制：** `zero_grad()` 方法委托给 `target_->zero_grad()`，由 Module 递归清零所有参数的梯度。这种设计保持了职责分离：Module 负责梯度管理，Optimizer 负责参数更新。
+
+```mermaid
+flowchart TB
+    Step["step()"]
+    Filter["过滤有梯度的参数"]
+    Hooks["执行 hooks\_"]
+    StepOne["对每个 param 调用 step\_one()"]
+
+    Step --> Filter --> Hooks --> StepOne
+```
 
 ```mermaid
 classDiagram
@@ -1533,41 +2088,42 @@ classDiagram
         +step() void
         +zero_grad() void
         +register_hook(hook) void
-        +parameters() vector~Parameter*~
-        +state_dict()* map
-        +load_state_dict()* void
         #step_one(param)* void
     }
+    
+    class Module {
+        +zero_grad() void
+        +parameters() vector~Parameter*~
+    }
+    
+    Optimizer --> Module : 持有引用
+    Optimizer ..> Module : zero_grad()委托
 ```
 
-```mermaid
-flowchart TB
-    Step["step()"]
-    Filter["过滤有梯度的参数"]
-    Hooks["执行 hooks\_"]
-    StepOne["对每个 param 调用 step\_one()"]
+## 7.2 Hook 机制设计
 
-    Step --> Filter --> Hooks --> StepOne
-```
+Hook 机制允许在 `step()` 执行前对参数列表做统一处理。Hook 在过滤有梯度参数之后、调用 `step_one()` 之前执行，可以对参数或梯度进行修改（如 WeightDecay、梯度裁剪）。
 
-Optimizer 持有 Module 引用，构造时 `collect_parameters` 收集参数。`step` 流程：过滤有梯度参数 → 执行 hooks → 逐参数 `step_one`。`zero_grad` 委托给 target。
+**设计理念：** Hook 提供了一种可组合的扩展机制，使得优化器可以支持额外的功能（如 L2 正则化、梯度裁剪），而不需要修改优化器本身的代码。
 
-```cpp
-// 典型训练循环（假设 using namespace origin）
-auto model = Sequential();
-model.add(std::make_unique<nn::Linear>(784, 10, true));
-auto optimizer = Adam(model, 0.01f);
+**执行时机与签名：** Hook 在 `step()` 中，过滤有梯度的参数之后、调用 `step_one()` 之前执行。Hook 的签名为 `void(std::vector<Parameter*>&)`，接收参数指针列表的引用，可以直接修改参数或梯度。
 
-for (int i = 0; i < epochs; ++i) {
-    optimizer.zero_grad();      // 委托 target_->zero_grad()
-    auto y = model(x);
-    auto loss = functional::softmax_cross_entropy(y, target);
-    loss.backward();
-    optimizer.step();           // 过滤有梯度参数 → hooks → step_one
-}
-```
+**WeightDecay Hook：** WeightDecay Hook 实现 L2 正则化，在梯度中添加权重衰减项：`grad = grad + rate * param`。这等价于在损失函数中添加 L2 正则化项：`loss = loss + 0.5 * rate * ||param||^2`。WeightDecay 作为 Hook 实现，可以应用于任何优化器（SGD、Adam），提供了灵活的正则化机制。
 
-## 7.2 SGD 优化器实现
+## 7.3 SGD 优化器实现
+
+SGD 优化器支持标准 SGD、momentum、weight_decay 和 nesterov 动量。SGD 在 `step_one()` 中实现这些功能，而不是完全依赖 Hook，主要考虑：1) 与 PyTorch 的 `torch.optim.SGD` 接口对齐；2) momentum 和 nesterov 逻辑依赖内部状态（`momentum_buffers_`），天然属于优化器实现的一部分；3) Hook 提供额外的、可组合的修改通道，而 SGD 内置的 weight_decay 对应标准实现。
+
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| lr | - | 学习率 |
+| momentum | 0 | 动量 |
+| weight_decay | 0 | L2 正则 |
+| nesterov | false | Nesterov 动量 |
+
+**状态管理：** SGD 使用 `momentum_buffers_` 维护每个参数的动量状态。当使用 momentum 时，SGD 会为每个参数维护一个动量缓冲区，用于存储历史梯度信息。`momentum_buffers_` 使用 `unordered_map<Parameter*, Tensor>` 存储，键为参数指针，值为动量缓冲区。状态字典的保存和加载通过 `state_dict()` 和 `load_state_dict()` 实现。
+
+**step_one() 实现：** SGD 的 `step_one()` 实现包括：1) 获取梯度；2) 应用 weight_decay（如果启用）：`grad = grad + weight_decay * param`；3) 更新动量（如果启用）：`buffer = momentum * buffer + grad`；4) 应用 nesterov（如果启用）：`grad = grad + momentum * buffer`；5) 更新参数：`param = param - lr * grad`。
 
 ```mermaid
 classDiagram
@@ -1585,16 +2141,35 @@ classDiagram
     Optimizer <|-- SGD
 ```
 
-| 参数 | 默认 | 说明 |
-|------|------|------|
-| lr | - | 学习率 |
-| momentum | 0 | 动量 |
-| weight_decay | 0 | L2 正则 |
-| nesterov | false | Nesterov 动量 |
+## 7.4 Adam 优化器实现
 
-SGD 公式：`param = param - lr * (grad + weight_decay * param)`，momentum 时维护 `momentum_buffers_`。
+Adam 优化器实现自适应矩估计算法，维护一阶矩估计（梯度均值）和二阶矩估计（梯度平方的均值），并使用偏差修正来补偿初始化的偏差。
 
-## 7.3 Adam 优化器实现
+**Adam 算法公式：**
+- `m = β1·m + (1-β1)·g`（一阶矩估计）
+- `v = β2·v + (1-β2)·g²`（二阶矩估计）
+- `m̂ = m/(1-β1^t)`（偏差修正）
+- `v̂ = v/(1-β2^t)`（偏差修正）
+- `param = param - lr·m̂/(√v̂+ε)`（参数更新）
+
+```mermaid
+flowchart LR
+    subgraph Adam公式
+        M["m = β1·m + (1-β1)·g"]
+        V["v = β2·v + (1-β2)·g²"]
+        Mh["m̂ = m/(1-β1^t)"]
+        Vh["v̂ = v/(1-β2^t)"]
+        P["param -= lr·m̂/(√v̂+ε)"]
+    end
+    M --> Mh
+    V --> Vh
+    Mh --> P
+    Vh --> P
+```
+
+**状态缓冲区管理：** Adam 维护三个状态缓冲区：`m_buffers_`（一阶矩估计）、`v_buffers_`（二阶矩估计）、`step_counts_`（每个参数的步数计数）。状态缓冲区在首次使用时初始化，通过 `state_dict()` 和 `load_state_dict()` 支持保存和加载。
+
+**step_one() 实现：** Adam 的 `step_one()` 实现包括：1) 获取梯度；2) 初始化或获取状态缓冲区（m、v、step_count）；3) 增加步数计数；4) 更新一阶矩估计：`m = beta1 * m + (1 - beta1) * grad`；5) 更新二阶矩估计：`v = beta2 * v + (1 - beta2) * grad^2`；6) 计算偏差修正：`m_hat = m / (1 - beta1^t)`，`v_hat = v / (1 - beta2^t)`；7) 更新参数：`param = param - lr * m_hat / (sqrt(v_hat) + eps)`。
 
 ```mermaid
 classDiagram
@@ -1614,46 +2189,21 @@ classDiagram
     Optimizer <|-- Adam
 ```
 
-```mermaid
-flowchart LR
-    subgraph Adam公式
-        M["m = β1·m + (1-β1)·g"]
-        V["v = β2·v + (1-β2)·g²"]
-        Mh["m̂ = m/(1-β1^t)"]
-        Vh["v̂ = v/(1-β2^t)"]
-        P["param -= lr·m̂/(√v̂+ε)"]
-    end
-    M --> Mh
-    V --> Vh
-    Mh --> P
-    Vh --> P
-```
+## 7.5 优化器状态管理
 
-Adam 维护一阶矩 `m_buffers_`、二阶矩 `v_buffers_`、步数 `step_counts_`，支持 state_dict 保存/加载。
+优化器的 StateDict 包含：1) **优化器配置**：学习率、beta1、beta2 等超参数；2) **状态缓冲区**：momentum_buffers（SGD）、m_buffers/v_buffers（Adam）等；3) **步数计数**：step_counts（Adam）。
 
-## 7.4 优化器钩子机制
+**序列化与反序列化：** 优化器的 `state_dict()` 将状态缓冲区转换为字典格式，键为参数名称（如 `"momentum_weight"`、`"m_bias"`），值为状态张量。`load_state_dict()` 从字典恢复状态缓冲区，通过参数名称映射找到对应的参数指针。
 
-```mermaid
-flowchart LR
-    Step["step()"]
-    Filter["过滤有梯度参数"]
-    Hooks["遍历 hooks\_"]
-    Hook["hook(params)"]
-    StepOne["step\_one()"]
+**设计原因：** StateDict 机制使得优化器状态可以保存和加载，支持断点续训。
 
-    Step --> Filter --> Hooks --> Hook --> StepOne
-```
+## 7.6 Module 与 Optimizer 的协作架构
 
-```mermaid
-classDiagram
-    class WeightDecay {
-        -rate_ float
-        +hook() function
-    }
-    note for WeightDecay "grad += rate * param\n等价于 L2 正则"
-```
+**参数所有权设计：** Module 拥有参数对象（如 `Linear.weight_`、`Linear.bias_`），Optimizer 仅持有参数指针引用。这种设计确保了生命周期的清晰：参数的生命周期由 Module 管理，Optimizer 通过指针访问和修改参数。
 
-Hook 在 `step_one` 之前执行，签名为 `void(vector<Parameter*>&)`。WeightDecay 对梯度累加 `rate * param`，实现 L2 正则。
+**零拷贝更新：** Optimizer 通过指针直接修改 Module 中的参数值，避免了参数拷贝的开销。这种设计在训练循环中特别重要，因为参数更新是高频操作，零拷贝可以显著提升性能。
+
+**协作流程：** Module 与 Optimizer 的协作流程包括参数注册、参数收集、梯度清零、前向传播、反向传播、参数更新等完整流程，已在 [11.1 线性回归示例](#111-线性回归示例) 中详细展示。
 
 # 8. 数据处理架构
 
@@ -1816,83 +2366,309 @@ sequenceDiagram
 
 # 10. PNNX 推理架构
 
-PNNX 是 PyTorch 的模型导出格式，OriginDL 支持解析 PNNX 的 .param（图结构）和 .bin（权重）文件，构建计算图并执行推理。
+## 10.1 类关系总览
 
-## 10.1 PNNX 图结构
-
-PNNX 图由节点（PNNXNode）组成，每个节点对应一个算子。
+OriginDL 的 PNNX 推理架构采用静态图设计，核心类之间的关系如下：
 
 ```mermaid
 classDiagram
-    class PNNXNode {
-        +string name
-        +string type
-        +shared_ptr~Operator~ op
-        +vector~string~ input_names
-        +vector~string~ output_names
-        +map~string,Parameter~ params
-        +map~string,Attribute~ attributes
-        +map~string,Tensor~ input_tensors
-        +vector~Tensor~ output_tensors
-        +int execution_order
+    class PNNXParser {
+        <<静态方法>>
+        +parse(param_path, bin_path) vector~PNNXNode~
+        -parse_param_file() void
+        -load_weights() void
     }
     
     class PNNXGraph {
-        -vector~shared_ptr~PNNXNode~~ nodes_
-        -map~string,shared_ptr~PNNXNode~~ node_map_
+        -nodes_ vector~shared_ptr~PNNXNode~~
+        -node_map_ map~string,shared_ptr~PNNXNode~~
+        -graph_state_ GraphState
         +build() void
         +set_inputs(name, inputs) void
         +forward(debug) void
         +get_outputs(name) vector~Tensor~
+        -init() bool
+        -topological_sort() void<br/>(建立连接关系并确定执行顺序)
     }
     
-    PNNXGraph "1" *-- "*" PNNXNode : nodes_
-    PNNXNode --> Operator : op
+    class PNNXNode {
+        +name string
+        +type string
+        +op shared_ptr~Operator~
+        +input_names vector~string~
+        +output_names vector~string~
+        +params map~string,Parameter~
+        +attributes map~string,Attribute~
+        +input_tensors map~string,Tensor~
+        +output_tensors vector~Tensor~
+        +execution_order int
+    }
+    
+    class OperatorMapper {
+        <<静态方法>>
+        +create_operator(node) shared_ptr~Operator~
+        -create_conv2d() shared_ptr~Operator~
+        -create_linear() shared_ptr~Operator~
+        -load_weight_tensor() Tensor
+    }
+    
+    class Operator {
+        <<抽象基类>>
+        +forward(inputs) vector~Tensor~
+    }
+    
+    PNNXParser --> PNNXNode : 创建
+    PNNXGraph "1" *-- "*" PNNXNode : 管理(nodes_)
+    PNNXGraph --> OperatorMapper : 使用
+    OperatorMapper --> Operator : 创建
+    PNNXNode --> Operator : 持有(op)
 ```
 
-**PNNXNode 字段：** name/type 标识算子；params/attributes 存储参数和权重；input_names/output_names 描述连接；input_tensors/output_tensors 为运行时 Tensor。
+**核心关系说明：**
 
-## 10.2 模型推理流程
+- **解析关系**：`PNNXParser` 解析 `.param` 和 `.bin` 文件，创建 `PNNXNode` 列表
+- **管理关系**：`PNNXGraph` 管理所有 `PNNXNode`，维护节点映射和连接关系
+- **映射关系**：`OperatorMapper` 将 PNNX 算子类型映射到 OriginDL `Operator`
+- **执行关系**：`PNNXNode` 持有 `Operator` 引用，执行推理时调用 `Operator::forward()`
+
+## 10.2 PNNX 模型文件结构（.param / .bin）
+
+PNNX 将模型拆分为两个文件：
+
+- `.param`：描述**静态计算图结构**和元信息（算子类型、节点名、输入输出 blob 名、参数 `key=value`、属性 `@key=`、形状 `#key=`）。
+- `.bin`：以 zip 形式存储所有 `Attribute` 数据（权重、常量张量等），按 `node_name.attr_name` 命名。
 
 ```mermaid
-flowchart TD
-    Parse["PNNXParser::parse<br/>解析 .param + .bin"]
-    Build["PNNXGraph::build<br/>创建 Operator、建立连接、拓扑排序"]
-    SetInputs["set_inputs<br/>设置输入 Tensor"]
-    Forward["forward<br/>按 execution_order 执行"]
-    GetOutputs["get_outputs<br/>获取输出 Tensor"]
-    
-    Parse --> Build --> SetInputs --> Forward --> GetOutputs
-    
-    subgraph GraphState["图状态"]
-        NeedInit["NeedInit"]
-        NeedBuild["NeedBuild"]
-        Complete["Complete"]
-        NeedInit --> NeedBuild --> Complete
+flowchart LR
+    subgraph Files["PNNX 模型文件"]
+        Param[".param<br/>图结构 + 参数/属性元信息"]
+        Bin[".bin<br/>权重/常量张量数据 (zip)"]
     end
+
+    subgraph Parser["PNNXParser 解析流程"]
+        ParseParam["parse_param_file()<br/>逐行解析算子行"]
+        ParseLine["parse_operator_line()<br/>type/name/in,out<br/>input_names/output_names<br/>params/@attrs/#shapes"]
+        LoadWeights["load_weights()<br/>StoreZipReader<br/>node.name + '.' + attr_name"]
+    end
+
+    subgraph Nodes["PNNXNode 列表"]
+        Node["PNNXNode<br/>type/name/input_names/output_names<br/>params/attributes/shapes"]
+    end
+
+    Param --> ParseParam --> ParseLine --> Node
+    Bin --> LoadWeights --> Node
 ```
 
-**流程说明：** 1）parse 解析 param/bin 得到 PNNXNode 列表；2）build 调用 OperatorMapper 创建 OriginDL Operator，建立节点连接，拓扑排序；3）set_inputs 将用户 Tensor 填入输入节点；4）forward 按序执行，propagate 传播输出到下游；5）get_outputs 返回指定输出节点的 Tensor。
+### 10.2.1 `.param` 中一行算子的通用结构
 
-## 10.3 算子映射机制
+一行算子大致形如：
 
-OperatorMapper 将 PNNX 算子类型映射到 OriginDL Operator。
+```text
+[type] [name] [input_count] [output_count] [input_blobs...] [output_blobs...] [key=value...]
+```
 
-| PNNX 算子 | OriginDL Operator |
-|-----------|-------------------|
-| nn.Conv2d | Conv2d |
-| nn.SiLU | SiLU |
-| nn.ReLU | ReLU |
-| nn.AdaptiveAvgPool2d | AdaptiveAvgPool2d |
-| nn.Flatten | Flatten |
-| nn.Linear | Linear（custom） |
-| nn.Upsample | Upsample |
-| nn.MaxPool2d | MaxPool2d |
-| F.expression (add, mul 等) | Add, Mul 等 |
-| F.cat | Cat |
-| yolov5::YoloDetect | YOLO Detect |
+- `type`：算子类型（如 `pnnx.Input`, `nn.Conv2d`, `pnnx.Expression`, `nn.MaxPool2d`）。
+- `name`：节点名，对应 `PNNXNode::name`，在 `node_map_` 和 .bin 中使用。
+- `input_count` / `output_count`：输入 / 输出 blob 数量。
+- `input_blobs` / `output_blobs`：以**张量名（边名）**标识的连接关系；下游节点在 `input_names` 中引用这些名字。
+- 普通 `key=value`：解析到 `node->params`，如 `stride=(2,2)`、`bias=True`。
+- `@key=...f32`：解析到 `node->attributes[key]`，仅写入 `shape` 与 `type`，数据在 `.bin` 中。
+- `#idx=(...)f32`：解析到 `node->shapes[idx]`，记录形状信息。
 
-**权重加载：** OperatorMapper::load_weight_tensor 从 Attribute 中读取 shape 和 data，构造 OriginDL Tensor 并注册到 Operator。
+### 10.2.2 常见算子行解析
+
+以 YOLOv5 的开头几行为例：
+
+```text
+7767517
+142 141
+pnnx.Input               pnnx_input_0             0 1 0 #0=(4,3,320,320)f32
+nn.Conv2d                model.0.conv             1 1 0 1 bias=True dilation=(1,1) groups=1 in_channels=3 kernel_size=(6,6) out_channels=16 padding=(2,2) padding_mode=zeros stride=(2,2) @bias=(16)f32 @weight=(16,3,6,6)f32 #0=(4,3,320,320)f32 #1=(4,16,160,160)f32
+nn.SiLU                  model.0.act              1 1 1 2 #1=(4,16,160,160)f32 #2=(4,16,160,160)f32
+```
+
+- `7767517`：PNNX/NCNN 的 magic number，用来校验 `.param` 文件格式是否正确，`PNNXParser::parse_param_file` 会先验证这一行。
+- `142 141`：第一列 142 是算子（layer/operator）数量，也就是后续要读取的算子行数；第二列 141 是 blob/operand 总数（整个图中张量的数量），当前实现只读出不使用，保持与 PNNX 格式兼容。
+
+- `pnnx.Input`：图入口节点，`name=pnnx_input_0`，无输入，1 个输出 blob 名为 `0`，`#0` 给出输入 batch 的 shape。示例代码中 `set_inputs("pnnx_input_0", {input})` 即把用户 Tensor 绑定到这里。
+- `nn.Conv2d model.0.conv`：1 个输入 blob `0`，1 个输出 blob `1`；卷积参数（stride、padding 等）进 `params`；`@weight/@bias` 的形状进 `attributes`，数据在 `.bin`。
+- `nn.SiLU model.0.act`：1 输入 1 输出，输入 blob 为 `1`，输出 blob 为 `2`；只携带形状信息，无权重。
+
+再看两类在 YOLOv5 中常见的行（简化自 `yolov5n_small.pnnx.param`）：
+
+```text
+pnnx.Expression          pnnx_expr_24             2 1 6 10 11 expr=add(@0,@1) #6=(4,16,80,80)f32 #10=(4,16,80,80)f32 #11=(4,16,80,80)f32
+
+nn.MaxPool2d             model.9.m                1 1 75 76 ceil_mode=False dilation=(1,1) kernel_size=(5,5) padding=(2,2) return_indices=False stride=(1,1) #75=(4,128,10,10)f32 #76=(4,128,10,10)f32
+```
+
+- **`pnnx.Expression`**  
+  - `input_count=2, output_count=1`，输入 blob 名为 `6` 和 `10`，输出 blob 名为 `11`。  
+  - `expr=add(@0,@1)` 存在于 `params["expr"]`，表示输出是两个输入逐元素相加；`OperatorMapper` 看到这个表达式会选择 `Add` 等对应算子。  
+  - `#6/#10/#11` 只是为输入、输出张量记录 shape（推理时可以不依赖这些 shape 做执行）。
+
+- **`nn.MaxPool2d`**  
+  - `1 1 75 76`：1 个输入 blob `75`，1 个输出 blob `76`，二者 shape 相同（池化核为 5×5 且 stride=1 时，只改变局部值、不改变空间尺寸）。  
+  - `kernel_size/stride/padding/...` 进入 `params`，由 `OperatorMapper::create_max_pool2d` 读取构造 MaxPool 算子。  
+  - 无 `@weight` 属性，因为 MaxPool2d 无可学习权重。
+
+这些 `.param` 行在解析后都会变成一个个 `PNNXNode`，其 `type/name/input_names/output_names/params/attributes/shapes` 与上面字段一一对应。
+
+关于 PNNX param 的格式，更多细节参考：
+- https://github.com/Tencent/ncnn/wiki/param-and-model-file-structure
+- https://github.com/Tencent/ncnn/wiki/operation-param-weight-table
+
+## 10.3 PNNXGraph 的构建与推理流程
+
+PNNXGraph 负责把上面解析出的 `PNNXNode` 列表组织成可执行的静态图，生命周期通过 `GraphState` 管理：
+
+```mermaid
+flowchart LR
+    New["构造 PNNXGraph(param, bin)"]
+    NeedInit["GraphState::NeedInit"]
+    NeedBuild["GraphState::NeedBuild"]
+    Complete["GraphState::Complete"]
+
+    New --> NeedInit
+    NeedInit --> NeedBuild
+    NeedBuild --> Complete
+    Complete --> Complete
+```
+
+完整推理时序如下（与 YOLOv5 示例代码对应）：
+
+```mermaid
+sequenceDiagram
+    participant User as 用户代码<br/>(example_yolov5)
+    participant Graph as PNNXGraph
+    participant Parser as PNNXParser
+    participant Mapper as OperatorMapper
+    participant Node as PNNXNode
+    participant Op as Operator
+    
+    User->>Graph: PNNXGraph(param_path, bin_path)
+    User->>Graph: build()
+    Graph->>Parser: parse(param, bin)
+    Parser-->>Graph: nodes_ (vector<PNNXNode>)
+    Graph->>Graph: topological_sort()<br/>(建立连接关系并设置 execution_order)
+    loop 对每个非 Input/Output 节点
+        Graph->>Mapper: create_operator(node)
+        Mapper-->>Graph: shared_ptr<Operator>
+        Graph->>Node: node->op = Operator
+    end
+    
+    User->>Graph: set_inputs("pnnx_input_0", {input})
+    Graph->>Node: input_node->output_tensors = inputs
+    Graph->>Graph: propagate_outputs(input_node)
+    
+    User->>Graph: forward(debug)
+    loop 按 execution_order 遍历节点
+        Graph->>Node: 收集 input_tensors<br/>(含权重注入)
+        Node->>Op: (*op)(input_tensors)
+        Op-->>Node: output_tensors
+        Graph->>Graph: propagate_outputs(node)
+    end
+    
+    User->>Graph: get_outputs("pnnx_output_0")
+    Graph-->>User: output_tensors
+```
+
+## 10.4 PNNXNode 的运行时数据流
+
+PNNXNode 将 `.param` / `.bin` 中的静态信息与推理时的 Tensor 关联起来：
+
+```mermaid
+flowchart TB
+    subgraph Static["静态信息（来自 .param/.bin）"]
+        Name["name/type"]
+        IO["input_names / output_names"]
+        Params["params<br/>stride, padding, expr 等"]
+        Attrs["attributes<br/>weight/bias/strides 等<br/>shape + data"]
+        Shapes["shapes[#idx]<br/>形状信息"]
+    end
+
+    subgraph Runtime["运行时（forward 期间）"]
+        Inputs["input_tensors<br/>key = input_name"]
+        Outputs["output_tensors<br/>vector<Tensor>"]
+        Order["execution_order<br/>拓扑排序结果"]
+        OpNode["op: shared_ptr<Operator>"]
+    end
+
+    Name --> OpNode
+    IO --> Inputs
+    IO --> Outputs
+    Params --> OpNode
+    Attrs --> OpNode
+    Shapes --> OpNode
+```
+
+在 `forward()` 中，每个节点的执行大致如下：
+
+```mermaid
+flowchart LR
+    Collect["收集输入<br/>根据 input_names 在 input_tensors / 上游 output_tensors 中查找"]
+    Inject["注入权重/常量<br/>从 attributes 取 weight/bias/anchors 等<br/>构造成 Tensor 拼到输入列表"]
+    CallOp["调用 Operator<br/>node->output_tensors = (*op)(inputs)"]
+    Prop["传播输出<br/>propagate_outputs()<br/>写入下游 input_tensors"]
+
+    Collect --> Inject --> CallOp --> Prop
+```
+
+## 10.5 算子映射与权重加载
+
+OperatorMapper 独立承担“PNNX 算子类型 → OriginDL Operator”的映射，并负责将 `Attribute` 中的张量数据转换为 OriginDL 的 `Tensor`：
+
+```mermaid
+flowchart TB
+    subgraph PNNXNodeSide[PNNXNode 侧]
+        TypeN[type: nn.Conv2d / pnnx.Expression / ...]
+        ParamsN[params: stride, padding, ...]
+        AttrsN[attributes: weight, bias, pnnx_5, ...]
+    end
+
+    subgraph Mapper[OperatorMapper]
+        Decide[根据 type 选择 create_xxx]
+        CreateConv[create_conv2d<br/>读取 stride/padding]
+        CreateExpr[create_expression<br/>解析 expr=add]
+        CreatePool[create_max_pool2d<br/>读取 kernel_size/stride]
+        LoadW[load_weight_tensor<br/>shape+data 转 Tensor]
+    end
+
+    subgraph OperatorSide[OriginDL Operator 侧]
+        OpConv[Conv2dOp]
+        OpExpr[Add / 其他表达式算子]
+        OpPool[MaxPool2dOp]
+    end
+
+    TypeN --> Decide
+    ParamsN --> Decide
+    AttrsN --> LoadW
+    LoadW --> CreateConv
+    LoadW --> CreateExpr
+    LoadW --> CreatePool
+
+    CreateConv --> OpConv
+    CreateExpr --> OpExpr
+    CreatePool --> OpPool
+```
+
+**常见映射一览（节选）：**
+
+| PNNX 算子 | OriginDL Operator | 主要参数来源 |
+|-----------|-------------------|--------------|
+| `nn.Conv2d` | `Conv2d` | `params["stride"]`, `params["padding"]`；`attributes["weight"]`, `attributes["bias"]` |
+| `nn.SiLU` | `SiLU` | 无额外参数 |
+| `nn.ReLU` | `ReLU` | 无额外参数 |
+| `nn.AdaptiveAvgPool2d` | `AdaptiveAvgPool2d` | `params["output_size"]` |
+| `torch.flatten` | `Flatten` | `params["start_dim"]`, `params["end_dim"]` |
+| `nn.Linear` | 自定义 `LinearOp` | `params["in_features"]`, `params["out_features"]`；权重来自 `attributes` |
+| `nn.Upsample` | `Upsample` | `params["scale_factor"]` 或 `params["size"]`, `params["mode"]` |
+| `nn.MaxPool2d` | `MaxPool2d` | `params["kernel_size"]`, `params["stride"]`, `params["padding"]` |
+| `pnnx.Expression` | `Add` / 其他表达式算子 | `params["expr"]`（如 `add(@0,@1)`） |
+| `torch.cat` | `Cat` | `params["dim"]` |
+| `models.yolo.Detect` | 自定义 YOLO Detect 算子 | anchors、strides 等来自多个 `Attribute`（如 `pnnx_5`） |
+
+权重加载部分由 `PNNXParser::load_weights()` 完成：对每个 `node->attributes[key]`，根据 `shape` 计算大小，从 `.bin` zip 中读取对应 `node.name + "." + key` 文件，把 float 数据填入 `attr.data`；在 `forward()` 或 `OperatorMapper::load_weight_tensor()` 中再转换为 OriginDL 的 `Tensor`。
 
 # 11. 应用示例
 
@@ -1900,11 +2676,113 @@ OperatorMapper 将 PNNX 算子类型映射到 OriginDL Operator。
 
 ## 11.1 线性回归示例
 
-**场景：** 使用矩阵运算和 MSE 损失进行线性回归训练。
+**场景：** 使用神经网络模块（Sequential + Linear）和 SGD 优化器进行线性回归训练，展示 Module 与 Optimizer 的协作机制。
 
-**核心流程：** `y = x @ w + b`（mat_mul + add），损失 `MSE(y, target)`，手动梯度下降或通过 backward 自动求导更新 w、b。
+**核心协作关系：** Module 负责参数管理和前向计算，Optimizer 负责参数收集和更新，两者通过参数指针和梯度管理实现协作。
 
-**代码要点：** 使用 `functional::mat_mul`、`functional::sum`、`functional::pow` 构建计算图，`Predict(x, w, b)` 返回预测值，`MSE(pred, target)` 返回标量损失，调用 `loss.backward()` 计算梯度后更新参数。
+**Module 与 Optimizer 协作时序图：**
+
+```mermaid
+sequenceDiagram
+    participant User as 用户代码
+    participant Sequential as Sequential
+    participant Linear as Linear
+    participant Weight as Parameter<br/>(weight_)
+    participant Bias as Parameter<br/>(bias_)
+    participant SGD as SGD Optimizer
+    participant Graph as 计算图<br/>(backward)
+    
+    Note over User,Graph: 初始化阶段：参数注册与收集
+    User->>Sequential: Sequential model
+    User->>Linear: model.add(Linear(1, 1, true))
+    Linear->>Weight: 创建 weight_ (Parameter)
+    Linear->>Bias: 创建 bias_ (Parameter)
+    Linear->>Linear: register_parameter("weight", &weight_)
+    Linear->>Linear: register_parameter("bias", &bias_)
+    Sequential->>Sequential: register_module("0", Linear)
+    
+    User->>SGD: SGD optimizer(model, lr=0.1)
+    SGD->>Sequential: collect_parameters()<br/>调用 target_->parameters()
+    Sequential->>Linear: parameters()<br/>递归收集子模块参数
+    Linear-->>Sequential: 返回 [&weight_, &bias_]
+    Sequential-->>SGD: 返回 [&weight_, &bias_]
+    Note over SGD: 保存到 parameters_<br/>parameters_[0] = &weight_<br/>parameters_[1] = &bias_
+    
+    Note over User,Graph: 训练循环：梯度清零
+    User->>SGD: optimizer.zero_grad()
+    SGD->>Sequential: target_->zero_grad()
+    Sequential->>Linear: zero_grad()<br/>递归调用子模块
+    Linear->>Weight: weight_.zero_grad()<br/>清零 grad_
+    Linear->>Bias: bias_.zero_grad()<br/>清零 grad_
+    
+    Note over User,Graph: 前向传播：建立计算图
+    User->>Sequential: y_pred = model(x)
+    Sequential->>Linear: forward(x)
+    Linear->>Weight: 使用 weight_ 计算
+    Linear->>Bias: 使用 bias_ 计算
+    Linear-->>Sequential: y_pred (建立计算图)
+    Sequential-->>User: y_pred
+    
+    Note over User,Graph: 损失计算与反向传播
+    User->>User: loss = MSE(y_pred, y)
+    User->>Graph: loss.backward()
+    Graph->>Graph: 遍历计算图<br/>计算梯度
+    Graph->>Weight: 写入 weight_.grad_
+    Graph->>Bias: 写入 bias_.grad_
+    
+    Note over User,Graph: 参数更新：优化器修改参数
+    User->>SGD: optimizer.step()
+    SGD->>SGD: 过滤有梯度的参数<br/>[&weight_, &bias_]
+    loop 遍历每个参数
+        SGD->>Weight: step_one(weight_)
+        Weight->>Weight: 获取 weight_.grad()
+        SGD->>Weight: weight_ = weight_ - lr * grad<br/>直接修改参数值
+        SGD->>Bias: step_one(bias_)
+        Bias->>Bias: 获取 bias_.grad()
+        SGD->>Bias: bias_ = bias_ - lr * grad<br/>直接修改参数值
+    end
+    
+    Note over User,Graph: 继续下一轮迭代...
+```
+
+**协作机制说明：**
+
+时序图展示了 Module 与 Optimizer 在训练过程中的完整交互流程：
+
+1. **初始化阶段**：
+   - Linear 层创建 `weight_` 和 `bias_` 参数，并通过 `register_parameter()` 注册
+   - Sequential 通过 `register_module()` 管理 Linear 子模块
+   - SGD 优化器构造时调用 `collect_parameters()`，通过 `target_->parameters()` 递归收集所有参数指针
+   - Optimizer 保存参数指针列表，**不拥有参数所有权**，仅持有引用
+
+2. **梯度清零阶段**：
+   - `optimizer.zero_grad()` 委托给 `target_->zero_grad()`
+   - Module 递归调用子模块的 `zero_grad()`
+   - 最终清零所有 `Parameter.grad_`
+
+3. **前向传播阶段**：
+   - `model(x)` 触发 Sequential 的 `forward()`
+   - Sequential 调用 Linear 的 `forward()`
+   - Linear 使用 `weight_` 和 `bias_` 进行计算，自动建立计算图
+
+4. **反向传播阶段**：
+   - `loss.backward()` 触发计算图的反向传播
+   - 计算图自动计算梯度并写入 `Parameter.grad_`
+
+5. **参数更新阶段**：
+   - `optimizer.step()` 遍历 `parameters_` 列表
+   - 对每个有梯度的参数调用 `step_one()`
+   - **直接修改参数值**：`param = param - lr * grad`，无需拷贝
+
+**关键设计特点：**
+
+| 设计特点 | 实现方式 | 优势 |
+|---------|---------|------|
+| **参数所有权** | Module 拥有参数对象，Optimizer 持有指针 | 生命周期清晰，避免重复管理 |
+| **递归收集** | `parameters()` 递归遍历所有子模块 | 自动处理复杂模块结构 |
+| **委托机制** | `zero_grad()` 委托给 Module | 统一接口，职责清晰 |
+| **零拷贝更新** | 通过指针直接修改参数 | 高效，无额外内存开销 |
+| **统一接口** | 所有优化器使用相同的协作方式 | 易于扩展新的优化器 |
 
 ## 11.2 MNIST 训练示例
 

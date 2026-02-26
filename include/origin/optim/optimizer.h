@@ -21,7 +21,9 @@ protected:
     // 目标模型
     Module *target_;
 
-    // Hook列表
+    // Hook 列表：在每次 step() 时，对“当前有梯度的参数列表”做统一处理的函数。
+    // 典型用途：WeightDecay、梯度裁剪、日志监控等，在真正更新参数前先对 param / param.grad() 做修改。
+    // include/origin/optim/hooks.h 中定义了 WeightDecay 等 Hook 类。
     std::vector<std::function<void(std::vector<Parameter *> &)>> hooks_;
 
     // 参数列表

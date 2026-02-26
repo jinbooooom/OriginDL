@@ -104,9 +104,9 @@ int main(int argc, char **argv)
     auto noise = Tensor::randn(Shape{input_size, 1}, dtype(data_type).device(device)) * 0.1f;
     auto y     = x * 2.0f + 5.0f + noise;
 
-    // 初始化权重和偏置 - 确保使用float类型以匹配输入数据
-    auto w = Tensor(0.0f, Shape{1, 1}, dtype(data_type).device(device));
-    auto b = Tensor(0.0f, Shape{1, 1}, dtype(data_type).device(device));
+    // 初始化权重和偏置 - 确保使用float类型以匹配输入数据，并设置 requires_grad=true
+    auto w = Tensor(0.0f, Shape{1, 1}, dtype(data_type).device(device).requires_grad(true));
+    auto b = Tensor(0.0f, Shape{1, 1}, dtype(data_type).device(device).requires_grad(true));
 
     // 设置学习率和迭代次数
     float lr  = 0.1f;

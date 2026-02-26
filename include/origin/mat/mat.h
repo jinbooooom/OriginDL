@@ -379,6 +379,33 @@ public:
     virtual void relu_inplace() = 0;
 
     /**
+     * @brief Sigmoid 激活函数
+     * @return Sigmoid 运算结果，y = 1 / (1 + exp(-x))
+     */
+    virtual std::unique_ptr<Mat> sigmoid() const = 0;
+
+    /**
+     * @brief Sigmoid 反向传播：gx = gy * y * (1 - y)，当前 Mat 为 gy，y 为前向保存的 sigmoid(x)
+     * @param y 前向传播保存的 sigmoid(x)
+     * @return 输入梯度 gx
+     */
+    virtual std::unique_ptr<Mat> sigmoid_backward(const Mat &y) const = 0;
+
+    /**
+     * @brief SiLU 激活函数：silu(x) = x * sigmoid(x)
+     * @return SiLU 运算结果
+     */
+    virtual std::unique_ptr<Mat> silu() const = 0;
+
+    /**
+     * @brief SiLU 反向传播：当前 Mat 为 gy，x 为前向输入
+     *        gx = gy * (sigmoid(x) + x * sigmoid(x) * (1 - sigmoid(x)))
+     * @param x 前向传播的输入 x
+     * @return 输入梯度 gx
+     */
+    virtual std::unique_ptr<Mat> silu_backward(const Mat &x) const = 0;
+
+    /**
      * @brief 原地取负函数（修改当前矩阵）
      * @note 原地操作，修改当前矩阵的数据，不创建新对象
      */
@@ -526,7 +553,7 @@ public:
     virtual std::unique_ptr<Mat> max_pool2d(std::pair<int, int> kernel_size,
                                             std::pair<int, int> stride,
                                             std::pair<int, int> pad,
-                                            std::vector<size_t> &indices) const = 0;
+                                            std::vector<size_t> *indices = nullptr) const = 0;
 
     /**
      * @brief max_pool2d_backward：最大池化反向传播

@@ -66,7 +66,7 @@ TEST_P(SquareOperatorTest, ForwardMixedSigns)
 TEST_P(SquareOperatorTest, BackwardBasic)
 {
     // 测试基本反向传播
-    auto x = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::square(x);
     y.backward();
@@ -79,7 +79,7 @@ TEST_P(SquareOperatorTest, BackwardBasic)
 TEST_P(SquareOperatorTest, BackwardWithGradient)
 {
     // 测试带梯度的反向传播
-    auto x = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({2.0f, 3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::square(x);
     y.backward();
@@ -92,7 +92,7 @@ TEST_P(SquareOperatorTest, BackwardWithGradient)
 TEST_P(SquareOperatorTest, BackwardZeroGradient)
 {
     // 测试零点的梯度
-    auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor::zeros(Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::square(x);
     y.backward();
@@ -104,7 +104,7 @@ TEST_P(SquareOperatorTest, BackwardZeroGradient)
 TEST_P(SquareOperatorTest, BackwardNegativeValues)
 {
     // 测试负值的梯度
-    auto x = Tensor({-2.0f, -3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({-2.0f, -3.0f}, Shape{2}, dtype(DataType::kFloat32).device(deviceType()).requires_grad(true));
 
     auto y = F::square(x);
     y.backward();
