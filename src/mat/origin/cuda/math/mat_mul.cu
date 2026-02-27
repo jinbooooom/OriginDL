@@ -21,114 +21,30 @@ namespace cuda
  * @brief CUDA矩阵乘法算子实现
  * @details 实现高效的GPU矩阵乘法运算，包含多个优化版本
  *
- * ============================================================================
- * PyTorch matmul行为详解
- * ============================================================================
- *
- * PyTorch的matmul行为支持多种矩阵乘法场景：
- *
- * 1. 2D矩阵乘法：
- *    - 标准的矩阵乘法运算
- *    - 支持不同形状的矩阵（需要满足矩阵乘法维度要求）
- *    - 高效的GPU实现，使用优化的CUDA内核
- *
- *    示例：
- *    ```python
- *    import torch
- *    a = torch.randn(3, 4)  # 3x4矩阵
- *    b = torch.randn(4, 5)  # 4x5矩阵
- *    c = torch.matmul(a, b)  # 结果: 3x5矩阵
- *    ```
- *
- * 2. 批量矩阵乘法：
- *    - 支持高维张量的批量矩阵乘法
- *    - 最后两个维度进行矩阵乘法，前面的维度作为批量维度
- *    - 广播支持：批量维度可以广播
- *
- *    示例：
- *    ```python
- *    a = torch.randn(2, 3, 4)  # 批量维度: 2, 矩阵维度: 3x4
- *    b = torch.randn(2, 4, 5)  # 批量维度: 2, 矩阵维度: 4x5
- *    c = torch.matmul(a, b)    # 结果: 2x3x5
- *    ```
- *
- * 3. 广播矩阵乘法：
- *    - 支持不同批量维度的矩阵乘法
- *    - 自动广播批量维度
- *
- *    示例：
- *    ```python
- *    a = torch.randn(3, 4)     # 2D矩阵
- *    b = torch.randn(2, 4, 5)  # 批量矩阵
- *    c = torch.matmul(a, b)    # 结果: 2x3x5 (a被广播)
- *    ```
- *
- * ============================================================================
- * CUDA矩阵乘法优化版本说明
- * ============================================================================
- *
- * 本文件实现了多个优化版本的矩阵乘法内核，从朴素实现到高度优化的版本：
- *
  * Version 0: 朴素实现（Baseline）
- *   - 每个线程计算一个输出元素
- *   - 直接从全局内存读取数据
- *   - 性能基准，用于对比优化效果
+ * 每个线程计算一个输出元素，直接从全局内存读取数据，作为其它优化版本的性能基线。
  *
  * Version 1: 共享内存分块（Shared Memory Tiling）
- *   - 使用共享内存缓存数据块
- *   - 减少全局内存访问次数
- *   - 典型性能提升：5-10倍
+ * 使用共享内存缓存数据块，减少对全局内存的重复访问。
  *
  * Version 2: 优化共享内存访问（Bank Conflict Avoidance）
- *   - 使用padding避免共享内存bank冲突
- *   - 提高共享内存带宽利用率
- *   - 典型性能提升：10-15倍
+ * 使用 padding 避免共享内存 bank 冲突，提高共享内存带宽利用率。
  *
  * Version 3: 寄存器分块（Register Tiling）
- *   - 每个线程计算多个输出元素
- *   - 利用寄存器减少共享内存访问
- *   - 典型性能提升：15-25倍
+ * 每个线程计算多个输出元素，利用寄存器保存中间结果，减少共享内存访问。
  *
  * Version 4: 向量化内存访问（Vectorized Memory Access）
- *   - 使用float4/float2等向量类型
- *   - 提高内存带宽利用率
- *   - 典型性能提升：20-30倍
+ * 使用 float4 / float2 等向量类型进行加载，提高全局内存带宽利用率。
  *
  * Version 5: 双缓冲（Double Buffering）
- *   - 重叠计算和内存加载
- *   - 隐藏内存访问延迟
- *   - 典型性能提升：25-35倍
+ * 重叠计算和内存加载，在计算当前 tile 时预取下一 tile 数据，隐藏全局内存访问延迟。
  *
  * Version 6: 循环展开（Loop Unrolling）
- *   - 手动展开内层循环
- *   - 减少循环开销，提高指令级并行度
- *   - 典型性能提升：30-40倍
+ * 手动展开内层循环，减少循环控制开销并提高指令级并行度。
  *
  * Version 7: Warptiling（Warp-level Tiling）
- *   - 在block和thread之间增加warp层
- *   - 每个warp负责一个子块，更好地利用warp局部性
- *   - 减少shared memory bank冲突
- *   - 典型性能提升：40-50倍（相比Version 0）
+ * 在 block 和 thread 之间增加 warp 层，每个 warp 负责一个子块，更好地利用 warp 局部性并减少 shared memory bank 冲突。
  *
- * Version 8: 更大的Tile Size和参数化
- *   - 支持更大的tile size（32x32, 64x64等）
- *   - 参数化tile size，可根据矩阵大小选择
- *   - 典型性能提升：45-55倍（相比Version 0）
- *
- * Version 9: Autotuning（自动调优）
- *   - 自动测试不同参数组合
- *   - 根据矩阵大小和GPU特性选择最优配置
- *   - 典型性能提升：50-60倍（相比Version 0）
- *
- * ============================================================================
- * 当前实现说明
- * ============================================================================
- *
- * 当前实现采用基于CUDA内核的矩阵乘法策略：
- * - 实现多个优化版本的2D矩阵乘法内核
- * - 支持批量矩阵乘法
- * - 使用优化的内存访问模式
- * - 与CPU版本保持一致的行为
  */
 
 /**
@@ -144,8 +60,6 @@ enum class MatMulVersion
     V5_DOUBLE_BUFFERING   = 5,     // 双缓冲
     V6_UNROLLED           = 6,     // 循环展开
     V7_WARPTILING         = 7,     // Warptiling
-    V8_LARGE_TILE         = 8,     // 更大的tile size
-    V9_AUTOTUNING         = 9,     // 自动调优
     V_AUTO                = 6666,  // 自动选择最优版本
 };
 
@@ -164,19 +78,18 @@ enum class MatMulVersion
  * @param K A的列数和B的行数
  *
  * @details
- * 这是最基础的实现版本，作为性能基准：
- * - 每个线程负责计算输出矩阵C的一个元素
- * - 直接从全局内存读取矩阵A和B的数据
- * - 计算 C[row][col] = sum(A[row][k] * B[k][col]) for k in [0, K)
+ * 朴素矩阵乘法的基线实现：
+ * 每个线程计算一个输出元素 C[row, col]。
+ * 不使用共享内存，直接从全局内存加载 A、B。
+ * 计算公式为 C[row][col] = sum(A[row][k] * B[k][col]) for k in [0, K)。
  *
- * 性能特点：
- * - 内存访问模式：对矩阵A是行访问（coalesced），对矩阵B是列访问（non-coalesced）
- * - 全局内存访问次数：每个线程访问 K 次A和 K 次B，共 2*K 次全局内存访问
- * - 计算强度低，内存带宽是瓶颈
+ * 性能特征：
+ * A 为行方向合并访存（coalesced），B 为列方向非合并访存（non-coalesced），B 侧带宽成为主要瓶颈。
+ * 每线程对 A、B 各读取 K 次，总计 2*K 次全局访存，算术强度低、整体性能主要受全局内存带宽限制。
  *
- * 适用场景：
- * - 小矩阵（M, N, K < 32）
- * - 作为性能对比基准
+ * 使用场景：
+ * 小矩阵（M, N, K < 32）。
+ * 正确性验证，以及与后续优化版本进行性能对比时作为基线实现。
  */
 template <typename T>
 __global__ void matmul_v0_naive_kernel(const T *__restrict__ a,
@@ -186,11 +99,9 @@ __global__ void matmul_v0_naive_kernel(const T *__restrict__ a,
                                        int N,
                                        int K)
 {
-    // 计算当前线程负责的输出元素位置
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-    // 边界检查：确保线程在有效范围内
     if (likely(row < M && col < N))
     {
         T sum = 0;
@@ -198,8 +109,8 @@ __global__ void matmul_v0_naive_kernel(const T *__restrict__ a,
         for (int k = 0; k < K; ++k)
         {
             // 访问模式：
-            // - a[row * K + k]: 行访问，内存合并（coalesced）
-            // - b[k * N + col]: 列访问，内存不合并（non-coalesced），性能瓶颈
+            // a[row * K + k]: 行访问，内存合并（coalesced）
+            // b[k * N + col]: 列访问，内存不合并（non-coalesced），性能瓶颈
             sum += a[row * K + k] * b[k * N + col];
         }
         c[row * N + col] = sum;
@@ -222,22 +133,9 @@ __global__ void matmul_v0_naive_kernel(const T *__restrict__ a,
  *
  * @details
  * 这是第一个优化版本，使用共享内存缓存数据块：
- * - 将K维度分成多个tile，每个tile大小为TILE_SIZE
- * - 每个线程块协作加载一个tile的数据到共享内存
- * - 利用共享内存的高带宽和低延迟特性
- *
- * 优化原理：
- * - 共享内存带宽：~1.5TB/s（比全局内存高约10倍）
- * - 共享内存延迟：~20 cycles（比全局内存低约10倍）
- * - 通过分块，将全局内存访问次数从 O(K) 降低到 O(K/TILE_SIZE)
- *
- * 性能提升：
- * - 典型性能提升：5-10倍（相比Version 0）
- * - 主要受益于共享内存的高带宽
- *
- * 适用场景：
- * - 中等大小矩阵（M, N, K >= 32）
- * - 需要平衡性能和代码复杂度
+ * 将K维度分成多个tile，每个tile大小为TILE_SIZE。
+ * 每个线程块协作加载一个tile的数据到共享内存。
+ * 利用共享内存的高带宽和低延迟特性。
  */
 template <typename T>
 __global__ void matmul_v1_tiled_kernel(const T *__restrict__ a,
@@ -247,11 +145,9 @@ __global__ void matmul_v1_tiled_kernel(const T *__restrict__ a,
                                        int N,
                                        int K)
 {
-    // 共享内存块大小：16x16 = 256个元素
-    // 选择16是因为：
-    // 1. 16x16 = 256 threads，适合大多数GPU的warp大小（32）和block大小限制
-    // 2. 16x16x4 bytes = 1KB（float），适合大多数GPU的共享内存大小
-    const int TILE_SIZE = 16;
+    // 共享内存块大小：TILE_SIZE x TILE_SIZE
+    // 这里默认使用 32x32 tile，兼顾线程数与共享内存占用
+    constexpr int TILE_SIZE = 32;
 
     // 共享内存：每个线程块有TILE_SIZE x TILE_SIZE的共享内存
     // 用于缓存矩阵A和B的一个tile
@@ -275,7 +171,7 @@ __global__ void matmul_v1_tiled_kernel(const T *__restrict__ a,
 
         // 加载矩阵A的一个tile到共享内存
         // 注意：这里使用threadIdx.y和threadIdx.x来索引共享内存
-        // 这样可以保证同一行的线程访问连续的内存地址（coalesced access）
+        // 这样可以保证同一行的线程访问连续的内存地址
         if (likely(row < M && a_col < K))
             shared_a[threadIdx.y][threadIdx.x] = a[row * K + a_col];
         else
@@ -294,6 +190,7 @@ __global__ void matmul_v1_tiled_kernel(const T *__restrict__ a,
         // 现在所有需要的数据都在共享内存中，可以高效访问
         for (int k = 0; k < TILE_SIZE; ++k)
         {
+            // 注意在当前的实现中有潜在的 bank 冲突问题，也是 V2 的优化需要解决的问题
             sum += shared_a[threadIdx.y][k] * shared_b[k][threadIdx.x];
         }
 
@@ -324,27 +221,18 @@ __global__ void matmul_v1_tiled_kernel(const T *__restrict__ a,
  *
  * @details
  * 在Version 1的基础上，优化共享内存访问模式以避免bank冲突：
- * - 共享内存被组织成32个bank（对于大多数现代GPU）
- * - 当多个线程同时访问同一个bank的不同地址时，会发生bank conflict
- * - 通过添加padding（+1列），改变内存布局，避免bank冲突
+ * 对于大多数现代GPU,共享内存被组织成32个bank。一个 warp 包含 32 个线程，它们以 SIMT 方式同步执行。
+ * Bank conflict 的检测和影响发生在同一 warp 内：当同一 warp 中的多个线程同时访问同一 bank
+ * 的不同地址时，这些访问会被串行化，导致性能下降。 通过添加padding（+1列），改变内存布局，避免bank冲突。
  *
- * Bank冲突问题：
- * - 在Version 1中，当多个线程访问shared_b[k][threadIdx.x]时，
- *   如果threadIdx.x相同但k不同，可能访问同一个bank
- * - Bank冲突会导致访问串行化，降低性能
+ * 在Version 1中，当多个线程访问shared_b[k][threadIdx.x]时，
+ * 如果threadIdx.x相同但k不同，可能访问同一个bank。
  *
  * 优化方法：
- * - 将共享内存数组从 [TILE_SIZE][TILE_SIZE] 改为 [TILE_SIZE][TILE_SIZE + 1]
- * - 这样同一行的相邻元素会映射到不同的bank
- * - 消除bank冲突，提高共享内存带宽利用率
+ * 将共享内存数组从 [TILE_SIZE][TILE_SIZE] 改为 [TILE_SIZE][TILE_SIZE + 1]。
+ * 这样同一行的相邻元素会映射到不同的bank。
+ * 消除bank冲突，提高共享内存带宽利用率。
  *
- * 性能提升：
- * - 典型性能提升：10-15倍（相比Version 0）
- * - 相比Version 1提升：1.5-2倍
- *
- * 适用场景：
- * - 中等到大矩阵（M, N, K >= 64）
- * - 需要最大化共享内存性能
  */
 template <typename T>
 __global__ void matmul_v2_bank_conflict_free_kernel(const T *__restrict__ a,
@@ -354,7 +242,7 @@ __global__ void matmul_v2_bank_conflict_free_kernel(const T *__restrict__ a,
                                                     int N,
                                                     int K)
 {
-    const int TILE_SIZE = 16;
+    constexpr int TILE_SIZE = 32;
 
     // 共享内存：添加padding（+1列）以避免bank冲突
     // shared_a: [TILE_SIZE][TILE_SIZE] - 访问模式是行访问，通常不会有bank冲突
@@ -419,23 +307,16 @@ __global__ void matmul_v2_bank_conflict_free_kernel(const T *__restrict__ a,
  *
  * @details
  * 在Version 2的基础上，使用寄存器分块让每个线程计算多个输出元素：
- * - 每个线程计算 TILE_M x TILE_N 个输出元素（而不是1个）
- * - 利用寄存器存储中间结果，减少共享内存访问
- * - 提高计算强度（compute intensity），更好地利用计算资源
+ * 每个线程计算 TILE_M x TILE_N 个输出元素（而不是1个）。
+ * 利用寄存器存储中间结果，减少共享内存访问。
+ * 提高计算强度（compute intensity），更好地利用计算资源。
  *
  * 优化原理：
- * - 寄存器访问延迟：~1 cycle（最低延迟）
- * - 寄存器带宽：极高（几乎无限制）
- * - 通过让每个线程计算多个元素，增加计算/内存访问比
- * - 减少共享内存访问次数：从 O(TILE_SIZE) 降低到 O(TILE_SIZE / TILE_M)
+ * 寄存器访问延迟：~1 cycle（最低延迟）。
+ * 寄存器带宽：极高（几乎无限制）。
+ * 通过让每个线程计算多个元素，增加计算/内存访问比。
+ * 减少共享内存访问次数：从 O(TILE_SIZE) 降低到 O(TILE_SIZE / TILE_M)。
  *
- * 性能提升：
- * - 典型性能提升：15-25倍（相比Version 0）
- * - 相比Version 2提升：1.5-2倍
- *
- * 适用场景：
- * - 大矩阵（M, N, K >= 128）
- * - 需要最大化计算资源利用率
  */
 template <typename T>
 __global__ void matmul_v3_register_tiling_kernel(const T *__restrict__ a,
@@ -445,7 +326,7 @@ __global__ void matmul_v3_register_tiling_kernel(const T *__restrict__ a,
                                                  int N,
                                                  int K)
 {
-    const int TILE_SIZE = 16;
+    const int TILE_SIZE = 32;
     const int TILE_M    = 4;  // 每个线程计算4行
     const int TILE_N    = 4;  // 每个线程计算4列
 
@@ -556,29 +437,19 @@ __global__ void matmul_v3_register_tiling_kernel(const T *__restrict__ a,
  *
  * @details
  * 在Version 3的基础上，使用向量化内存访问提高内存带宽利用率：
- * - 使用float4类型一次加载4个float值
- * - 减少内存事务数量，提高内存带宽利用率
- * - 要求数据对齐到16字节边界
+ * 使用float4类型一次加载4个float值。
+ * 减少内存事务数量，提高内存带宽利用率。
+ * 要求数据对齐到16字节边界。
  *
  * 优化原理：
- * - 现代GPU支持128位（16字节）的内存事务
- * - 使用float4可以一次加载4个float（16字节），充分利用128位事务
- * - 减少内存事务数量：从 N 次降低到 N/4 次
- * - 提高内存带宽利用率：从 ~50% 提高到 ~90%
+ * 现代GPU支持128位（16字节）的内存事务。
+ * 使用float4可以一次加载4个float（16字节），充分利用128位事务。
+ * 减少内存事务数量：从 N 次降低到 N/4 次。
  *
  * 注意事项：
- * - 只支持float类型（float4）
- * - 要求数据对齐到16字节边界
- * - K必须是4的倍数（或者需要处理边界情况）
- *
- * 性能提升：
- * - 典型性能提升：20-30倍（相比Version 0）
- * - 相比Version 3提升：1.3-1.5倍
- *
- * 适用场景：
- * - 大矩阵（M, N, K >= 256）
- * - float类型数据
- * - 内存带宽是瓶颈的场景
+ * 目前只支持float类型（float4）。
+ * 要求数据对齐到16字节边界。
+ * K必须是4的倍数（或者需要处理边界情况）。
  */
 __global__ void matmul_v4_vectorized_kernel(const float *__restrict__ a,
                                             const float *__restrict__ b,
@@ -587,10 +458,15 @@ __global__ void matmul_v4_vectorized_kernel(const float *__restrict__ a,
                                             int N,
                                             int K)
 {
-    const int TILE_SIZE   = 16;
+    const int TILE_SIZE   = 32;
     const int TILE_M      = 4;
     const int TILE_N      = 4;
     const int VECTOR_SIZE = 4;  // float4 = 4个float
+
+    // 只有当行跨度 / 列跨度本身是 4 的倍数时，才保证
+    // (row * stride + col) * sizeof(float) 对齐到 16 字节，可以安全使用 float4
+    const bool can_vectorize_a = (K % VECTOR_SIZE == 0);
+    const bool can_vectorize_b = (N % VECTOR_SIZE == 0);
 
     __shared__ float shared_a[TILE_SIZE][TILE_SIZE];
     __shared__ float shared_b[TILE_SIZE][TILE_SIZE + 1];
@@ -626,7 +502,12 @@ __global__ void matmul_v4_vectorized_kernel(const float *__restrict__ a,
                 int b_row    = tile * TILE_SIZE + load_row;
 
                 // 加载矩阵A：使用float4向量化加载
-                if (likely(base_row + i < M && a_col + VECTOR_SIZE - 1 < K && (a_col % VECTOR_SIZE == 0)))
+                // 需要同时满足：
+                // 1) can_vectorize_a: K 是 4 的倍数，保证行跨度对齐
+                // 2) a_col 对齐到 4 的倍数
+                // 3) 不越界（a_col + VECTOR_SIZE - 1 < K）
+                if (likely(can_vectorize_a && base_row + i < M && a_col + VECTOR_SIZE - 1 < K &&
+                           (a_col % VECTOR_SIZE == 0)))
                 {
                     // 使用float4一次加载4个float
                     float4 vec_a = *reinterpret_cast<const float4 *>(&a[(base_row + i) * K + a_col]);
@@ -648,7 +529,9 @@ __global__ void matmul_v4_vectorized_kernel(const float *__restrict__ a,
                 }
 
                 // 加载矩阵B：使用float4向量化加载
-                if (likely(b_row < K && base_col + j + VECTOR_SIZE - 1 < N && ((base_col + j) % VECTOR_SIZE == 0)))
+                // 同理，只有当 N 是 4 的倍数且 base_col + j 按 4 对齐时才使用 float4
+                if (likely(can_vectorize_b && b_row < K && base_col + j + VECTOR_SIZE - 1 < N &&
+                           ((base_col + j) % VECTOR_SIZE == 0)))
                 {
                     float4 vec_b                     = *reinterpret_cast<const float4 *>(&b[b_row * N + base_col + j]);
                     shared_b[load_row][load_col + 0] = vec_b.x;
@@ -725,29 +608,19 @@ __global__ void matmul_v4_vectorized_kernel(const float *__restrict__ a,
  *
  * @details
  * 在Version 3的基础上，使用双缓冲技术重叠计算和内存加载：
- * - 使用两个共享内存缓冲区（buffer 0和buffer 1）
- * - 当一个缓冲区用于计算时，另一个缓冲区用于加载下一个tile的数据
- * - 通过异步加载隐藏内存访问延迟
+ * 使用两个共享内存缓冲区（buffer 0和buffer 1）。
+ * 当一个缓冲区用于计算时，另一个缓冲区用于加载下一个tile的数据。
  *
- * 优化原理：
- * - 内存访问延迟：~400-800 cycles（全局内存）
- * - 计算时间：~100-200 cycles（对于一个小tile）
- * - 通过重叠计算和加载，可以隐藏大部分内存访问延迟
- * - 提高GPU利用率：从 ~50% 提高到 ~80-90%
+ * 优化1（GMEM 预取）：下一 tile 先从 GMEM 读到寄存器 ldg_a/ldg_b，再做当前 tile 计算，
+ * 算完后将寄存器写回 SMEM，使 GMEM 加载延迟与计算重叠。
+ *
+ * 优化2（内层 k 寄存器双缓冲）：内层 k 循环中用 a_frag[2][TILE_M]、b_frag[2][TILE_N]
+ * 双缓冲，每次迭代预取下一 k 的 SMEM 到寄存器再计算当前 k，使 SMEM->reg 传输 与乘加重叠。
  *
  * 实现方法：
- * - 使用两个共享内存数组：shared_a[2][TILE_SIZE][TILE_SIZE]
- * - 使用索引切换：buffer_idx = tile % 2
- * - 在计算当前tile时，异步加载下一个tile
+ * 使用两个共享内存数组 shared_a[2][TILE_SIZE][TILE_SIZE]、shared_b[2][TILE_SIZE][TILE_SIZE+1]。
+ * 每轮顺序：预取下一 tile 到寄存器 -> 用当前 buffer 计算（含 k 维寄存器双缓冲）-> 写回 SMEM -> sync。
  *
- * 性能提升：
- * - 典型性能提升：25-35倍（相比Version 0）
- * - 相比Version 3提升：1.5-2倍
- *
- * 适用场景：
- * - 大矩阵（M, N, K >= 512）
- * - 内存访问延迟是瓶颈的场景
- * - 需要最大化GPU利用率
  */
 template <typename T>
 __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
@@ -757,7 +630,7 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
                                                   int N,
                                                   int K)
 {
-    const int TILE_SIZE = 16;
+    const int TILE_SIZE = 32;
     const int TILE_M    = 4;
     const int TILE_N    = 4;
 
@@ -779,9 +652,17 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
         }
     }
 
+    // 双缓冲用到的寄存器（两层）：
+    // 1) ldg_a/ldg_b：下一 tile 从 GMEM 预取到这里，本轮算完再写回 SMEM
+    // 2) a_frag/b_frag：内层 k 循环里，当前/下一 k 的 A 行、B 列，SMEM->reg 传输 与乘加重叠
+    T ldg_a[TILE_M][TILE_N]; // (load global memory to register)
+    T ldg_b[TILE_M][TILE_N];
+    T a_frag[2][TILE_M];
+    T b_frag[2][TILE_N];
+
     int num_tiles = (K + TILE_SIZE - 1) / TILE_SIZE;
 
-    // 预加载第一个tile（buffer 0）
+    // 流水启动前：先把第 0 个 tile 放进 shared，供第一轮 Step 2 使用
     int tile = 0;
 #pragma unroll
     for (int i = 0; i < TILE_M; ++i)
@@ -808,15 +689,19 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
 
     __syncthreads();
 
-    // 主循环：使用双缓冲重叠计算和加载
+    // 主循环内双缓冲每轮迭代的三个步骤：
+    //   Step 1: 预取下一 tile，GMEM -> 寄存器 ldg_a/ldg_b（不写 SMEM）
+    //   Step 2: 用当前 tile 计算，即 shared_a[curr_buffer]/shared_b[curr_buffer] -> reg_c
+    //           内层 k 循环再用 a_frag/b_frag 做 SMEM->reg 传输 与乘加的重叠
+    //   Step 3: 将 Step 1 预取的数据从寄存器写回 SMEM，下一轮该 buffer 作为 curr_buffer 供 Step 2 使用
+    // 重叠的含义是：Step 1 预取的 GMEM 加载延迟，主要被本轮及后续轮次的 Step 2 计算时间隐藏（通过 warp 调度和流水覆盖）
     for (tile = 0; tile < num_tiles; ++tile)
     {
-        // 当前使用的缓冲区索引
-        int curr_buffer = tile % 2;
-        // 下一个tile的缓冲区索引
-        int next_buffer = (tile + 1) % 2;
+        int curr_buffer = tile % 2;  // 当前 tile 在 shared 的槽位
+        int next_buffer = (tile + 1) % 2;  // 下一 tile 要写回的槽位
 
-        // 如果不是最后一个tile，预加载下一个tile的数据
+        // Step 1：预取下一 tile，GMEM -> 寄存器 ldg_a / ldg_b（不写 SMEM）
+        // 本迭代稍后的 Step 2 会与这批 load 的延迟在时间上重叠
         if (likely(tile + 1 < num_tiles))
         {
 #pragma unroll
@@ -831,21 +716,76 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
                     int next_b_row = (tile + 1) * TILE_SIZE + load_row;
 
                     if (likely(base_row + i < M && next_a_col < K))
-                        shared_a[next_buffer][load_row][load_col] = a[(base_row + i) * K + next_a_col];
+                        ldg_a[i][j] = a[(base_row + i) * K + next_a_col];
                     else
-                        shared_a[next_buffer][load_row][load_col] = 0;
+                        ldg_a[i][j] = 0;
 
                     if (likely(next_b_row < K && base_col + j < N))
-                        shared_b[next_buffer][load_row][load_col] = b[next_b_row * N + (base_col + j)];
+                        ldg_b[i][j] = b[next_b_row * N + (base_col + j)];
                     else
-                        shared_b[next_buffer][load_row][load_col] = 0;
+                        ldg_b[i][j] = 0;
                 }
             }
         }
 
-        // 使用当前缓冲区进行计算
+        // Step 2：用当前 tile（已在 shared_a[curr_buffer] / shared_b[curr_buffer]）计算
+        // 内层 k 再做一层寄存器双缓冲：先预取下一 k 到 frag，再算当前 k，以隐藏 SMEM 读延迟
+        // 预取 k=0 的 A 行、B 列到 a_frag[0] / b_frag[0]
 #pragma unroll
-        for (int k = 0; k < TILE_SIZE; ++k)
+        for (int i = 0; i < TILE_M; ++i)
+        {
+            int shared_row = threadIdx.y * TILE_M + i;
+            a_frag[0][i] = shared_a[curr_buffer][shared_row][0];
+        }
+#pragma unroll
+        for (int j = 0; j < TILE_N; ++j)
+        {
+            int shared_col = threadIdx.x * TILE_N + j;
+            b_frag[0][j] = shared_b[curr_buffer][0][shared_col];
+        }
+
+#pragma unroll
+        for (int k = 0; k < TILE_SIZE - 1; ++k)
+        {
+            // 预取 k+1 的 A 行、B 列到 a_frag[(k+1)%2] / b_frag[(k+1)%2]
+            // 对整个 SM 上所有 warp：当某个 warp 在做 “预取 k+1” 的 load 时，
+            // 如果被 SMEM 延迟挡住，调度器会把别的 warp 拿出来跑，就不会出现“所有 warp 都一条 load 卡死在那”的极端情况。
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
+                int shared_row = threadIdx.y * TILE_M + i;
+                a_frag[(k + 1) % 2][i] = shared_a[curr_buffer][shared_row][k + 1];
+            }
+#pragma unroll
+            for (int j = 0; j < TILE_N; ++j)
+            {
+                int shared_col = threadIdx.x * TILE_N + j;
+                b_frag[(k + 1) % 2][j] = shared_b[curr_buffer][k + 1][shared_col];
+            }
+            // 用当前 k 的 a_frag[k%2] / b_frag[k%2] 做乘加
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
+#pragma unroll
+                for (int j = 0; j < TILE_N; ++j)
+                {
+                    reg_c[i][j] += a_frag[k % 2][i] * b_frag[k % 2][j];
+                }
+            }
+        }
+        // k = TILE_SIZE-1 的乘加（frag 已在上一轮预取）
+#pragma unroll
+        for (int i = 0; i < TILE_M; ++i)
+        {
+#pragma unroll
+            for (int j = 0; j < TILE_N; ++j)
+            {
+                reg_c[i][j] += a_frag[(TILE_SIZE - 1) % 2][i] * b_frag[(TILE_SIZE - 1) % 2][j];
+            }
+        }
+
+        // Step 3：将本迭代 Step 1 预取的下一 tile 从寄存器写回 SMEM，下一轮将作为 curr_buffer 供 Step 2 使用
+        if (likely(tile + 1 < num_tiles))
         {
 #pragma unroll
             for (int i = 0; i < TILE_M; ++i)
@@ -853,15 +793,14 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
 #pragma unroll
                 for (int j = 0; j < TILE_N; ++j)
                 {
-                    int shared_row = threadIdx.y * TILE_M + i;
-                    int shared_col = threadIdx.x * TILE_N + j;
-                    reg_c[i][j] += shared_a[curr_buffer][shared_row][k] * shared_b[curr_buffer][k][shared_col];
+                    int load_row = threadIdx.y * TILE_M + i;
+                    int load_col = threadIdx.x * TILE_N + j;
+                    shared_a[next_buffer][load_row][load_col] = ldg_a[i][j];
+                    shared_b[next_buffer][load_row][load_col] = ldg_b[i][j];
                 }
             }
+            __syncthreads();
         }
-
-        // 同步：确保下一个tile的数据加载完成
-        __syncthreads();
     }
 
     // 写回结果
@@ -886,8 +825,11 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
 // ============================================================================
 
 /**
- * @brief Version 6: 使用循环展开优化的矩阵乘法CUDA内核
+ * @brief Version 6: 在 Version 5 基础上对内层 k 循环做手动展开的矩阵乘法 CUDA 内核
  * @tparam T 数据类型
+ * @tparam TILE_SIZE tile 边长（默认 32）
+ * @tparam TILE_M 每个线程在 M 方向计算的元素数（默认 4）
+ * @tparam TILE_N 每个线程在 N 方向计算的元素数（默认 4）
  * @param a 输入矩阵A (M x K)
  * @param b 输入矩阵B (K x N)
  * @param c 输出矩阵C (M x N)
@@ -896,33 +838,14 @@ __global__ void matmul_v5_double_buffering_kernel(const T *__restrict__ a,
  * @param K A的列数和B的行数
  *
  * @details
- * 在Version 5的基础上，手动展开内层循环以提高指令级并行度：
- * - 手动展开TILE_SIZE循环（从16次展开为4次，每次处理4个元素）
- * - 减少循环控制开销
- * - 提高指令级并行度（ILP）
- * - 允许编译器更好地优化代码
+ * 在 Version 5 的基础上，保持相同的双缓冲与数据流（Step 1/2/3、ldg_a/ldg_b、a_frag/b_frag），
+ * 仅对内层 k 循环按 UNROLL_FACTOR=4 做手动展开：每次外层迭代处理 4 个连续 k，
+ * 减少循环控制与分支，提高指令级并行度（ILP），便于编译器调度。
  *
- * 优化原理：
- * - 循环控制开销：每次迭代需要检查条件、更新计数器等
- * - 通过展开循环，减少分支指令和循环控制指令
- * - 提高指令级并行度：更多的独立指令可以并行执行
- * - 允许编译器进行更好的寄存器分配和指令调度
- *
- * 实现方法：
- * - 将 TILE_SIZE (16) 的循环展开为4次，每次处理4个元素
- * - 使用#pragma unroll提示编译器展开循环
- * - 手动展开关键的内层循环
- *
- * 性能提升：
- * - 典型性能提升：30-40倍（相比Version 0）
- * - 相比Version 5提升：1.2-1.5倍
- *
- * 适用场景：
- * - 超大矩阵（M, N, K >= 1024）
- * - 需要极致性能的场景
- * - 计算资源充足的GPU
+ * 该内核通过模板参数 TILE_SIZE / TILE_M / TILE_N 支持不同的 tile 配置，
+ * 默认配置为 32x32 tile，单线程 4x4 子块。
  */
-template <typename T>
+template <typename T, int TILE_SIZE = 32, int TILE_M = 4, int TILE_N = 4>
 __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
                                           const T *__restrict__ b,
                                           T *__restrict__ c,
@@ -930,12 +853,10 @@ __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
                                           int N,
                                           int K)
 {
-    const int TILE_SIZE     = 16;
-    const int TILE_M        = 4;
-    const int TILE_N        = 4;
-    const int UNROLL_FACTOR = 4;  // 展开因子：每次处理4个元素
+    static_assert(TILE_SIZE % TILE_M == 0, "TILE_SIZE must be divisible by TILE_M");
+    static_assert(TILE_SIZE % TILE_N == 0, "TILE_SIZE must be divisible by TILE_N");
+    constexpr int UNROLL_FACTOR = 4;
 
-    // 双缓冲
     __shared__ T shared_a[2][TILE_SIZE][TILE_SIZE];
     __shared__ T shared_b[2][TILE_SIZE][TILE_SIZE + 1];
 
@@ -953,9 +874,14 @@ __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
         }
     }
 
+    T ldg_a[TILE_M][TILE_N];
+    T ldg_b[TILE_M][TILE_N];
+    T a_frag[2][TILE_M];
+    T b_frag[2][TILE_N];
+
     int num_tiles = (K + TILE_SIZE - 1) / TILE_SIZE;
 
-    // 预加载第一个tile
+    // 流水启动前：第 0 个 tile 放进 shared，供第一轮 Step 2 使用
     int tile = 0;
 #pragma unroll
     for (int i = 0; i < TILE_M; ++i)
@@ -982,13 +908,12 @@ __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
 
     __syncthreads();
 
-    // 主循环：双缓冲 + 循环展开
     for (tile = 0; tile < num_tiles; ++tile)
     {
         int curr_buffer = tile % 2;
         int next_buffer = (tile + 1) % 2;
 
-        // 预加载下一个tile
+        // Step 1：预取下一 tile 到 ldg_a / ldg_b
         if (likely(tile + 1 < num_tiles))
         {
 #pragma unroll
@@ -1003,25 +928,36 @@ __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
                     int next_b_row = (tile + 1) * TILE_SIZE + load_row;
 
                     if (likely(base_row + i < M && next_a_col < K))
-                        shared_a[next_buffer][load_row][load_col] = a[(base_row + i) * K + next_a_col];
+                        ldg_a[i][j] = a[(base_row + i) * K + next_a_col];
                     else
-                        shared_a[next_buffer][load_row][load_col] = 0;
+                        ldg_a[i][j] = 0;
 
                     if (likely(next_b_row < K && base_col + j < N))
-                        shared_b[next_buffer][load_row][load_col] = b[next_b_row * N + (base_col + j)];
+                        ldg_b[i][j] = b[next_b_row * N + (base_col + j)];
                     else
-                        shared_b[next_buffer][load_row][load_col] = 0;
+                        ldg_b[i][j] = 0;
                 }
             }
         }
 
-        // 计算部分和：手动展开TILE_SIZE循环
-        // 将16次迭代展开为4次，每次处理4个元素
+        // Step 2：用当前 tile 计算，内层 k 按 UNROLL_FACTOR=4 手动展开，仍用 a_frag/b_frag 双缓冲
 #pragma unroll
-        for (int k_base = 0; k_base < TILE_SIZE; k_base += UNROLL_FACTOR)
+        for (int i = 0; i < TILE_M; ++i)
         {
-            // 手动展开4次迭代
-            int k0 = k_base + 0;
+            int shared_row = threadIdx.y * TILE_M + i;
+            a_frag[0][i] = shared_a[curr_buffer][shared_row][0];
+        }
+#pragma unroll
+        for (int j = 0; j < TILE_N; ++j)
+        {
+            int shared_col = threadIdx.x * TILE_N + j;
+            b_frag[0][j] = shared_b[curr_buffer][0][shared_col];
+        }
+
+        for (int k_base = 0; k_base < TILE_SIZE - 1; k_base += UNROLL_FACTOR)
+        {
+            // 手动展开 4 步：每步预取下一 k 到 frag，再用当前 k 的 frag 乘加
+            int k0 = k_base;
             int k1 = k_base + 1;
             int k2 = k_base + 2;
             int k3 = k_base + 3;
@@ -1029,36 +965,116 @@ __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
 #pragma unroll
             for (int i = 0; i < TILE_M; ++i)
             {
+                int shared_row = threadIdx.y * TILE_M + i;
+                a_frag[(k0 + 1) % 2][i] = shared_a[curr_buffer][shared_row][k1];
+            }
+#pragma unroll
+            for (int j = 0; j < TILE_N; ++j)
+            {
+                int shared_col = threadIdx.x * TILE_N + j;
+                b_frag[(k0 + 1) % 2][j] = shared_b[curr_buffer][k1][shared_col];
+            }
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
 #pragma unroll
                 for (int j = 0; j < TILE_N; ++j)
                 {
+                    reg_c[i][j] += a_frag[k0 % 2][i] * b_frag[k0 % 2][j];
+                }
+            }
+
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
+                int shared_row = threadIdx.y * TILE_M + i;
+                a_frag[(k1 + 1) % 2][i] = shared_a[curr_buffer][shared_row][k2];
+            }
+#pragma unroll
+            for (int j = 0; j < TILE_N; ++j)
+            {
+                int shared_col = threadIdx.x * TILE_N + j;
+                b_frag[(k1 + 1) % 2][j] = shared_b[curr_buffer][k2][shared_col];
+            }
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
+#pragma unroll
+                for (int j = 0; j < TILE_N; ++j)
+                {
+                    reg_c[i][j] += a_frag[k1 % 2][i] * b_frag[k1 % 2][j];
+                }
+            }
+
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
+                int shared_row = threadIdx.y * TILE_M + i;
+                a_frag[(k2 + 1) % 2][i] = shared_a[curr_buffer][shared_row][k3];
+            }
+#pragma unroll
+            for (int j = 0; j < TILE_N; ++j)
+            {
+                int shared_col = threadIdx.x * TILE_N + j;
+                b_frag[(k2 + 1) % 2][j] = shared_b[curr_buffer][k3][shared_col];
+            }
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
+#pragma unroll
+                for (int j = 0; j < TILE_N; ++j)
+                {
+                    reg_c[i][j] += a_frag[k2 % 2][i] * b_frag[k2 % 2][j];
+                }
+            }
+
+            // 第 4 步：仅当 k3+1 < TILE_SIZE 时预取 k3+1；然后算 k3
+            if (k3 + 1 < TILE_SIZE)
+            {
+#pragma unroll
+                for (int i = 0; i < TILE_M; ++i)
+                {
                     int shared_row = threadIdx.y * TILE_M + i;
+                    a_frag[(k3 + 1) % 2][i] = shared_a[curr_buffer][shared_row][k3 + 1];
+                }
+#pragma unroll
+                for (int j = 0; j < TILE_N; ++j)
+                {
                     int shared_col = threadIdx.x * TILE_N + j;
-
-                    // 展开的4次计算：减少循环控制开销，提高ILP
-                    T a_val0 = shared_a[curr_buffer][shared_row][k0];
-                    T b_val0 = shared_b[curr_buffer][k0][shared_col];
-                    reg_c[i][j] += a_val0 * b_val0;
-
-                    T a_val1 = shared_a[curr_buffer][shared_row][k1];
-                    T b_val1 = shared_b[curr_buffer][k1][shared_col];
-                    reg_c[i][j] += a_val1 * b_val1;
-
-                    T a_val2 = shared_a[curr_buffer][shared_row][k2];
-                    T b_val2 = shared_b[curr_buffer][k2][shared_col];
-                    reg_c[i][j] += a_val2 * b_val2;
-
-                    T a_val3 = shared_a[curr_buffer][shared_row][k3];
-                    T b_val3 = shared_b[curr_buffer][k3][shared_col];
-                    reg_c[i][j] += a_val3 * b_val3;
+                    b_frag[(k3 + 1) % 2][j] = shared_b[curr_buffer][k3 + 1][shared_col];
+                }
+            }
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
+#pragma unroll
+                for (int j = 0; j < TILE_N; ++j)
+                {
+                    reg_c[i][j] += a_frag[k3 % 2][i] * b_frag[k3 % 2][j];
                 }
             }
         }
+        // 内层 k 已全部在展开循环中完成（含 k=TILE_SIZE-1），无需再补一次乘加
 
-        __syncthreads();
+        // Step 3：写回 ldg 到 SMEM
+        if (likely(tile + 1 < num_tiles))
+        {
+#pragma unroll
+            for (int i = 0; i < TILE_M; ++i)
+            {
+#pragma unroll
+                for (int j = 0; j < TILE_N; ++j)
+                {
+                    int load_row = threadIdx.y * TILE_M + i;
+                    int load_col = threadIdx.x * TILE_N + j;
+                    shared_a[next_buffer][load_row][load_col] = ldg_a[i][j];
+                    shared_b[next_buffer][load_row][load_col] = ldg_b[i][j];
+                }
+            }
+            __syncthreads();
+        }
     }
 
-    // 写回结果
 #pragma unroll
     for (int i = 0; i < TILE_M; ++i)
     {
@@ -1098,26 +1114,21 @@ __global__ void matmul_v6_unrolled_kernel(const T *__restrict__ a,
  *
  * @details
  * 在Version 6的基础上，引入warp-level tiling：
- * - 三层tiling：Block -> Warp -> Thread
- * - 每个warp负责一个子块，更好地利用warp局部性
- * - 减少shared memory bank冲突
- * - 提高寄存器重用率
+ * 三层tiling：Block -> Warp -> Thread。
+ * 每个warp负责一个子块，更好地利用warp局部性。
+ * 减少shared memory bank冲突。
+ * 提高寄存器重用率。
  *
  * 优化原理：
- * - Warp是GPU执行的基本单位（32个线程）
- * - Warp内线程可以高效协作，共享数据
- * - Warp-level tiling可以更好地利用warp内的数据局部性
- * - 减少跨warp的shared memory访问冲突
- *
- * 性能提升：
- * - 典型性能提升：40-50倍（相比Version 0）
- * - 相比Version 6提升：1.2-1.5倍
+ * Warp是GPU执行的基本单位（32个线程）。
+ * Warp内线程可以高效协作，共享数据。
+ * Warp-level tiling可以更好地利用warp内的数据局部性。
+ * 减少跨warp的shared memory访问冲突。
  *
  * 适用场景：
- * - 超大矩阵（M, N, K >= 512）
- * - 需要极致性能的场景
+ * 超大矩阵
  */
-template <typename T, int BM = 128, int BN = 128, int BK = 16, int WM = 64, int WN = 64, int TM = 8, int TN = 8>
+template <typename T, int BM = 128, int BN = 128, int BK = 16, int WM = 64, int WN = 64, int TM = 8, int TN = 16>
 __global__ void matmul_v7_warptiling_kernel(const T *__restrict__ a,
                                             const T *__restrict__ b,
                                             T *__restrict__ c,
@@ -1271,321 +1282,9 @@ __global__ void matmul_v7_warptiling_kernel(const T *__restrict__ a,
     }
 }
 
-// ============================================================================
-// Version 8: 更大的Tile Size和参数化
-// ============================================================================
 
-/**
- * @brief Version 8: 使用更大tile size的矩阵乘法CUDA内核
- * @tparam T 数据类型
- * @tparam TILE_SIZE Tile大小（可以是32, 64, 128等）
- * @tparam TILE_M 每个thread计算的M维度元素数
- * @tparam TILE_N 每个thread计算的N维度元素数
- * @param a 输入矩阵A (M x K)
- * @param b 输入矩阵B (K x N)
- * @param c 输出矩阵C (M x N)
- * @param M A的行数
- * @param N B的列数
- * @param K A的列数和B的行数
- *
- * @details
- * 在Version 6的基础上，支持更大的tile size：
- * - 支持32x32, 64x64, 128x128等更大的tile
- * - 参数化设计，可根据矩阵大小选择最优tile size
- * - 更大的tile size可以提高计算强度，减少全局内存访问
- *
- * 优化原理：
- * - 更大的tile size意味着更多的数据重用
- * - 减少全局内存访问次数：从O(K/TILE_SIZE)降低到O(K/TILE_SIZE_LARGE)
- * - 提高计算强度（compute intensity）
- *
- * 性能提升：
- * - 典型性能提升：45-55倍（相比Version 0）
- * - 相比Version 6提升：1.3-1.8倍（取决于矩阵大小）
- *
- * 适用场景：
- * - 超大矩阵（M, N, K >= 1024）
- * - 有足够shared memory的GPU
- */
-template <typename T, int TILE_SIZE = 64, int TILE_M = 8, int TILE_N = 8>
-__global__ void matmul_v8_large_tile_kernel(const T *__restrict__ a,
-                                            const T *__restrict__ b,
-                                            T *__restrict__ c,
-                                            int M,
-                                            int N,
-                                            int K)
-{
-    static_assert(TILE_SIZE % TILE_M == 0, "TILE_SIZE must be divisible by TILE_M");
-    static_assert(TILE_SIZE % TILE_N == 0, "TILE_SIZE must be divisible by TILE_N");
 
-    // 单缓冲：对于大tile size，使用单缓冲以避免shared memory超限
-    // 注意：TILE_SIZE不能太大，否则会超过shared memory限制（48KB）
-    __shared__ T shared_a[TILE_SIZE][TILE_SIZE + 1];
-    __shared__ T shared_b[TILE_SIZE][TILE_SIZE + 1];
 
-    int base_row = blockIdx.y * TILE_SIZE + threadIdx.y * TILE_M;
-    int base_col = blockIdx.x * TILE_SIZE + threadIdx.x * TILE_N;
-
-    T reg_c[TILE_M][TILE_N];
-#pragma unroll
-    for (int i = 0; i < TILE_M; ++i)
-    {
-#pragma unroll
-        for (int j = 0; j < TILE_N; ++j)
-        {
-            reg_c[i][j] = 0;
-        }
-    }
-
-    int num_tiles = (K + TILE_SIZE - 1) / TILE_SIZE;
-
-    // 主循环：单缓冲 + 循环展开
-    for (int tile = 0; tile < num_tiles; ++tile)
-    {
-        // 加载当前tile到shared memory
-#pragma unroll
-        for (int i = 0; i < TILE_M; ++i)
-        {
-#pragma unroll
-            for (int j = 0; j < TILE_N; ++j)
-            {
-                int load_row = threadIdx.y * TILE_M + i;
-                int load_col = threadIdx.x * TILE_N + j;
-                int a_col    = tile * TILE_SIZE + load_col;
-                int b_row    = tile * TILE_SIZE + load_row;
-
-                if (likely(base_row + i < M && a_col < K))
-                    shared_a[load_row][load_col] = a[(base_row + i) * K + a_col];
-                else
-                    shared_a[load_row][load_col] = 0;
-
-                if (likely(b_row < K && base_col + j < N))
-                    shared_b[load_row][load_col] = b[b_row * N + (base_col + j)];
-                else
-                    shared_b[load_row][load_col] = 0;
-            }
-        }
-
-        __syncthreads();
-
-        // 计算部分和：展开循环以提高ILP
-        const int UNROLL_FACTOR = 4;
-#pragma unroll
-        for (int k_base = 0; k_base < TILE_SIZE; k_base += UNROLL_FACTOR)
-        {
-#pragma unroll
-            for (int k_offset = 0; k_offset < UNROLL_FACTOR && (k_base + k_offset) < TILE_SIZE; ++k_offset)
-            {
-                int k = k_base + k_offset;
-#pragma unroll
-                for (int i = 0; i < TILE_M; ++i)
-                {
-#pragma unroll
-                    for (int j = 0; j < TILE_N; ++j)
-                    {
-                        int shared_row = threadIdx.y * TILE_M + i;
-                        int shared_col = threadIdx.x * TILE_N + j;
-                        reg_c[i][j] += shared_a[shared_row][k] * shared_b[k][shared_col];
-                    }
-                }
-            }
-        }
-
-        __syncthreads();
-    }
-
-    // 写回结果
-#pragma unroll
-    for (int i = 0; i < TILE_M; ++i)
-    {
-#pragma unroll
-        for (int j = 0; j < TILE_N; ++j)
-        {
-            int row = base_row + i;
-            int col = base_col + j;
-            if (likely(row < M && col < N))
-            {
-                c[row * N + col] = reg_c[i][j];
-            }
-        }
-    }
-}
-
-// ============================================================================
-// Version 9: Autotuning（自动调优）
-// ============================================================================
-
-/**
- * @brief Version 9: 自动调优版本的矩阵乘法
- * @tparam T 数据类型
- * @param a 输入矩阵A (M x K)
- * @param b 输入矩阵B (K x N)
- * @param c 输出矩阵C (M x N)
- * @param M A的行数
- * @param N B的列数
- * @param K A的列数和B的行数
- *
- * @details
- * 根据矩阵大小自动选择最优的tile size和参数：
- * - 小矩阵（<256）：使用较小的tile size
- * - 中等矩阵（256-1024）：使用中等tile size
- * - 大矩阵（>1024）：使用较大的tile size和warptiling
- *
- * 优化原理：
- * - 不同大小的矩阵有不同的最优配置
- * - 自动选择可以减少手动调优的工作
- * - 根据矩阵大小和GPU特性动态选择
- *
- * 性能提升：
- * - 典型性能提升：50-60倍（相比Version 0）
- * - 相比固定配置提升：1.1-1.3倍
- *
- * 适用场景：
- * - 需要处理各种大小矩阵的场景
- * - 希望自动获得最优性能
- */
-template <typename T>
-__global__ void matmul_v9_autotuning_kernel(const T *__restrict__ a,
-                                            const T *__restrict__ b,
-                                            T *__restrict__ c,
-                                            int M,
-                                            int N,
-                                            int K)
-{
-    // 根据矩阵大小选择配置
-    // 这里使用一个中等大小的配置作为默认值
-    // 实际应用中可以通过autotuning找到最优配置
-    // 使用较小的tile size以避免shared memory超限
-    constexpr int TILE_SIZE = 32;
-    constexpr int TILE_M    = 4;
-    constexpr int TILE_N    = 4;
-
-    // 双缓冲：对于较小的tile size可以使用双缓冲
-    __shared__ T shared_a[2][TILE_SIZE][TILE_SIZE + 1];
-    __shared__ T shared_b[2][TILE_SIZE][TILE_SIZE + 1];
-
-    int base_row = blockIdx.y * TILE_SIZE + threadIdx.y * TILE_M;
-    int base_col = blockIdx.x * TILE_SIZE + threadIdx.x * TILE_N;
-
-    T reg_c[TILE_M][TILE_N];
-#pragma unroll
-    for (int i = 0; i < TILE_M; ++i)
-    {
-#pragma unroll
-        for (int j = 0; j < TILE_N; ++j)
-        {
-            reg_c[i][j] = 0;
-        }
-    }
-
-    int num_tiles = (K + TILE_SIZE - 1) / TILE_SIZE;
-
-    // 预加载第一个tile
-    int tile = 0;
-#pragma unroll
-    for (int i = 0; i < TILE_M; ++i)
-    {
-#pragma unroll
-        for (int j = 0; j < TILE_N; ++j)
-        {
-            int load_row = threadIdx.y * TILE_M + i;
-            int load_col = threadIdx.x * TILE_N + j;
-            int a_col    = tile * TILE_SIZE + load_col;
-            int b_row    = tile * TILE_SIZE + load_row;
-
-            if (likely(base_row + i < M && a_col < K))
-                shared_a[0][load_row][load_col] = a[(base_row + i) * K + a_col];
-            else
-                shared_a[0][load_row][load_col] = 0;
-
-            if (likely(b_row < K && base_col + j < N))
-                shared_b[0][load_row][load_col] = b[b_row * N + (base_col + j)];
-            else
-                shared_b[0][load_row][load_col] = 0;
-        }
-    }
-
-    __syncthreads();
-
-    // 主循环：双缓冲
-    for (tile = 0; tile < num_tiles; ++tile)
-    {
-        int curr_buffer = tile % 2;
-        int next_buffer = (tile + 1) % 2;
-
-        // 预加载下一个tile
-        if (likely(tile + 1 < num_tiles))
-        {
-#pragma unroll
-            for (int i = 0; i < TILE_M; ++i)
-            {
-#pragma unroll
-                for (int j = 0; j < TILE_N; ++j)
-                {
-                    int load_row   = threadIdx.y * TILE_M + i;
-                    int load_col   = threadIdx.x * TILE_N + j;
-                    int next_a_col = (tile + 1) * TILE_SIZE + load_col;
-                    int next_b_row = (tile + 1) * TILE_SIZE + load_row;
-
-                    if (likely(base_row + i < M && next_a_col < K))
-                        shared_a[next_buffer][load_row][load_col] = a[(base_row + i) * K + next_a_col];
-                    else
-                        shared_a[next_buffer][load_row][load_col] = 0;
-
-                    if (likely(next_b_row < K && base_col + j < N))
-                        shared_b[next_buffer][load_row][load_col] = b[next_b_row * N + (base_col + j)];
-                    else
-                        shared_b[next_buffer][load_row][load_col] = 0;
-                }
-            }
-        }
-
-        // 计算部分和
-        const int UNROLL_FACTOR = 4;
-#pragma unroll
-        for (int k_base = 0; k_base < TILE_SIZE; k_base += UNROLL_FACTOR)
-        {
-#pragma unroll
-            for (int k_offset = 0; k_offset < UNROLL_FACTOR && (k_base + k_offset) < TILE_SIZE; ++k_offset)
-            {
-                int k = k_base + k_offset;
-#pragma unroll
-                for (int i = 0; i < TILE_M; ++i)
-                {
-#pragma unroll
-                    for (int j = 0; j < TILE_N; ++j)
-                    {
-                        int shared_row = threadIdx.y * TILE_M + i;
-                        int shared_col = threadIdx.x * TILE_N + j;
-                        reg_c[i][j] += shared_a[curr_buffer][shared_row][k] * shared_b[curr_buffer][k][shared_col];
-                    }
-                }
-            }
-        }
-
-        __syncthreads();
-    }
-
-    // 写回结果
-#pragma unroll
-    for (int i = 0; i < TILE_M; ++i)
-    {
-#pragma unroll
-        for (int j = 0; j < TILE_N; ++j)
-        {
-            int row = base_row + i;
-            int col = base_col + j;
-            if (likely(row < M && col < N))
-            {
-                c[row * N + col] = reg_c[i][j];
-            }
-        }
-    }
-}
-
-// ============================================================================
-// 内核启动函数
-// ============================================================================
 
 /**
  * @brief 启动Version 0: 朴素矩阵乘法内核
@@ -1618,7 +1317,7 @@ void launch_matmul_v0_naive_kernel(const T *a, const T *b, T *c, int M, int N, i
 template <typename T>
 void launch_matmul_v1_tiled_kernel(const T *a, const T *b, T *c, int M, int N, int K)
 {
-    const int TILE_SIZE = 16;
+    constexpr int TILE_SIZE = 32;
     dim3 block(TILE_SIZE, TILE_SIZE);
     dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
     matmul_v1_tiled_kernel<T><<<grid, block>>>(a, b, c, M, N, K);
@@ -1637,7 +1336,7 @@ void launch_matmul_v1_tiled_kernel(const T *a, const T *b, T *c, int M, int N, i
 template <typename T>
 void launch_matmul_v2_bank_conflict_free_kernel(const T *a, const T *b, T *c, int M, int N, int K)
 {
-    const int TILE_SIZE = 16;
+    constexpr int TILE_SIZE = 32;
     dim3 block(TILE_SIZE, TILE_SIZE);
     dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
     matmul_v2_bank_conflict_free_kernel<T><<<grid, block>>>(a, b, c, M, N, K);
@@ -1656,9 +1355,18 @@ void launch_matmul_v2_bank_conflict_free_kernel(const T *a, const T *b, T *c, in
 template <typename T>
 void launch_matmul_v3_register_tiling_kernel(const T *a, const T *b, T *c, int M, int N, int K)
 {
-    const int TILE_SIZE = 16;
-    const int TILE_M    = 4;
-    const int TILE_N    = 4;
+    /*
+    jinbo@JinboBook:~/gitme/C_OriginDL$ ./build/bin/benchmark/bench_mat_mul -d cuda -w 2 -r 10 -s
+    10000,10000:10000,10000 shape                                   repeat          device          dtype
+    origindl_time_us {10000, 10000}:{10000, 10000}           10              cuda:0          float32         4.3000
+    jinbo@JinboBook:~/gitme/C_OriginDL$ ./build/bin/benchmark/bench_mat_mul -d cuda -w 2 -r 10 -s
+    10000,10000:10000,10000 shape                                   repeat          device          dtype
+    origindl_time_us {10000, 10000}:{10000, 10000}           10              cuda:0          float32         633912.8000
+    */
+    const int TILE_SIZE =
+        32;  // 从 16 改为 32，性能提升 2.63 倍, 在 16 的情况下，每个 block 只有 16 个线程，没有打满一个 warp。
+    const int TILE_M = 4;
+    const int TILE_N = 4;
     // 注意：每个线程计算TILE_M x TILE_N个元素，所以block大小需要相应调整
     dim3 block(TILE_SIZE / TILE_N, TILE_SIZE / TILE_M);
     dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
@@ -1676,7 +1384,7 @@ void launch_matmul_v3_register_tiling_kernel(const T *a, const T *b, T *c, int M
  */
 void launch_matmul_v4_vectorized_kernel(const float *a, const float *b, float *c, int M, int N, int K)
 {
-    const int TILE_SIZE = 16;
+    const int TILE_SIZE = 32;
     const int TILE_M    = 4;
     const int TILE_N    = 4;
     dim3 block(TILE_SIZE / TILE_N, TILE_SIZE / TILE_M);
@@ -1697,7 +1405,7 @@ void launch_matmul_v4_vectorized_kernel(const float *a, const float *b, float *c
 template <typename T>
 void launch_matmul_v5_double_buffering_kernel(const T *a, const T *b, T *c, int M, int N, int K)
 {
-    const int TILE_SIZE = 16;
+    const int TILE_SIZE = 32;
     const int TILE_M    = 4;
     const int TILE_N    = 4;
     dim3 block(TILE_SIZE / TILE_N, TILE_SIZE / TILE_M);
@@ -1715,15 +1423,22 @@ void launch_matmul_v5_double_buffering_kernel(const T *a, const T *b, T *c, int 
  * @param N B的列数
  * @param K A的列数和B的行数
  */
+template <typename T, int TILE_SIZE, int TILE_M, int TILE_N>
+void launch_matmul_v6_unrolled_kernel_config(const T *a, const T *b, T *c, int M, int N, int K)
+{
+    dim3 block(TILE_SIZE / TILE_N, TILE_SIZE / TILE_M);
+    dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
+    matmul_v6_unrolled_kernel<T, TILE_SIZE, TILE_M, TILE_N><<<grid, block>>>(a, b, c, M, N, K);
+}
+
 template <typename T>
 void launch_matmul_v6_unrolled_kernel(const T *a, const T *b, T *c, int M, int N, int K)
 {
-    const int TILE_SIZE = 16;
-    const int TILE_M    = 4;
-    const int TILE_N    = 4;
-    dim3 block(TILE_SIZE / TILE_N, TILE_SIZE / TILE_M);
-    dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
-    matmul_v6_unrolled_kernel<T><<<grid, block>>>(a, b, c, M, N, K);
+    // 默认配置：32x32 tile，单线程 4x4 子块
+    constexpr int TILE_SIZE = 32;
+    constexpr int TILE_M    = 4;
+    constexpr int TILE_N    = 4;
+    launch_matmul_v6_unrolled_kernel_config<T, TILE_SIZE, TILE_M, TILE_N>(a, b, c, M, N, K);
 }
 
 /**
@@ -1752,34 +1467,7 @@ void launch_matmul_v7_warptiling_kernel(const T *a, const T *b, T *c, int M, int
 
     dim3 block(threads_per_warp, num_warps_per_block);
     dim3 grid((N + BN - 1) / BN, (M + BM - 1) / BM);
-    matmul_v7_warptiling_kernel<T, BM, BN, 16, WM, WN, 8, 8><<<grid, block>>>(a, b, c, M, N, K);
-}
-
-/**
- * @brief 启动Version 8: 更大tile size矩阵乘法内核
- * @tparam T 数据类型
- * @param a 输入矩阵A
- * @param b 输入矩阵B
- * @param c 输出矩阵C
- * @param M A的行数
- * @param N B的列数
- * @param K A的列数和B的行数
- */
-template <typename T>
-void launch_matmul_v8_large_tile_kernel(const T *a, const T *b, T *c, int M, int N, int K)
-{
-    // 使用32x32 tile以避免shared memory超限
-    // 注意：需要考虑shared memory限制（48KB）
-    // shared memory需求 = 2 * TILE_SIZE * (TILE_SIZE + 1) * sizeof(T)
-    // 对于32x32: float需要约8KB, double需要约16KB（都在限制内）
-    // 对于64x64: 某些类型会超过48KB限制，因此不使用
-    constexpr int TILE_SIZE = 32;
-    constexpr int TILE_M    = 4;
-    constexpr int TILE_N    = 4;
-
-    dim3 block(TILE_SIZE / TILE_N, TILE_SIZE / TILE_M);
-    dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
-    matmul_v8_large_tile_kernel<T, TILE_SIZE, TILE_M, TILE_N><<<grid, block>>>(a, b, c, M, N, K);
+    matmul_v7_warptiling_kernel<T, BM, BN, 16, WM, WN, 8, 16><<<grid, block>>>(a, b, c, M, N, K);
 }
 
 /**
@@ -1799,24 +1487,58 @@ void launch_matmul_v9_autotuning_kernel(const T *a, const T *b, T *c, int M, int
     // 这里使用简化的选择逻辑，实际应用中可以通过autotuning找到最优配置
     if (M >= 2048 && N >= 2048 && K >= 2048)
     {
-        // 超大矩阵：使用warptiling
-        // launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K); // TODO: V7 在 M,N,K 等于2048，2048，2048
-        // 时结果不正确
-        launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
+        // 超大矩阵：使用 V6 模板版本，配置较大的 tile
+        // 注意：更大的 TILE_SIZE 需要考虑 shared memory 限制，这里先使用 32x32 配置，
+        // 后续可以通过实际 benchmark 再调整 TILE_M / TILE_N。
+        launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
     }
     else if (M >= 1024 && N >= 1024 && K >= 1024)
     {
-        // 大矩阵：使用更大的tile size
-        launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
+        // 大矩阵：同样使用 V6 模板版本（后续可根据 benchmark 调整子块尺寸）
+        launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
     }
     else if (M >= 512 && N >= 512 && K >= 512)
     {
-        // 中等大矩阵：使用V8_LARGE_TILE（支持64x64 tile）
-        launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
+        // 中等大矩阵：继续使用默认 V6 配置
+        launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
     }
     else
     {
         // 小到中等矩阵：使用Version 6（循环展开）
+        launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
+    }
+}
+
+/**
+ * @brief Version 6 自动配置辅助函数：根据矩阵尺寸为 V6 选择不同配置
+ *
+ * @details
+ * 目前使用与 V9 启动函数相同的简单分段逻辑：
+ * - M/N/K >= 2048: 为超大矩阵预留更 aggressive 的 tile 配置；
+ * - M/N/K >= 1024: 大矩阵配置；
+ * - M/N/K >= 512 : 中等大矩阵；
+ * - 其他更小尺寸：使用默认 V6 配置。
+ *
+ * 后续可以根据 scripts/bench_matmul_algos.sh 的 benchmark 结果，针对不同区间调整
+ * (TILE_SIZE, TILE_M, TILE_N) 参数。
+ */
+template <typename T>
+inline void launch_matmul_v6_auto_config(const T *a, const T *b, T *c, int M, int N, int K)
+{
+    if (M >= 2048 && N >= 2048 && K >= 2048)
+    {
+        launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
+    }
+    else if (M >= 1024 && N >= 1024 && K >= 1024)
+    {
+        launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
+    }
+    else if (M >= 512 && N >= 512 && K >= 512)
+    {
+        launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
+    }
+    else
+    {
         launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
     }
 }
@@ -1855,18 +1577,16 @@ void launch_matmul_v4_or_fallback<float>(const float *a, const float *b, float *
  *
  * @details
  * 支持的版本号：
- * - 0: V0_NAIVE
- * - 1: V1_TILED
- * - 2: V2_BANK_CONFLICT_FREE
- * - 3: V3_REGISTER_TILING
- * - 4: V4_VECTORIZED
- * - 5: V5_DOUBLE_BUFFERING
- * - 6: V6_UNROLLED
- * - 7: V7_WARPTILING
- * - 8: V8_LARGE_TILE
- * - 9: V9_AUTOTUNING
- * - 6666: V_AUTO
- * - 其他值: 返回 V_AUTO（自动选择）
+ * 0: V0_NAIVE。
+ * 1: V1_TILED。
+ * 2: V2_BANK_CONFLICT_FREE。
+ * 3: V3_REGISTER_TILING。
+ * 4: V4_VECTORIZED。
+ * 5: V5_DOUBLE_BUFFERING。
+ * 6: V6_UNROLLED。
+ * 7: V7_WARPTILING。
+ * 6666: V_AUTO。
+ * 其他值: 返回 V_AUTO（自动选择）。
  */
 inline MatMulVersion algo_version_to_matmul_version(int32_t algo_version)
 {
@@ -1888,10 +1608,6 @@ inline MatMulVersion algo_version_to_matmul_version(int32_t algo_version)
             return MatMulVersion::V6_UNROLLED;
         case 7:
             return MatMulVersion::V7_WARPTILING;
-        case 8:
-            return MatMulVersion::V8_LARGE_TILE;
-        case 9:
-            return MatMulVersion::V9_AUTOTUNING;
         case 6666:
             return MatMulVersion::V_AUTO;
         default:
@@ -1912,21 +1628,12 @@ inline MatMulVersion algo_version_to_matmul_version(int32_t algo_version)
  * @param version 矩阵乘法版本（默认使用最优版本）
  *
  * @details
- * 根据矩阵大小自动选择最优版本（基于实际性能测试数据优化）：
- * - 很小矩阵（M, N, K < 32）：使用Version 0（朴素实现，overhead最小）
- * - 小矩阵（32 <= M, N, K < 128）：使用Version 2（避免bank冲突，性能好）
- * - 中等矩阵（128 <= M, N, K < 512）：使用Version 9（自动调优，最优性能）
- * - 大矩阵（512 <= M, N, K < 2048）：使用Version 9（自动调优，性能最优）
- * - 超大矩阵（M, N, K >= 2048）：使用Version 7（warptiling，大矩阵最优）
+ * 自动模式（V_AUTO 或无效版本）基于 benchmark 数据做简单的尺寸分段：
+ * - 小矩阵（例如 max_dim <= 128）优先使用 Version 2（共享内存避免 bank 冲突）；
+ * - 中等矩阵：统一走 Version 6，并通过 launch_matmul_v6_auto_config 根据尺寸选择配置；
+ * - 大矩阵（例如 max_dim >= 4096 且形状不过于狭长）使用 Version 7（warp tiling）。
  *
- * 性能数据参考（A100）：
- * - 100x100: V0-2约8μs, V8约11μs, V9约21μs -> 选择V0-2
- * - 1000x1000: V0-2约600μs, V7约480μs, V8约296μs, V9约128μs -> 选择V9
- * - 10000x10000: V0-2约980Kμs, V7约174Kμs, V8约402Kμs, V9约181Kμs -> 选择V7
- *
- * 注意：Version 3-6在所有尺寸下性能都较差，自动选择时不会使用
- *
- * 如果传入无效的版本号，会自动调整到 V_AUTO（自动选择）
+ * 尺寸阈值与具体参数可根据 scripts/bench_matmul_algos.sh 的 benchmark 结果进一步调整。
  */
 template <typename T>
 void launch_matmul_2d_kernel(const T *a,
@@ -1937,7 +1644,6 @@ void launch_matmul_2d_kernel(const T *a,
                              int K,
                              MatMulVersion version = MatMulVersion::V_AUTO)
 {
-    // 如果指定了版本，使用指定版本
     switch (version)
     {
         case MatMulVersion::V0_NAIVE:
@@ -1953,8 +1659,6 @@ void launch_matmul_2d_kernel(const T *a,
             launch_matmul_v3_register_tiling_kernel<T>(a, b, c, M, N, K);
             break;
         case MatMulVersion::V4_VECTORIZED:
-            // Version 4只支持float类型，对于其他类型降级到Version 3
-            // 使用模板特化来处理float类型
             launch_matmul_v4_or_fallback<T>(a, b, c, M, N, K);
             break;
         case MatMulVersion::V5_DOUBLE_BUFFERING:
@@ -1966,57 +1670,35 @@ void launch_matmul_2d_kernel(const T *a,
         case MatMulVersion::V7_WARPTILING:
             launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
             break;
-        case MatMulVersion::V8_LARGE_TILE:
-            launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
-            break;
-        case MatMulVersion::V9_AUTOTUNING:
-            launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
-            break;
+        case MatMulVersion::V_AUTO:
         default:
-            // 默认使用最优版本（包括 V_AUTO 和无效版本）
-            // 根据矩阵大小自动选择最优版本（基于实际性能测试数据）
-            // 使用最大维度作为判断标准，确保所有维度都满足条件
-            int max_dim = (M > N) ? ((M > K) ? M : K) : ((N > K) ? N : K);
-            int min_dim = (M < N) ? ((M < K) ? M : K) : ((N < K) ? N : K);
+        {
+            // 自动模式：根据矩阵尺寸在 V2 / V6 / V7 之间做简单分层
+            const int max_dim = (M > N) ? ((M > K) ? M : K) : ((N > K) ? N : K);
+            const int min_dim = (M < N) ? ((M < K) ? M : K) : ((N < K) ? N : K);
 
-            if (max_dim < 32)
+            // 小矩阵：Version 2 对小尺寸下的启动开销和共享内存访问更友好
+            if (max_dim <= 128)
             {
-                // 很小矩阵（所有维度 < 32）：使用朴素实现，overhead最小
-                // 性能数据：100x100时V0约8μs，V9约21μs
-                launch_matmul_v0_naive_kernel<T>(a, b, c, M, N, K);
-            }
-            else if (max_dim < 128)
-            {
-                // 小矩阵（最大维度 < 128）：使用避免bank冲突的版本
-                // 性能数据：100x100时V2约7.7μs，性能好且稳定
                 launch_matmul_v2_bank_conflict_free_kernel<T>(a, b, c, M, N, K);
+                break;
             }
-            else if (max_dim >= 2048)
+
+            // 形状比例，用于避免在极端长条矩阵上盲目选择 V7
+            const float aspect = static_cast<float>(max_dim) / static_cast<float>(min_dim > 0 ? min_dim : 1);
+
+            // 大矩阵且形状不过于狭长：使用 Version 7（warp tiling）
+            if (max_dim >= 4096 && aspect <= 4.0f)
             {
-                // 超大矩阵（最大维度 >= 2048）：使用warptiling
-                // 但对于极端非方阵（min_dim/max_dim < 0.5），使用V9更稳健
-                double aspect_ratio = static_cast<double>(min_dim) / static_cast<double>(max_dim);
-                if (aspect_ratio < 0.5)
-                {
-                    launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
-                }
-                else
-                {
-                    // launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K); // TODO: V7 在 M,N,K
-                    // 等于2048，2048，2048 时结果不正确
-                    launch_matmul_v8_large_tile_kernel<T>(a, b, c, M, N, K);
-                }
+                launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
             }
             else
             {
-                // 中等到大矩阵（128 <= max_dim < 2048）：使用自动调优版本
-                // 性能数据：
-                // - 1000x1000: V9约128μs（最优），V8约296μs，V7约480μs
-                // - 10000x10000: V9约181Kμs，接近V7的174Kμs
-                // V9在中等和大矩阵上都表现优秀，是通用最优选择
-                launch_matmul_v9_autotuning_kernel<T>(a, b, c, M, N, K);
+                // 其余中等尺寸统一走 Version 6，由辅助函数内部根据尺寸再细分配置
+                launch_matmul_v6_auto_config<T>(a, b, c, M, N, K);
             }
             break;
+        }
     }
 }
 
