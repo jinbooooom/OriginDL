@@ -87,7 +87,9 @@ void PNNXParser::parse_param_file(const std::string &param_path, std::vector<std
     }
 }
 
-// 每行格式：type name input_count output_count [input_names...] [output_names...] [@attr=...] [#shape=...] [param=...]
+// 每行格式：type name input_count output_count [input_blobs...] [output_blobs...] [@attr=...] [#shape=...] [param=...]
+// 说明：input_blobs/output_blobs 是“张量名/边名”，例如 "0"、"1"、"3" 等，用于在节点之间建立连接关系；
+// shape 信息通过 #0=(4,3,640,640)f32 等形式单独记录在行尾，node->name 则是算子节点名（如 "model.1.conv"）。
 // 例如 pnnx.Input 的 #0=(4,3,640,640)f32 即输入形状，yolov5_infer 中解析输入尺寸即用同一格式
 void PNNXParser::parse_operator_line(const std::string &line, std::shared_ptr<PNNXNode> &node)
 {
@@ -100,7 +102,7 @@ void PNNXParser::parse_operator_line(const std::string &line, std::shared_ptr<PN
     node->type = type;
     node->name = name;
 
-    // 读取输入名称
+    // 读取输入 blob 名称（存入 node->input_names，后续按字符串与上游节点的 output_names 匹配）
     for (int i = 0; i < input_count; ++i)
     {
         std::string input_name;
@@ -108,7 +110,7 @@ void PNNXParser::parse_operator_line(const std::string &line, std::shared_ptr<PN
         node->input_names.push_back(input_name);
     }
 
-    // 读取输出名称
+    // 读取输出 blob 名称（存入 node->output_names，作为“边名”供下游 input_names 引用）
     for (int i = 0; i < output_count; ++i)
     {
         std::string output_name;
