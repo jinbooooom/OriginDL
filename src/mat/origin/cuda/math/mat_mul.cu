@@ -1431,16 +1431,6 @@ void launch_matmul_v6_unrolled_kernel_config(const T *a, const T *b, T *c, int M
     matmul_v6_unrolled_kernel<T, TILE_SIZE, TILE_M, TILE_N><<<grid, block>>>(a, b, c, M, N, K);
 }
 
-template <typename T>
-void launch_matmul_v6_unrolled_kernel(const T *a, const T *b, T *c, int M, int N, int K)
-{
-    // 默认配置：32x32 tile，单线程 4x4 子块
-    constexpr int TILE_SIZE = 32;
-    constexpr int TILE_M    = 4;
-    constexpr int TILE_N    = 4;
-    launch_matmul_v6_unrolled_kernel_config<T, TILE_SIZE, TILE_M, TILE_N>(a, b, c, M, N, K);
-}
-
 /**
  * @brief 启动Version 7: Warptiling矩阵乘法内核
  * @tparam T 数据类型
@@ -1468,79 +1458,6 @@ void launch_matmul_v7_warptiling_kernel(const T *a, const T *b, T *c, int M, int
     dim3 block(threads_per_warp, num_warps_per_block);
     dim3 grid((N + BN - 1) / BN, (M + BM - 1) / BM);
     matmul_v7_warptiling_kernel<T, BM, BN, 16, WM, WN, 8, 16><<<grid, block>>>(a, b, c, M, N, K);
-}
-
-/**
- * @brief 启动Version 9: 自动调优矩阵乘法内核
- * @tparam T 数据类型
- * @param a 输入矩阵A
- * @param b 输入矩阵B
- * @param c 输出矩阵C
- * @param M A的行数
- * @param N B的列数
- * @param K A的列数和B的行数
- */
-template <typename T>
-void launch_matmul_v9_autotuning_kernel(const T *a, const T *b, T *c, int M, int N, int K)
-{
-    // 根据矩阵大小自动选择最优配置
-    // 这里使用简化的选择逻辑，实际应用中可以通过autotuning找到最优配置
-    if (M >= 2048 && N >= 2048 && K >= 2048)
-    {
-        // 超大矩阵：使用 V6 模板版本，配置较大的 tile
-        // 注意：更大的 TILE_SIZE 需要考虑 shared memory 限制，这里先使用 32x32 配置，
-        // 后续可以通过实际 benchmark 再调整 TILE_M / TILE_N。
-        launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
-    }
-    else if (M >= 1024 && N >= 1024 && K >= 1024)
-    {
-        // 大矩阵：同样使用 V6 模板版本（后续可根据 benchmark 调整子块尺寸）
-        launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
-    }
-    else if (M >= 512 && N >= 512 && K >= 512)
-    {
-        // 中等大矩阵：继续使用默认 V6 配置
-        launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
-    }
-    else
-    {
-        // 小到中等矩阵：使用Version 6（循环展开）
-        launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
-    }
-}
-
-/**
- * @brief Version 6 自动配置辅助函数：根据矩阵尺寸为 V6 选择不同配置
- *
- * @details
- * 目前使用与 V9 启动函数相同的简单分段逻辑：
- * - M/N/K >= 2048: 为超大矩阵预留更 aggressive 的 tile 配置；
- * - M/N/K >= 1024: 大矩阵配置；
- * - M/N/K >= 512 : 中等大矩阵；
- * - 其他更小尺寸：使用默认 V6 配置。
- *
- * 后续可以根据 scripts/bench_matmul_algos.sh 的 benchmark 结果，针对不同区间调整
- * (TILE_SIZE, TILE_M, TILE_N) 参数。
- */
-template <typename T>
-inline void launch_matmul_v6_auto_config(const T *a, const T *b, T *c, int M, int N, int K)
-{
-    if (M >= 2048 && N >= 2048 && K >= 2048)
-    {
-        launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
-    }
-    else if (M >= 1024 && N >= 1024 && K >= 1024)
-    {
-        launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
-    }
-    else if (M >= 512 && N >= 512 && K >= 512)
-    {
-        launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
-    }
-    else
-    {
-        launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
-    }
 }
 
 /**
@@ -1665,7 +1582,7 @@ void launch_matmul_2d_kernel(const T *a,
             launch_matmul_v5_double_buffering_kernel<T>(a, b, c, M, N, K);
             break;
         case MatMulVersion::V6_UNROLLED:
-            launch_matmul_v6_unrolled_kernel<T>(a, b, c, M, N, K);
+            launch_matmul_v6_unrolled_kernel_config<T, 16, 4, 4>(a, b, c, M, N, K);
             break;
         case MatMulVersion::V7_WARPTILING:
             launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
@@ -1680,7 +1597,7 @@ void launch_matmul_2d_kernel(const T *a,
             // 小矩阵：Version 2 对小尺寸下的启动开销和共享内存访问更友好
             if (max_dim <= 128)
             {
-                launch_matmul_v2_bank_conflict_free_kernel<T>(a, b, c, M, N, K);
+                launch_matmul_v4_or_fallback<T>(a, b, c, M, N, K);
                 break;
             }
 
@@ -1695,7 +1612,7 @@ void launch_matmul_2d_kernel(const T *a,
             else
             {
                 // 其余中等尺寸统一走 Version 6，由辅助函数内部根据尺寸再细分配置
-                launch_matmul_v6_auto_config<T>(a, b, c, M, N, K);
+                launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
             }
             break;
         }
