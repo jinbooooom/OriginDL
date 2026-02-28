@@ -70,29 +70,42 @@ struct Attribute
 class PNNXNode
 {
 public:
-    std::string name;  ///< 节点名称，如 "pnnx_input_0"、"model.0.conv"、"model.1.conv"、"pnnx_output_0"
-    std::string type;  ///< 算子类型，如 nn.Conv2d, nn.SiLU, pnnx.Input, pnnx.Output, models.yolo.Detect
-    std::shared_ptr<Operator>
-        op;  ///< 对应的 origin Operator，build() 时由 OperatorMapper 创建；pnnx.Input/pnnx.Output 无 op（特殊节点）
+    // 节点名称，如 "pnnx_input_0"、"model.0.conv"、"model.1.conv"、"pnnx_output_0"
+    std::string name;
+    // 算子类型，如 nn.Conv2d, nn.SiLU, pnnx.Input, pnnx.Output, models.yolo.Detect
+    std::string type;
+    // 对应的 origin Operator，build() 时由 OperatorMapper 创建；pnnx.Input/pnnx.Output 无 op（特殊节点）
+    std::shared_ptr<Operator> op;
 
-    std::vector<std::string> input_names;  ///< 依赖的上游张量名。对于 pnnx.Input
-                                           ///< 节点，input_count=0，此列表为空；其它节点，input_count>=1，指向上游输出
-    std::vector<std::string>
-        output_names;  ///< 本节点产生的张量名，供下游 input_names 引用。对于 pnnx.Output，output_count=0，此列表为空
+    // 关于input_names与output_names为什么用字符串存储：
+    // input_names与output_names来自 .param 行中的 input_blobs与output_blobs，例如 "0"、"2" 等，
+    // 这些标识在 PNNX 中本身就是字符串（通常是数字字符串），
+    // 在 YOLO 里看起来是 "0" "1" "2" "3" 这种数字，但规范允许用别的命名（比如 feat_1, feat_2 这种字符串）。
+    // 因此这里统一用 std::string 存储。
+    // 依赖的上游张量名，对于 pnnx.Input 节点，input_count=0，此列表为空；其它节点，input_count>=1，指向上游节点的
+    // output_names。
+    std::vector<std::string> input_names;
+    // 本节点产生的张量名（.param 行中的 output_blobs），供下游 input_names 引用。
+    // 对于 pnnx.Output，output_count=0，此列表为空。
+    std::vector<std::string> output_names;
 
-    std::map<std::string, Parameter> params;  ///< 算子参数（stride、padding 等），由 parser 从 .param 解析
-    std::map<std::string, Attribute> attributes;  ///< 权重（weight、bias 等），shape 在 param 中，数据在 .bin 中加载
+    // 算子参数（stride、padding 等），由 parser 从 .param 解析
+    std::map<std::string, Parameter> params;
+    // 权重（weight、bias 等），shape 在 param 中，数据在 .bin 中加载
+    std::map<std::string, Attribute> attributes;
 
-    std::map<int, std::vector<int>> shapes;  ///< 形状信息，#0=..., #1=... 等，用于验证或解析输入尺寸
+    // 形状信息，#0=..., #1=... 等，用于验证或解析输入尺寸
+    std::map<int, std::vector<int>> shapes;
 
-    int execution_order = -1;  ///< 拓扑排序后的执行顺序，forward 时按此顺序执行
+    // 拓扑排序后的执行顺序，forward 时按此顺序执行
+    int execution_order = -1;
 
-    std::map<std::string, Tensor>
-        input_tensors;  ///< 运行时：上游传入的 Tensor，key 为 input_names 中的名字。对于 pnnx.Input，此映射为空；对于
-                        ///< pnnx.Output，由 propagate_outputs 填充
-    std::vector<Tensor>
-        output_tensors;  ///< 运行时：本节点 op 的输出，由 propagate_outputs 传给下游。对于 pnnx.Input，由 set_inputs()
-                         ///< 直接设置；对于 pnnx.Output，此列表为空（不计算，只收集）
+    // 运行时：上游传入的 Tensor，key 为 input_names 中的名字。
+    // 对于 pnnx.Input，此映射为空；对于 pnnx.Output，由 propagate_outputs 填充
+    std::map<std::string, Tensor> input_tensors;
+    // 运行时：本节点 op 的输出，由 propagate_outputs 传给下游。
+    // 对于 pnnx.Input，由 set_inputs() 直接设置；对于 pnnx.Output，此列表为空（不计算，只收集）
+    std::vector<Tensor> output_tensors;
 
     PNNXNode() = default;
 };

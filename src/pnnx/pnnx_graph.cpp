@@ -102,19 +102,21 @@ void PNNXGraph::build()
 }
 
 // 拓扑排序：通过 output_names 与 input_names 匹配建立节点间连接关系（构建邻接表），
-// 按图依赖计算入度，BFS 得到执行顺序，为每节点赋 execution_order；forward 时按此顺序执行各 node->op
+// 按图依赖计算入度，BFS 得到执行顺序，为每节点赋 execution_order，并构建 execution_plan_；
+// forward() 阶段直接按 execution_plan_ 顺序执行各 node->op。
 void PNNXGraph::topological_sort()
 {
     std::map<std::string, int> in_degree;                   // 每个节点的入度
     std::map<std::string, std::vector<std::string>> graph;  // 邻接表
 
-    // 初始化入度
+    // 1. 初始化所有节点入度为 0，并重置 execution_order
     for (auto &node : nodes_)
     {
         in_degree[node->name] = 0;
+        node->execution_order = -1;
     }
 
-    // 构建图并计算入度
+    // 2. 扫一遍 nodes_，按 output_names / input_names 建图并统计入度
     for (auto &node : nodes_)
     {
         for (const auto &output_name : node->output_names)
@@ -137,7 +139,7 @@ void PNNXGraph::topological_sort()
         }
     }
 
-    // 拓扑排序
+    // 3. 把入度为 0 的“可执行节点”塞进队列（跳过 pnnx.Input / pnnx.Output）
     std::queue<std::string> q;
     for (auto &node : nodes_)
     {
@@ -156,6 +158,7 @@ void PNNXGraph::topological_sort()
     int order = 0;
     std::vector<std::shared_ptr<PNNXNode>> sorted_nodes;
 
+    // 4. 标准 BFS 拓扑排序：从入度 0 的开始，依次“删边降入度”
     while (!q.empty())
     {
         std::string current_name = q.front();
@@ -183,7 +186,7 @@ void PNNXGraph::topological_sort()
         }
     }
 
-    // 对于没有被排序的节点（可能是孤立的节点），给一个默认的 execution_order
+    // 5. 兜底：还有 execution_order 仍为 -1 的（比如孤立节点），也给个顺序
     for (auto &node : nodes_)
     {
         if (node->type != "pnnx.Input" && node->type != "pnnx.Output" && node->execution_order < 0)
@@ -193,7 +196,21 @@ void PNNXGraph::topological_sort()
         }
     }
 
-    // 不更新 nodes_，保持原始顺序，只在执行时使用 sorted_nodes
+    // 6. 构建执行计划：去重并按 execution_order 排好序的一次性执行列表
+    execution_plan_.clear();
+    execution_plan_.reserve(sorted_nodes.size());
+
+    std::set<std::string> seen;  // 用于检测重复节点名
+    for (auto &node : sorted_nodes)
+    {
+        if (seen.find(node->name) != seen.end())
+        {
+            loge("ERROR: Node {} appears multiple times in execution plan", node->name);
+            THROW_RUNTIME_ERROR("Node {} appears multiple times in execution plan", node->name);
+        }
+        seen.insert(node->name);
+        execution_plan_.push_back(node);
+    }
 }
 
 // 用户调用 set_inputs("pnnx_input_0", {input}) 时进入。将 inputs 写入输入节点的 output_tensors，并传播到所有下游的
@@ -229,26 +246,42 @@ void PNNXGraph::set_inputs(const std::string &input_name, const std::vector<Tens
                             input_node->output_names.size(), inputs.size());
     }
 
-    // 将输入 Tensor 传递给下游节点（通过 propagate_outputs 已经完成）
-    // 但为了兼容性，我们也直接设置下游节点的 input_tensors
-    for (auto &node : nodes_)
-    {
-        for (size_t i = 0; i < node->input_names.size(); ++i)
-        {
-            if (node->input_names[i] == input_name)
-            {
-                // 设置输入 Tensor
-                if (i < inputs.size())
-                {
-                    node->input_tensors[input_name] = inputs[i];
-                }
-            }
-        }
-    }
+    // 说明：理论上通过 propagate_outputs(input_node) 已经按 blob 名（output_names/input_names）
+    // 将输入 Tensor 传递给所有真正消费该输入的下游节点；下面这段按“节点名 == input_name”匹配并
+    // 直接写下游 input_tensors 的逻辑，是早期为了兼容某些【input_names 写节点名而不是 blob 名】
+    // 的图而加的兜底代码。在当前 PNNX 导出的 YOLO/ResNet 等模型中，input_names 始终是 blob 名，
+    // 因此这段循环实际上不会命中，等价于冗余逻辑。
+    // 为了避免干扰理解与后续优化，这里先整体注释掉。如需兼容旧格式，可根据需要恢复。
+    //
+    // for (auto &node : nodes_)
+    // {
+    //     for (size_t i = 0; i < node->input_names.size(); ++i)
+    //     {
+    //         if (node->input_names[i] == input_name)
+    //         {
+    //             if (i < inputs.size())
+    //             {
+    //                 node->input_tensors[input_name] = inputs[i];
+    //             }
+    //         }
+    //     }
+    // }
 }
 
-// forward：按 execution_order 依次执行各节点。每节点：收集 input_tensors（从 input_tensors 或上游 output），
-// 对 Conv2d/Linear 从 node->attributes 注入 weight/bias，执行 (*node->op)(input_tensors)，再 propagate_outputs。
+// forward：按 execution_plan_ 中的 execution_order 依次执行各节点。每个节点：
+// 1）根据 input_names 从 node->input_tensors（由 set_inputs/propagate_outputs 填充）收集本次 forward 的输入；
+// 2）对 Conv2d/Linear 等从 node->attributes 注入 weight/bias，组装成有序的 inputs 向量；
+// 3）执行 (*node->op)(inputs) 得到新的输出 Tensor 列表，并写入 node->output_tensors；
+// 4）调用 propagate_outputs(node) 将本节点输出传播到所有下游节点的 input_tensors。
+//
+// 说明：在【结构层】上，这里已经是静态图：nodes_、execution_plan_、input_names/output_names、拓扑顺序在 build() 后就固定不变，
+// 每次 forward 只是沿着同一条执行计划重算一次数据流。但在【数据层】上，每个 op 仍按“函数式”风格，
+// (*op)(inputs) 返回新的 Tensor 作为输出，然后通过 propagate_outputs 写到下游节点的 input_tensors 里。
+// 换句话说：buffer 是否复用，取决于具体 Operator 的实现（有没有 in-place / 复用 Storage），
+// Graph 本身当前还没有做全局的静态内存规划。
+// TODO: 下一步可以在图层面增加静态内存调度 / buffer 复用（为每条边分配固定的 Tensor 槽位，统一规划 in-place），
+// 进一步减少中间 Tensor/Storage 的创建与释放开销。
+//
 // yolov5_infer 在 set_inputs 后调用本函数，最后用 get_outputs("pnnx_output_0") 取检测头输出。
 void PNNXGraph::forward()
 {
@@ -259,43 +292,13 @@ void PNNXGraph::forward()
 
     auto total_start_time = std::chrono::high_resolution_clock::now();
 
-    // 收集所有需执行的节点（排除 pnnx.Input / pnnx.Output），按 execution_order 排序
-    std::vector<std::shared_ptr<PNNXNode>> sorted_nodes;
-    for (auto &node : nodes_)
-    {
-        if (node->type != "pnnx.Input" && node->type != "pnnx.Output")
-        {
-            // 检查是否有 execution_order（如果没有，说明拓扑排序时没有处理）
-            if (node->execution_order < 0)
-            {
-                // 如果没有 execution_order，给一个默认值（放在最后执行）
-                node->execution_order = 10000 + sorted_nodes.size();
-            }
-            sorted_nodes.push_back(node);
-        }
-    }
-
-    // 按 execution_order 排序
-    std::sort(sorted_nodes.begin(), sorted_nodes.end(),
-              [](const std::shared_ptr<PNNXNode> &a, const std::shared_ptr<PNNXNode> &b) {
-                  return a->execution_order < b->execution_order;
-              });
-
-    // 执行排序后的节点
-    size_t total_nodes    = sorted_nodes.size();
+    // 使用 build() 阶段构建好的 execution_plan_：其中包含所有需执行节点（排除 pnnx.Input/pnnx.Output），
+    // 并已按拓扑排序后的 execution_order 排好序，保证依赖在前、消费者在后。
+    size_t total_nodes    = execution_plan_.size();
     size_t executed_count = 0;
-    std::set<std::string> executed_nodes;  // 用于检测重复执行
 
-    for (auto &node : sorted_nodes)
+    for (auto &node : execution_plan_)
     {
-        // 检查是否重复执行
-        if (executed_nodes.find(node->name) != executed_nodes.end())
-        {
-            loge("ERROR: Node {} is being executed multiple times!", node->name);
-            THROW_RUNTIME_ERROR("Node {} is being executed multiple times", node->name);
-        }
-        executed_nodes.insert(node->name);
-
         executed_count++;
         logd("Progress: {}/{} nodes executed (current: {})", executed_count, total_nodes, node->name);
 
@@ -526,9 +529,7 @@ void PNNXGraph::forward()
 
 // 用户调用 get_outputs("pnnx_output_0") 时进入。输出节点类型为 pnnx.Output，其 input_names 指向上游；
 // 返回的即这些上游的 output_tensors（forward 中已通过 propagate_outputs 写入 output_node->input_tensors）。
-// yolov5_infer 中 outputs[0] 为检测头结果，形状如 [N, num_boxes, 5+num_classes]，后续做阈值与 NMS。
-// 注意：输出节点（pnnx.Output）是特殊节点：input_count>=1（有 input_names，指向上游输出），output_count=0（output_names
-// 为空）， 不参与拓扑排序和执行，没有对应的 Operator（op 为空），其 input_tensors 由上游节点的 propagate_outputs 填充。
+// 即 output_node->input_tensors 就是模型最终的输出。
 std::vector<Tensor> PNNXGraph::get_outputs(const std::string &output_name) const
 {
     logi("Getting outputs for: {}", output_name);
@@ -546,11 +547,10 @@ std::vector<Tensor> PNNXGraph::get_outputs(const std::string &output_name) const
 
     auto output_node = it->second;
 
-    // 输出节点不计算，只"收集"上游输出；其 input_names 即模型最终输出的张量名
     // 输出节点没有 output_names（output_count=0），只有 input_names（input_count>=1），作为图的出口
+    // 输出节点不计算，只"收集"上游输出；其 input_names 即模型最终输出的张量名
     std::vector<Tensor> outputs;
 
-    // 遍历输出节点的所有输入名称（每个对应一个上游输出）
     for (const auto &input_name : output_node->input_names)
     {
         // 优先从 output_node 的 input_tensors 取（forward 里 propagate_outputs 已写入）
@@ -561,45 +561,7 @@ std::vector<Tensor> PNNXGraph::get_outputs(const std::string &output_name) const
             continue;
         }
 
-        // 如果 input_tensors 中没有，从上游节点的 output_tensors 中获取
-        bool found = false;
-        for (const auto &node : nodes_)
-        {
-            // 跳过输入输出节点
-            if (node->type == "pnnx.Input" || node->type == "pnnx.Output")
-            {
-                continue;
-            }
-
-            for (size_t i = 0; i < node->output_names.size(); ++i)
-            {
-                if (node->output_names[i] == input_name)
-                {
-                    if (i < node->output_tensors.size())
-                    {
-                        outputs.push_back(node->output_tensors[i]);
-                        found = true;
-                        break;
-                    }
-                    else
-                    {
-                        // 调试：输出名称匹配但输出 Tensor 为空
-                        logw("Warning: Node {} has output name '{}' but output_tensors[{}] is empty", node->name,
-                             input_name, i);
-                    }
-                }
-            }
-            if (found)
-            {
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            // 输出未找到的警告（仅在调试模式下）
-            logw("Output node input '{}' not found", input_name);
-        }
+        THROW_RUNTIME_ERROR("Output node input '{}' not found in input_tensors", input_name);
     }
 
     logi("Retrieved {} output tensor(s)", outputs.size());

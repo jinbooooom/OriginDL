@@ -88,6 +88,9 @@ private:
 
     std::vector<std::shared_ptr<PNNXNode>> input_nodes_;   ///< 输入节点列表（类型 pnnx.Input）
     std::vector<std::shared_ptr<PNNXNode>> output_nodes_;  ///< 输出节点列表（类型 pnnx.Output）
+    // 预先计算好的执行计划：所有需要执行的节点（排除 pnnx.Input/pnnx.Output），按拓扑排序后的 execution_order 排好序，
+    // build() 阶段构建一次，后续每次 forward 直接按本列表顺序执行，避免重复排序和去重。
+    std::vector<std::shared_ptr<PNNXNode>> execution_plan_;
 
     /** 图状态：NeedInit 未解析；NeedBuild 已 init 待 build；Complete 可 set_inputs/forward/get_outputs */
     enum class GraphState
