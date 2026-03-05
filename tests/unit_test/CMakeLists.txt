@@ -276,6 +276,16 @@ set_target_properties(test_sigmoid PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+add_executable(test_leaky_relu operator/test_leaky_relu.cpp)
+add_dependencies(test_leaky_relu gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_leaky_relu ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_leaky_relu PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_leaky_relu PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_silu operator/test_silu.cpp)
 add_dependencies(test_silu gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_silu ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)

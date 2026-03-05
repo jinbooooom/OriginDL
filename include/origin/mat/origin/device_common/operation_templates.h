@@ -151,6 +151,18 @@ struct ReLUOp
 };
 
 /**
+ * @brief LeakyReLU 操作 y = max (ax , x)
+ */
+struct LeakkyReLUOP
+{
+    template <typename T>
+    ORIGIN_HOST_DEVICE T operator()(T a, T b) const
+    {
+        return a > 0 ? a : a * b;
+    }
+};
+
+/**
  * @brief Sigmoid 操作：y = 1 / (1 + exp(-x))
  */
 struct SigmoidOp

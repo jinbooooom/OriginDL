@@ -854,6 +854,28 @@ void OriginMat::relu_inplace()
     device_dispatch_unary_inplace_op(storage_->device_type(), *this, this, cpu::relu, cuda::relu, "relu_inplace");
 }
 
+std::unique_ptr<Mat> OriginMat::leaky_relu(const Mat &other) const
+{
+    const OriginMat &other_mat = static_cast<const OriginMat &>(other);
+
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::leaky_relu(*this, other_mat);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::leaky_relu(*this, other_mat, nullptr);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for leaky_relu: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
 std::unique_ptr<Mat> OriginMat::sigmoid() const
 {
     return device_dispatch_unary_op(storage_->device_type(), *this, nullptr, cpu::sigmoid, cuda::sigmoid, "sigmoid");

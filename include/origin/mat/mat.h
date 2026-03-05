@@ -379,6 +379,13 @@ public:
     virtual void relu_inplace() = 0;
 
     /**
+     * @brief LeakyReLU 激活函数
+     * @param alpha 泄露系数 > 0
+     * @return LeakyReLU 运算结果，y = max(ax, x)
+     */
+    virtual std::unique_ptr<Mat> leaky_relu(const Mat &other) const = 0;
+
+    /**
      * @brief Sigmoid 激活函数
      * @return Sigmoid 运算结果，y = 1 / (1 + exp(-x))
      */

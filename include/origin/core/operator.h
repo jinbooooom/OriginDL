@@ -128,6 +128,7 @@ private:
 
 // 包含所有算子头文件
 // Activation operators
+#include "origin/operators/activation/leaky_relu.h"
 #include "origin/operators/activation/relu.h"
 #include "origin/operators/activation/sigmoid.h"
 #include "origin/operators/activation/silu.h"

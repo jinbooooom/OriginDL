@@ -425,6 +425,7 @@ public:
     void exp_inplace() override;
     std::unique_ptr<Mat> relu() const override;
     void relu_inplace() override;
+    std::unique_ptr<Mat> leaky_relu(const Mat &other) const override;
     std::unique_ptr<Mat> sigmoid() const override;
     std::unique_ptr<Mat> sigmoid_backward(const Mat &y) const override;
     std::unique_ptr<Mat> silu() const override;

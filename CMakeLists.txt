@@ -92,6 +92,13 @@ message(STATUS "Using LibTorch path: ${TORCH_PATH}")
 include_directories(3rd/)
 include_directories(include)
 
+# 如果启用CUDA，添加CUDA头文件路径
+if(ENABLE_CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    include_directories(${CUDAToolkit_INCLUDE_DIRS})
+    message(STATUS "CUDA include directories: ${CUDAToolkit_INCLUDE_DIRS}")
+endif()
+
 # 根据后端选择包含LibTorch
 if(MAT_BACKEND STREQUAL "TORCH")
     # 设置LibTorch的cmake路径
