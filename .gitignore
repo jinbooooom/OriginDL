@@ -5,6 +5,8 @@
 .specstory/*
 .cursor/*
 .cursorindexingignore
+.claude
+note/*
 
 data/*
 model/*

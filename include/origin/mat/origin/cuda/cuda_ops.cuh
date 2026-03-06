@@ -184,6 +184,18 @@ std::unique_ptr<Mat> negate(const origin::OriginMat &mat, origin::OriginMat *out
  * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
  */
 std::unique_ptr<Mat> relu(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
+
+/**
+ * @brief CUDA LeakyReLU 激活函数算子统一实现
+ * @param mat 输入矩阵
+ * @param alpha 泄露系数
+ * @param out 输出矩阵指针，如果为nullptr则创建新矩阵，否则将结果写入out
+ * @return 如果out==nullptr则返回新矩阵，否则返回nullptr（结果在out中）
+ */
+std::unique_ptr<Mat> leaky_relu(const origin::OriginMat &mat,
+                                const origin::OriginMat &alpha,
+                                origin::OriginMat *out = nullptr);
+
 std::unique_ptr<Mat> sigmoid(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);
 std::unique_ptr<Mat> sigmoid_backward(const origin::OriginMat &gy, const origin::OriginMat &y);
 std::unique_ptr<Mat> silu(const origin::OriginMat &mat, origin::OriginMat *out = nullptr);

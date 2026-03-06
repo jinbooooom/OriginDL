@@ -1427,6 +1427,27 @@ Tensor silu(const Tensor &x)
 
 SiLU 激活：`silu(x) = x * sigmoid(x)`。
 
+#### leaky_relu
+
+```cpp
+Tensor leaky_relu(const Tensor &x, float alpha = 0.01f)
+```
+
+LeakyReLU 激活：`leaky_relu(x) = x > 0 ? x : alpha * x`。
+
+与 ReLU 不同，LeakyReLU 在负值区域有小的梯度，可以缓解"神经元死亡"问题。
+
+**参数:**
+- `x` (Tensor) – 输入张量
+- `alpha` (float, optional) – 负值区域的斜率，默认为 0.01
+
+**例子:**
+```cpp
+auto x = Tensor({-1.0f, -2.0f, 1.0f, 2.0f}, {2, 2});
+auto y1 = leaky_relu(x, 0.1f);  // [[-0.1, -0.2], [1.0, 2.0]]
+auto y2 = leaky_relu(x, 0.01f); // [[-0.01, -0.02], [1.0, 2.0]]
+```
+
 ### 三、卷积运算算子
 
 #### conv2d
