@@ -53,7 +53,7 @@ TEST_P(LeakyReLUOperatorTest, ForwardAllNegative)
 
     // LeakyReLU 对于负数应该乘以 alpha
     std::vector<float> expected_data = {-0.1f, -0.2f, -0.3f};
-    auto expected = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -89,13 +89,13 @@ TEST_P(LeakyReLUOperatorTest, ForwardDifferentAlpha)
     auto x = Tensor({-1.0f, -2.0f, 1.0f, 2.0f}, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
 
     // alpha = 0.01
-    auto result1 = F::leaky_relu(x, 0.01f);
+    auto result1                      = F::leaky_relu(x, 0.01f);
     std::vector<float> expected_data1 = {-0.01f, -0.02f, 1.0f, 2.0f};
     auto expected1 = Tensor(expected_data1, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result1, expected1, origin::test::TestTolerance::kDefault);
 
     // alpha = 0.5
-    auto result2 = F::leaky_relu(x, 0.5f);
+    auto result2                      = F::leaky_relu(x, 0.5f);
     std::vector<float> expected_data2 = {-0.5f, -1.0f, 1.0f, 2.0f};
     auto expected2 = Tensor(expected_data2, Shape{4}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result2, expected2, origin::test::TestTolerance::kDefault);
@@ -153,7 +153,7 @@ TEST_P(LeakyReLUOperatorTest, ThreeDimensional)
 {
     // 测试三维张量
     std::vector<float> input_data = {-1.0f, 2.0f, -3.0f, 4.0f, -5.0f, 6.0f, -7.0f, 8.0f};
-    auto x = Tensor(input_data, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x                        = Tensor(input_data, Shape{2, 2, 2}, dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = F::leaky_relu(x, 0.1f);
 
@@ -184,7 +184,7 @@ TEST_P(LeakyReLUOperatorTest, NegativeProperty)
 
     // LeakyReLU 对于负数应该等于 alpha * x
     std::vector<float> expected_data = {-0.2f, -0.4f, -0.6f};
-    auto expected = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{3}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -299,7 +299,7 @@ TEST_P(LeakyReLUOperatorTest, LargeAlpha)
     auto result = F::leaky_relu(x, 0.5f);
 
     std::vector<float> expected_data = {-0.5f, 2.0f};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -311,7 +311,7 @@ TEST_P(LeakyReLUOperatorTest, SmallAlpha)
     auto result = F::leaky_relu(x, 0.001f);
 
     std::vector<float> expected_data = {-0.001f, 2.0f};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kStrict);
 }
 
@@ -323,7 +323,7 @@ TEST_P(LeakyReLUOperatorTest, MixedValues)
     auto result = F::leaky_relu(x, 0.1f);
 
     std::vector<float> expected_data = {-0.2f, -0.1f, 0.0f, 1.0f, 2.0f};
-    auto expected = Tensor(expected_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{5}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -338,7 +338,7 @@ TEST_P(LeakyReLUOperatorTest, VerySmallValues)
 
     // -1e-10 * 0.1 = -1e-11, 1e-10 保持不变
     std::vector<float> expected_data = {-1e-11f, 1e-10f};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, 1e-12);  // 使用更小的容差
 }
 
@@ -350,7 +350,7 @@ TEST_P(LeakyReLUOperatorTest, VeryLargeValues)
     auto result = F::leaky_relu(x, 0.1f);
 
     std::vector<float> expected_data = {-100.0f, 1000.0f};
-    auto expected = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{2}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
@@ -359,13 +359,13 @@ TEST_P(LeakyReLUOperatorTest, VeryLargeValues)
 TEST_P(LeakyReLUOperatorTest, NumericalStability)
 {
     // 测试数值稳定性
-    auto x = Tensor({-100.0f, -10.0f, -1.0f, 0.0f, 1.0f, 10.0f, 100.0f},
-                    Shape{7}, dtype(DataType::kFloat32).device(deviceType()));
+    auto x = Tensor({-100.0f, -10.0f, -1.0f, 0.0f, 1.0f, 10.0f, 100.0f}, Shape{7},
+                    dtype(DataType::kFloat32).device(deviceType()));
 
     auto result = F::leaky_relu(x, 0.01f);
 
     std::vector<float> expected_data = {-1.0f, -0.1f, -0.01f, 0.0f, 1.0f, 10.0f, 100.0f};
-    auto expected = Tensor(expected_data, Shape{7}, dtype(DataType::kFloat32).device(deviceType()));
+    auto expected                    = Tensor(expected_data, Shape{7}, dtype(DataType::kFloat32).device(deviceType()));
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(result, expected, origin::test::TestTolerance::kDefault);
 }
 
