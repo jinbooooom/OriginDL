@@ -47,6 +47,20 @@ namespace cuda
  *
  */
 
+ /*
+ =================================================================================================
+ Matmul Operator Performance Comparison (OriginDL version: 1.0.1)
+ =================================================================================================
+ Shape                         Repeat   Device   Dtype     OriginDL(us)    PyTorch(us)     Speedup
+ -------------------------------------------------------------------------------------------------
+ {1,1}:{1,1}                   100      cuda:0   float32   8.0900          19.9213         2.4625 
+ {10,10}:{10,10}               100      cuda:0   float32   8.0000          21.5043         2.6880 
+ {100,100}:{100,100}           100      cuda:0   float32   15.3100         20.4761         1.3374 
+ {1000,1000}:{1000,1000}       100      cuda:0   float32   546.1400        127.7853        0.2340 
+ {10000,10000}:{10000,10000}   100      cuda:0   float32   198996.2000     177790.3840     0.8934 
+ =================================================================================================
+*/
+
 /**
  * @brief 矩阵乘法版本枚举
  */
@@ -1282,6 +1296,179 @@ __global__ void matmul_v7_warptiling_kernel(const T *__restrict__ a,
     }
 }
 
+// ============================================================================
+// Version 7 float4: Warp tiling + float4 向量化（仅 float）
+// ============================================================================
+
+/**
+ * @brief Version 7 float4: 在 warp tiling 基础上使用 float4 做全局内存加载/写回
+ * 仅支持 float。K、N 为 4 的倍数时使用向量化路径，否则退化为标量。
+ * 参数与 matmul_v7_warptiling_kernel<float,...> 一致：BM=128, BN=128, BK=16,
+ * WM=64, WN=64, TM=8, TN=16。
+ */
+__global__ void matmul_v7_warptiling_float4_kernel(const float *__restrict__ a,
+                                                    const float *__restrict__ b,
+                                                    float *__restrict__ c,
+                                                    int M,
+                                                    int N,
+                                                    int K)
+{
+    constexpr int BM = 128, BN = 128, BK = 16, WM = 64, WN = 64, TM = 8, TN = 16;
+    constexpr int VECTOR_SIZE = 4;
+
+    __shared__ float shared_a[BM][BK + 1];
+    __shared__ float shared_b[BK][BN + 1];
+
+    const int warp_id   = threadIdx.y;
+    const int lane_id   = threadIdx.x;
+    const int warp_row  = warp_id / (BN / WN);
+    const int warp_col  = warp_id % (BN / WN);
+    const int thread_row = lane_id / (WN / TN);
+    const int thread_col = lane_id % (WN / TN);
+    const int base_row  = blockIdx.y * BM + warp_row * WM + thread_row * TM;
+    const int base_col  = blockIdx.x * BN + warp_col * WN + thread_col * TN;
+
+    float reg_c[TM][TN];
+#pragma unroll
+    for (int i = 0; i < TM; ++i)
+#pragma unroll
+        for (int j = 0; j < TN; ++j)
+            reg_c[i][j] = 0.f;
+
+    float reg_a[TM];
+    float reg_b[TN];
+
+    const bool can_vectorize_a = (K % VECTOR_SIZE == 0);
+    const bool can_vectorize_b = (N % VECTOR_SIZE == 0);
+
+    int num_tiles = (K + BK - 1) / BK;
+    for (int tile = 0; tile < num_tiles; ++tile)
+    {
+        const int num_threads         = blockDim.x * blockDim.y;
+        const int elements_per_thread = (BM * BK + num_threads - 1) / num_threads;
+
+        for (int i = 0; i < elements_per_thread;)
+        {
+            int idx = (threadIdx.y * blockDim.x + threadIdx.x) * elements_per_thread + i;
+            if (idx >= BM * BK)
+            {
+                ++i;
+                continue;
+            }
+            int row        = idx / BK;
+            int col        = idx % BK;
+            int global_row = blockIdx.y * BM + row;
+            int global_col = tile * BK + col;
+
+            if (can_vectorize_a && (col % VECTOR_SIZE) == 0 && col + VECTOR_SIZE <= BK &&
+                idx + VECTOR_SIZE <= BM * BK && global_row < M && global_col + VECTOR_SIZE <= K)
+            {
+                float4 vec = *reinterpret_cast<const float4 *>(&a[global_row * K + global_col]);
+                shared_a[row][col + 0] = vec.x;
+                shared_a[row][col + 1] = vec.y;
+                shared_a[row][col + 2] = vec.z;
+                shared_a[row][col + 3] = vec.w;
+                i += VECTOR_SIZE;
+            }
+            else
+            {
+                shared_a[row][col] = (global_row < M && global_col < K) ? a[global_row * K + global_col] : 0.f;
+                ++i;
+            }
+        }
+
+        const int b_elements_per_thread = (BK * BN + num_threads - 1) / num_threads;
+        for (int i = 0; i < b_elements_per_thread;)
+        {
+            int idx = (threadIdx.y * blockDim.x + threadIdx.x) * b_elements_per_thread + i;
+            if (idx >= BK * BN)
+            {
+                ++i;
+                continue;
+            }
+            int row        = idx / BN;
+            int col        = idx % BN;
+            int global_row = tile * BK + row;
+            int global_col = blockIdx.x * BN + col;
+
+            if (can_vectorize_b && (col % VECTOR_SIZE) == 0 && col + VECTOR_SIZE <= BN &&
+                idx + VECTOR_SIZE <= BK * BN && global_row < K && global_col + VECTOR_SIZE <= N)
+            {
+                float4 vec = *reinterpret_cast<const float4 *>(&b[global_row * N + global_col]);
+                shared_b[row][col + 0] = vec.x;
+                shared_b[row][col + 1] = vec.y;
+                shared_b[row][col + 2] = vec.z;
+                shared_b[row][col + 3] = vec.w;
+                i += VECTOR_SIZE;
+            }
+            else
+            {
+                shared_b[row][col] = (global_row < K && global_col < N) ? b[global_row * N + global_col] : 0.f;
+                ++i;
+            }
+        }
+
+        __syncthreads();
+
+        for (int k = 0; k < BK; ++k)
+        {
+#pragma unroll
+            for (int i = 0; i < TM; ++i)
+            {
+                int shared_row = warp_row * WM + thread_row * TM + i;
+                reg_a[i]       = shared_a[shared_row][k];
+            }
+#pragma unroll
+            for (int j = 0; j < TN; ++j)
+            {
+                int shared_col = warp_col * WN + thread_col * TN + j;
+                reg_b[j]       = shared_b[k][shared_col];
+            }
+#pragma unroll
+            for (int i = 0; i < TM; ++i)
+#pragma unroll
+                for (int j = 0; j < TN; ++j)
+                    reg_c[i][j] += reg_a[i] * reg_b[j];
+        }
+
+        __syncthreads();
+    }
+
+    // 写回：在 N 维对齐且未越界时使用 float4
+#pragma unroll
+    for (int i = 0; i < TM; ++i)
+    {
+        int row = base_row + i;
+        if (row >= M)
+            continue;
+#pragma unroll
+        for (int j = 0; j < TN;)
+        {
+            int col = base_col + j;
+            if (likely(col < N))
+            {
+                if (can_vectorize_b && (col % VECTOR_SIZE) == 0 && col + VECTOR_SIZE <= N)
+                {
+                    float4 vec;
+                    vec.x = reg_c[i][j];
+                    vec.y = reg_c[i][j + 1];
+                    vec.z = reg_c[i][j + 2];
+                    vec.w = reg_c[i][j + 3];
+                    *reinterpret_cast<float4 *>(&c[row * N + col]) = vec;
+                    j += VECTOR_SIZE;
+                }
+                else
+                {
+                    c[row * N + col] = reg_c[i][j];
+                    ++j;
+                }
+            }
+            else
+                ++j;
+        }
+    }
+}
+
 
 
 
@@ -1442,6 +1629,24 @@ void launch_matmul_v6_unrolled_kernel_config(const T *a, const T *b, T *c, int M
  * @param K A的列数和B的行数
  */
 template <typename T>
+void launch_matmul_v7_warptiling_kernel(const T *a, const T *b, T *c, int M, int N, int K);
+
+template <>
+void launch_matmul_v7_warptiling_kernel<float>(const float *a, const float *b, float *c, int M, int N, int K)
+{
+    constexpr int BM                  = 128;
+    constexpr int BN                  = 128;
+    constexpr int WM                  = 64;
+    constexpr int WN                  = 64;
+    constexpr int num_warps_per_block = (BM / WM) * (BN / WN);
+    constexpr int threads_per_warp    = 32;
+
+    dim3 block(threads_per_warp, num_warps_per_block);
+    dim3 grid((N + BN - 1) / BN, (M + BM - 1) / BM);
+    matmul_v7_warptiling_float4_kernel<<<grid, block>>>(a, b, c, M, N, K);
+}
+
+template <typename T>
 void launch_matmul_v7_warptiling_kernel(const T *a, const T *b, T *c, int M, int N, int K)
 {
     // 使用默认参数：BM=128, BN=128, BK=16, WM=64, WN=64, TM=8, TN=8
@@ -1453,7 +1658,7 @@ void launch_matmul_v7_warptiling_kernel(const T *a, const T *b, T *c, int M, int
     constexpr int WM                  = 64;
     constexpr int WN                  = 64;
     constexpr int num_warps_per_block = (BM / WM) * (BN / WN);  // 4个warp
-    constexpr int threads_per_warp    = 32;
+    constexpr int threads_per_warp    = 32;                     // 32个thread
 
     dim3 block(threads_per_warp, num_warps_per_block);
     dim3 grid((N + BN - 1) / BN, (M + BM - 1) / BM);
@@ -1582,7 +1787,7 @@ void launch_matmul_2d_kernel(const T *a,
             launch_matmul_v5_double_buffering_kernel<T>(a, b, c, M, N, K);
             break;
         case MatMulVersion::V6_UNROLLED:
-            launch_matmul_v6_unrolled_kernel_config<T, 16, 4, 4>(a, b, c, M, N, K);
+            launch_matmul_v6_unrolled_kernel_config<T, 32, 4, 4>(a, b, c, M, N, K);
             break;
         case MatMulVersion::V7_WARPTILING:
             launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
@@ -1605,7 +1810,7 @@ void launch_matmul_2d_kernel(const T *a,
             const float aspect = static_cast<float>(max_dim) / static_cast<float>(min_dim > 0 ? min_dim : 1);
 
             // 大矩阵且形状不过于狭长：使用 Version 7（warp tiling）
-            if (max_dim >= 4096 && aspect <= 4.0f)
+            if (max_dim > 1024 && aspect <= 4.0f)
             {
                 launch_matmul_v7_warptiling_kernel<T>(a, b, c, M, N, K);
             }
