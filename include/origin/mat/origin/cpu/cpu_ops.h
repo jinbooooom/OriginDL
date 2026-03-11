@@ -401,6 +401,24 @@ std::unique_ptr<Mat> dropout(const OriginMat &x, float p, bool training, OriginM
  */
 std::unique_ptr<Mat> dropout_backward(const OriginMat &gy, const OriginMat &mask);
 
+// === Embedding 相关操作 ===
+/**
+ * @brief CPU embedding: Embedding 前向传播
+ * @param x 输入张量
+ * @param vocab 词表
+ * @return out 输出张量
+ */
+std::unique_ptr<Mat> embedding(const OriginMat &x, const OriginMat &vocab);
+
+/**
+ * @brief CPU embedding_backward: Embedding 反向传播
+ * @param gy 输出梯度
+ * @param x 输入张量
+ * @param vocab_size 词表大小
+ * @param embedding_dim 嵌入维度
+ * @return 权重梯度(vocab_size, embedding_dim)
+ */
+std::unique_ptr<Mat> embedding_backward(const OriginMat &gy, const OriginMat &x, int vocab_size, int embedding_dim);
 // === 索引和选择操作 ===
 
 /**

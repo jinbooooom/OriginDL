@@ -1832,6 +1832,58 @@ std::unique_ptr<Mat> OriginMat::dropout_backward(const Mat &gy, const Mat &mask)
     }
 }
 
+// === Embedding 相关操作实现 ===
+std::unique_ptr<Mat> OriginMat::embedding(const origin::Mat &other) const
+{
+    const OriginMat *other_mat = dynamic_cast<const OriginMat *>(&other);
+    if (!other_mat)
+    {
+        THROW_RUNTIME_ERROR("embedding: other must be OriginMat type, got backend_type={}", other.backend_type());
+    }
+
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::embedding(*this, *other_mat);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::embedding(*this, *other_mat);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for embedding: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::embedding_back(const origin::Mat &indices, int vocab_size_, int embedding_dim_) const
+{
+    const OriginMat *indices_mat = dynamic_cast<const OriginMat *>(&indices);
+    if (!indices_mat)
+    {
+        THROW_RUNTIME_ERROR("embedding: other must be OriginMat type, got backend_type={}", indices.backend_type());
+    }
+
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::embedding_backward(*this, *indices_mat, vocab_size_, embedding_dim_);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::embedding_backward(*this, *indices_mat, vocab_size_, embedding_dim_);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for embedding: {}", static_cast<int>(storage_->device_type()));
+    }
+}
 // === Upsample 相关操作实现 ===
 
 std::unique_ptr<Mat> OriginMat::upsample(const Shape &output_shape,

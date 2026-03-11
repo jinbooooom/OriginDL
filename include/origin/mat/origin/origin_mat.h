@@ -345,6 +345,22 @@ public:
      */
     std::unique_ptr<Mat> dropout_backward(const Mat &gy, const Mat &mask) const override;
 
+    // === Embedding 相关操作 ===
+    /**
+     * @brief embedding:Embedding 前向传播
+     * @param vocab 词表
+     * @return token embedding后结果
+     */
+    std::unique_ptr<Mat> embedding(const Mat &vocab) const override;
+
+    /**
+     * @brief embedding_backward:Embedding 反向传播
+     * @param indices 输入矩阵 索引
+     * @param vocab_size_ 词表大小
+     * @param embedding_dim_ 向量长度
+     * @return 输出梯度
+     */
+    std::unique_ptr<Mat> embedding_back(const Mat &indices, int vocab_size_, int embedding_dim_) const override;
     // === Upsample 相关操作（Mat 接口实现）===
     /**
      * @brief upsample：上采样操作

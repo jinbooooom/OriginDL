@@ -18,14 +18,23 @@ private:
     Parameter weight_;  // 权重矩阵(vocab_size, embedding_dim)
     int vocab_size_;
     int embedding_dim_;
+    DataType dtype_;     // 权重数据类型
 
 public:
     /**
-     * @brief 构造函数
+     * @brief 构造函数（默认使用 float32）
      * @param vocab_size 词汇表大小（token ID 的范围 [0, vocab_size-1]）
      * @param embedding_dim 嵌入向量的维度
      */
     Embedding(int vocab_size, int embedding_dim);
+
+    /**
+     * @brief 构造函数（指定数据类型）
+     * @param vocab_size 词汇表大小（token ID 的范围 [0, vocab_size-1]）
+     * @param embedding_dim 嵌入向量的维度
+     * @param dtype 权重数据类型（默认 float32，支持 float64 等）
+     */
+    Embedding(int vocab_size, int embedding_dim, DataType dtype);
 
     /**
      * @brief 前向传播
@@ -49,6 +58,11 @@ public:
      * @brief 获取嵌入维度
      */
     int embedding_dim() const { return embedding_dim_; }
+
+    /**
+     * @brief 获取数据类型
+     */
+    DataType dtype() const { return dtype_; }
     /**
      * @brief 重置参数
      */
