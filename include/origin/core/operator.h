@@ -172,6 +172,7 @@ private:
 
 // Neural network operators
 #include "origin/operators/nn/dropout.h"
+#include "origin/operators/nn/embedding.h"
 #include "origin/operators/nn/identity.h"
 #include "origin/operators/nn/upsample.h"
 
