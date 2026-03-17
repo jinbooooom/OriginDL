@@ -426,5 +426,90 @@ TEST_P(SumOperatorTest, BackwardGlobalSumWithKeepdimTrue)
     origin::test::GTestUtils::EXPECT_TENSORS_EQ(x.grad(), expected_grad, origin::test::TestTolerance::kDefault);
 }
 
+TEST_P(SumOperatorTest, AllDtypesGlobalSumOnes)
+{
+    // 各数据类型的全局求和测试：
+    // - 小规模：N = 64（所有 dtype 都不会溢出）
+    // - 大规模：N = 4096 * 4096（仅对不会溢出的 dtype 进行校验）
+    using origin::DataType;
+
+    const size_t small_N = 64;
+    const size_t large_N = 4096ULL * 4096ULL;
+
+    std::vector<DataType> dtypes = {
+        DataType::kFloat32,
+        DataType::kFloat64,
+        DataType::kInt8,
+        DataType::kInt32,
+        DataType::kInt64,
+        DataType::kUInt8,
+    };
+
+    for (auto dt : dtypes)
+    {
+        auto opts = dtype(dt).device(deviceType());
+
+        // 小规模 N=64，所有类型都能精确表示
+        {
+            auto x = Tensor::ones(Shape{small_N}, opts);
+            auto y = F::sum(x);
+
+            switch (dt)
+            {
+                case DataType::kFloat32:
+                    EXPECT_NEAR(y.item<float>(), static_cast<float>(small_N),
+                                origin::test::TestTolerance::kDefault);
+                    break;
+                case DataType::kFloat64:
+                    EXPECT_NEAR(y.item<double>(), static_cast<double>(small_N),
+                                origin::test::TestTolerance::kDefault);
+                    break;
+                case DataType::kInt32:
+                    EXPECT_EQ(y.item<int32_t>(), static_cast<int32_t>(small_N));
+                    break;
+                case DataType::kInt64:
+                    EXPECT_EQ(y.item<int64_t>(), static_cast<int64_t>(small_N));
+                    break;
+                case DataType::kInt8:
+                    EXPECT_EQ(y.item<int8_t>(), static_cast<int8_t>(small_N));
+                    break;
+                case DataType::kUInt8:
+                    EXPECT_EQ(y.item<uint8_t>(), static_cast<uint8_t>(small_N));
+                    break;
+                default:
+                    FAIL() << "Unsupported dtype in AllDtypesGlobalSumOnes small_N case";
+            }
+        }
+
+        // 大规模 N=4096*4096，uint8_t 和 int8_t 会溢出，仅对不会溢出的类型做严格校验
+        if (dt == DataType::kFloat32 || dt == DataType::kFloat64 || dt == DataType::kInt32
+            || dt == DataType::kInt64)
+        {
+            auto x = Tensor::ones(Shape{large_N}, opts);
+            auto y = F::sum(x);
+
+            switch (dt)
+            {
+                case DataType::kFloat32:
+                    EXPECT_NEAR(y.item<float>(), static_cast<float>(large_N),
+                                origin::test::TestTolerance::kDefault);
+                    break;
+                case DataType::kFloat64:
+                    EXPECT_NEAR(y.item<double>(), static_cast<double>(large_N),
+                                origin::test::TestTolerance::kDefault);
+                    break;
+                case DataType::kInt32:
+                    EXPECT_EQ(y.item<int32_t>(), static_cast<int32_t>(large_N));
+                    break;
+                case DataType::kInt64:
+                    EXPECT_EQ(y.item<int64_t>(), static_cast<int64_t>(large_N));
+                    break;
+                default:
+                    FAIL() << "Unexpected dtype in AllDtypesGlobalSumOnes large_N case";
+            }
+        }
+    }
+}
+
 // 实例化测试套件：自动为CPU和可用CUDA生成测试
 INSTANTIATE_DEVICE_TEST_SUITE_P(SumOperatorTest);

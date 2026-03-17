@@ -5,13 +5,56 @@
 #include "origin/mat/origin/origin_mat_utils.h"
 #include "origin/utils/exception.h"
 
+#include <type_traits>
+
 namespace origin
 {
 namespace cuda
 {
 
 /**
- * @brief 全局求和归约内核
+ * @brief warp 内求和归约（使用洗牌指令）
+ */
+template <typename T>
+__inline__ __device__ T warp_shuffle_reduce_sum(T val)
+{
+    unsigned mask = 0xffffffff;
+
+    // 蝶形（xor）规约：经过 log2(warpSize) 轮后，warp 内所有线程的 val 都相同
+    //
+    // 以 warpSize = 8 为例（lane 0~7，每个线程初始有 a0~a7）：
+    //
+    // 第 1 轮 offset = 4（按 bit 2 做异或配对）：
+    //   0^4=4, 1^4=5, 2^4=6, 3^4=7
+    //   lane 0: a0 + a4    lane 1: a1 + a5    lane 2: a2 + a6    lane 3: a3 + a7
+    //   lane 4: a4 + a0    lane 5: a5 + a1    lane 6: a6 + a2    lane 7: a7 + a3
+    //
+    // 第 2 轮 offset = 2（按 bit 1 做异或配对）：
+    //   0^2=2, 1^2=3, 4^2=6, 5^2=7
+    //   lane 0: (a0+a4) + (a2+a6)
+    //   lane 1: (a1+a5) + (a3+a7)
+    //   lane 2: (a2+a6) + (a0+a4)
+    //   lane 3: (a3+a7) + (a1+a5)
+    //   lane 4: (a4+a0) + (a6+a2)
+    //   lane 5: (a5+a1) + (a7+a3)
+    //   lane 6: (a6+a2) + (a4+a0)
+    //   lane 7: (a7+a3) + (a5+a1)
+    //
+    // 第 3 轮 offset = 1（按 bit 0 做异或配对）：
+    //   0^1=1, 2^1=3, 4^1=5, 6^1=7
+    //   每个 lane 再与对应配对 lane 的“部分和”相加，最终 lane 0~7 全部都变成 (a0+a1+...+a7)
+    //
+    // 对 warpSize = 32 也是同理，只是 offset 顺序是 16, 8, 4, 2, 1，逐位完成蝶形归约。
+    for (int offset = warpSize / 2; offset > 0; offset >>= 1)
+    {
+        val += __shfl_xor_sync(mask, val, offset);
+    }
+
+    return val;
+}
+
+/**
+ * @brief 全局求和归约内核（共享内存版本）
  * @tparam T 数据类型
  * @param input 输入数据
  * @param output 输出数据
@@ -44,6 +87,102 @@ __global__ void sum_reduce_kernel(const T *__restrict__ input, T *__restrict__ o
     if (tid == 0)
     {
         output[blockIdx.x] = sdata[0];
+    }
+}
+
+/**
+ * @brief 全局求和归约内核（warp 洗牌版本）
+ * @tparam T 数据类型
+ * @param input 输入数据
+ * @param output 输出数据
+ * @param n 元素总数
+ */
+template <typename T>
+__global__ void sum_reduce_shuffle_kernel(const T *__restrict__ input, T *__restrict__ output, size_t n)
+{
+    T sum = 0;
+
+    // grid-stride loop，保证每个元素只被访问一次
+    for (size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n; idx += blockDim.x * gridDim.x)
+    {
+        sum += input[idx];
+    }
+
+    // 先在 warp 内使用洗牌指令做规约
+    sum = warp_shuffle_reduce_sum(sum);
+
+    // 将每个 warp 的部分和写入 shared memory
+    __shared__ T warp_sums[32];  // 支持最多 32 个 warp（即 1024 线程的 block）
+    int lane   = threadIdx.x % warpSize;
+    int warpId = threadIdx.x / warpSize;
+
+    if (lane == 0)
+    {
+        warp_sums[warpId] = sum;
+    }
+    __syncthreads();
+
+    // 使用第 0 个 warp 对所有 warp 的部分和做一次规约
+    T block_sum = 0;
+    if (warpId == 0)
+    {
+        int num_warps = (blockDim.x + warpSize - 1) / warpSize;
+        block_sum     = (lane < num_warps) ? warp_sums[lane] : static_cast<T>(0);
+        block_sum     = warp_shuffle_reduce_sum(block_sum);
+    }
+
+    // 线程 0 写回当前 block 的规约结果
+    if (threadIdx.x == 0)
+    {
+        output[blockIdx.x] = block_sum;
+    }
+}
+
+/**
+ * @brief 全局求和归约内核（warp 洗牌 + atomicAdd 版本）
+ * @tparam T 数据类型（需支持 CUDA 原生 atomicAdd）
+ * @param input 输入数据
+ * @param output 单个标量输出
+ * @param n 元素总数
+ */
+template <typename T>
+__global__ void sum_reduce_atomic_kernel(const T *__restrict__ input, T *__restrict__ output, size_t n)
+{
+    T sum = 0;
+
+    // grid-stride loop，遍历所有元素
+    for (size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n; idx += blockDim.x * gridDim.x)
+    {
+        sum += input[idx];
+    }
+
+    // 先在 warp 内使用洗牌指令做规约
+    sum = warp_shuffle_reduce_sum(sum);
+
+    // 将每个 warp 的部分和写入 shared memory
+    __shared__ T warp_sums[32];  // 支持最多 32 个 warp（即 1024 线程的 block）
+    int lane   = threadIdx.x % warpSize;
+    int warpId = threadIdx.x / warpSize;
+
+    if (lane == 0)
+    {
+        warp_sums[warpId] = sum;
+    }
+    __syncthreads();
+
+    // 使用第 0 个 warp 对所有 warp 的部分和做一次规约
+    T block_sum = 0;
+    if (warpId == 0)
+    {
+        int num_warps = (blockDim.x + warpSize - 1) / warpSize;
+        block_sum     = (lane < num_warps) ? warp_sums[lane] : static_cast<T>(0);
+        block_sum     = warp_shuffle_reduce_sum(block_sum);
+    }
+
+    // 使用 atomicAdd 将当前 block 的规约结果累加到全局输出
+    if (threadIdx.x == 0)
+    {
+        atomicAdd(output, block_sum);
     }
 }
 
@@ -95,25 +234,38 @@ void launch_sum_reduce_kernel(const T *input, T *output, size_t n)
     const int block_size = 256;
     const int grid_size  = (n + block_size - 1) / block_size;
 
-    // 把 input 分成 grid_size 个 block
-    // 每个 block 内部归约，将结果写入 output[blockIdx.x]，
-    // 第一轮归约后，output[0] 存储的是所有 block 的第一个元素的和，output[1] 存储的是所有 block
-    // 的第二个元素的和，以此类推
-    sum_reduce_kernel<T><<<grid_size, block_size, block_size * sizeof(T)>>>(input, output, n);
-
-    // 如果有多个块，用 log(n) 的算法进行二分规约。
-    if (grid_size > 1)
+    // 对支持 CUDA 原生 atomicAdd 的类型，使用单 kernel + atomicAdd 的高效实现
+    if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, int32_t>)
     {
-        T *temp_output   = output;
-        size_t remaining = grid_size;
+        sum_reduce_atomic_kernel<T><<<grid_size, block_size>>>(input, output, n);
+    }
+    else
+    {
+        // 其他类型沿用原来的多轮规约算法，使用 OriginMat 作为临时 workspace（走统一内存池）
+        auto workspace_mat =
+            OriginMat::zeros(Shape({static_cast<size_t>(grid_size)}), dtype(DataTypeTraits<T>::type).device(kCUDA, 0));
+        auto *workspace   = static_cast<OriginMat *>(workspace_mat.get());
+        T *temp_output    = workspace->template data_ptr<T>();
 
-        while (remaining > 1)
+        // 第一轮：把 input 分成 grid_size 个 block，每个 block 内部归约，将结果写入 temp_output[blockIdx.x]
+        sum_reduce_shuffle_kernel<T><<<grid_size, block_size>>>(input, temp_output, n);
+
+        // 如果有多个块，用 log(n) 的算法进行二分规约。
+        if (grid_size > 1)
         {
-            size_t new_grid_size = (remaining + block_size - 1) / block_size;
-            sum_reduce_kernel<T>
-                <<<new_grid_size, block_size, block_size * sizeof(T)>>>(temp_output, temp_output, remaining);
-            remaining = new_grid_size;
+            size_t remaining = grid_size;
+
+            while (remaining > 1)
+            {
+                size_t new_grid_size = (remaining + block_size - 1) / block_size;
+                sum_reduce_kernel<T>
+                    <<<new_grid_size, block_size, block_size * sizeof(T)>>>(temp_output, temp_output, remaining);
+                remaining = new_grid_size;
+            }
         }
+
+        // 此时 temp_output[0] 存放最终的求和结果，拷贝到输出标量
+        CUDA_CHECK(cudaMemcpy(output, temp_output, sizeof(T), cudaMemcpyDeviceToDevice));
     }
 }
 
@@ -162,14 +314,16 @@ std::unique_ptr<Mat> sum(const OriginMat &mat, int axis, bool keepdim)
         {
             result_shape = Shape({1});
         }
-        auto result = std::make_unique<OriginMat>(result_shape, mat.dtype(), mat.device());
+
+        auto result_mat = OriginMat::zeros(result_shape, dtype(mat.dtype()).device(mat.device()));
+        auto *result    = static_cast<OriginMat *>(result_mat.get());
 
         // 使用类型分发器执行全局求和
         device_common::TypeDispatcher::dispatch_void(mat.dtype(), [&]<typename T>() {
-            launch_sum_reduce_kernel(mat.data_ptr<T>(), result->data_ptr<T>(), mat.elements());
+            launch_sum_reduce_kernel(mat.data_ptr<T>(), result->template data_ptr<T>(), mat.elements());
         });
 
-        return result;
+        return result_mat;
     }
     else
     {
