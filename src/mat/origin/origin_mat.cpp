@@ -1764,6 +1764,118 @@ std::vector<std::unique_ptr<Mat>> OriginMat::batch_norm_backward(const Mat &gy,
     }
 }
 
+// === RMSNorm 相关操作实现 ===
+
+OriginMat::RMSNormResult OriginMat::rms_norm_forward(const Mat &gamma, float eps) const
+{
+    // 类型检查和转换
+    const OriginMat *gamma_mat = dynamic_cast<const OriginMat *>(&gamma);
+    if (!gamma_mat)
+    {
+        THROW_RUNTIME_ERROR("rms_norm_forward: gamma must be OriginMat type, got backend_type={}",
+                            gamma.backend_type());
+    }
+
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        auto result = cpu::rms_norm_forward(*this, *gamma_mat, eps);
+        OriginMat::RMSNormResult ret;
+        ret.y   = std::move(result.y);
+        ret.rms = std::move(result.rms);
+        return ret;
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        auto result = cuda::rms_norm_forward(*this, *gamma_mat, eps);
+        OriginMat::RMSNormResult ret;
+        ret.y   = std::move(result.y);
+        ret.rms = std::move(result.rms);
+        return ret;
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for rms_norm_forward: {}",
+                            static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::unique_ptr<Mat> OriginMat::rms_norm(const Mat &gamma, float eps) const
+{
+    // 类型检查和转换
+    const OriginMat *gamma_mat = dynamic_cast<const OriginMat *>(&gamma);
+    if (!gamma_mat)
+    {
+        THROW_RUNTIME_ERROR("rms_norm: gamma must be OriginMat type, got backend_type={}", gamma.backend_type());
+    }
+
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::rms_norm(*this, *gamma_mat, eps);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::rms_norm(*this, *gamma_mat, eps);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for rms_norm: {}", static_cast<int>(storage_->device_type()));
+    }
+}
+
+std::vector<std::unique_ptr<Mat>> OriginMat::rms_norm_backward(const Mat &gy,
+                                                               const Mat &gamma,
+                                                               const Mat &saved_rms,
+                                                               float eps) const
+{
+    // 类型检查和转换
+    const OriginMat *gy_mat = dynamic_cast<const OriginMat *>(&gy);
+    if (!gy_mat)
+    {
+        THROW_RUNTIME_ERROR("rms_norm_backward: gy must be OriginMat type, got backend_type={}", gy.backend_type());
+    }
+    const OriginMat *gamma_mat = dynamic_cast<const OriginMat *>(&gamma);
+    if (!gamma_mat)
+    {
+        THROW_RUNTIME_ERROR("rms_norm_backward: gamma must be OriginMat type, got backend_type={}",
+                            gamma.backend_type());
+    }
+    const OriginMat *saved_rms_mat = dynamic_cast<const OriginMat *>(&saved_rms);
+    if (!saved_rms_mat)
+    {
+        THROW_RUNTIME_ERROR("rms_norm_backward: saved_rms must be OriginMat type, got backend_type={}",
+                            saved_rms.backend_type());
+    }
+
+    // 根据设备类型选择实现
+    if (storage_->device_type() == DeviceType::kCPU)
+    {
+        return cpu::rms_norm_backward(*gy_mat, *this, *gamma_mat, *saved_rms_mat, eps);
+    }
+    else if (storage_->device_type() == DeviceType::kCUDA)
+    {
+#ifdef WITH_CUDA
+        return cuda::rms_norm_backward(*gy_mat, *this, *gamma_mat, *saved_rms_mat, eps);
+#else
+        THROW_RUNTIME_ERROR("CUDA support not compiled in");
+#endif
+    }
+    else
+    {
+        THROW_RUNTIME_ERROR("Unsupported device type for rms_norm_backward: {}",
+                            static_cast<int>(storage_->device_type()));
+    }
+}
+
 // === Dropout 相关操作实现 ===
 
 std::unique_ptr<Mat> OriginMat::dropout(float p, bool training, Mat *mask) const
