@@ -291,6 +291,36 @@ public:
                                                           float eps,
                                                           int num_dims) const override;
 
+    // === RMSNorm 相关操作（Mat 接口实现）===
+    /**
+     * @brief rms_norm_forward：RMSNorm 前向传播（返回所有中间结果）
+     * @param gamma 缩放参数 (weight)，形状为 (normalized_shape,)
+     * @param eps 数值稳定性参数
+     * @return RMSNormResult 包含输出和中间结果
+     */
+    RMSNormResult rms_norm_forward(const Mat &gamma, float eps) const override;
+
+    /**
+     * @brief rms_norm：RMSNorm 前向传播（只返回输出）
+     * @param gamma 缩放参数 (weight)，形状为 (normalized_shape,)
+     * @param eps 数值稳定性参数
+     * @return 输出张量，形状与输入相同
+     */
+    std::unique_ptr<Mat> rms_norm(const Mat &gamma, float eps) const override;
+
+    /**
+     * @brief rms_norm_backward：RMSNorm 反向传播
+     * @param gy 输出梯度，形状与输入 x 相同
+     * @param gamma 缩放参数 (weight)，形状为 (normalized_shape,)
+     * @param saved_rms 前向传播时保存的 RMS 值
+     * @param eps 数值稳定性参数
+     * @return 梯度向量：{gx, dgamma}
+     */
+    std::vector<std::unique_ptr<Mat>> rms_norm_backward(const Mat &gy,
+                                                        const Mat &gamma,
+                                                        const Mat &saved_rms,
+                                                        float eps) const override;
+
     // === 其他操作（Mat 接口实现）===
     /**
      * @brief gather：根据索引从矩阵中提取值
