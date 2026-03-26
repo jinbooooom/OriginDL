@@ -359,6 +359,55 @@ std::vector<std::unique_ptr<Mat>> batch_norm_backward(const OriginMat &gy,
                                                       float eps,
                                                       int num_dims);
 
+/**
+ * @brief RMSNorm 前向传播结果结构体
+ */
+struct RMSNormForwardResult
+{
+    std::unique_ptr<Mat> y;    // 输出
+    std::unique_ptr<Mat> rms;  // RMS 值（sqrt(mean(x^2) + eps)）
+};
+
+/**
+ * @brief RMSNorm 前向传播（返回所有中间结果）
+ * @note 只支持浮点类型（float32 或 float64），与 PyTorch 行为一致
+ * @param x 输入张量（必须是 float32 或 float64），形状 (..., normalized_shape)
+ * @param gamma 缩放参数 (weight)，形状为 (normalized_shape,)，必须与 x 相同的浮点类型
+ * @param eps 数值稳定性参数
+ * @return RMSNormForwardResult 包含输出和中间结果
+ */
+RMSNormForwardResult rms_norm_forward(const OriginMat &x,
+                                      const OriginMat &gamma,
+                                      float eps);
+
+/**
+ * @brief RMSNorm 前向传播（只返回输出）
+ * @note 只支持浮点类型（float32 或 float64），与 PyTorch 行为一致
+ * @param x 输入张量（必须是 float32 或 float64），形状 (..., normalized_shape)
+ * @param gamma 缩放参数 (weight)，形状为 (normalized_shape,)，必须与 x 相同的浮点类型
+ * @param eps 数值稳定性参数
+ * @return 输出张量，形状与输入相同
+ */
+std::unique_ptr<Mat> rms_norm(const OriginMat &x,
+                              const OriginMat &gamma,
+                              float eps);
+
+/**
+ * @brief RMSNorm 反向传播
+ * @note 只支持浮点类型（float32 或 float64），与 PyTorch 行为一致
+ * @param gy 输出梯度，形状与输入 x 相同，必须是浮点类型
+ * @param x 输入张量，必须是浮点类型
+ * @param gamma 缩放参数 (weight)，形状为 (normalized_shape,)，必须与 x 相同的浮点类型
+ * @param saved_rms 前向传播时保存的 RMS 值
+ * @param eps 数值稳定性参数
+ * @return 梯度向量：{gx, dgamma}
+ */
+std::vector<std::unique_ptr<Mat>> rms_norm_backward(const OriginMat &gy,
+                                                    const OriginMat &x,
+                                                    const OriginMat &gamma,
+                                                    const OriginMat &saved_rms,
+                                                    float eps);
+
 // === 上采样相关操作 ===
 
 /**

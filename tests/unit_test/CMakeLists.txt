@@ -346,6 +346,7 @@ set_target_properties(test_batch_norm_operator PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+
 add_executable(test_max_pool2d operator/test_max_pool2d.cpp)
 add_dependencies(test_max_pool2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_max_pool2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
@@ -432,6 +433,16 @@ add_dependencies(test_batch_norm gtest gtest_main origindl test_utils gtest_util
 target_link_libraries(test_batch_norm ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
 target_include_directories(test_batch_norm PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
 set_target_properties(test_batch_norm PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
+add_executable(test_rms_norm nn/test_rms_norm.cpp)
+add_dependencies(test_rms_norm gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_rms_norm ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_rms_norm PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_rms_norm PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
@@ -629,6 +640,7 @@ add_test(NAME weight_decay_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_weight_deca
 add_test(NAME mlp_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_mlp)
 add_test(NAME conv2d_layer_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_conv2d_layer)
 add_test(NAME batch_norm_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_batch_norm)
+add_test(NAME rms_norm_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_rms_norm)
 add_test(NAME dropout_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_dropout)
 add_test(NAME pow_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_pow)
 add_test(NAME type_promotion_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_type_promotion)
