@@ -87,6 +87,22 @@ std::vector<Tensor> MatMul::forward(const std::vector<Tensor> &xs)
                 shape0.to_string(), shape1.to_string(), shape0[2], shape1[0]);
         }
     }
+    else if (shape0.size() == 3 && shape1.size() == 3)
+    {
+        // 批量矩阵乘法：{batch, m, k} x {batch, k, n} -> {batch, m, n}
+        if (unlikely(shape0[0] != shape1[0]))
+        {
+            THROW_RUNTIME_ERROR(
+                "MatMul forward: batch size mismatch - x0.shape() = {}, x1.shape() = {}, x0[0]={} != x1[0]={}",
+                shape0.to_string(), shape1.to_string(), shape0[0], shape1[0]);
+        }
+        if (unlikely(shape0[2] != shape1[1]))
+        {
+            THROW_RUNTIME_ERROR(
+                "MatMul forward: dimension mismatch - x0.shape() = {}, x1.shape() = {}, x0[2]={} != x1[1]={}",
+                shape0.to_string(), shape1.to_string(), shape0[2], shape1[1]);
+        }
+    }
     else
     {
         THROW_RUNTIME_ERROR("MatMul forward: unsupported shape combination - x0.shape() = {}, x1.shape() = {}",

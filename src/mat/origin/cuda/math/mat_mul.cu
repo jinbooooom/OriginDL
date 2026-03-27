@@ -1879,18 +1879,21 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
     // 计算输出形状
     std::vector<size_t> output_dims;
 
-    // 处理批量维度（简化实现，只支持相同批量维度）
+    // 处理批量维度
     if (likely(shape_a.size() == 2 && shape_b.size() == 2))
     {
-        // 2D矩阵乘法
+        // 2D x 2D 矩阵乘法
         output_dims = {static_cast<size_t>(M), static_cast<size_t>(N)};
     }
-    else if (likely(shape_a.size() == shape_b.size()))
+    else if (shape_a.size() == 3 && shape_b.size() == 2)
     {
-        // 批量矩阵乘法（相同批量维度）
-        output_dims                         = shape_a.dims();
-        output_dims[output_dims.size() - 2] = M;
-        output_dims[output_dims.size() - 1] = N;
+        // 3D x 2D 批量矩阵乘法：{batch, m, k} x {k, n} -> {batch, m, n}
+        output_dims = {static_cast<size_t>(shape_a[0]), static_cast<size_t>(M), static_cast<size_t>(N)};
+    }
+    else if (likely(shape_a.size() == 3 && shape_b.size() == 3))
+    {
+        // 3D x 3D 批量矩阵乘法：{batch, m, k} x {batch, k, n} -> {batch, m, n}
+        output_dims = {static_cast<size_t>(shape_a[0]), static_cast<size_t>(M), static_cast<size_t>(N)};
     }
     else
     {
@@ -1906,23 +1909,61 @@ std::unique_ptr<Mat> matmul(const OriginMat &a, const OriginMat &b)
 
     // 使用类型分发器执行矩阵乘法
     device_common::TypeDispatcher::dispatch_void(a_ptr->dtype(), [&]<typename T>() {
-#ifdef ENABLE_CUBLAS
-        // 如果启用cuBLAS，并且是支持的类型（float或double），使用cuBLAS
-        // cuBLAS只支持float和double类型
-        constexpr bool is_supported_type = std::is_same_v<T, float> || std::is_same_v<T, double>;
+        const T *a_data = a_ptr->data_ptr<T>();
+        const T *b_data = b_ptr->data_ptr<T>();
+        T *c_data       = result->data_ptr<T>();
 
-        if constexpr (is_supported_type)
+        // 判断是否为批量矩阵乘法
+        const bool is_batched = (shape_a.size() == 3 && shape_b.size() == 3) ||
+                               (shape_a.size() == 3 && shape_b.size() == 2);
+
+        if (is_batched)
         {
-            cublas_matmul<T>(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K);
+            // 批量矩阵乘法：循环调用 2D kernel
+            const size_t batch_size = shape_a[0];
+            const size_t a_stride = M * K;
+            const size_t b_stride_3d = K * N;
+            const size_t c_stride = M * N;
+            const bool b_is_3d = (shape_b.size() == 3);
+
+            for (size_t batch = 0; batch < batch_size; ++batch)
+            {
+                const T *a_batch = a_data + batch * a_stride;
+                const T *b_batch = b_is_3d ? (b_data + batch * b_stride_3d) : b_data;
+                T *c_batch       = c_data + batch * c_stride;
+
+#ifdef ENABLE_CUBLAS
+                constexpr bool is_supported_type = std::is_same_v<T, float> || std::is_same_v<T, double>;
+                if constexpr (is_supported_type)
+                {
+                    cublas_matmul<T>(a_batch, b_batch, c_batch, M, N, K);
+                }
+                else
+                {
+                    launch_matmul_2d_kernel(a_batch, b_batch, c_batch, M, N, K, version);
+                }
+#else
+                launch_matmul_2d_kernel(a_batch, b_batch, c_batch, M, N, K, version);
+#endif
+            }
         }
         else
         {
-            launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K,
-                                    version);
-        }
+            // 普通 2D 矩阵乘法
+#ifdef ENABLE_CUBLAS
+            constexpr bool is_supported_type = std::is_same_v<T, float> || std::is_same_v<T, double>;
+            if constexpr (is_supported_type)
+            {
+                cublas_matmul<T>(a_data, b_data, c_data, M, N, K);
+            }
+            else
+            {
+                launch_matmul_2d_kernel(a_data, b_data, c_data, M, N, K, version);
+            }
 #else
-        launch_matmul_2d_kernel(a_ptr->data_ptr<T>(), b_ptr->data_ptr<T>(), result->data_ptr<T>(), M, N, K, version);
+            launch_matmul_2d_kernel(a_data, b_data, c_data, M, N, K, version);
 #endif
+        }
     });
 
     return result;
