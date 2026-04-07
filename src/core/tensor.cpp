@@ -81,16 +81,19 @@ Tensor Tensor::from_blob(void *data, const Shape &shape, const TensorOptions &op
 
 Shape Tensor::shape() const
 {
+    check_defined_(__FUNCTION__);
     return impl_->shape();
 }
 
 size_t Tensor::ndim() const
 {
+    check_defined_(__FUNCTION__);
     return impl_->ndim();
 }
 
 size_t Tensor::elements() const
 {
+    check_defined_(__FUNCTION__);
     return impl_->elements();
 }
 
@@ -98,17 +101,25 @@ size_t Tensor::elements() const
 
 size_t Tensor::element_size() const
 {
+    check_defined_(__FUNCTION__);
     return origin::element_size(dtype());  // 返回单个元素占用的字节数
 }
 
 size_t Tensor::numel() const
 {
+    check_defined_(__FUNCTION__);
     return elements();  // numel()和elements()功能相同
 }
 
 size_t Tensor::nbytes() const
 {
+    check_defined_(__FUNCTION__);
     return element_size() * numel();
+}
+
+bool Tensor::defined() const
+{
+    return static_cast<bool>(impl_);
 }
 
 // === 数据访问：类型安全实现 ===
@@ -117,6 +128,7 @@ template <typename T>
 T Tensor::item() const
 {
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    check_defined_(__FUNCTION__);
     return impl_->item<T>();
 }
 
@@ -124,6 +136,7 @@ template <typename T>
 T *Tensor::data_ptr()
 {
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    check_defined_(__FUNCTION__);
     return impl_->data_ptr<T>();
 }
 
@@ -133,12 +146,14 @@ template <typename T>
 T Tensor::index(std::initializer_list<size_t> indices) const
 {
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    check_defined_(__FUNCTION__);
     Scalar result = impl_->index(indices);
     return result.to<T>();
 }
 
 void Tensor::index_put(std::initializer_list<size_t> indices, const Scalar &value)
 {
+    check_defined_(__FUNCTION__);
     impl_->index_put(indices, value);
 }
 
@@ -146,16 +161,19 @@ void Tensor::index_put(std::initializer_list<size_t> indices, const Scalar &valu
 
 DataType Tensor::dtype() const
 {
+    check_defined_(__FUNCTION__);
     return impl_->data_->dtype();
 }
 
 Device Tensor::device() const
 {
+    check_defined_(__FUNCTION__);
     return impl_->data_->device();
 }
 
 Tensor Tensor::to(DataType target_type) const
 {
+    check_defined_(__FUNCTION__);
     auto converted_mat = impl_->data_->to(target_type);
     // 保留原 tensor 的 requires_grad 属性
     return Tensor(std::make_unique<TensorImpl>(std::move(converted_mat), impl_->requires_grad_));
@@ -163,10 +181,7 @@ Tensor Tensor::to(DataType target_type) const
 
 Tensor Tensor::to(Device device) const
 {
-    if (!impl_)
-    {
-        THROW_RUNTIME_ERROR("Tensor::to(Device): impl_ is null");
-    }
+    check_defined_(__FUNCTION__);
     if (!impl_->data_)
     {
         THROW_RUNTIME_ERROR("Tensor::to(Device): impl_->data_ is null");
@@ -182,6 +197,7 @@ Tensor Tensor::to(Device device) const
 
 Tensor Tensor::to(const TensorOptions &options) const
 {
+    check_defined_(__FUNCTION__);
     auto converted_impl = impl_->to(options);
     return Tensor(std::make_shared<TensorImpl>(std::move(converted_impl)));
 }
@@ -190,6 +206,7 @@ Tensor Tensor::to(const TensorOptions &options) const
 
 Tensor Tensor::grad() const
 {
+    check_defined_(__FUNCTION__);
     if (!impl_->grad_)
     {
         return Tensor::zeros(shape(),
@@ -202,16 +219,19 @@ Tensor Tensor::grad() const
 
 void Tensor::set_creator(const std::shared_ptr<Operator> &func)
 {
+    check_defined_(__FUNCTION__);
     impl_->set_creator(func);
 }
 
 void Tensor::backward()
 {
+    check_defined_(__FUNCTION__);
     impl_->backward();
 }
 
 void Tensor::clear_grad()
 {
+    check_defined_(__FUNCTION__);
     impl_->clear_grad();
 }
 
@@ -228,6 +248,7 @@ bool Tensor::requires_grad() const
 
 Tensor Tensor::detach() const
 {
+    check_defined_(__FUNCTION__);
     // 创建一个新的TensorImpl，只复制data_，不复制creator_和grad_
     // 继承原 tensor 的 requires_grad_，但不参与计算图（creator_=nullptr）
     // 注意：原始tensor保持不变（因为detach是const方法）
@@ -237,6 +258,7 @@ Tensor Tensor::detach() const
 
 Tensor Tensor::clone() const
 {
+    check_defined_(__FUNCTION__);
     // 1. 深拷贝data_（创建独立的数据副本）
     // 2. 不复制grad_（初始化为nullptr，需要重新计算梯度）
     // 3. 复制creator_、generation_和requires_grad_（保留计算图连接和属性）
@@ -250,6 +272,11 @@ Tensor Tensor::clone() const
 
 void Tensor::accumulate_grad(const Tensor &grad_to_add)
 {
+    check_defined_(__FUNCTION__);
+    if (!grad_to_add.impl_)
+    {
+        THROW_RUNTIME_ERROR("{}(): grad_to_add is undefined (default-constructed)", __FUNCTION__);
+    }
     // 如果梯度为空，直接赋值；否则累加（类似backward()中的实现）
     if (!impl_->grad_)
     {
@@ -266,6 +293,7 @@ void Tensor::accumulate_grad(const Tensor &grad_to_add)
 
 Tensor Tensor::reshape(const Shape &shape) const
 {
+    check_defined_(__FUNCTION__);
     // 通过TensorImpl的reshape方法，避免直接操作Mat
     auto new_impl = impl_->reshape(shape);
     return Tensor(std::make_shared<TensorImpl>(std::move(new_impl)));
@@ -273,6 +301,7 @@ Tensor Tensor::reshape(const Shape &shape) const
 
 Tensor Tensor::transpose() const
 {
+    check_defined_(__FUNCTION__);
     // 通过TensorImpl的transpose方法，避免直接操作Mat
     auto new_impl = impl_->transpose();
     return Tensor(std::make_shared<TensorImpl>(std::move(new_impl)));
@@ -280,14 +309,30 @@ Tensor Tensor::transpose() const
 
 Tensor Tensor::contiguous() const
 {
+    check_defined_(__FUNCTION__);
     // 通过 Mat 接口的 contiguous() 创建连续张量，继承原 tensor 的 requires_grad
     auto new_mat = impl_->data_->contiguous();
     return Tensor(std::make_shared<TensorImpl>(std::move(new_mat), impl_->requires_grad_));
 }
 
+// 未定义 tensor 上统一抛异常，而不是对各类 API 返回“默认值”，原因包括：
+// - 多数接口没有唯一合理的默认值：例如 shape() 若返回“空 Shape”会与 0 维标量的合法形状（Shape({})）难以区分；
+//      numel() 返回 0 也可能对应合法张量（如任一维为 0）；dtype() 更不存在通用默认值，硬给默认只会掩盖错误。
+// - 返回默认 Tensor（如再构造一个 undefined）会把错误推迟到后续调用，形成链式静默错误，难排查。
+// - 与 PyTorch 的 defined()/未定义张量用法一致：未定义应显式区分，不应伪装成“空但合法”的值。
+// - 失败时立刻在调用点失败（fail-fast），附带 caller 信息，优于在远处得到错误数值或 UB。
+void Tensor::check_defined_(const char *caller) const
+{
+    if (unlikely(!impl_))
+    {
+        THROW_RUNTIME_ERROR("{}(): tensor is undefined", caller);
+    }
+}
+
 // === 调试实现 ===
 void Tensor::print(const std::string &desc) const
 {
+    check_defined_(__FUNCTION__);
     impl_->print(desc);
 }
 
@@ -315,6 +360,7 @@ template <typename T>
 std::vector<T> Tensor::to_vector() const
 {
     ORIGIN_STATIC_ASSERT_ARITHMETIC(T);
+    check_defined_(__FUNCTION__);
 
     // 1. 获取在内存中连续存储的张量
     Tensor t = contiguous();
@@ -344,6 +390,7 @@ std::vector<T> Tensor::to_vector() const
 
 int Tensor::backend_type() const
 {
+    check_defined_(__FUNCTION__);
     return impl_->backend_type();
 }
 

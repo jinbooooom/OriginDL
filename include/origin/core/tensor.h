@@ -85,7 +85,8 @@ private:
     Tensor(std::shared_ptr<TensorImpl> impl);
 
 public:
-    Tensor() = default;  // TODO，可以去掉
+    /// 默认构造得到 undefined tensor（impl_ 为空）
+    Tensor() = default;
 
     Tensor(const Tensor &other);
 
@@ -278,6 +279,12 @@ public:
      */
     Tensor contiguous() const;
 
+    /**
+     * @brief Tensor 是否为已定义状态(类似 PyTorch at::Tensor::defined())
+     * @return 默认构造、移动后未再赋值等情况下为 false
+     */
+     bool defined() const;
+
     // === 调试 ===
     void print(const std::string &desc = "") const;
     template <typename T>
@@ -312,6 +319,11 @@ private:
      * @param options 张量选项
      */
     void from_memory(const void *data, DataType user_dtype, const Shape &shape, const TensorOptions &options);
+
+    /**
+     * @brief 未定义 tensor 上禁止调用大多数 API：抛 std::runtime_error，不返回默认值。
+     */
+    void check_defined_(const char *caller) const;
 };
 
 }  // namespace origin

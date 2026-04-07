@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <cmath>
+#include <optional>
 #include <vector>
 #include "../common/gtest_utils.h"
 #include "../common/test_utils.h"
@@ -93,23 +94,11 @@ TEST_F(TensorCreateTest, MoveConstructor)
     // 由于Tensor使用shared_ptr，移动后original_tensor.impl_变为nullptr
     // 这是正确的移动语义行为：所有权被转移，原对象不再拥有资源
 
-    // 验证移动构造确实发生了：尝试访问移动后的对象应该导致段错误
-    // 这证明了移动构造函数的正确实现
-    // 注意：这个测试期望程序崩溃，这是正确的行为
-    // 在实际使用中，不应该访问移动后的对象
-
-    // 下面的代码来验证移动构造
-    // EXPECT_DEATH 会启动一个子进程来执行测试，由于访问 nullptr，子进程产生段错误，父进程捕获子进程的崩溃信号
-    EXPECT_DEATH(
-        {
-            printf("access moved object...\n");
-            fflush(stdout);
-            original_tensor.shape();
-            printf("this message should not print\n");
-        },
-        ".*");
-    EXPECT_DEATH(original_tensor.elements(), ".*");          // 期望段错误
-    EXPECT_DEATH(original_tensor.to_vector<float>(), ".*");  // 期望段错误
+    // 移动后源对象 impl_ 为空，属于未定义 tensor：访问 shape/elements 等应抛 std::runtime_error（不再 segfault）
+    EXPECT_FALSE(original_tensor.defined());
+    EXPECT_THROW(original_tensor.shape(), std::runtime_error);
+    EXPECT_THROW(original_tensor.elements(), std::runtime_error);
+    EXPECT_THROW(original_tensor.to_vector<float>(), std::runtime_error);
 
     // 验证多次移动构造的正确性
     Tensor another_tensor = std::move(moved_tensor);
@@ -567,4 +556,29 @@ TEST_F(TensorCreateTest, ScalarConstructorDifferentTypes)
     // int64
     auto t_int64 = Tensor(42L, shape, DataType::kInt64);
     EXPECT_EQ(t_int64.dtype(), DataType::kInt64);
+}
+
+// 默认构造的未定义 tensor：查询形状/元素数应抛异常而非崩溃
+TEST_F(TensorCreateTest, UndefinedTensorThrowsOnMetadata)
+{
+    Tensor t;
+    EXPECT_FALSE(t.defined());
+    EXPECT_FALSE(t.requires_grad());
+    EXPECT_THROW(t.shape(), std::runtime_error);
+    EXPECT_THROW(t.ndim(), std::runtime_error);
+    EXPECT_THROW(t.elements(), std::runtime_error);
+    EXPECT_THROW(t.numel(), std::runtime_error);
+}
+
+// 可选张量：用 std::optional<Tensor> 表达可能没有，赋值后再安全使用
+TEST_F(TensorCreateTest, OptionalTensorStdOptional)
+{
+    std::optional<Tensor> mask;
+    ASSERT_FALSE(mask.has_value());
+
+    mask = Tensor::ones(Shape{2, 2}, dtype(DataType::kFloat32));
+    ASSERT_TRUE(mask.has_value());
+    EXPECT_TRUE(mask->defined());
+    EXPECT_EQ(mask->numel(), 4U);
+    EXPECT_EQ(mask->shape(), Shape({2, 2}));
 }
