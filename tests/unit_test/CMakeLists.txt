@@ -583,6 +583,17 @@ set_target_properties(test_matmul PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
 )
 
+# 添加 3D 矩阵乘法测试
+add_executable(test_matmul_3d operator/test_matmul_3d.cpp)
+add_dependencies(test_matmul_3d gtest gtest_main origindl test_utils gtest_utils)
+target_link_libraries(test_matmul_3d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
+target_include_directories(test_matmul_3d PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/tests/unit_test/common ${GTEST_INCLUDE_DIRS})
+set_target_properties(test_matmul_3d PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${UNIT_TEST_OUTPUT_DIR}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${UNIT_TEST_OUTPUT_DIR}
+)
+
 add_executable(test_conv2d operator/test_conv2d.cpp)
 add_dependencies(test_conv2d gtest gtest_main origindl test_utils gtest_utils)
 target_link_libraries(test_conv2d ${GTEST_LIBRARIES} origindl test_utils gtest_utils pthread)
@@ -650,6 +661,7 @@ add_test(NAME broadcast_to_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_broadcast_t
 add_test(NAME transpose_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_transpose)
 add_test(NAME reshape_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_reshape)
 add_test(NAME matmul_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_matmul)
+add_test(NAME matmul_3d_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_matmul_3d)
 add_test(NAME conv2d_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_conv2d)
 add_test(NAME batch_norm_operator_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_batch_norm_operator)
 add_test(NAME linear_regression_test COMMAND ${UNIT_TEST_OUTPUT_DIR}/test_linear_regression)
@@ -677,6 +689,7 @@ set_tests_properties(broadcast_to_test PROPERTIES TIMEOUT 60)
 set_tests_properties(transpose_test PROPERTIES TIMEOUT 60)
 set_tests_properties(reshape_test PROPERTIES TIMEOUT 60)
 set_tests_properties(matmul_test PROPERTIES TIMEOUT 60)
+set_tests_properties(matmul_3d_test PROPERTIES TIMEOUT 60)
 set_tests_properties(linear_regression_test PROPERTIES TIMEOUT 60)
 
 # 打印配置信息
@@ -687,14 +700,14 @@ message(STATUS "GoogleTest include directories: ${GTEST_INCLUDE_DIRS}")
 # 添加自定义目标来运行所有测试
 add_custom_target(run_unit_tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_conv2d test_mlp test_conv2d_layer test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_matmul_3d test_conv2d test_mlp test_conv2d_layer test_linear_regression
     COMMENT "Run all unit tests"
 )
 
 # 添加自定义目标来编译和运行测试
 add_custom_target(test_all
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_tensor_index test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_linear_regression
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_tensor_index test_add test_sub test_mul test_div test_neg test_square test_exp test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_matmul_3d test_linear_regression
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_conv2d test_mlp test_conv2d_layer test_linear_regression
+    DEPENDS test_tensor_create test_multi_type_tensor test_tensor_options test_tensor_attributes test_tensor_operations test_add test_sub test_mul test_div test_neg test_square test_exp test_log test_softmax test_relu test_softmax_cross_entropy test_accuracy test_adam test_pow test_type_promotion test_sum test_sum_to test_broadcast_to test_transpose test_reshape test_matmul test_matmul_3d test_conv2d test_mlp test_conv2d_layer test_linear_regression
     COMMENT "Compile and run all unit tests"
 )

@@ -74,6 +74,40 @@ void matmul_3d_impl(const T *a_data, const T *b_data, T *c_data, size_t batch_si
     }
 }
 
+/**
+ * @brief 矩阵乘法核心实现（3D x 3D）
+ * @tparam T 数据类型
+ * @param a_data 矩阵A的数据指针
+ * @param b_data 矩阵B的数据指针
+ * @param c_data 结果矩阵C的数据指针
+ * @param batch_size 批量大小
+ * @param m A的行数
+ * @param n B的列数
+ * @param k A的列数和B的行数
+ */
+template <typename T>
+void matmul_3d_3d_impl(const T *a_data, const T *b_data, T *c_data, size_t batch_size, size_t m, size_t n, size_t k)
+{
+    for (size_t batch = 0; batch < batch_size; ++batch)
+    {
+        for (size_t i = 0; i < m; ++i)
+        {
+            for (size_t j = 0; j < n; ++j)
+            {
+                T sum = T(0);
+                for (size_t k_idx = 0; k_idx < k; ++k_idx)
+                {
+                    size_t a_idx = batch * m * k + i * k + k_idx;
+                    size_t b_idx = batch * k * n + k_idx * n + j;
+                    sum += a_data[a_idx] * b_data[b_idx];
+                }
+                size_t c_idx  = batch * m * n + i * n + j;
+                c_data[c_idx] = sum;
+            }
+        }
+    }
+}
+
 }  // namespace
 
 std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
@@ -118,6 +152,22 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
                 a_shape.to_string(), b_shape.to_string(), a_shape[2], b_shape[0]);
         }
     }
+    else if (a_shape.size() == 3 && b_shape.size() == 3)
+    {
+        // 3D x 3D 矩阵乘法：批量矩阵乘法
+        if (unlikely(a_shape[0] != b_shape[0]))
+        {
+            THROW_INVALID_ARG(
+                "Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}, A[0]={} != B[0]={}",
+                a_shape.to_string(), b_shape.to_string(), a_shape[0], b_shape[0]);
+        }
+        if (unlikely(a_shape[2] != b_shape[1]))
+        {
+            THROW_INVALID_ARG(
+                "Matrix dimensions must be compatible for multiplication. A shape: {}, B shape: {}, A[2]={} != B[1]={}",
+                a_shape.to_string(), b_shape.to_string(), a_shape[2], b_shape[1]);
+        }
+    }
     else
     {
         THROW_INVALID_ARG("Matrix multiplication requires compatible dimensions. A shape: {}, B shape: {}",
@@ -126,13 +176,17 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
 
     // 计算结果形状
     Shape result_shape;
-    if (a.shape().size() == 2)
+    if (a.shape().size() == 2 && b.shape().size() == 2)
     {
         result_shape = Shape({a.shape()[0], b.shape()[1]});
     }
-    else if (a.shape().size() == 3)
+    else if (a.shape().size() == 3 && b.shape().size() == 2)
     {
         result_shape = Shape({a.shape()[0], a.shape()[1], b.shape()[1]});
+    }
+    else if (a.shape().size() == 3 && b.shape().size() == 3)
+    {
+        result_shape = Shape({a.shape()[0], a.shape()[1], b.shape()[2]});
     }
 
     auto result = std::make_unique<OriginMat>(result_shape, a.dtype());
@@ -146,13 +200,17 @@ std::unique_ptr<OriginMat> matmul(const OriginMat &a, const OriginMat &b)
         const T *b_ptr = static_cast<const T *>(b_data);
         T *c_ptr       = static_cast<T *>(c_data);
 
-        if (a.shape().size() == 2)
+        if (a.shape().size() == 2 && b.shape().size() == 2)
         {
             matmul_2d_impl<T>(a_ptr, b_ptr, c_ptr, a.shape()[0], b.shape()[1], a.shape()[1]);
         }
-        else if (a.shape().size() == 3)
+        else if (a.shape().size() == 3 && b.shape().size() == 2)
         {
             matmul_3d_impl<T>(a_ptr, b_ptr, c_ptr, a.shape()[0], a.shape()[1], b.shape()[1], a.shape()[2]);
+        }
+        else if (a.shape().size() == 3 && b.shape().size() == 3)
+        {
+            matmul_3d_3d_impl<T>(a_ptr, b_ptr, c_ptr, a.shape()[0], a.shape()[1], b.shape()[2], a.shape()[2]);
         }
     });
 
