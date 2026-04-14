@@ -35,7 +35,8 @@ namespace origin
 void *CPUAllocator::allocate(size_t size)
 {
     // 为CPU分配对齐的内存
-    void *ptr = std::aligned_alloc(MEMORY_ALIGNMENT, size);
+    size_t aligned_size = (size + MEMORY_ALIGNMENT - 1) & ~(MEMORY_ALIGNMENT - 1);
+    void *ptr           = std::aligned_alloc(MEMORY_ALIGNMENT, aligned_size);
     if (ptr == nullptr)
     {
         throw std::bad_alloc();
